@@ -51,6 +51,19 @@ void registerAuthDependencies(GetIt sl) {
       () => ResendVerificationCodeUseCase(sl<AuthRepository>()),
     );
   }
+  if (!sl.isRegistered<RequestPasswordResetUseCase>()) {
+    sl.registerLazySingleton(
+      () => RequestPasswordResetUseCase(sl<AuthRepository>()),
+    );
+  }
+  if (!sl.isRegistered<ResendPasswordResetCodeUseCase>()) {
+    sl.registerLazySingleton(
+      () => ResendPasswordResetCodeUseCase(sl<AuthRepository>()),
+    );
+  }
+  if (!sl.isRegistered<ResetPasswordUseCase>()) {
+    sl.registerLazySingleton(() => ResetPasswordUseCase(sl<AuthRepository>()));
+  }
   if (!sl.isRegistered<RefreshProfileUseCase>()) {
     sl.registerLazySingleton(() => RefreshProfileUseCase(sl<AuthRepository>()));
   }
@@ -76,6 +89,9 @@ void registerAuthDependencies(GetIt sl) {
         signup: sl<SignupUseCase>(),
         verifyEmail: sl<VerifyEmailUseCase>(),
         resendVerificationCode: sl<ResendVerificationCodeUseCase>(),
+        requestPasswordReset: sl<RequestPasswordResetUseCase>(),
+        resendPasswordResetCode: sl<ResendPasswordResetCodeUseCase>(),
+        resetPassword: sl<ResetPasswordUseCase>(),
         refreshProfile: sl<RefreshProfileUseCase>(),
         updateProfile: sl<UpdateProfileUseCase>(),
         logout: sl<LogoutUseCase>(),

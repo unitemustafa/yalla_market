@@ -13,6 +13,9 @@ class AuthUseCases {
     required this.signup,
     required this.verifyEmail,
     required this.resendVerificationCode,
+    required this.requestPasswordReset,
+    required this.resendPasswordResetCode,
+    required this.resetPassword,
     required this.refreshProfile,
     required this.updateProfile,
     required this.logout,
@@ -27,6 +30,9 @@ class AuthUseCases {
   final SignupUseCase signup;
   final VerifyEmailUseCase verifyEmail;
   final ResendVerificationCodeUseCase resendVerificationCode;
+  final RequestPasswordResetUseCase requestPasswordReset;
+  final ResendPasswordResetCodeUseCase resendPasswordResetCode;
+  final ResetPasswordUseCase resetPassword;
   final RefreshProfileUseCase refreshProfile;
   final UpdateProfileUseCase updateProfile;
   final LogoutUseCase logout;
@@ -135,6 +141,46 @@ class ResendVerificationCodeUseCase {
 
   Future<ApiResult<bool>> call(String email) {
     return _repository.resendVerificationCode(email);
+  }
+}
+
+class RequestPasswordResetUseCase {
+  const RequestPasswordResetUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<bool>> call(String email) {
+    return _repository.requestPasswordReset(email);
+  }
+}
+
+class ResendPasswordResetCodeUseCase {
+  const ResendPasswordResetCodeUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<bool>> call(String email) {
+    return _repository.resendPasswordResetCode(email);
+  }
+}
+
+class ResetPasswordUseCase {
+  const ResetPasswordUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<bool>> call({
+    required String email,
+    required String code,
+    required String password,
+    required String passwordConfirm,
+  }) {
+    return _repository.resetPassword(
+      email: email,
+      code: code,
+      password: password,
+      passwordConfirm: passwordConfirm,
+    );
   }
 }
 

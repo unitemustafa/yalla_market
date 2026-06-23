@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
+import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
+import '../cubit/auth_cubit.dart';
 import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
 
@@ -19,6 +22,7 @@ class ForgetPasswordView extends StatefulWidget {
 class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
+  bool _isSubmitting = false;
 
   @override
   void initState() {
@@ -32,13 +36,28 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     super.dispose();
   }
 
-  void _onSubmit() {
+  Future<void> _onSubmit() async {
     if (_formKey.currentState?.validate() ?? false) {
-      Navigator.pushNamed(
-        context,
-        AppRoutes.passwordResetSent,
-        arguments: _emailController.text.trim(),
-      );
+      setState(() => _isSubmitting = true);
+      final email = _emailController.text.trim();
+      final sent = await context.read<AuthCubit>().requestPasswordReset(email);
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+
+      if (!sent) {
+        CustomSnackBar.showError(
+          context: context,
+          title: context.isArabicLanguage
+              ? 'تعذر إرسال الكود'
+              : 'Code was not sent',
+          message: context.isArabicLanguage
+              ? 'راجع الإيميل وحاول مرة تانية.'
+              : 'Check the email and try again.',
+        );
+        return;
+      }
+
+      Navigator.pushNamed(context, AppRoutes.resetPassword, arguments: email);
     }
   }
 
@@ -174,6 +193,10 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   }
 
   Widget _buildSubmitButton() {
-    return AppActionButton(label: AppStrings.submit, onPressed: _onSubmit);
+    return AppActionButton(
+      label: AppStrings.submit,
+      isLoading: _isSubmitting,
+      onPressed: _isSubmitting ? null : _onSubmit,
+    );
   }
 }

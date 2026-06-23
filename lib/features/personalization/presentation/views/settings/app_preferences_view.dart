@@ -8,6 +8,7 @@ import '../../../../../core/localization/app_language_controller.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/preferences/app_preferences_controller.dart';
+import '../profile/close_account_view.dart';
 
 part 'app_preferences_tiles.dart';
 part 'app_preferences_sheet_widgets.dart';
@@ -134,13 +135,15 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                             width: double.infinity,
                             child: OutlinedButton.icon(
                               onPressed: () {
-                                CustomSnackBar.showInfo(
-                                  context: context,
-                                  title: 'Temporary cache cleared',
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const CloseAccountView(),
+                                  ),
                                 );
                               },
                               icon: const Icon(AppIcons.trash, size: 18),
-                              label: Text(context.tr('Clear temporary cache')),
+                              label: Text(context.tr('Delete Account')),
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: AppColors.error,
                                 side: BorderSide(

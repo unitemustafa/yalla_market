@@ -252,6 +252,9 @@ AuthUseCases _authUseCases(AuthRepository repository) {
     signup: SignupUseCase(repository),
     verifyEmail: VerifyEmailUseCase(repository),
     resendVerificationCode: ResendVerificationCodeUseCase(repository),
+    requestPasswordReset: RequestPasswordResetUseCase(repository),
+    resendPasswordResetCode: ResendPasswordResetCodeUseCase(repository),
+    resetPassword: ResetPasswordUseCase(repository),
     refreshProfile: RefreshProfileUseCase(repository),
     updateProfile: UpdateProfileUseCase(repository),
     logout: LogoutUseCase(repository),
@@ -338,6 +341,26 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<bool>> resendVerificationCode(String email) async {
+    return const ApiResult.success(true);
+  }
+
+  @override
+  Future<ApiResult<bool>> requestPasswordReset(String email) async {
+    return const ApiResult.success(true);
+  }
+
+  @override
+  Future<ApiResult<bool>> resendPasswordResetCode(String email) async {
+    return const ApiResult.success(true);
+  }
+
+  @override
+  Future<ApiResult<bool>> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+    required String passwordConfirm,
+  }) async {
     return const ApiResult.success(true);
   }
 

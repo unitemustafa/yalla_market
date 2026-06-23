@@ -219,6 +219,55 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
+  Future<bool> requestPasswordReset(String email) async {
+    final result = await _authUseCases.requestPasswordReset(email.trim());
+    return result.when(
+      success: (sent) => sent,
+      failure: (failure) {
+        emit(AuthFailure(failure.message));
+        return false;
+      },
+    );
+  }
+
+  Future<bool> resendPasswordResetCode(String email) async {
+    final result = await _authUseCases.resendPasswordResetCode(email.trim());
+    return result.when(
+      success: (sent) => sent,
+      failure: (failure) {
+        emit(AuthFailure(failure.message));
+        return false;
+      },
+    );
+  }
+
+  Future<bool> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+    required String passwordConfirm,
+  }) async {
+    if (state is AuthLoading) return false;
+
+    emit(const AuthLoading());
+    final result = await _authUseCases.resetPassword(
+      email: email.trim(),
+      code: code.trim(),
+      password: password,
+      passwordConfirm: passwordConfirm,
+    );
+    return result.when(
+      success: (_) {
+        emit(const AuthInitial());
+        return true;
+      },
+      failure: (failure) {
+        emit(AuthFailure(failure.message));
+        return false;
+      },
+    );
+  }
+
   Future<void> logout() async {
     _pendingSignupSession = null;
     final result = await _authUseCases.logout();

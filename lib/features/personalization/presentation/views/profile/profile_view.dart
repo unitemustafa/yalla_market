@@ -11,7 +11,6 @@ import '../../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../cubit/profile_image_cubit.dart';
 import '../../controllers/user_profile_controller.dart';
 import '../../widgets/profile_menu_tile.dart';
-import 'close_account_view.dart';
 import 'edit_profile_field_view.dart';
 import 'membership_benefits_view.dart';
 
@@ -156,18 +155,6 @@ class _ProfileViewState extends State<ProfileView> {
                         ),
                       ),
                     ],
-                  ),
-                  const SizedBox(height: 18),
-                  _CloseAccountTile(
-                    isDark: isDark,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const CloseAccountView(),
-                        ),
-                      );
-                    },
                   ),
                 ],
               ),
@@ -523,32 +510,6 @@ class _ProfileInfoSection extends StatelessWidget {
           child: Column(children: children),
         ),
       ],
-    );
-  }
-}
-
-class _CloseAccountTile extends StatelessWidget {
-  const _CloseAccountTile({required this.isDark, required this.onTap});
-
-  final bool isDark;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCardColor : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.error.withValues(alpha: 0.18)),
-      ),
-      child: ProfileMenuTile(
-        leadingIcon: AppIcons.trash,
-        title: 'Delete Account',
-        value: 'Permanent',
-        icon: AppIcons.arrow_right_3,
-        isDestructive: true,
-        onTap: onTap,
-      ),
     );
   }
 }

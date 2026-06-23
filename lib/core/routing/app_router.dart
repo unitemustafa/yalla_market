@@ -3,6 +3,7 @@ import 'package:yalla_market/core/localization/app_translations.dart';
 import '../../features/auth/presentation/views/forget_password_view.dart';
 import '../../features/auth/presentation/views/login_view.dart';
 import '../../features/auth/presentation/views/password_reset_sent_view.dart';
+import '../../features/auth/presentation/views/reset_password_view.dart';
 import '../../features/auth/presentation/views/signup_view.dart';
 import '../../features/auth/presentation/views/success_account_view.dart';
 import '../../features/auth/presentation/views/verify_email_view.dart';
@@ -74,6 +75,10 @@ class AppRouter {
 
       case AppRoutes.forgetPassword:
         return _buildRoute(const ForgetPasswordView(), settings);
+
+      case AppRoutes.resetPassword:
+        final email = settings.arguments as String? ?? '';
+        return _buildRoute(ResetPasswordView(email: email), settings);
 
       case AppRoutes.passwordResetSent:
         final email = settings.arguments as String? ?? '';

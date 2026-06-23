@@ -33,6 +33,17 @@ abstract class AuthRepository {
 
   Future<ApiResult<bool>> resendVerificationCode(String email);
 
+  Future<ApiResult<bool>> requestPasswordReset(String email);
+
+  Future<ApiResult<bool>> resendPasswordResetCode(String email);
+
+  Future<ApiResult<bool>> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+    required String passwordConfirm,
+  });
+
   Future<ApiResult<AuthUser>> me();
 
   Future<ApiResult<AuthUser>> updateProfile({

@@ -101,10 +101,12 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/auth/signup',
         data: {
-          'firstName': firstName,
-          'lastName': lastName,
+          'first_name': firstName,
+          'last_name': lastName,
           'email': email,
           'password': password,
+          'password_confirm': password,
+          'terms_accepted': true,
           if (username?.trim().isNotEmpty == true) 'username': username,
           if (phone?.trim().isNotEmpty == true) 'phone': phone,
         },
@@ -140,13 +142,13 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
           .patch<Map<String, dynamic>>(
             '/auth/me',
             data: {
-              'firstName': ?firstName,
-              'lastName': ?lastName,
+              'first_name': ?firstName,
+              'last_name': ?lastName,
               'username': ?username,
               'email': ?email,
               'phone': ?phone,
               'gender': ?gender,
-              'birthDate': ?birthDate?.toIso8601String(),
+              'birth_date': ?_dateOnly(birthDate),
             },
           )
           .then(_userFromPayload);
@@ -157,7 +159,13 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   Future<ApiResult<bool>> logout() {
     return _guard(() async {
       try {
-        await _apiClient.post<Object?>('/auth/logout');
+        final tokens = await _tokenStore.read();
+        if (tokens != null) {
+          await _apiClient.post<Object?>(
+            '/auth/logout',
+            data: {'refreshToken': tokens.refreshToken},
+          );
+        }
       } finally {
         await _tokenStore.clear();
       }
@@ -235,7 +243,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return _guard(() async {
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/auth/verify-email',
-        data: {'email': email, 'code': code},
+        data: {'email': email, 'otp': code},
       );
       return _sessionFromPayload(payload, persistTokens: false);
     });
@@ -249,6 +257,44 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         data: {'email': email},
       );
       return payload is bool ? payload : true;
+    });
+  }
+
+  @override
+  Future<ApiResult<bool>> requestPasswordReset(String email) {
+    return _guard(() async {
+      await _apiClient.post<Object?>(
+        '/auth/forgot-password',
+        data: {'email': email},
+      );
+      return true;
+    });
+  }
+
+  @override
+  Future<ApiResult<bool>> resendPasswordResetCode(String email) {
+    return requestPasswordReset(email);
+  }
+
+  @override
+  Future<ApiResult<bool>> resetPassword({
+    required String email,
+    required String code,
+    required String password,
+    required String passwordConfirm,
+  }) {
+    return _guard(() async {
+      await _apiClient.post<Object?>(
+        '/auth/reset-password',
+        data: {
+          'email': email,
+          'otp': code,
+          'password': password,
+          'password_confirm': passwordConfirm,
+        },
+      );
+      await _tokenStore.clear();
+      return true;
     });
   }
 
@@ -326,6 +372,13 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
     return 'pending-${normalized.isEmpty ? 'user' : normalized}';
+  }
+
+  String? _dateOnly(DateTime? value) {
+    if (value == null) return null;
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '${value.year}-$month-$day';
   }
 
   bool _availabilityFromPayload(Map<String, dynamic> payload) {

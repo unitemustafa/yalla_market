@@ -28,6 +28,15 @@ class LocationCubit extends Cubit<LocationState> {
     );
   }
 
+  Future<bool> hasSeenCitySelection() async {
+    final result = await _useCases.hasSeenCitySelection();
+    return result.when(success: (seen) => seen, failure: (_) => false);
+  }
+
+  Future<void> markCitySelectionSeen() async {
+    await _useCases.markCitySelectionSeen();
+  }
+
   Future<CityData?> selectCity(
     CityData city, {
     RegionSource source = RegionSource.manual,

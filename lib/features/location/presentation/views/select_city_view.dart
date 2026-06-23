@@ -41,6 +41,9 @@ class _SelectCityViewState extends State<SelectCityView>
       vsync: this,
       duration: const Duration(milliseconds: 2600),
     )..repeat();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<LocationCubit>().markCitySelectionSeen();
+    });
   }
 
   @override

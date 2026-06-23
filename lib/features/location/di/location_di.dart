@@ -29,6 +29,16 @@ void registerLocationDependencies(GetIt sl) {
       () => GetSelectedCityUseCase(sl<LocationRepository>()),
     );
   }
+  if (!sl.isRegistered<HasSeenCitySelectionUseCase>()) {
+    sl.registerLazySingleton(
+      () => HasSeenCitySelectionUseCase(sl<LocationRepository>()),
+    );
+  }
+  if (!sl.isRegistered<MarkCitySelectionSeenUseCase>()) {
+    sl.registerLazySingleton(
+      () => MarkCitySelectionSeenUseCase(sl<LocationRepository>()),
+    );
+  }
   if (!sl.isRegistered<SaveSelectedCityUseCase>()) {
     sl.registerLazySingleton(
       () => SaveSelectedCityUseCase(sl<LocationRepository>()),
@@ -58,6 +68,8 @@ void registerLocationDependencies(GetIt sl) {
     sl.registerLazySingleton(
       () => LocationUseCases(
         getSelectedCity: sl<GetSelectedCityUseCase>(),
+        hasSeenCitySelection: sl<HasSeenCitySelectionUseCase>(),
+        markCitySelectionSeen: sl<MarkCitySelectionSeenUseCase>(),
         saveSelectedCity: sl<SaveSelectedCityUseCase>(),
         detectCurrentLocation: sl<DetectCurrentLocationUseCase>(),
         useCurrentLocation: sl<UseCurrentLocationUseCase>(),

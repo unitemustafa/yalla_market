@@ -12,6 +12,26 @@ class GetSelectedCityUseCase {
   }
 }
 
+class HasSeenCitySelectionUseCase {
+  const HasSeenCitySelectionUseCase(this._repository);
+
+  final LocationRepository _repository;
+
+  Future<ApiResult<bool>> call() {
+    return _repository.hasSeenCitySelection();
+  }
+}
+
+class MarkCitySelectionSeenUseCase {
+  const MarkCitySelectionSeenUseCase(this._repository);
+
+  final LocationRepository _repository;
+
+  Future<ApiResult<void>> call() {
+    return _repository.markCitySelectionSeen();
+  }
+}
+
 class SaveSelectedCityUseCase {
   const SaveSelectedCityUseCase(this._repository);
 
@@ -70,6 +90,8 @@ class OpenDeviceLocationSettingsUseCase {
 class LocationUseCases {
   const LocationUseCases({
     required this.getSelectedCity,
+    required this.hasSeenCitySelection,
+    required this.markCitySelectionSeen,
     required this.saveSelectedCity,
     required this.detectCurrentLocation,
     required this.useCurrentLocation,
@@ -78,6 +100,8 @@ class LocationUseCases {
   });
 
   final GetSelectedCityUseCase getSelectedCity;
+  final HasSeenCitySelectionUseCase hasSeenCitySelection;
+  final MarkCitySelectionSeenUseCase markCitySelectionSeen;
   final SaveSelectedCityUseCase saveSelectedCity;
   final DetectCurrentLocationUseCase detectCurrentLocation;
   final UseCurrentLocationUseCase useCurrentLocation;

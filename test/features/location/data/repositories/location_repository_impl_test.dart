@@ -92,6 +92,47 @@ void main() {
       );
     });
 
+    test('tracks whether city selection was already shown', () async {
+      final repository = LocationRepositoryImpl(
+        LocationPreferences(),
+        _FakeDeviceLocationDataSource(),
+      );
+
+      final initialResult = await repository.hasSeenCitySelection();
+      final markResult = await repository.markCitySelectionSeen();
+      final updatedResult = await repository.hasSeenCitySelection();
+
+      initialResult.when(
+        success: (seen) => expect(seen, isFalse),
+        failure: (failure) => fail(failure.message),
+      );
+      markResult.when(
+        success: (_) {},
+        failure: (failure) => fail(failure.message),
+      );
+      updatedResult.when(
+        success: (seen) => expect(seen, isTrue),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('saving a city marks city selection as seen', () async {
+      final repository = LocationRepositoryImpl(
+        LocationPreferences(),
+        _FakeDeviceLocationDataSource(),
+      );
+
+      await repository.saveSelectedCity(
+        const CityData(name: 'Hurghada', slug: 'hurghada'),
+      );
+      final result = await repository.hasSeenCitySelection();
+
+      result.when(
+        success: (seen) => expect(seen, isTrue),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
     test(
       'falls back to general when current location is outside supported regions',
       () async {

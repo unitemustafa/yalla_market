@@ -51,6 +51,29 @@ class LocationRepositoryImpl implements LocationRepository {
   }
 
   @override
+  Future<ApiResult<bool>> hasSeenCitySelection() async {
+    try {
+      return ApiResult.success(await _preferences.hasSeenCitySelection());
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not load your city selection status.'),
+      );
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> markCitySelectionSeen() async {
+    try {
+      await _preferences.markCitySelectionSeen();
+      return const ApiResult.success(null);
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not save your city selection status.'),
+      );
+    }
+  }
+
+  @override
   Future<ApiResult<CityData>> saveSelectedCity(CityData city) async {
     try {
       final savedCity = city;

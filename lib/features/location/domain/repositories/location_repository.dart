@@ -4,6 +4,14 @@ import '../entities/city_data.dart';
 abstract class LocationRepository {
   Future<ApiResult<CityData?>> getSelectedCity();
 
+  Future<ApiResult<bool>> hasSeenCitySelection() {
+    throw UnimplementedError();
+  }
+
+  Future<ApiResult<void>> markCitySelectionSeen() {
+    throw UnimplementedError();
+  }
+
   Future<ApiResult<CityData>> saveSelectedCity(CityData city);
 
   Future<ApiResult<CityData>> detectCurrentLocation({

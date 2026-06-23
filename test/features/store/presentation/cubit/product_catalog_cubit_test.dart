@@ -152,6 +152,16 @@ class _FakeLocationRepository implements LocationRepository {
   }
 
   @override
+  Future<ApiResult<bool>> hasSeenCitySelection() async {
+    return const ApiResult.success(false);
+  }
+
+  @override
+  Future<ApiResult<void>> markCitySelectionSeen() async {
+    return const ApiResult.success(null);
+  }
+
+  @override
   Future<ApiResult<CityData>> saveSelectedCity(CityData city) async {
     return ApiResult.success(city);
   }

@@ -60,12 +60,17 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _navigateAfterSignIn(BuildContext context) async {
-    final selectedCity = await context.read<LocationCubit>().loadSelectedCity();
+    final locationCubit = context.read<LocationCubit>();
+    final selectedCity = await locationCubit.loadSelectedCity();
+    if (!context.mounted) return;
+    final hasSeenCitySelection = await locationCubit.hasSeenCitySelection();
     if (!context.mounted) return;
 
     Navigator.pushNamedAndRemoveUntil(
       context,
-      selectedCity == null ? AppRoutes.selectCity : AppRoutes.navigationMenu,
+      selectedCity == null && !hasSeenCitySelection
+          ? AppRoutes.selectCity
+          : AppRoutes.navigationMenu,
       (route) => false,
     );
   }

@@ -44,9 +44,18 @@ class SplashCubit extends Cubit<SplashState> {
     final cityResult = await _locationUseCases.getSelectedCity();
     city = cityResult.when(success: (c) => c, failure: (_) => null);
 
+    final hasSeenCitySelectionResult = await _locationUseCases
+        .hasSeenCitySelection();
+    final hasSeenCitySelection = hasSeenCitySelectionResult.when(
+      success: (seen) => seen,
+      failure: (_) => false,
+    );
+
     emit(
       SplashNavigateTo(
-        city == null ? AppRoutes.selectCity : AppRoutes.navigationMenu,
+        city == null && !hasSeenCitySelection
+            ? AppRoutes.selectCity
+            : AppRoutes.navigationMenu,
         session: session,
         city: city,
       ),

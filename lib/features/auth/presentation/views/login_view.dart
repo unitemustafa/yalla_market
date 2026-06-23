@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -31,6 +32,8 @@ class _LoginViewState extends State<LoginView> {
   late final TextEditingController _passwordController;
   bool _obscurePassword = true;
   bool _rememberMe = true;
+  final TextInputFormatter _noWhitespaceInputFormatter =
+      FilteringTextInputFormatter.deny(RegExp(r'\s'));
 
   @override
   void initState() {
@@ -50,10 +53,10 @@ class _LoginViewState extends State<LoginView> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     final authCubit = context.read<AuthCubit>();
-    final email = _emailController.text.trim();
+    final identifier = _normalizeLoginIdentifier(_emailController.text);
 
     authCubit.login(
-      email: email,
+      email: identifier,
       password: _passwordController.text,
       rememberMe: _rememberMe,
     );
@@ -83,8 +86,6 @@ class _LoginViewState extends State<LoginView> {
     final strings = AppTranslations.of(context);
 
     return BlocConsumer<AuthCubit, AuthState>(
-      listenWhen: (previous, current) =>
-          previous.runtimeType != current.runtimeType,
       listener: (context, state) {
         if (state is AuthAuthenticated) {
           CustomSnackBar.showSuccess(
@@ -99,7 +100,7 @@ class _LoginViewState extends State<LoginView> {
           CustomSnackBar.showError(
             context: context,
             title: _signInErrorTitle(state.message, strings),
-            message: state.message,
+            message: context.tr(state.message),
           );
         }
       },
@@ -151,10 +152,12 @@ class _LoginViewState extends State<LoginView> {
                                     const SizedBox(height: 30),
                                     CustomTextField(
                                       controller: _emailController,
-                                      labelText: strings.email,
+                                      labelText: context.tr(
+                                        'Email, username, or phone',
+                                      ),
                                       prefixIcon: AppIcons.direct_right,
-                                      keyboardType: TextInputType.emailAddress,
-                                      validator: Validators.email,
+                                      keyboardType: TextInputType.text,
+                                      validator: Validators.loginIdentifier,
                                     ),
                                     CustomTextField(
                                       controller: _passwordController,
@@ -169,6 +172,9 @@ class _LoginViewState extends State<LoginView> {
                                           _obscurePassword = !_obscurePassword;
                                         });
                                       },
+                                      inputFormatters: [
+                                        _noWhitespaceInputFormatter,
+                                      ],
                                       validator: Validators.passwordRequired,
                                     ),
                                     _buildRememberAndForgotRow(
@@ -501,5 +507,16 @@ class _LoginViewState extends State<LoginView> {
     }
 
     return strings.signInFailureTitle;
+  }
+
+  String _normalizeLoginIdentifier(String value) {
+    final trimmed = value.trim();
+    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 10) return trimmed;
+
+    if (digits.startsWith('0')) return '+20${digits.substring(1)}';
+    if (digits.startsWith('20')) return '+$digits';
+    if (digits.length == 10 && digits.startsWith('1')) return '+20$digits';
+    return trimmed;
   }
 }

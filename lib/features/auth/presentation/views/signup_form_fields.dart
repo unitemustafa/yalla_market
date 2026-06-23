@@ -44,13 +44,15 @@ extension _SignupFormFields on _SignupViewState {
             controller: _firstNameController,
             labelText: AppStrings.firstName,
             prefixIcon: AppIcons.user,
-            validator: Validators.required,
+            validator: _validateRequiredNoWhitespace,
+            inputFormatters: [_noWhitespaceInputFormatter],
           ),
           CustomTextField(
             controller: _lastNameController,
             labelText: AppStrings.lastName,
             prefixIcon: AppIcons.user,
-            validator: Validators.required,
+            validator: _validateRequiredNoWhitespace,
+            inputFormatters: [_noWhitespaceInputFormatter],
           ),
         ],
       );
@@ -63,7 +65,8 @@ extension _SignupFormFields on _SignupViewState {
             controller: _firstNameController,
             labelText: AppStrings.firstName,
             prefixIcon: AppIcons.user,
-            validator: Validators.required,
+            validator: _validateRequiredNoWhitespace,
+            inputFormatters: [_noWhitespaceInputFormatter],
           ),
         ),
         const SizedBox(width: 14),
@@ -72,7 +75,8 @@ extension _SignupFormFields on _SignupViewState {
             controller: _lastNameController,
             labelText: AppStrings.lastName,
             prefixIcon: AppIcons.user,
-            validator: Validators.required,
+            validator: _validateRequiredNoWhitespace,
+            inputFormatters: [_noWhitespaceInputFormatter],
           ),
         ),
       ],
@@ -80,19 +84,27 @@ extension _SignupFormFields on _SignupViewState {
   }
 
   Widget _buildUsernameField(bool isDarkMode) {
+    final showAvailabilityState = _usernameFocusNode.hasFocus;
+
     return CustomTextField(
       controller: _usernameController,
+      focusNode: _usernameFocusNode,
       labelText: AppStrings.username,
       prefixIcon: AppIcons.user_edit,
       validator: _validateUsername,
+      errorText: _activeUsernameAvailabilityError(),
       inputFormatters: [
+        _noWhitespaceInputFormatter,
         FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z._]')),
       ],
       suffix: _buildAvailabilityStatusSuffix(
         isDarkMode,
-        isChecking: _checker.isCheckingUsername,
-        isAvailable: _checker.isUsernameAvailable,
+        isChecking: showAvailabilityState && _checker.isCheckingUsername,
+        isAvailable: showAvailabilityState
+            ? _checker.isUsernameAvailable
+            : null,
         showError:
+            showAvailabilityState &&
             _usernameController.text.trim().isNotEmpty &&
             _checker.usernameAvailabilityMessage != null &&
             !_checker.isCheckingUsername,
@@ -101,16 +113,21 @@ extension _SignupFormFields on _SignupViewState {
   }
 
   Widget _buildEmailField(bool isDarkMode) {
+    final showAvailabilityState = _emailFocusNode.hasFocus;
+
     return CustomTextField(
       controller: _emailController,
+      focusNode: _emailFocusNode,
       labelText: AppStrings.email,
       prefixIcon: AppIcons.direct_right,
       keyboardType: TextInputType.emailAddress,
       validator: _validateEmail,
+      errorText: _activeEmailAvailabilityError(),
+      inputFormatters: [_noWhitespaceInputFormatter],
       suffix: _buildAvailabilityStatusSuffix(
         isDarkMode,
-        isChecking: _checker.isCheckingEmail,
-        isAvailable: _checker.isEmailAvailable,
+        isChecking: showAvailabilityState && _checker.isCheckingEmail,
+        isAvailable: showAvailabilityState ? _checker.isEmailAvailable : null,
       ),
     );
   }
@@ -170,8 +187,14 @@ extension _SignupFormFields on _SignupViewState {
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
         controller: _phoneController,
+        focusNode: _phoneFocusNode,
         keyboardType: TextInputType.phone,
+        autovalidateMode: AutovalidateMode.onUserInteraction,
         validator: _validatePhone,
+        inputFormatters: [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(_selectedCountry.maxDigits),
+        ],
         cursorColor: theme.colorScheme.primary,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: textColor,
@@ -203,9 +226,12 @@ extension _SignupFormFields on _SignupViewState {
           ),
           suffixIcon: _buildAvailabilityStatusSuffix(
             isDarkMode,
-            isChecking: _checker.isCheckingPhone,
-            isAvailable: _checker.isPhoneAvailable,
+            isChecking: _phoneFocusNode.hasFocus && _checker.isCheckingPhone,
+            isAvailable: _phoneFocusNode.hasFocus
+                ? _checker.isPhoneAvailable
+                : null,
           ),
+          errorText: _activePhoneAvailabilityError(),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide(color: borderColor),

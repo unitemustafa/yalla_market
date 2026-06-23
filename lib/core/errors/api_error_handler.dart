@@ -53,6 +53,11 @@ abstract final class ApiErrorHandler {
   static String? _messageFromResponse(Response<dynamic>? response) {
     final data = response?.data;
     if (data is Map<String, dynamic>) {
+      final detail = data['detail'];
+      if (detail is String && detail.trim().isNotEmpty) {
+        return detail;
+      }
+
       final message = data['message'];
       if (message is String && message.trim().isNotEmpty) {
         return message;
@@ -62,8 +67,34 @@ abstract final class ApiErrorHandler {
       if (error is String && error.trim().isNotEmpty) {
         return error;
       }
+
+      final nonFieldErrors = _firstString(data['non_field_errors']);
+      if (nonFieldErrors != null) return nonFieldErrors;
+
+      for (final entry in data.entries) {
+        final value = entry.value;
+        final fieldMessage = _firstString(value);
+        if (fieldMessage != null) return fieldMessage;
+      }
     }
 
+    return null;
+  }
+
+  static String? _firstString(Object? value) {
+    if (value is String && value.trim().isNotEmpty) return value;
+    if (value is List) {
+      for (final item in value) {
+        final message = _firstString(item);
+        if (message != null) return message;
+      }
+    }
+    if (value is Map) {
+      for (final item in value.values) {
+        final message = _firstString(item);
+        if (message != null) return message;
+      }
+    }
     return null;
   }
 

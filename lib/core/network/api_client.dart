@@ -79,9 +79,22 @@ class ApiClient {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    if (options.extra['skipAuth'] == true) {
+      handler.next(options);
+      return;
+    }
+
     try {
       final tokens = await _tokenStore.read();
       if (tokens != null) {
+        if (tokens.isExpired) {
+          await _expireSession();
+          throw DioException(
+            requestOptions: options,
+            type: DioExceptionType.cancel,
+            error: 'Session expired',
+          );
+        }
         final refreshed = tokens.expiresSoon && !_isRefreshRequest(options)
             ? await _refreshTokens(tokens)
             : tokens;
@@ -142,10 +155,14 @@ class ApiClient {
       options: Options(extra: const {'skipAuth': true}),
     );
     final payload = _unwrap<Map<String, dynamic>>(response.data);
-    final next = _tokensFromJson(
-      payload,
-      fallbackRefreshToken: current.refreshToken,
-    ).copyWith(isSessionOnly: current.isSessionOnly);
+    final next =
+        _tokensFromJson(
+          payload,
+          fallbackRefreshToken: current.refreshToken,
+        ).copyWith(
+          expiresAt: current.expiresAt,
+          isSessionOnly: current.isSessionOnly,
+        );
     await _tokenStore.save(next);
     return next;
   }

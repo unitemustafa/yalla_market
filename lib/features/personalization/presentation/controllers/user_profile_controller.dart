@@ -87,7 +87,7 @@ class UserProfileController extends ChangeNotifier
         ? user.username!.trim()
         : user.email.split('@').first;
     _email = user.email;
-    _phone = user.phone ?? '';
+    _phone = _displayPhone(user.phone);
     _gender = user.gender ?? '';
     _hasPassword = user.hasPassword;
     _birthDate = user.birthDate;
@@ -112,5 +112,19 @@ class UserProfileController extends ChangeNotifier
     _avatarUrl = null;
     _avatarBytes = null;
     notifyListeners();
+  }
+
+  String _displayPhone(String? value) {
+    final phone = value?.trim() ?? '';
+    if (phone.isEmpty) return '';
+
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.length == 12 && digits.startsWith('20')) {
+      return '0${digits.substring(2)}';
+    }
+    if (digits.length == 10 && digits.startsWith('1')) {
+      return '0$digits';
+    }
+    return phone;
   }
 }

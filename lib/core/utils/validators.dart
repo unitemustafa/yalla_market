@@ -26,6 +26,33 @@ class Validators {
     return null;
   }
 
+  static String? loginIdentifier(String? value) {
+    final strings = AppTranslations.current;
+    final text = value?.trim() ?? '';
+    if (text.isEmpty) {
+      return strings.fieldRequired;
+    }
+    final looksLikeEmail = text.contains('@');
+    if (looksLikeEmail && RegExp(r'\s').hasMatch(text)) {
+      return strings.phrase('Spaces are not allowed in this field');
+    }
+    if (looksLikeEmail) return email(text);
+
+    final digits = text.replaceAll(RegExp(r'\D'), '');
+    if (digits.length >= 10) {
+      return isEgyptianMobileNumber(text) ? null : strings.invalidPhone;
+    }
+
+    if (RegExp(r'\s').hasMatch(text)) {
+      return strings.phrase('Spaces are not allowed in this field');
+    }
+    final usernameRegex = RegExp(r'^[A-Za-z][A-Za-z0-9._]{2,149}$');
+    if (!usernameRegex.hasMatch(text)) {
+      return strings.phrase('Enter a valid email, username, or phone number');
+    }
+    return null;
+  }
+
   static String? password(String? value) {
     final strings = AppTranslations.current;
     final password = value ?? '';

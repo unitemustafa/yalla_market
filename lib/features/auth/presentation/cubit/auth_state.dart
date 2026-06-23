@@ -24,6 +24,10 @@ final class AuthSignupSucceeded extends AuthState {
   final String email;
 }
 
+final class AuthSessionExpired extends AuthState {
+  const AuthSessionExpired();
+}
+
 final class AuthFailure extends AuthState {
   const AuthFailure(this.message);
 

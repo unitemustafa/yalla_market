@@ -217,7 +217,7 @@ void main() {
       await cubit.close();
     });
 
-    test('returns to initial when the global session expires', () async {
+    test('emits session expired when the global session expires', () async {
       final notifier = SessionExpiredNotifier();
       final repository = _FakeAuthRepository(loginResult: sampleSession);
       final cubit = AuthCubit(
@@ -230,11 +230,11 @@ void main() {
 
       final expectedStates = expectLater(
         cubit.stream,
-        emits(isA<AuthInitial>()),
+        emits(isA<AuthSessionExpired>()),
       );
       notifier.notifyExpired();
 
-      expect(cubit.state, isA<AuthInitial>());
+      expect(cubit.state, isA<AuthSessionExpired>());
       expect(AuthGuard.isAuthenticated, isFalse);
       await expectedStates;
       await cubit.close();

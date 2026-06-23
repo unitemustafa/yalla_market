@@ -43,6 +43,7 @@ class _SelectCityViewState extends State<SelectCityView>
     )..repeat();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LocationCubit>().markCitySelectionSeen();
+      _continueIfCityAlreadySelected();
     });
   }
 
@@ -158,6 +159,17 @@ class _SelectCityViewState extends State<SelectCityView>
     if (mode == LocationChoiceMode.manual) {
       _activeLocationRequestId++;
     }
+  }
+
+  Future<void> _continueIfCityAlreadySelected() async {
+    final selectedCity = await context.read<LocationCubit>().loadSelectedCity();
+    if (!mounted || selectedCity == null) return;
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.navigationMenu,
+      (route) => false,
+    );
   }
 
   Future<void> _detectCurrentLocation(BuildContext context) async {

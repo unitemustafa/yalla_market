@@ -58,6 +58,56 @@ void main() {
     expect(await tokenStore.read(), isNull);
     expect(expirationEvents, 1);
   });
+
+  test('skipAuth requests do not attach tokens or refresh', () async {
+    final tokenStore = InMemoryTokenStore();
+    await tokenStore.save(
+      StoredAuthTokens(
+        accessToken: 'saved-access',
+        refreshToken: 'saved-refresh',
+        expiresAt: DateTime.now().subtract(const Duration(minutes: 1)),
+      ),
+    );
+
+    var refreshRequests = 0;
+    final dio = Dio()
+      ..httpClientAdapter = _Adapter((options) {
+        expect(options.headers[Headers.wwwAuthenticateHeader], isNull);
+        expect(options.headers['Authorization'], isNull);
+        return ResponseBody.fromString(
+          '{"ok":true}',
+          200,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+    final refreshDio = Dio()
+      ..httpClientAdapter = _Adapter((options) {
+        refreshRequests += 1;
+        return ResponseBody.fromString(
+          '{"message":"Should not refresh"}',
+          500,
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType],
+          },
+        );
+      });
+    final client = ApiClient(
+      dio: dio,
+      refreshDio: refreshDio,
+      tokenStore: tokenStore,
+    );
+
+    final payload = await client.post<Map<String, dynamic>>(
+      '/auth/login',
+      data: {'email': 'm@example.com', 'password': 'wrong'},
+      options: Options(extra: const {'skipAuth': true}),
+    );
+
+    expect(payload['ok'], isTrue);
+    expect(refreshRequests, 0);
+  });
 }
 
 class _Adapter implements HttpClientAdapter {

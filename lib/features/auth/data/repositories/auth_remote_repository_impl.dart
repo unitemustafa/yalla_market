@@ -15,6 +15,10 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
+  static const _rememberedSessionDuration = Duration(days: 30);
+  static const _temporarySessionDuration = Duration(seconds: 30);
+  static Options get _skipAuthOptions =>
+      Options(extra: const {'skipAuth': true});
 
   final ApiClient _apiClient;
   final TokenStore _tokenStore;
@@ -46,9 +50,16 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     bool rememberMe = false,
   }) {
     return _guard(() async {
+      final identifier = _normalizeLoginIdentifier(email);
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/auth/login',
-        data: {'email': email, 'password': password, 'rememberMe': rememberMe},
+        data: {
+          'email': identifier,
+          'identifier': identifier,
+          'password': password,
+          'rememberMe': rememberMe,
+        },
+        options: _skipAuthOptions,
       );
       return _sessionFromPayload(payload, persistTokens: rememberMe);
     });
@@ -60,6 +71,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final payload = await _apiClient.get<Map<String, dynamic>>(
         '/auth/check-username',
         queryParameters: {'username': username},
+        options: _skipAuthOptions,
       );
       return _availabilityFromPayload(payload);
     });
@@ -71,6 +83,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final payload = await _apiClient.get<Map<String, dynamic>>(
         '/auth/check-email',
         queryParameters: {'email': email},
+        options: _skipAuthOptions,
       );
       return _registrationFromPayload(payload);
     });
@@ -82,6 +95,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final payload = await _apiClient.get<Map<String, dynamic>>(
         '/auth/check-phone',
         queryParameters: {'phone': phone},
+        options: _skipAuthOptions,
       );
       return _registrationFromPayload(payload);
     });
@@ -110,6 +124,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
           if (username?.trim().isNotEmpty == true) 'username': username,
           if (phone?.trim().isNotEmpty == true) 'phone': phone,
         },
+        options: _skipAuthOptions,
       );
       return _signupSessionFromPayload(
         payload,
@@ -196,8 +211,13 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   }) async {
     final user = _userFromPayload(payload);
     final tokensPayload = _asJsonMap(payload['tokens']) ?? payload;
-    final tokens = tokensFromApiPayload(tokensPayload);
-    await _tokenStore.save(tokens.copyWith(isSessionOnly: !persistTokens));
+    final sessionExpiresAt = DateTime.now().add(
+      persistTokens ? _rememberedSessionDuration : _temporarySessionDuration,
+    );
+    final tokens = tokensFromApiPayload(
+      tokensPayload,
+    ).copyWith(expiresAt: sessionExpiresAt, isSessionOnly: !persistTokens);
+    await _tokenStore.save(tokens);
     return AuthSession(
       user: user,
       accessToken: tokens.accessToken,
@@ -244,6 +264,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/auth/verify-email',
         data: {'email': email, 'otp': code},
+        options: _skipAuthOptions,
       );
       return _sessionFromPayload(payload, persistTokens: false);
     });
@@ -255,6 +276,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final payload = await _apiClient.post<Object?>(
         '/auth/resend-verification',
         data: {'email': email},
+        options: _skipAuthOptions,
       );
       return payload is bool ? payload : true;
     });
@@ -266,6 +288,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       await _apiClient.post<Object?>(
         '/auth/forgot-password',
         data: {'email': email},
+        options: _skipAuthOptions,
       );
       return true;
     });
@@ -292,6 +315,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
           'password': password,
           'password_confirm': passwordConfirm,
         },
+        options: _skipAuthOptions,
       );
       await _tokenStore.clear();
       return true;
@@ -372,6 +396,17 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
     return 'pending-${normalized.isEmpty ? 'user' : normalized}';
+  }
+
+  String _normalizeLoginIdentifier(String value) {
+    final trimmed = value.trim();
+    final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+    if (digits.length < 10) return trimmed;
+
+    if (digits.startsWith('0')) return '+20${digits.substring(1)}';
+    if (digits.startsWith('20')) return '+$digits';
+    if (digits.length == 10 && digits.startsWith('1')) return '+20$digits';
+    return trimmed;
   }
 
   String? _dateOnly(DateTime? value) {

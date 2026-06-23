@@ -2,6 +2,12 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Email, username, or phone': 'الإيميل أو اسم المستخدم أو الموبايل',
+    'Enter a valid email, username, or phone number':
+        'اكتب إيميل أو اسم مستخدم أو رقم موبايل صحيح',
+    'Session expired': 'انتهت الجلسة',
+    'Sign in again to continue. Keep Remember Me on to stay signed in for 30 days after closing the app.':
+        'سجل دخول تاني عشان تكمل. فعل افتكرني عشان تفضل داخل لمدة 30 يوم حتى بعد غلق التطبيق.',
     'Choose date': 'اختيار التاريخ',
     'Day': 'اليوم',
     'From': 'من',
@@ -374,7 +380,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Shoes, kits and training gear': 'أحذية وأطقم ومستلزمات تدريب',
     'Shopping setup': 'إعدادات التسوق',
     'Sign In': 'تسجيل الدخول',
-    'Skip': 'تخطي',
+    'Skip': 'تخطِ',
     'Size': 'المقاس',
     'Small': 'صغير',
     'Sort by': 'رتّب حسب',
@@ -506,6 +512,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Enter a valid phone number': 'اكتب رقم موبايل صحيح',
     'Enter your password first.': 'اكتب كلمة السر الأول.',
     'Email check skipped': 'تخطينا فحص الإيميل',
+    'Email and password are required.': 'اكتب الإيميل وكلمة السر.',
+    'Email check failed': 'فحص الإيميل ما تمش',
     'Email is already registered.': 'الإيميل ده مستخدم بالفعل.',
     'Email is available.': 'الإيميل متاح.',
     'Email unavailable': 'الإيميل غير متاح',
@@ -522,6 +530,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'I need a refund.': 'محتاج استرداد.',
     'I need help with a return.': 'محتاج مساعدة في إرجاع منتج.',
     'India': 'الهند',
+    'Invalid email or password.': 'الإيميل أو كلمة السر مش صحيحين.',
+    'Invalid password': 'كلمة السر مش صحيحة.',
+    'Invalid password.': 'كلمة السر مش صحيحة.',
     'Keep your account information accurate and protect your password.':
         'خلي بيانات حسابك دقيقة واحمي كلمة السر.',
     'Keep delivery details fresh': 'حدّث تفاصيل التوصيل',
@@ -545,6 +556,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Phone number is already registered.': 'رقم الموبايل ده مستخدم بالفعل.',
     'Phone number is available.': 'رقم الموبايل متاح.',
     'Phone unavailable': 'رقم الموبايل غير متاح',
+    'Products could not load': 'المنتجات ما اتحملتش',
+    'Server error': 'في مشكلة في السيرفر.',
+    'Server error.': 'في مشكلة في السيرفر.',
     'Prefer not to say': 'أفضل عدم الإفصاح',
     'Popular Categories': 'الفئات الشائعة',
     'Popular Products': 'المنتجات الشائعة',
@@ -562,6 +576,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'احفظ المنتجات اللي بتحبها وهتلاقيها هنا وقت ما تحتاجها.',
     'Sharm El Sheikh': 'شرم الشيخ',
     'Strong password': 'كلمة سر قوية',
+    'Spaces are not allowed in this field': 'المسافات غير مسموحة في الخانة دي',
     'Stay close to orders, offers and account activity.':
         'تابع الطلبات والعروض ونشاط الحساب.',
     'Submit': 'إرسال',
@@ -582,6 +597,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'This helps personalize your shopping experience.':
         'ده بيساعدنا نخصص تجربة التسوق ليك.',
     'This email is already registered.': 'الإيميل ده مستخدم بالفعل.',
+    'This email is not registered.': 'الإيميل ده مش مسجل.',
     'This phone number is already registered.':
         'رقم الموبايل ده مستخدم بالفعل.',
     'This username is already taken': 'اسم المستخدم ده مستخدم بالفعل',
@@ -602,6 +618,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'استخدم إيميل تقدر توصله لاسترجاع الحساب.',
     'Use letters, numbers, dots, and underscores only':
         'استخدم حروف وأرقام ونقط وشرطات سفلية فقط',
+    'Use English letters, dots, and underscores only':
+        'استخدم حروف إنجليزي ونقطة وشرطة سفلية فقط',
     'Use this shortcut for the settings people change most often.':
         'استخدم الاختصار ده للإعدادات اللي بتتغير كتير.',
     'We use your account details to secure your profile and personalize shopping.':
@@ -611,6 +629,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Username is too long': 'اسم المستخدم طويل جدًا',
     'Username must be at least 3 characters':
         'اسم المستخدم لازم يكون 3 أحرف على الأقل',
+    'Username must include a letter': 'اسم المستخدم لازم يحتوي على حرف',
     'Username unavailable': 'اسم المستخدم غير متاح',
     'Weak password': 'كلمة سر ضعيفة',
     'Welcome to يلا ماركت.': 'أهلًا بيك في يلا ماركت.',

@@ -28,7 +28,8 @@ class AuthCubit extends Cubit<AuthState> {
     if (change.nextState is AuthAuthenticated) {
       AuthGuard.setAuthenticated();
     } else if (change.nextState is AuthInitial ||
-        change.nextState is AuthSignupSucceeded) {
+        change.nextState is AuthSignupSucceeded ||
+        change.nextState is AuthSessionExpired) {
       AuthGuard.clearAuthentication();
     }
   }
@@ -44,8 +45,8 @@ class AuthCubit extends Cubit<AuthState> {
   void _handleSessionExpired() {
     _pendingSignupSession = null;
     AuthGuard.clearAuthentication();
-    if (!isClosed && state is! AuthInitial) {
-      emit(const AuthInitial());
+    if (!isClosed) {
+      emit(const AuthSessionExpired());
     }
   }
 

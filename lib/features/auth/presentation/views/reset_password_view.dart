@@ -32,6 +32,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   late final TextEditingController _codeController;
   late final TextEditingController _passwordController;
   late final TextEditingController _confirmPasswordController;
+  final TextInputFormatter _noWhitespaceInputFormatter =
+      FilteringTextInputFormatter.deny(RegExp(r'\s'));
 
   Timer? _resendTimer;
   int _nextCooldownSeconds = _baseCooldownSeconds;
@@ -239,6 +241,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                                   _obscurePassword = !_obscurePassword;
                                 });
                               },
+                              inputFormatters: [_noWhitespaceInputFormatter],
                               validator: Validators.password,
                             ),
                             PasswordStrengthMeter(
@@ -262,6 +265,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                                       !_obscureConfirmPassword;
                                 });
                               },
+                              inputFormatters: [_noWhitespaceInputFormatter],
                               validator: _validateConfirmPassword,
                             ),
                             const SizedBox(height: 18),

@@ -97,11 +97,16 @@ class _SignupViewState extends State<SignupView> {
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _passwordController;
+  late final FocusNode _usernameFocusNode;
+  late final FocusNode _emailFocusNode;
+  late final FocusNode _phoneFocusNode;
   late PhoneCountry _selectedCountry;
   bool _obscurePassword = true;
   bool _agreeToPrivacy = true;
   bool _showPrivacyError = false;
   late final SignupAvailabilityChecker _checker;
+  final TextInputFormatter _noWhitespaceInputFormatter =
+      FilteringTextInputFormatter.deny(RegExp(r'\s'));
 
   @override
   void initState() {
@@ -112,13 +117,16 @@ class _SignupViewState extends State<SignupView> {
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
     _passwordController = TextEditingController();
+    _usernameFocusNode = FocusNode();
+    _emailFocusNode = FocusNode();
+    _phoneFocusNode = FocusNode();
     _selectedCountry = _phoneCountries.first;
     _checker = SignupAvailabilityChecker(
       emailController: _emailController,
       phoneController: _phoneController,
       usernameController: _usernameController,
       formKey: _formKey,
-      onStateChanged: () => setState(() {}),
+      onStateChanged: _handleAvailabilityStateChanged,
       phoneForLookup: _phoneForLookup,
       validatePhoneFormat: _validatePhoneFormat,
       validateUsername: _validateUsername,
@@ -131,6 +139,9 @@ class _SignupViewState extends State<SignupView> {
     _emailController.addListener(_checker.scheduleEmailCheck);
     _emailController.addListener(_checker.schedulePhoneCheck);
     _phoneController.addListener(_checker.schedulePhoneCheck);
+    _usernameFocusNode.addListener(_handleFocusedAvailabilityFieldChanged);
+    _emailFocusNode.addListener(_handleFocusedAvailabilityFieldChanged);
+    _phoneFocusNode.addListener(_handleFocusedAvailabilityFieldChanged);
   }
 
   @override
@@ -142,13 +153,29 @@ class _SignupViewState extends State<SignupView> {
     _emailController.removeListener(_checker.scheduleEmailCheck);
     _emailController.removeListener(_checker.schedulePhoneCheck);
     _phoneController.removeListener(_checker.schedulePhoneCheck);
+    _usernameFocusNode.removeListener(_handleFocusedAvailabilityFieldChanged);
+    _emailFocusNode.removeListener(_handleFocusedAvailabilityFieldChanged);
+    _phoneFocusNode.removeListener(_handleFocusedAvailabilityFieldChanged);
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
+    _usernameFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
+  }
+
+  void _handleAvailabilityStateChanged() {
+    if (!mounted) return;
+
+    setState(() {});
+  }
+
+  void _handleFocusedAvailabilityFieldChanged() {
+    if (mounted) setState(() {});
   }
 
   Future<void> _onCreateAccount() async {
@@ -181,14 +208,14 @@ class _SignupViewState extends State<SignupView> {
     if (!mounted) return;
 
     if (emailAvailable && phoneAvailable && usernameAvailable) {
-      final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+      final digits = _normalizedPhoneDigits();
       final username = _usernameController.text.trim();
       context.read<AuthCubit>().signup(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
-        username: username.isEmpty ? null : username,
+        username: username,
         email: _emailController.text.trim(),
-        phone: '${_selectedCountry.dialCode}$digits',
+        phone: _phoneForSignup(digits),
         password: _passwordController.text,
       );
     }
@@ -235,8 +262,6 @@ class _SignupViewState extends State<SignupView> {
     _checker.updateContext(context);
 
     return BlocConsumer<AuthCubit, AuthState>(
-      listenWhen: (previous, current) =>
-          previous.runtimeType != current.runtimeType,
       listener: (context, state) {
         if (state is AuthSignupSucceeded) {
           final email = state.email.trim().isEmpty
@@ -261,7 +286,7 @@ class _SignupViewState extends State<SignupView> {
           CustomSnackBar.showError(
             context: context,
             title: _signupErrorTitle(state.message),
-            message: state.message,
+            message: context.tr(state.message),
           );
         }
       },
@@ -312,6 +337,9 @@ class _SignupViewState extends State<SignupView> {
                                     });
                                   },
                                   validator: _validatePassword,
+                                  inputFormatters: [
+                                    _noWhitespaceInputFormatter,
+                                  ],
                                 ),
                                 PasswordStrengthMeter(
                                   controller: _passwordController,
@@ -339,13 +367,16 @@ class _SignupViewState extends State<SignupView> {
   }
 
   String? _validateEmail(String? value) {
+    final whitespaceMessage = _validateNoWhitespace(value);
+    if (whitespaceMessage != null) return whitespaceMessage;
+
     final validationMessage = Validators.email(value);
     if (validationMessage != null) return validationMessage;
 
     final email = value?.trim().toLowerCase() ?? '';
     if (_checker.lastCheckedEmail == email &&
         _checker.isEmailAvailable == false) {
-      return 'This email is already registered.';
+      return context.tr('This email is already registered.');
     }
 
     return null;
@@ -357,6 +388,9 @@ class _SignupViewState extends State<SignupView> {
     if (password.isEmpty) {
       return AppTranslations.current.fieldRequired;
     }
+
+    final whitespaceMessage = _validateNoWhitespace(password);
+    if (whitespaceMessage != null) return whitespaceMessage;
 
     if (password.length > 72) {
       return AppTranslations.current.passwordTooLong;
@@ -372,23 +406,75 @@ class _SignupViewState extends State<SignupView> {
     final phone = _phoneForLookup(value);
     if (_checker.lastCheckedPhone == phone &&
         _checker.isPhoneAvailable == false) {
-      return 'This phone number is already registered.';
+      return context.tr('This phone number is already registered.');
+    }
+
+    return null;
+  }
+
+  String? _activeUsernameAvailabilityError() {
+    final username = _usernameController.text.trim();
+    if (!_usernameFocusNode.hasFocus ||
+        username.isEmpty ||
+        _checker.isCheckingUsername) {
+      return null;
+    }
+
+    if (_checker.lastCheckedUsername == username &&
+        _checker.isUsernameAvailable == false) {
+      return context.tr('This username is already taken');
+    }
+
+    return null;
+  }
+
+  String? _activeEmailAvailabilityError() {
+    final email = _emailController.text.trim().toLowerCase();
+    if (!_emailFocusNode.hasFocus ||
+        email.isEmpty ||
+        _checker.isCheckingEmail) {
+      return null;
+    }
+
+    if (_checker.lastCheckedEmail == email &&
+        _checker.isEmailAvailable == false) {
+      return context.tr('This email is already registered.');
+    }
+
+    return null;
+  }
+
+  String? _activePhoneAvailabilityError() {
+    final phone = _phoneForLookup();
+    if (!_phoneFocusNode.hasFocus ||
+        phone.isEmpty ||
+        _checker.isCheckingPhone) {
+      return null;
+    }
+
+    if (_checker.lastCheckedPhone == phone &&
+        _checker.isPhoneAvailable == false) {
+      return context.tr('This phone number is already registered.');
     }
 
     return null;
   }
 
   String? _validatePhoneFormat(String? value) {
-    final phone = value?.trim() ?? '';
+    final phone = value ?? '';
 
-    if (phone.isEmpty) {
+    if (phone.trim().isEmpty) {
       return AppTranslations.current.fieldRequired;
     }
 
+    final whitespaceMessage = _validateNoWhitespace(phone);
+    if (whitespaceMessage != null) return whitespaceMessage;
+
     final digits = phone.replaceAll(RegExp(r'\D'), '');
-    final isValidLength =
-        digits.length >= _selectedCountry.minDigits &&
-        digits.length <= _selectedCountry.maxDigits;
+    final isValidLength = _selectedCountry.isoCode == 'EG'
+        ? Validators.isEgyptianMobileNumber(digits)
+        : digits.length >= _selectedCountry.minDigits &&
+              digits.length <= _selectedCountry.maxDigits;
 
     if (!isValidLength) {
       return AppTranslations.current.invalidPhone;
@@ -398,71 +484,83 @@ class _SignupViewState extends State<SignupView> {
   }
 
   String _phoneForLookup([String? value]) {
+    final digits = _normalizedPhoneDigits(value);
+    return digits.isEmpty ? '' : '${_selectedCountry.dialCode}$digits';
+  }
+
+  String _phoneForSignup(String digits) {
+    if (_selectedCountry.isoCode == 'EG' && digits.length == 10) {
+      return '0$digits';
+    }
+    return '${_selectedCountry.dialCode}$digits';
+  }
+
+  String _normalizedPhoneDigits([String? value]) {
     final digits = (value ?? _phoneController.text).replaceAll(
       RegExp(r'\D'),
       '',
     );
-    return digits.isEmpty ? '' : '${_selectedCountry.dialCode}$digits';
+    if (_selectedCountry.isoCode == 'EG' &&
+        digits.length == 11 &&
+        digits.startsWith('0')) {
+      return digits.substring(1);
+    }
+    return digits;
   }
 
   bool _canCheckEmailAvailability() {
-    if (_firstNameController.text.trim().isEmpty ||
-        _lastNameController.text.trim().isEmpty) {
-      return false;
-    }
-
-    final username = _usernameController.text.trim();
-    if (_validateUsername(username) != null) return false;
-    if (username.isEmpty) return true;
-
-    return _checker.lastCheckedUsername == username &&
-        _checker.isUsernameAvailable == true;
+    return _validateEmail(_emailController.text) == null;
   }
 
   bool _canCheckPhoneAvailability() {
-    final email = _emailController.text.trim().toLowerCase();
-    return _canCheckEmailAvailability() &&
-        _checker.lastCheckedEmail == email &&
-        _checker.isEmailAvailable == true;
+    return _validatePhoneFormat(_phoneController.text) == null;
   }
 
   String? _validateUsername(String? value) {
-    final username = value?.trim() ?? '';
+    final username = value ?? '';
 
-    if (username.isEmpty) return null;
+    if (username.trim().isEmpty) return AppTranslations.current.fieldRequired;
+
+    final whitespaceMessage = _validateNoWhitespace(username);
+    if (whitespaceMessage != null) return whitespaceMessage;
 
     if (username.length < 3) {
-      return context.isArabicLanguage
-          ? 'اسم المستخدم لازم يكون 3 حروف على الأقل'
-          : 'Username must be at least 3 characters';
+      return context.tr('Username must be at least 3 characters');
     }
 
     if (username.length > 30) {
-      return context.isArabicLanguage
-          ? 'اسم المستخدم طويل جدًا'
-          : 'Username is too long';
+      return context.tr('Username is too long');
     }
 
     if (!RegExp(r'^[a-zA-Z._]+$').hasMatch(username)) {
-      return context.isArabicLanguage
-          ? 'استخدم حروف إنجليزي ونقطة وشرطة سفلية فقط'
-          : 'Use English letters, dots, and underscores only';
+      return context.tr('Use English letters, dots, and underscores only');
     }
 
     if (!RegExp(r'[a-zA-Z]').hasMatch(username)) {
-      return context.isArabicLanguage
-          ? 'اسم المستخدم لازم يحتوي على حرف'
-          : 'Username must include a letter';
+      return context.tr('Username must include a letter');
     }
 
     if (_checker.lastCheckedUsername == username &&
         _checker.isUsernameAvailable == false) {
-      return context.isArabicLanguage
-          ? 'اسم المستخدم ده مستخدم بالفعل'
-          : 'This username is already taken';
+      return context.tr('This username is already taken');
     }
 
     return null;
+  }
+
+  String? _validateNoWhitespace(String? value) {
+    if (value != null && RegExp(r'\s').hasMatch(value)) {
+      return context.tr('Spaces are not allowed in this field');
+    }
+
+    return null;
+  }
+
+  String? _validateRequiredNoWhitespace(String? value) {
+    final requiredMessage = Validators.required(value);
+    if (requiredMessage != null) return requiredMessage;
+
+    return _validateNoWhitespace(value);
   }
 
   Future<void> _showCountryPicker() async {

@@ -157,7 +157,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
 
     Navigator.pushNamedAndRemoveUntil(
       context,
-      AppRoutes.selectCity,
+      AppRoutes.login,
       (route) => false,
     );
   }

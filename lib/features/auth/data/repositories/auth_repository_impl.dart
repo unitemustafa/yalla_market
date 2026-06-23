@@ -15,6 +15,8 @@ class AuthRepositoryImpl implements AuthRepository {
   static const String _demoPassword = 'Password123!';
   static const String _marketEmail = 'market@admin.com';
   static const String _marketPassword = '01266666610';
+  static const Duration _rememberedSessionDuration = Duration(days: 30);
+  static const Duration _temporarySessionDuration = Duration(seconds: 30);
   static const Set<String> _reservedUsernames = {
     'admin',
     'support',
@@ -23,6 +25,7 @@ class AuthRepositoryImpl implements AuthRepository {
   };
 
   AuthSession? _session;
+  DateTime? _sessionExpiresAt;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() {
@@ -207,13 +210,23 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<AuthSession?> _restoreSavedSession() async {
-    if (_session != null) return _session;
+    if (_session != null && !_sessionHasExpired()) return _session;
+    if (_sessionHasExpired()) {
+      await _clearSession();
+      return null;
+    }
 
     final preferences = await SharedPreferences.getInstance();
     final rawSession = preferences.getString(_sessionKey);
     if (rawSession == null || rawSession.trim().isEmpty) return null;
 
     final decoded = jsonDecode(rawSession) as Map<String, dynamic>;
+    _sessionExpiresAt = _dateFromString(decoded['expiresAt']);
+    if (_sessionHasExpired()) {
+      await _clearSession();
+      return null;
+    }
+
     final savedUser = _userFromJson(decoded);
     final account = (await _loadAccounts())._byUserId(savedUser.id);
     if (account == null) {
@@ -230,16 +243,19 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     bool rememberMe = false,
   }) async {
-    final normalizedEmail = _normalizeEmail(email);
-    if (normalizedEmail.isEmpty || password.isEmpty) {
+    final identifier = email.trim();
+    if (identifier.isEmpty || password.isEmpty) {
       throw const _AuthRepositoryException(
-        ValidationFailure('Email and password are required.'),
+        ValidationFailure(
+          'Email, username, or phone number and password are required.',
+        ),
       );
     }
 
-    final account = (await _loadAccounts())._byEmail(normalizedEmail);
+    final account = (await _loadAccounts())._byLoginIdentifier(identifier);
     if (account == null ||
-        account.passwordDigest != _passwordDigest(normalizedEmail, password)) {
+        account.passwordDigest !=
+            _passwordDigest(account.user.email, password)) {
       throw const _AuthRepositoryException(
         UnauthorizedFailure('Invalid email or password.'),
       );
@@ -559,6 +575,9 @@ class AuthRepositoryImpl implements AuthRepository {
   }) async {
     final session = AuthSession(user: user);
     _session = session;
+    _sessionExpiresAt = DateTime.now().add(
+      rememberSession ? _rememberedSessionDuration : _temporarySessionDuration,
+    );
 
     if (rememberSession) {
       await _saveSession(session);
@@ -598,14 +617,23 @@ class AuthRepositoryImpl implements AuthRepository {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(
       _sessionKey,
-      jsonEncode(_userToJson(session.user)),
+      jsonEncode({
+        ..._userToJson(session.user),
+        'expiresAt': _sessionExpiresAt?.toIso8601String(),
+      }),
     );
   }
 
   Future<void> _clearSession() async {
     _session = null;
+    _sessionExpiresAt = null;
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_sessionKey);
+  }
+
+  bool _sessionHasExpired() {
+    final expiresAt = _sessionExpiresAt;
+    return expiresAt != null && !expiresAt.isAfter(DateTime.now());
   }
 
   List<_LocalAuthAccount> _seedAccounts() {
@@ -776,6 +804,28 @@ extension _LocalAuthAccountsLookup on List<_LocalAuthAccount> {
   _LocalAuthAccount? _byUserId(String id) {
     for (final account in this) {
       if (account.user.id == id) return account;
+    }
+    return null;
+  }
+
+  _LocalAuthAccount? _byLoginIdentifier(String value) {
+    final normalizedEmail = value.trim().toLowerCase();
+    final normalizedUsername = value.trim().toLowerCase();
+    final normalizedPhone = value.replaceAll(RegExp(r'\D'), '');
+
+    for (final account in this) {
+      if (account.user.email.trim().toLowerCase() == normalizedEmail) {
+        return account;
+      }
+      if ((account.user.username ?? '').trim().toLowerCase() ==
+          normalizedUsername) {
+        return account;
+      }
+      if (normalizedPhone.length >= 10 &&
+          (account.user.phone ?? '').replaceAll(RegExp(r'\D'), '') ==
+              normalizedPhone) {
+        return account;
+      }
     }
     return null;
   }

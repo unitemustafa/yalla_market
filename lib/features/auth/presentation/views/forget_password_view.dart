@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/services.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
@@ -22,25 +25,36 @@ class ForgetPasswordView extends StatefulWidget {
 class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
+  final TextInputFormatter _noWhitespaceInputFormatter =
+      FilteringTextInputFormatter.deny(RegExp(r'\s'));
+  Timer? _emailCheckDebounce;
+  String? _lastCheckedEmail;
+  bool? _isEmailRegistered;
+  bool _isCheckingEmail = false;
   bool _isSubmitting = false;
 
   @override
   void initState() {
     super.initState();
     _emailController = TextEditingController();
+    _emailController.addListener(_scheduleEmailCheck);
   }
 
   @override
   void dispose() {
+    _emailCheckDebounce?.cancel();
+    _emailController.removeListener(_scheduleEmailCheck);
     _emailController.dispose();
     super.dispose();
   }
 
   Future<void> _onSubmit() async {
-    if (_formKey.currentState?.validate() ?? false) {
+    final authCubit = context.read<AuthCubit>();
+    if ((_formKey.currentState?.validate() ?? false) &&
+        await _ensureEmailRegistered()) {
       setState(() => _isSubmitting = true);
       final email = _emailController.text.trim();
-      final sent = await context.read<AuthCubit>().requestPasswordReset(email);
+      final sent = await authCubit.requestPasswordReset(email);
       if (!mounted) return;
       setState(() => _isSubmitting = false);
 
@@ -58,6 +72,83 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
       }
 
       Navigator.pushNamed(context, AppRoutes.resetPassword, arguments: email);
+    }
+  }
+
+  void _scheduleEmailCheck() {
+    _emailCheckDebounce?.cancel();
+
+    final email = _emailController.text.trim().toLowerCase();
+    final canCheck = Validators.email(email) == null;
+
+    setState(() {
+      _lastCheckedEmail = null;
+      _isEmailRegistered = null;
+      _isCheckingEmail = false;
+    });
+
+    if (!canCheck) return;
+
+    _emailCheckDebounce = Timer(const Duration(milliseconds: 450), () {
+      if (!mounted) return;
+      // ignore: discarded_futures
+      _checkEmailRegistration(showWarningOnError: false);
+    });
+  }
+
+  Future<bool> _ensureEmailRegistered() async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (Validators.email(email) != null) {
+      _formKey.currentState?.validate();
+      return false;
+    }
+
+    if (_lastCheckedEmail == email && _isEmailRegistered == true) return true;
+
+    final isRegistered = await _checkEmailRegistration(
+      showWarningOnError: true,
+    );
+    if (!isRegistered) _formKey.currentState?.validate();
+    return isRegistered;
+  }
+
+  Future<bool> _checkEmailRegistration({
+    required bool showWarningOnError,
+  }) async {
+    final email = _emailController.text.trim().toLowerCase();
+    if (Validators.email(email) != null) return false;
+
+    setState(() => _isCheckingEmail = true);
+    try {
+      final isRegistered = await context.read<AuthCubit>().isEmailRegistered(
+        email,
+      );
+      if (!mounted || email != _emailController.text.trim().toLowerCase()) {
+        return false;
+      }
+
+      setState(() {
+        _lastCheckedEmail = email;
+        _isEmailRegistered = isRegistered;
+        _isCheckingEmail = false;
+      });
+      return isRegistered;
+    } catch (_) {
+      if (!mounted) return false;
+      setState(() {
+        _lastCheckedEmail = null;
+        _isEmailRegistered = null;
+        _isCheckingEmail = false;
+      });
+
+      if (showWarningOnError) {
+        CustomSnackBar.showError(
+          context: context,
+          title: context.tr('Email check failed'),
+          message: context.tr('Could not check email right now.'),
+        );
+      }
+      return false;
     }
   }
 
@@ -100,7 +191,10 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                               labelText: AppStrings.email,
                               prefixIcon: AppIcons.direct_right,
                               keyboardType: TextInputType.emailAddress,
-                              validator: Validators.email,
+                              inputFormatters: [_noWhitespaceInputFormatter],
+                              errorText: _activeEmailErrorText(),
+                              suffix: _buildEmailStatusSuffix(isDarkMode),
+                              validator: _validateEmail,
                             ),
                             const SizedBox(height: 14),
                             _buildSubmitButton(),
@@ -193,10 +287,67 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   }
 
   Widget _buildSubmitButton() {
+    final canSubmit =
+        _lastCheckedEmail == _emailController.text.trim().toLowerCase() &&
+        _isEmailRegistered == true &&
+        !_isCheckingEmail;
+
     return AppActionButton(
       label: AppStrings.submit,
       isLoading: _isSubmitting,
-      onPressed: _isSubmitting ? null : _onSubmit,
+      onPressed: _isSubmitting || !canSubmit ? null : _onSubmit,
+    );
+  }
+
+  String? _validateEmail(String? value) {
+    final validationMessage = Validators.email(value);
+    if (validationMessage != null) return validationMessage;
+
+    final email = value?.trim().toLowerCase() ?? '';
+    if (_lastCheckedEmail == email && _isEmailRegistered == false) {
+      return context.tr('This email is not registered.');
+    }
+
+    return null;
+  }
+
+  String? _activeEmailErrorText() {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty || _isCheckingEmail) return null;
+    if (_lastCheckedEmail == email && _isEmailRegistered == false) {
+      return context.tr('This email is not registered.');
+    }
+    return null;
+  }
+
+  Widget? _buildEmailStatusSuffix(bool isDarkMode) {
+    final email = _emailController.text.trim().toLowerCase();
+    if (email.isEmpty || Validators.email(email) != null) return null;
+
+    if (_isCheckingEmail) {
+      final progressColor = isDarkMode
+          ? Colors.white.withValues(alpha: 0.62)
+          : Colors.black.withValues(alpha: 0.42);
+
+      return Padding(
+        padding: const EdgeInsets.all(14),
+        child: SizedBox(
+          width: 18,
+          height: 18,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+          ),
+        ),
+      );
+    }
+
+    if (_lastCheckedEmail != email || _isEmailRegistered == null) return null;
+
+    return Icon(
+      _isEmailRegistered == true ? AppIcons.tick_circle : AppIcons.danger,
+      size: 23,
+      color: _isEmailRegistered == true ? AppColors.success : AppColors.error,
     );
   }
 }

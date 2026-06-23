@@ -57,6 +57,9 @@ class YallaMarketApp extends StatelessWidget {
           } else if (state is AuthInitial) {
             UserProfileController.instance.reset();
             AppNavigator.goToLogin();
+          } else if (state is AuthSessionExpired) {
+            UserProfileController.instance.reset();
+            _showSessionExpiredDialog(context);
           }
         },
         child: ValueListenableBuilder<AppLanguage>(
@@ -103,5 +106,75 @@ class YallaMarketApp extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  void _showSessionExpiredDialog(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final navigatorContext = AppNavigator.key.currentContext;
+      if (navigatorContext == null) return;
+
+      showDialog<void>(
+        context: navigatorContext,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          final theme = Theme.of(dialogContext);
+          final isDark = theme.brightness == Brightness.dark;
+          final surfaceColor = isDark ? const Color(0xFF242426) : Colors.white;
+          final textColor = isDark ? Colors.white : Colors.black87;
+          final mutedColor = isDark
+              ? Colors.white.withValues(alpha: 0.66)
+              : Colors.black.withValues(alpha: 0.58);
+
+          return AlertDialog(
+            backgroundColor: surfaceColor,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            icon: const Icon(
+              Icons.lock_clock_rounded,
+              color: Color(0xFF4F60F6),
+              size: 34,
+            ),
+            title: Text(
+              dialogContext.tr('Session expired'),
+              textAlign: TextAlign.center,
+              style: TextStyle(color: textColor, fontWeight: FontWeight.w900),
+            ),
+            content: Text(
+              dialogContext.tr(
+                'Sign in again to continue. Keep Remember Me on to stay signed in for 30 days after closing the app.',
+              ),
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: mutedColor,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            actionsAlignment: MainAxisAlignment.center,
+            actions: [
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                    AppNavigator.goToLogin();
+                  },
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF4F60F6),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(48),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(dialogContext.tr('Sign In')),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+    });
   }
 }

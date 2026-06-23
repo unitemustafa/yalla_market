@@ -16,14 +16,75 @@ class _BirthDatePickerSheet extends StatefulWidget {
 }
 
 class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
-  late DateTime _selectedDate;
-  late DateTime _visibleMonth;
+  static const double _wheelItemExtent = 44;
+  static const double _wheelPickerHeight = 220;
+
+  late int _selectedYear;
+  late int _selectedMonth;
+  late int _selectedDay;
+  late final FixedExtentScrollController _dayController;
+  late final FixedExtentScrollController _monthController;
+  late final FixedExtentScrollController _yearController;
+
+  DateTime get _selectedDate =>
+      DateTime(_selectedYear, _selectedMonth, _selectedDay);
+
+  List<int> get _years => [
+    for (var year = widget.firstDate.year; year <= widget.lastDate.year; year++)
+      year,
+  ];
+
+  List<int> get _months {
+    final startMonth = _selectedYear == widget.firstDate.year
+        ? widget.firstDate.month
+        : 1;
+    final endMonth = _selectedYear == widget.lastDate.year
+        ? widget.lastDate.month
+        : 12;
+
+    return [for (var month = startMonth; month <= endMonth; month++) month];
+  }
+
+  List<int> get _days {
+    final monthDays = DateUtils.getDaysInMonth(_selectedYear, _selectedMonth);
+    final startDay =
+        _selectedYear == widget.firstDate.year &&
+            _selectedMonth == widget.firstDate.month
+        ? widget.firstDate.day
+        : 1;
+    final endDay =
+        _selectedYear == widget.lastDate.year &&
+            _selectedMonth == widget.lastDate.month
+        ? widget.lastDate.day
+        : monthDays;
+
+    return [for (var day = startDay; day <= endDay; day++) day];
+  }
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = _clampDate(widget.initialDate);
-    _visibleMonth = DateTime(_selectedDate.year, _selectedDate.month);
+    final initialDate = _clampDate(widget.initialDate);
+    _selectedYear = initialDate.year;
+    _selectedMonth = initialDate.month;
+    _selectedDay = initialDate.day;
+    _dayController = FixedExtentScrollController(
+      initialItem: _days.indexOf(_selectedDay),
+    );
+    _monthController = FixedExtentScrollController(
+      initialItem: _months.indexOf(_selectedMonth),
+    );
+    _yearController = FixedExtentScrollController(
+      initialItem: _years.indexOf(_selectedYear),
+    );
+  }
+
+  @override
+  void dispose() {
+    _dayController.dispose();
+    _monthController.dispose();
+    _yearController.dispose();
+    super.dispose();
   }
 
   DateTime _clampDate(DateTime value) {
@@ -44,56 +105,6 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
     return normalized;
   }
 
-  bool _monthIsAvailable(int year, int month) {
-    final monthStart = DateTime(year, month);
-    final monthEnd = DateTime(year, month + 1, 0);
-
-    return !monthEnd.isBefore(widget.firstDate) &&
-        !monthStart.isAfter(widget.lastDate);
-  }
-
-  bool get _canShowPrevious {
-    final previous = DateTime(_visibleMonth.year, _visibleMonth.month - 1);
-    return _monthIsAvailable(previous.year, previous.month);
-  }
-
-  bool get _canShowNext {
-    final next = DateTime(_visibleMonth.year, _visibleMonth.month + 1);
-    return _monthIsAvailable(next.year, next.month);
-  }
-
-  void _setVisibleMonth({int? year, int? month}) {
-    var nextYear = year ?? _visibleMonth.year;
-    var nextMonth = month ?? _visibleMonth.month;
-
-    if (nextYear == widget.firstDate.year &&
-        nextMonth < widget.firstDate.month) {
-      nextMonth = widget.firstDate.month;
-    }
-
-    if (nextYear == widget.lastDate.year && nextMonth > widget.lastDate.month) {
-      nextMonth = widget.lastDate.month;
-    }
-
-    setState(() => _visibleMonth = DateTime(nextYear, nextMonth));
-  }
-
-  void _shiftMonth(int delta) {
-    final next = DateTime(_visibleMonth.year, _visibleMonth.month + delta);
-    if (!_monthIsAvailable(next.year, next.month)) return;
-    setState(() => _visibleMonth = DateTime(next.year, next.month));
-  }
-
-  void _selectDay(int day) {
-    setState(
-      () => _selectedDate = DateTime(
-        _visibleMonth.year,
-        _visibleMonth.month,
-        day,
-      ),
-    );
-  }
-
   String _label(BuildContext context, String english, String arabic) {
     return context.isArabicLanguage ? arabic : english;
   }
@@ -102,7 +113,7 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
     final text = value.toString();
     if (!context.isArabicLanguage) return text;
 
-    const arabicDigits = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    const arabicDigits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
     return text.split('').map((digit) {
       final index = int.tryParse(digit);
       return index == null ? digit : arabicDigits[index];
@@ -188,6 +199,12 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
     final mutedColor = isDark
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
+    final outlineColor = isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.black.withValues(alpha: 0.06);
+    final wheelSurfaceColor = isDark
+        ? Colors.white.withValues(alpha: 0.04)
+        : const Color(0xFFF7F8FB);
     final maxHeight = MediaQuery.sizeOf(context).height * 0.92;
 
     return SafeArea(
@@ -236,35 +253,80 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
                   onClose: () => Navigator.pop(context),
                 ),
                 const SizedBox(height: 14),
-                _BirthDateMonthControls(
-                  visibleMonth: _visibleMonth,
-                  firstYear: widget.firstDate.year,
-                  lastYear: widget.lastDate.year,
-                  canShowPrevious: _canShowPrevious,
-                  canShowNext: _canShowNext,
-                  isDark: isDark,
-                  monthName: (month) => _monthName(context, month),
-                  yearLabel: (year) => _digits(context, year),
-                  monthEnabled: (month) =>
-                      _monthIsAvailable(_visibleMonth.year, month),
-                  onPrevious: () => _shiftMonth(-1),
-                  onNext: () => _shiftMonth(1),
-                  onMonthChanged: (month) {
-                    if (month != null) _setVisibleMonth(month: month);
-                  },
-                  onYearChanged: (year) {
-                    if (year != null) _setVisibleMonth(year: year);
-                  },
-                ),
-                const SizedBox(height: 12),
-                _BirthDateCalendarGrid(
-                  visibleMonth: _visibleMonth,
-                  selectedDate: _selectedDate,
-                  firstDate: widget.firstDate,
-                  lastDate: widget.lastDate,
-                  isDark: isDark,
-                  digitBuilder: (value) => _digits(context, value),
-                  onDaySelected: _selectDay,
+                Container(
+                  height: _wheelPickerHeight,
+                  decoration: BoxDecoration(
+                    color: wheelSurfaceColor,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: outlineColor),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(
+                    children: [
+                      SizedBox(
+                        height: 42,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: _WheelColumnLabel(context.tr('Day')),
+                            ),
+                            _WheelDivider(color: outlineColor),
+                            Expanded(
+                              child: _WheelColumnLabel(context.tr('Month')),
+                            ),
+                            _WheelDivider(color: outlineColor),
+                            Expanded(
+                              child: _WheelColumnLabel(context.tr('Year')),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Expanded(
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _WheelPickerColumn(
+                                    values: _days,
+                                    controller: _dayController,
+                                    onSelectedItemChanged: _updateDay,
+                                    formatter: (value) =>
+                                        _digits(context, value),
+                                    itemExtent: _wheelItemExtent,
+                                  ),
+                                ),
+                                _WheelDivider(color: outlineColor),
+                                Expanded(
+                                  child: _WheelPickerColumn(
+                                    values: _months,
+                                    controller: _monthController,
+                                    onSelectedItemChanged: _updateMonth,
+                                    formatter: (value) =>
+                                        _digits(context, value),
+                                    itemExtent: _wheelItemExtent,
+                                  ),
+                                ),
+                                _WheelDivider(color: outlineColor),
+                                Expanded(
+                                  child: _WheelPickerColumn(
+                                    values: _years,
+                                    controller: _yearController,
+                                    onSelectedItemChanged: _updateYear,
+                                    formatter: (value) =>
+                                        _digits(context, value),
+                                    itemExtent: _wheelItemExtent,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            _WheelSelectionFrame(isDark: isDark),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -274,11 +336,7 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: textColor,
-                          side: BorderSide(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.12)
-                                : Colors.black.withValues(alpha: 0.08),
-                          ),
+                          side: BorderSide(color: outlineColor),
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -318,6 +376,150 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  void _updateYear(int index) {
+    setState(() {
+      _selectedYear = _years[index];
+      _selectedMonth = _clampValue(_selectedMonth, _months);
+      _selectedDay = _clampValue(_selectedDay, _days);
+    });
+    _syncController(_monthController, _months.indexOf(_selectedMonth));
+    _syncController(_dayController, _days.indexOf(_selectedDay));
+  }
+
+  void _updateMonth(int index) {
+    setState(() {
+      _selectedMonth = _months[index];
+      _selectedDay = _clampValue(_selectedDay, _days);
+    });
+    _syncController(_dayController, _days.indexOf(_selectedDay));
+  }
+
+  void _updateDay(int index) {
+    setState(() => _selectedDay = _days[index]);
+  }
+
+  int _clampValue(int value, List<int> values) {
+    if (value < values.first) return values.first;
+    if (value > values.last) return values.last;
+    return value;
+  }
+
+  void _syncController(FixedExtentScrollController controller, int index) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !controller.hasClients || index < 0) return;
+      controller.jumpToItem(index);
+    });
+  }
+}
+
+class _WheelColumnLabel extends StatelessWidget {
+  const _WheelColumnLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    return Center(
+      child: Text(
+        label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: mutedColor,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
+  }
+}
+
+class _WheelDivider extends StatelessWidget {
+  const _WheelDivider({required this.color});
+
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 1, height: double.infinity, color: color);
+  }
+}
+
+class _WheelSelectionFrame extends StatelessWidget {
+  const _WheelSelectionFrame({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        height: _BirthDatePickerSheetState._wheelItemExtent + 8,
+        margin: const EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: AppColors.primary.withValues(alpha: isDark ? 0.34 : 0.20),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WheelPickerColumn extends StatelessWidget {
+  const _WheelPickerColumn({
+    required this.values,
+    required this.controller,
+    required this.onSelectedItemChanged,
+    required this.formatter,
+    required this.itemExtent,
+  });
+
+  final List<int> values;
+  final FixedExtentScrollController controller;
+  final ValueChanged<int> onSelectedItemChanged;
+  final String Function(int value) formatter;
+  final double itemExtent;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListWheelScrollView.useDelegate(
+      controller: controller,
+      itemExtent: itemExtent,
+      diameterRatio: 1.8,
+      perspective: 0.002,
+      squeeze: 0.96,
+      useMagnifier: true,
+      magnification: 1.08,
+      overAndUnderCenterOpacity: 0.42,
+      physics: const FixedExtentScrollPhysics(parent: BouncingScrollPhysics()),
+      onSelectedItemChanged: onSelectedItemChanged,
+      childDelegate: ListWheelChildBuilderDelegate(
+        childCount: values.length,
+        builder: (context, index) {
+          return Center(
+            child: Text(
+              formatter(values[index]),
+              textDirection: TextDirection.ltr,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+          );
+        },
       ),
     );
   }

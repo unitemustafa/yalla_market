@@ -63,6 +63,7 @@ class BrandsView extends StatelessWidget {
                               brand: category.name,
                               productCount: category.productCountLabel,
                               logo: category.image,
+                              classificationId: category.id,
                             ),
                           );
                         },

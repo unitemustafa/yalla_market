@@ -30,6 +30,7 @@ class CategoryTab extends StatelessWidget {
                 brand: showcase.name,
                 logo: showcase.image,
                 productCount: showcase.productCountLabel,
+                classificationId: showcase.id,
               ),
             );
           },

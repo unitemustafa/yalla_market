@@ -159,6 +159,8 @@ class AppRouter {
             logo: args.logo,
             productCount: args.productCount,
             shopId: args.shopId,
+            classificationId: args.classificationId,
+            marketId: args.marketId,
           ),
           settings,
         );

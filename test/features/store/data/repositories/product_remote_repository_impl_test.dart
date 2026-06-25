@@ -1,7 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/features/store/data/repositories/product_remote_repository_impl.dart';
 
-import '../../../../helpers/domain_fixtures.dart';
 import '../../../../helpers/fake_api_client.dart';
 
 void main() {
@@ -9,10 +8,10 @@ void main() {
     test('searches products through the API contract', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
-        expect(request.path, '/products/search');
-        expect(request.queryParameters?['query'], 'shoe');
+        expect(request.path, '/home/search/');
+        expect(request.queryParameters?['q'], 'shoe');
         return {
-          'items': [sampleProduct.toJson()],
+          'results': [_backendProduct()],
         };
       });
       final repository = ProductRemoteRepositoryImpl(apiClient);
@@ -20,7 +19,7 @@ void main() {
       final result = await repository.searchProducts(' shoe ');
 
       result.when(
-        success: (products) => expect(products.single.id, sampleProduct.id),
+        success: (products) => expect(products.single.id, '42'),
         failure: (failure) => fail(failure.message),
       );
     });
@@ -28,10 +27,10 @@ void main() {
     test('loads products with the selected city query parameter', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
-        expect(request.path, '/products');
-        expect(request.queryParameters?['city'], 'sharm-el-sheikh');
+        expect(request.path, '/home/');
+        expect(request.queryParameters, isNull);
         return {
-          'items': [sampleProduct.toJson()],
+          'products': [_backendProduct()],
         };
       });
       final repository = ProductRemoteRepositoryImpl(apiClient);
@@ -39,7 +38,7 @@ void main() {
       final result = await repository.getProducts(citySlug: 'sharm-el-sheikh');
 
       result.when(
-        success: (products) => expect(products.single.id, sampleProduct.id),
+        success: (products) => expect(products.single.id, '42'),
         failure: (failure) => fail(failure.message),
       );
     });
@@ -47,11 +46,11 @@ void main() {
     test('searches products with the selected city query parameter', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
-        expect(request.path, '/products/search');
-        expect(request.queryParameters?['query'], 'shoe');
-        expect(request.queryParameters?['city'], 'sharm-el-sheikh');
+        expect(request.path, '/home/search/');
+        expect(request.queryParameters?['q'], 'shoe');
+        expect(request.queryParameters?['city'], isNull);
         return {
-          'items': [sampleProduct.toJson()],
+          'results': [_backendProduct()],
         };
       });
       final repository = ProductRemoteRepositoryImpl(apiClient);
@@ -62,21 +61,18 @@ void main() {
       );
 
       result.when(
-        success: (products) => expect(products.single.id, sampleProduct.id),
+        success: (products) => expect(products.single.id, '42'),
         failure: (failure) => fail(failure.message),
       );
     });
 
     test('loads categories and brands from remote endpoints', () async {
       final apiClient = FakeApiClient((request) {
-        if (request.path == '/categories') {
+        if (request.path == '/home/classifications/') {
           return {
-            'items': [sampleCategory.toJson()],
-          };
-        }
-        if (request.path == '/brands') {
-          return {
-            'items': [sampleBrand.toJson()],
+            'common_categories': [
+              {'id': 7, 'name': 'Supermarket', 'product_count': 5},
+            ],
           };
         }
         fail('Unexpected request ${request.method} ${request.path}');
@@ -87,13 +83,54 @@ void main() {
       final brandsResult = await repository.getBrands();
 
       categoriesResult.when(
-        success: (categories) => expect(categories.single.name, 'Shoes'),
+        success: (categories) => expect(categories.single.name, 'Supermarket'),
         failure: (failure) => fail(failure.message),
       );
       brandsResult.when(
-        success: (brands) => expect(brands.single.name, 'Yalla'),
+        success: (brands) => expect(brands.single.name, 'Supermarket'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('maps backend product category, market, and variant price', () async {
+      final apiClient = FakeApiClient((request) {
+        expect(request.path, '/home/');
+        return {
+          'products': [_backendProduct()],
+        };
+      });
+      final repository = ProductRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.getProducts();
+
+      result.when(
+        success: (products) {
+          final product = products.single;
+          expect(product.id, '42');
+          expect(product.title, 'Red Apple');
+          expect(product.brand, 'Fresh Market');
+          expect(product.price, '120.00 - 180.00');
+          expect(product.code, 'SKU-1');
+          expect(product.tags, contains('Fruit'));
+        },
         failure: (failure) => fail(failure.message),
       );
     });
   });
+}
+
+Map<String, Object?> _backendProduct() {
+  return {
+    'id': 42,
+    'name': 'Red Apple',
+    'description': 'Fresh fruit',
+    'image': '',
+    'discount': '10.00',
+    'category': {'id': 3, 'name': 'Fruit'},
+    'market': {'id': 9, 'name': 'Fresh Market'},
+    'variants': [
+      {'id': 1, 'price': '120.00', 'sku': 'SKU-1'},
+      {'id': 2, 'price': '180.00', 'sku': 'SKU-2'},
+    ],
+  };
 }

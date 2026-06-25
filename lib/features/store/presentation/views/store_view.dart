@@ -3,30 +3,34 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../data/demo/demo_categories.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/brands/brand_card.dart';
+import '../../../../core/presentation/widgets/brands/brand_showcase.dart';
 import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
+import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
-import '../../domain/entities/category_data.dart';
-import '../cubit/product_discovery_cubit.dart';
-import '../cubit/product_discovery_state.dart';
-import '../widgets/category_tab.dart';
+import '../../domain/entities/store_data.dart';
+import '../cubit/store_cubit.dart';
+import '../cubit/store_state.dart';
 
-class StoreView extends StatelessWidget {
+class StoreView extends StatefulWidget {
   const StoreView({super.key});
 
-  static const List<_StoreCategoryData> _categories = [
-    _StoreCategoryData(label: 'الأكل', showcases: MarketCategories.food),
-    _StoreCategoryData(label: 'الطازج', showcases: MarketCategories.fresh),
-    _StoreCategoryData(label: 'التسوق', showcases: MarketCategories.shopping),
-    _StoreCategoryData(label: 'البيت', showcases: MarketCategories.home),
-    _StoreCategoryData(label: 'الموضة', showcases: MarketCategories.fashion),
-    _StoreCategoryData(label: 'الخدمات', showcases: MarketCategories.business),
-  ];
+  @override
+  State<StoreView> createState() => _StoreViewState();
+}
+
+class _StoreViewState extends State<StoreView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<StoreCubit>().loadStore();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -35,20 +39,55 @@ class StoreView extends StatelessWidget {
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
 
-    return BlocBuilder<ProductDiscoveryCubit, ProductDiscoveryState>(
+    return BlocBuilder<StoreCubit, StoreState>(
       builder: (context, state) {
-        final featuredCategories = _resolvedCategories(
-          MarketCategories.featured,
-          state.categories,
-        );
+        final store = state.data;
+        final classifications = store?.classifications ?? const [];
+
+        if (state is StoreLoading && store == null) {
+          return _StorePlainScaffold(
+            backgroundColor: backgroundColor,
+            isDark: isDark,
+            child: const AppLoadingState(message: 'Loading store...'),
+          );
+        }
+
+        if (state is StoreFailure && store == null) {
+          return _StorePlainScaffold(
+            backgroundColor: backgroundColor,
+            isDark: isDark,
+            child: AppErrorState(
+              title: 'Store could not load',
+              message: state.message,
+              onRetry: () => context.read<StoreCubit>().loadStore(force: true),
+            ),
+          );
+        }
+
+        if (classifications.isEmpty) {
+          return _StorePlainScaffold(
+            backgroundColor: backgroundColor,
+            isDark: isDark,
+            child: const AppEmptyState(
+              title: 'No store categories',
+              message: 'Categories will appear here once stores are available.',
+              icon: AppIcons.shop,
+            ),
+          );
+        }
+
+        final featured = store!.commonClassifications.isEmpty
+            ? classifications.take(4).toList(growable: false)
+            : store.commonClassifications;
 
         return DefaultTabController(
-          length: _categories.length,
+          key: ValueKey(classifications.map((item) => item.id).join('|')),
+          length: classifications.length,
           child: Scaffold(
             backgroundColor: backgroundColor,
             body: SafeArea(
               child: NestedScrollView(
-                headerSliverBuilder: (_, innerBoxIsScrolled) {
+                headerSliverBuilder: (_, _) {
                   return [
                     SliverToBoxAdapter(
                       child: ColoredBox(
@@ -73,10 +112,10 @@ class StoreView extends StatelessWidget {
                               ),
                               const SizedBox(height: 12),
                               GridLayout(
-                                itemCount: featuredCategories.length,
+                                itemCount: featured.length,
                                 mainAxisExtent: 78,
                                 itemBuilder: (_, index) {
-                                  final category = featuredCategories[index];
+                                  final category = featured[index];
                                   return BrandCard(
                                     showBorder: true,
                                     brand: category.name,
@@ -94,6 +133,7 @@ class StoreView extends StatelessWidget {
                                           logo: category.image,
                                           productCount:
                                               category.productCountLabel,
+                                          classificationId: category.id,
                                         ),
                                       );
                                     },
@@ -110,8 +150,8 @@ class StoreView extends StatelessWidget {
                       delegate: _StoreTabsHeaderDelegate(
                         backgroundColor: backgroundColor,
                         isDark: isDark,
-                        labels: _categories
-                            .map((category) => category.label)
+                        labels: classifications
+                            .map((category) => category.name)
                             .toList(growable: false),
                       ),
                     ),
@@ -120,13 +160,11 @@ class StoreView extends StatelessWidget {
                 body: ColoredBox(
                   color: backgroundColor,
                   child: TabBarView(
-                    children: _categories
+                    children: classifications
                         .map(
-                          (category) => CategoryTab(
-                            showcases: _resolvedCategories(
-                              category.showcases,
-                              state.categories,
-                            ),
+                          (classification) => _StoreMarketsTab(
+                            classification: classification,
+                            markets: store.marketsFor(classification.id),
                           ),
                         )
                         .toList(growable: false),
@@ -139,51 +177,88 @@ class StoreView extends StatelessWidget {
       },
     );
   }
+}
 
-  List<CategoryData> _resolvedCategories(
-    List<MarketCategoryData> categories,
-    List<CategoryData> loadedCategories,
-  ) {
-    return categories
-        .map((category) => _resolvedCategory(category, loadedCategories))
-        .toList(growable: false);
-  }
+class _StorePlainScaffold extends StatelessWidget {
+  const _StorePlainScaffold({
+    required this.backgroundColor,
+    required this.isDark,
+    required this.child,
+  });
 
-  CategoryData _resolvedCategory(
-    MarketCategoryData category,
-    List<CategoryData> loadedCategories,
-  ) {
-    final normalizedName = _normalize(category.name);
-    for (final loadedCategory in loadedCategories) {
-      if (_normalize(loadedCategory.name) == normalizedName) {
-        return loadedCategory;
-      }
-    }
+  final Color backgroundColor;
+  final bool isDark;
+  final Widget child;
 
-    return CategoryData(
-      id: _slugFrom(category.name),
-      name: category.name,
-      slug: _slugFrom(category.name),
-      productCount: _countFromLabel(category.count),
-      image: category.image,
-      galleryImages: category.galleryImages,
-      accentColorValue: category.color.toARGB32(),
-      keywords: category.keywords,
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _StoreTopBar(isDark: isDark),
+              const SizedBox(height: 18),
+              _StoreSearchField(isDark: isDark),
+              const SizedBox(height: 24),
+              child,
+            ],
+          ),
+        ),
+      ),
     );
   }
+}
 
-  String _normalize(String value) => value.trim().toLowerCase();
+class _StoreMarketsTab extends StatelessWidget {
+  const _StoreMarketsTab({required this.classification, required this.markets});
 
-  String _slugFrom(String value) {
-    return value
-        .trim()
-        .toLowerCase()
-        .replaceAll(RegExp(r'[^a-z0-9\u0600-\u06ff]+'), '-')
-        .replaceAll(RegExp(r'^-+|-+$'), '');
-  }
+  final StoreClassificationData classification;
+  final List<StoreMarketData> markets;
 
-  int _countFromLabel(String value) {
-    return int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
+  @override
+  Widget build(BuildContext context) {
+    if (markets.isEmpty) {
+      return const AppEmptyState(
+        title: 'No stores available',
+        message: 'Stores will appear here when they cover your address.',
+        icon: AppIcons.shop,
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      itemCount: markets.length,
+      itemBuilder: (_, index) {
+        final market = markets[index];
+        return BrandShowcase(
+          brand: market.name,
+          productCount: market.productCountLabel,
+          logo: market.image,
+          accentColor: Color(market.accentColorValue),
+          images: market.products
+              .map((product) => product.image)
+              .take(3)
+              .toList(growable: false),
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.brandProducts,
+              arguments: BrandProductsRouteArgs(
+                brand: market.name,
+                logo: market.image,
+                productCount: market.productCountLabel,
+                classificationId: classification.id,
+                marketId: market.id,
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 }
 
@@ -387,11 +462,4 @@ class _StoreTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
         oldDelegate.isDark != isDark ||
         oldDelegate.labels.length != labels.length;
   }
-}
-
-class _StoreCategoryData {
-  const _StoreCategoryData({required this.label, required this.showcases});
-
-  final String label;
-  final List<MarketCategoryData> showcases;
 }

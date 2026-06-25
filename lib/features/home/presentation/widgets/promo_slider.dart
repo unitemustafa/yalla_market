@@ -7,6 +7,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/texts/app_currency_text.dart';
@@ -15,10 +16,14 @@ import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
+import '../../domain/entities/home_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
+import '../../../store/domain/entities/product_data.dart';
 
 class PromoSlider extends StatefulWidget {
-  const PromoSlider({super.key});
+  const PromoSlider({super.key, this.offers});
+
+  final List<HomeOfferData>? offers;
 
   @override
   State<PromoSlider> createState() => _PromoSliderState();
@@ -349,10 +354,11 @@ class _PromoSliderState extends State<PromoSlider> {
     final regionSlug = context.select<LocationCubit, String>(
       (cubit) => cubit.state.selectedCity?.slug ?? 'general',
     );
-    final offers = _visibleOffers(regionSlug);
+    final offers = _visibleOffers(regionSlug, widget.offers);
     if (_currentIndex >= offers.length && offers.isNotEmpty) {
       _currentIndex = 0;
     }
+    if (offers.isEmpty) return const SizedBox.shrink();
 
     return Column(
       children: [
@@ -405,15 +411,130 @@ class _PromoSliderState extends State<PromoSlider> {
     );
   }
 
-  List<_PromoOfferData> _visibleOffers(String regionSlug) {
+  List<_PromoOfferData> _visibleOffers(
+    String regionSlug,
+    List<HomeOfferData>? apiOffers,
+  ) {
     final normalized = regionSlug.trim().toLowerCase();
-    return _offers
+    final source = apiOffers == null
+        ? _offers
+        : apiOffers.map(_offerFromApi).toList(growable: false);
+
+    return source
         .where((offer) {
           if (offer.isGeneralVisibility) return true;
           if (normalized.isEmpty || normalized == 'general') return false;
           return offer.regionSlugs.contains(normalized);
         })
         .toList(growable: false);
+  }
+
+  _PromoOfferData _offerFromApi(HomeOfferData offer) {
+    final type = offer.type.trim().toLowerCase();
+    final products = offer.products.map(_offerProductFromApi).toList();
+    final subtotalValue = offer.products.fold<double>(
+      0,
+      (sum, product) => sum + product.priceValue,
+    );
+    final discountValue = double.tryParse(offer.discount) ?? 0;
+    final totalValue = subtotalValue <= 0
+        ? 0
+        : subtotalValue * (1 - (discountValue / 100));
+    final discountAmount = (subtotalValue - totalValue).clamp(0, subtotalValue);
+    final discountLabel = offer.discountLabel;
+    final title = offer.title.trim().isEmpty ? 'Offer' : offer.title.trim();
+    final description = offer.description.trim().isEmpty
+        ? title
+        : offer.description.trim();
+
+    return _PromoOfferData(
+      icon: _iconForApiOffer(type),
+      color: _colorForApiOffer(type),
+      image: offer.image,
+      endsAtIso: offer.endsAt?.toIso8601String(),
+      badgeEn: _badgeForApiOffer(type),
+      badgeAr: _badgeForApiOffer(type),
+      titleEn: title,
+      titleAr: title,
+      subtitleEn: description,
+      subtitleAr: description,
+      valueEn: discountLabel.isEmpty ? offer.marketName : discountLabel,
+      valueAr: discountLabel.isEmpty ? offer.marketName : discountLabel,
+      statusEn: offer.marketName.isEmpty ? 'Active offer' : offer.marketName,
+      statusAr: offer.marketName.isEmpty ? 'Active offer' : offer.marketName,
+      detailEn: description,
+      detailAr: description,
+      subtotal: AppCurrency.format(subtotalValue, fractionDigits: 0),
+      discount: AppCurrency.format(discountAmount, fractionDigits: 0),
+      discountRateEn: discountLabel,
+      discountRateAr: discountLabel,
+      afterDiscount: AppCurrency.format(totalValue, fractionDigits: 0),
+      deliveryFee: '',
+      total: AppCurrency.format(totalValue, fractionDigits: 0),
+      actionEn: 'Add offer to cart',
+      actionAr: 'Add offer to cart',
+      products: products.isEmpty
+          ? [
+              _OfferProduct(
+                image: offer.image,
+                titleEn: title,
+                titleAr: title,
+                brandEn: offer.marketName,
+                brandAr: offer.marketName,
+                price: AppCurrency.format(totalValue, fractionDigits: 0),
+                badgeEn: discountLabel,
+                badgeAr: discountLabel,
+              ),
+            ]
+          : products,
+    );
+  }
+
+  _OfferProduct _offerProductFromApi(ProductData product) {
+    final discount = product.discount.trim();
+    return _OfferProduct(
+      image: product.image,
+      titleEn: product.title,
+      titleAr: product.title,
+      brandEn: product.brand,
+      brandAr: product.brand,
+      price: product.price,
+      oldPrice: product.oldPrice,
+      badgeEn: discount,
+      badgeAr: discount,
+      metaEn: product.code ?? '',
+      metaAr: product.code ?? '',
+    );
+  }
+
+  IconData _iconForApiOffer(String type) {
+    return switch (type) {
+      'flash' => AppIcons.flash_1,
+      'delivery' => AppIcons.truck_fast,
+      'discount' => AppIcons.receipt_text,
+      'package' => AppIcons.box,
+      _ => AppIcons.box,
+    };
+  }
+
+  Color _colorForApiOffer(String type) {
+    return switch (type) {
+      'flash' => AppColors.warning,
+      'delivery' => AppColors.info,
+      'discount' => AppColors.error,
+      'package' => AppColors.primary,
+      _ => AppColors.primary,
+    };
+  }
+
+  String _badgeForApiOffer(String type) {
+    return switch (type) {
+      'flash' => 'Flash',
+      'delivery' => 'Delivery',
+      'discount' => 'Discount',
+      'package' => 'Package',
+      _ => 'Offer',
+    };
   }
 }
 

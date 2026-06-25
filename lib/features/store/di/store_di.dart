@@ -7,8 +7,11 @@ import '../../../features/store/data/repositories/order_remote_repository_impl.d
 import '../../../features/store/data/repositories/order_repository_impl.dart';
 import '../../../features/store/data/repositories/product_remote_repository_impl.dart';
 import '../../../features/store/data/repositories/product_repository_impl.dart';
+import '../../../features/store/data/repositories/store_remote_repository_impl.dart';
+import '../../../features/store/data/repositories/store_repository_impl.dart';
 import '../../../features/store/domain/repositories/order_repository.dart';
 import '../../../features/store/domain/repositories/product_repository.dart';
+import '../../../features/store/domain/repositories/store_repository.dart';
 import '../../../features/store/domain/usecases/create_order_usecase.dart';
 import '../../../features/store/domain/usecases/get_brands_usecase.dart';
 import '../../../features/store/domain/usecases/get_categories_usecase.dart';
@@ -16,10 +19,12 @@ import '../../../features/store/domain/usecases/get_my_orders_usecase.dart';
 import '../../../features/store/domain/usecases/get_product_usecase.dart';
 import '../../../features/store/domain/usecases/get_products_usecase.dart';
 import '../../../features/store/domain/usecases/search_products_usecase.dart';
+import '../../../features/store/domain/usecases/get_store_usecase.dart';
 import '../../../features/store/presentation/cubit/checkout_cubit.dart';
 import '../../../features/store/presentation/cubit/order_history_cubit.dart';
 import '../../../features/store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../features/store/presentation/cubit/product_discovery_cubit.dart';
+import '../../../features/store/presentation/cubit/store_cubit.dart';
 
 void registerStoreDependencies(GetIt sl) {
   if (!sl.isRegistered<ProductRepository>()) {
@@ -47,6 +52,19 @@ void registerStoreDependencies(GetIt sl) {
   }
   if (!sl.isRegistered<GetBrandsUseCase>()) {
     sl.registerLazySingleton(() => GetBrandsUseCase(sl<ProductRepository>()));
+  }
+  if (!sl.isRegistered<StoreRepository>()) {
+    sl.registerLazySingleton<StoreRepository>(
+      () => AppEnvironment.useDemoRepositories
+          ? StoreRepositoryImpl()
+          : StoreRemoteRepositoryImpl(sl<ApiClient>()),
+    );
+  }
+  if (!sl.isRegistered<GetStoreUseCase>()) {
+    sl.registerLazySingleton(() => GetStoreUseCase(sl<StoreRepository>()));
+  }
+  if (!sl.isRegistered<StoreCubit>()) {
+    sl.registerFactory(() => StoreCubit(sl<GetStoreUseCase>()));
   }
   if (!sl.isRegistered<ProductCatalogCubit>()) {
     sl.registerFactory(

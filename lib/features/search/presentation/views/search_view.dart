@@ -266,6 +266,7 @@ class _SearchViewState extends State<SearchView> {
         brand: category.name,
         logo: category.image,
         productCount: category.productCountLabel,
+        classificationId: category.id,
       ),
     );
   }

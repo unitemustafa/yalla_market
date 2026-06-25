@@ -20,12 +20,16 @@ class BrandProductsRouteArgs {
     required this.logo,
     required this.productCount,
     this.shopId,
+    this.classificationId,
+    this.marketId,
   });
 
   final String brand;
   final String logo;
   final String productCount;
   final String? shopId;
+  final String? classificationId;
+  final String? marketId;
 }
 
 class ProductDetailRouteArgs {

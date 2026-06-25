@@ -14,8 +14,11 @@ import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
 import '../../../../../core/routing/app_routes.dart';
 import '../../../domain/entities/product_data.dart';
+import '../../../domain/entities/store_data.dart';
 import '../../cubit/product_catalog_cubit.dart';
 import '../../cubit/product_catalog_state.dart';
+import '../../cubit/store_cubit.dart';
+import '../../cubit/store_state.dart';
 
 part 'brand_products_widgets.dart';
 
@@ -26,18 +29,30 @@ class BrandProductsView extends StatefulWidget {
     required this.logo,
     required this.productCount,
     this.shopId,
+    this.classificationId,
+    this.marketId,
   });
 
   final String brand;
   final String logo;
   final String productCount;
   final String? shopId;
+  final String? classificationId;
+  final String? marketId;
 
   @override
   State<BrandProductsView> createState() => _BrandProductsViewState();
 }
 
 class _BrandProductsViewState extends State<BrandProductsView> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<StoreCubit>().loadStore();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -48,11 +63,15 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
-          builder: (context, state) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              child: _buildContent(context, state),
+        child: BlocBuilder<StoreCubit, StoreState>(
+          builder: (context, storeState) {
+            return BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
+              builder: (context, catalogState) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                  child: _buildContent(context, storeState, catalogState),
+                );
+              },
             );
           },
         ),
@@ -60,7 +79,14 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     );
   }
 
-  Widget _buildContent(BuildContext context, ProductCatalogState state) {
+  Widget _buildContent(
+    BuildContext context,
+    StoreState storeState,
+    ProductCatalogState state,
+  ) {
+    final storeContent = _buildStoreContent(context, storeState);
+    if (storeContent != null) return storeContent;
+
     final isLocalShopCategory = MarketCategories.hasLocalShops(widget.brand);
     final selectedShopId = widget.shopId;
 
@@ -116,6 +142,198 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     }
 
     return _buildProductList(context, readyState);
+  }
+
+  Widget? _buildStoreContent(BuildContext context, StoreState state) {
+    final classificationId = widget.classificationId?.trim();
+    final marketId = widget.marketId?.trim();
+    if ((classificationId == null || classificationId.isEmpty) &&
+        (marketId == null || marketId.isEmpty)) {
+      return null;
+    }
+
+    final store = state.data;
+    if (state is StoreLoading && store == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageTopBar(title: widget.brand, subtitle: widget.productCount),
+          const SizedBox(height: 22),
+          const AppLoadingState(message: 'Loading stores...'),
+        ],
+      );
+    }
+
+    if (state is StoreFailure && store == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageTopBar(title: widget.brand, subtitle: widget.productCount),
+          const SizedBox(height: 22),
+          AppErrorState(
+            title: 'Store could not load',
+            message: state.message,
+            onRetry: () => context.read<StoreCubit>().loadStore(force: true),
+          ),
+        ],
+      );
+    }
+
+    if (store == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          PageTopBar(title: widget.brand, subtitle: widget.productCount),
+          const SizedBox(height: 22),
+          const AppLoadingState(message: 'Loading stores...'),
+        ],
+      );
+    }
+
+    if (marketId != null && marketId.isNotEmpty) {
+      final market = _marketById(store, marketId);
+      if (market == null) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            PageTopBar(title: widget.brand, subtitle: widget.productCount),
+            const SizedBox(height: 22),
+            const AppEmptyState(
+              title: 'Store unavailable',
+              message: 'This store is not available for your current address.',
+              icon: AppIcons.shop,
+            ),
+          ],
+        );
+      }
+      return _buildApiMarketProducts(context, store, market);
+    }
+
+    if (classificationId != null && classificationId.isNotEmpty) {
+      final classification = _classificationById(store, classificationId);
+      final markets = store.marketsFor(classificationId);
+      return _buildApiClassificationMarkets(context, classification, markets);
+    }
+
+    return null;
+  }
+
+  Widget _buildApiClassificationMarkets(
+    BuildContext context,
+    StoreClassificationData? classification,
+    List<StoreMarketData> markets,
+  ) {
+    final title = classification?.name ?? widget.brand;
+    final subtitle = markets.isEmpty
+        ? widget.productCount
+        : '${markets.length} store${markets.length == 1 ? '' : 's'}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PageTopBar(title: title, subtitle: subtitle),
+        const SizedBox(height: 18),
+        BrandCard(
+          showBorder: true,
+          brand: title,
+          logo: classification?.image ?? widget.logo,
+          productCount: subtitle,
+          accentColor: classification == null
+              ? AppColors.primary
+              : Color(classification.accentColorValue),
+        ),
+        const SizedBox(height: 22),
+        if (markets.isEmpty)
+          const AppEmptyState(
+            title: 'No stores available',
+            message: 'Stores will appear here when they cover your address.',
+            icon: AppIcons.shop,
+          )
+        else
+          ...markets.map(
+            (market) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: BrandCard(
+                showBorder: true,
+                brand: market.name,
+                logo: market.image,
+                productCount: market.productCountLabel,
+                accentColor: Color(market.accentColorValue),
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.brandProducts,
+                    arguments: BrandProductsRouteArgs(
+                      brand: market.name,
+                      logo: market.image,
+                      productCount: market.productCountLabel,
+                      classificationId: market.classificationId,
+                      marketId: market.id,
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildApiMarketProducts(
+    BuildContext context,
+    StoreData store,
+    StoreMarketData market,
+  ) {
+    final classification = _classificationById(store, market.classificationId);
+    final subtitle = [
+      if (classification != null) classification.name,
+      if (market.branch.trim().isNotEmpty) market.branch,
+    ].join(' • ');
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        PageTopBar(
+          title: market.name,
+          subtitle: subtitle.isEmpty ? market.productCountLabel : subtitle,
+        ),
+        const SizedBox(height: 18),
+        BrandCard(
+          showBorder: true,
+          brand: market.name,
+          logo: market.image,
+          productCount: market.productCountLabel,
+          accentColor: Color(market.accentColorValue),
+        ),
+        const SizedBox(height: 26),
+        ProductResultsView(
+          products: market.products,
+          status: ProductResultsStatus.ready,
+          pageSize: 6,
+          onRetry: () => context.read<StoreCubit>().loadStore(force: true),
+          emptyTitle: 'No products available',
+          emptyMessage: 'Products will appear here once this store is ready.',
+        ),
+      ],
+    );
+  }
+
+  StoreClassificationData? _classificationById(StoreData store, String id) {
+    final normalized = id.trim();
+    for (final classification in store.classifications) {
+      if (classification.id == normalized) return classification;
+    }
+    return null;
+  }
+
+  StoreMarketData? _marketById(StoreData store, String id) {
+    final normalized = id.trim();
+    for (final markets in store.marketsByClassificationId.values) {
+      for (final market in markets) {
+        if (market.id == normalized) return market;
+      }
+    }
+    return null;
   }
 
   Widget _buildLocalShops(BuildContext context, ProductCatalogReady state) {

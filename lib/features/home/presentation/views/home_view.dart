@@ -8,15 +8,19 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
+import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
+import '../cubit/home_cubit.dart';
+import '../cubit/home_state.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../location/presentation/cubit/location_state.dart';
 import '../../../personalization/presentation/controllers/user_profile_controller.dart';
 import '../../../store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../store/presentation/cubit/product_discovery_cubit.dart';
+import '../../../store/presentation/cubit/store_cubit.dart';
 import '../widgets/home_categories.dart';
 import '../widgets/home_products_grid.dart';
 import '../widgets/promo_slider.dart';
@@ -55,7 +59,9 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _checkForSupportedRegion();
+      if (!mounted) return;
+      unawaited(_loadHomeData(force: true));
+      unawaited(_checkForSupportedRegion());
     });
     _supportedRegionTimer = Timer.periodic(_supportedRegionCheckInterval, (_) {
       if (mounted) _checkForSupportedRegion();
@@ -97,6 +103,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _loadHomeData({bool force = false}) async {
+    await context.read<HomeCubit>().loadHome(force: force);
+    if (!mounted) return;
+    await context.read<ProductCatalogCubit>().loadProducts(force: force);
+    if (!mounted) return;
+    await context.read<ProductDiscoveryCubit>().loadDiscovery(force: force);
+    if (!mounted) return;
+    await context.read<StoreCubit>().loadStore(force: force);
+  }
+
   Future<void> _switchToDetectedRegion(CityData detectedCity) async {
     final selectedCity = await context.read<LocationCubit>().selectCity(
       detectedCity,
@@ -107,6 +123,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     await context.read<ProductCatalogCubit>().loadProducts(force: true);
     if (!mounted) return;
     await context.read<ProductDiscoveryCubit>().loadDiscovery(force: true);
+    if (!mounted) return;
+    await context.read<HomeCubit>().loadHome(force: true);
+    if (!mounted) return;
+    await context.read<StoreCubit>().loadStore(force: true);
     if (!mounted) return;
 
     CustomSnackBar.showPersistentSuccess(
@@ -135,23 +155,41 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               const SizedBox(height: 18),
               _HomeSearchField(isDark: isDark),
               const SizedBox(height: 22),
-              const PromoSlider(),
-              const SizedBox(height: 24),
-              const SectionHeading(
-                title: 'Popular Categories',
-                showActionButton: false,
-              ),
-              const SizedBox(height: 12),
-              const HomeCategories(),
-              const SizedBox(height: 22),
-              SectionHeading(
-                title: 'Popular Products',
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.allProducts);
+              BlocBuilder<HomeCubit, HomeState>(
+                builder: (context, homeState) {
+                  final home = homeState.data;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (homeState is HomeFailure && home == null) ...[
+                        AppErrorState(
+                          title: 'Home could not load',
+                          message: homeState.message,
+                          onRetry: () => _loadHomeData(force: true),
+                        ),
+                        const SizedBox(height: 22),
+                      ],
+                      PromoSlider(offers: home?.offers),
+                      const SizedBox(height: 24),
+                      const SectionHeading(
+                        title: 'Popular Categories',
+                        showActionButton: false,
+                      ),
+                      const SizedBox(height: 12),
+                      HomeCategories(categories: home?.categories),
+                      const SizedBox(height: 22),
+                      SectionHeading(
+                        title: 'Popular Products',
+                        onPressed: () {
+                          Navigator.pushNamed(context, AppRoutes.allProducts);
+                        },
+                      ),
+                      const SizedBox(height: 14),
+                      HomeProductsGrid(products: home?.products, limit: 8),
+                    ],
+                  );
                 },
               ),
-              const SizedBox(height: 14),
-              const HomeProductsGrid(limit: 8),
             ],
           ),
         ),

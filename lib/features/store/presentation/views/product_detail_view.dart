@@ -4,6 +4,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/di/service_locator.dart';
 import '../../data/demo/demo_categories.dart';
 import '../../data/demo/demo_shops.dart';
 import '../../../../core/formatters/app_currency.dart';
@@ -19,6 +20,8 @@ import '../../../../features/cart/domain/entities/cart_item.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../cubit/product_discovery_cubit.dart';
 import '../../domain/entities/category_data.dart';
+import '../../domain/entities/product_data.dart';
+import '../../domain/usecases/get_product_usecase.dart';
 import '../../../wishlist/domain/entities/wishlist_item.dart';
 import '../../../wishlist/presentation/cubit/wishlist_cubit.dart';
 
@@ -95,23 +98,57 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   String selectedSize = 'Medium';
   String selectedType = 'Electronic devices';
   late String currentImage;
+  ProductData? _loadedProduct;
+  bool _isLoadingProductDetails = false;
 
   @override
   void initState() {
     super.initState();
     currentImage = widget.image;
+    _loadProductDetails();
+  }
+
+  String get _productImage => _loadedProduct?.image ?? widget.image;
+  String get _productTitle => _loadedProduct?.title ?? widget.title;
+  String get _productBrand => _loadedProduct?.brand ?? widget.brand;
+  String get _productPrice => _loadedProduct?.price ?? widget.price;
+  String? get _productOldPrice => _loadedProduct?.oldPrice ?? widget.oldPrice;
+  String? get _productDiscount => _loadedProduct?.discount ?? widget.discount;
+  String? get _productId => _loadedProduct?.id ?? widget.productId;
+
+  Future<void> _loadProductDetails() async {
+    final id = widget.productId?.trim();
+    if (id == null || id.isEmpty || _isLoadingProductDetails) return;
+    if (!sl.isRegistered<GetProductUseCase>()) return;
+
+    _isLoadingProductDetails = true;
+    final result = await sl<GetProductUseCase>()(id);
+    if (!mounted) return;
+
+    result.when(
+      success: (product) {
+        setState(() {
+          _loadedProduct = product;
+          if (currentImage == widget.image) currentImage = product.image;
+          _isLoadingProductDetails = false;
+        });
+      },
+      failure: (_) {
+        setState(() => _isLoadingProductDetails = false);
+      },
+    );
   }
 
   _ProductVariationData get _currentVariation {
     final tier = _selectedPriceTier;
-    final oldPrice = _variationPrice(widget.oldPrice, tier);
+    final oldPrice = _variationPrice(_productOldPrice, tier);
     final outOfStock =
         selectedSize == 'X-Large' ||
         (selectedColor == 'Red' && selectedSize == 'Large');
     final stockQuantity = outOfStock ? 0 : _availableQuantity;
 
     return _ProductVariationData(
-      price: _variationPrice(widget.price, tier),
+      price: _variationPrice(_productPrice, tier),
       stockQuantity: stockQuantity,
       oldPrice: oldPrice.isEmpty ? null : oldPrice,
       stock: outOfStock ? 'Out of Stock' : 'In Stock',
@@ -279,12 +316,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   void _toggleWishlist(BuildContext context, bool wasFavorite) {
     context.read<WishlistCubit>().toggleItem(
       WishlistItem(
-        image: widget.image,
-        title: widget.title,
-        brand: widget.brand,
-        price: widget.price,
-        oldPrice: widget.oldPrice,
-        discount: _validDiscountLabel(widget.discount),
+        image: _productImage,
+        title: _productTitle,
+        brand: _productBrand,
+        price: _productPrice,
+        oldPrice: _productOldPrice,
+        discount: _validDiscountLabel(_productDiscount),
       ),
     );
 
@@ -334,11 +371,11 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
     context.read<CartCubit>().addItem(
       CartItemData(
-        id: '${widget.title}_${selectedColor}_${selectedSize}_$selectedType',
-        productId: widget.productId,
+        id: '${_productTitle}_${selectedColor}_${selectedSize}_$selectedType',
+        productId: _productId,
         image: currentImage,
-        brand: widget.brand,
-        title: widget.title,
+        brand: _productBrand,
+        title: _productTitle,
         price: _parsePrice(variation.price),
         quantity: 1,
         attributes: [
@@ -375,9 +412,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final isFavorite = context.watch<WishlistCubit>().isFavorite(widget.title);
+    final isFavorite = context.watch<WishlistCubit>().isFavorite(_productTitle);
     final thumbnailImages = _uniqueImageSources([
-      widget.image,
+      _productImage,
       AppAssets.temporaryMarketPlaceholder,
       AppAssets.tshirtBlueNoCollarFront,
       AppAssets.samsungS9Mobile,
@@ -405,14 +442,18 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _PriceHeader(
-                    discount: _validDiscountLabel(widget.discount),
-                    price: _formatPrice(widget.price),
-                    oldPrice: _formatPrice(widget.oldPrice),
+                    discount: _validDiscountLabel(_productDiscount),
+                    price: _formatPrice(_productPrice),
+                    oldPrice: _formatPrice(_productOldPrice),
                     isDark: isDark,
                   ),
+                  if (_isLoadingProductDetails) ...[
+                    const SizedBox(height: 8),
+                    const LinearProgressIndicator(minHeight: 2),
+                  ],
                   const SizedBox(height: 12),
                   Text(
-                    context.tr(widget.title),
+                    context.tr(_productTitle),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: textColor,
                       fontSize: 23,
@@ -429,7 +470,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                         isDark: isDark,
                       ),
                       const SizedBox(width: 10),
-                      _BrandPill(brand: widget.brand, isDark: isDark),
+                      _BrandPill(brand: _productBrand, isDark: isDark),
                     ],
                   ),
                   const SizedBox(height: 18),
@@ -512,7 +553,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                     isDark: isDark,
                     title: 'Description',
                     child: Text(
-                      context.tr(widget.title),
+                      context.tr(_productTitle),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: mutedColor,
                         height: 1.45,

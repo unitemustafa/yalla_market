@@ -6,50 +6,86 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
+import '../../../store/domain/entities/category_data.dart';
 
 class HomeCategories extends StatelessWidget {
-  const HomeCategories({super.key});
+  const HomeCategories({super.key, this.categories});
+
+  final List<CategoryData>? categories;
 
   @override
   Widget build(BuildContext context) {
-    const categories = [
-      MarketCategories.restaurants,
-      MarketCategories.supermarket,
-      MarketCategories.vegetables,
-      MarketCategories.fruits,
-    ];
+    final visibleCategories = _visibleCategories();
 
     return SizedBox(
       height: 82,
       child: ListView.builder(
         itemExtent: 94,
-        itemCount: categories.length,
+        itemCount: visibleCategories.length,
         scrollDirection: Axis.horizontal,
         itemBuilder: (_, index) {
+          final category = visibleCategories[index];
           return GestureDetector(
             onTap: () {
               Navigator.pushNamed(
                 context,
                 AppRoutes.brandProducts,
                 arguments: BrandProductsRouteArgs(
-                  brand: categories[index].name,
-                  logo: categories[index].image,
-                  productCount: categories[index].count,
+                  brand: category.name,
+                  logo: category.image,
+                  productCount: category.productCountLabel,
+                  classificationId: category.id,
                 ),
               );
             },
-            child: _HomeCategoryChip(data: categories[index]),
+            child: _HomeCategoryChip(data: category),
           );
         },
       ),
     );
+  }
+
+  List<_HomeCategoryViewData> _visibleCategories() {
+    final apiCategories = categories;
+    if (apiCategories != null && apiCategories.isNotEmpty) {
+      return apiCategories
+          .take(8)
+          .map(
+            (category) => _HomeCategoryViewData(
+              id: category.id,
+              name: category.name,
+              image: category.image,
+              productCountLabel: category.productCountLabel,
+              color: Color(category.accentColorValue),
+            ),
+          )
+          .toList(growable: false);
+    }
+
+    const fallbackCategories = [
+      MarketCategories.restaurants,
+      MarketCategories.supermarket,
+      MarketCategories.vegetables,
+      MarketCategories.fruits,
+    ];
+    return fallbackCategories
+        .map(
+          (category) => _HomeCategoryViewData(
+            id: _slugFrom(category.name),
+            name: category.name,
+            image: category.image,
+            productCountLabel: category.count,
+            color: category.color,
+          ),
+        )
+        .toList(growable: false);
   }
 }
 
 class _HomeCategoryChip extends StatelessWidget {
   const _HomeCategoryChip({required this.data});
 
-  final MarketCategoryData data;
+  final _HomeCategoryViewData data;
 
   @override
   Widget build(BuildContext context) {
@@ -107,4 +143,28 @@ class _HomeCategoryChip extends StatelessWidget {
       ),
     );
   }
+}
+
+class _HomeCategoryViewData {
+  const _HomeCategoryViewData({
+    required this.id,
+    required this.name,
+    required this.image,
+    required this.productCountLabel,
+    required this.color,
+  });
+
+  final String id;
+  final String name;
+  final String image;
+  final String productCountLabel;
+  final Color color;
+}
+
+String _slugFrom(String value) {
+  return value
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp(r'[^a-z0-9\u0600-\u06ff]+'), '-')
+      .replaceAll(RegExp(r'^-+|-+$'), '');
 }

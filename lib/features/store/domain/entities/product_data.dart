@@ -1,3 +1,6 @@
+import '../../../../core/constants/app_assets.dart';
+import '../../../../core/network/api_endpoints.dart';
+
 class ProductData {
   const ProductData({
     this.id,
@@ -16,6 +19,9 @@ class ProductData {
     this.visibilityMode,
     this.regionSlugs = const [],
     this.regionNames = const [],
+    this.categoryId,
+    this.marketId,
+    this.marketClassificationId,
   });
 
   final String? id;
@@ -34,6 +40,9 @@ class ProductData {
   final String? visibilityMode;
   final List<String> regionSlugs;
   final List<String> regionNames;
+  final String? categoryId;
+  final String? marketId;
+  final String? marketClassificationId;
 
   bool get isGeneralVisibility {
     final mode = visibilityMode?.trim().toLowerCase();
@@ -53,21 +62,44 @@ class ProductData {
 
   factory ProductData.fromJson(Map<String, dynamic> json) {
     final tags = _stringList(json['tags']);
+    final category = _mapFromJson(json['category']);
+    final market = _mapFromJson(json['market']);
+    final variants = json['variants'] is List
+        ? json['variants'] as List
+        : const [];
+    final firstVariant = variants.whereType<Map<String, dynamic>>().firstOrNull;
+    final variantPrices = variants
+        .whereType<Map<String, dynamic>>()
+        .map((variant) => variant['price']?.toString() ?? '')
+        .where((price) => price.trim().isNotEmpty)
+        .toList(growable: false);
+    final price =
+        json['price']?.toString() ??
+        (variantPrices.isEmpty ? '' : variantPrices.join(' - '));
 
     return ProductData(
       id: json['id']?.toString(),
       code:
           json['code']?.toString() ??
           json['productCode']?.toString() ??
-          json['product_code']?.toString(),
+          json['product_code']?.toString() ??
+          firstVariant?['sku']?.toString(),
       slug: json['slug']?.toString(),
-      image: json['image']?.toString() ?? json['imageUrl']?.toString() ?? '',
+      image: _resolveImage(json['image'] ?? json['imageUrl']),
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
-      brand: json['brand']?.toString() ?? json['category']?.toString() ?? '',
-      price: json['price']?.toString() ?? '',
+      brand:
+          json['brand']?.toString() ??
+          market?['name']?.toString() ??
+          category?['name']?.toString() ??
+          '',
+      price: price,
       oldPrice: json['oldPrice']?.toString() ?? json['old_price']?.toString(),
       discount: json['discount']?.toString() ?? '',
-      tags: tags,
+      tags: [
+        ...tags,
+        if (category?['name'] != null) category!['name'].toString(),
+        if (market?['name'] != null) market!['name'].toString(),
+      ],
       isFamilySafe: _familySafeFromJson(json, tags),
       citySlug: json['citySlug']?.toString() ?? json['city_slug']?.toString(),
       cityName: json['cityName']?.toString() ?? json['city_name']?.toString(),
@@ -78,6 +110,18 @@ class ProductData {
         json['regionSlugs'] ?? json['region_slugs'] ?? json['regions'],
       ),
       regionNames: _stringList(json['regionNames'] ?? json['region_names']),
+      categoryId:
+          json['categoryId']?.toString() ??
+          json['category_id']?.toString() ??
+          category?['id']?.toString(),
+      marketId:
+          json['marketId']?.toString() ??
+          json['market_id']?.toString() ??
+          market?['id']?.toString(),
+      marketClassificationId:
+          json['marketClassificationId']?.toString() ??
+          json['market_classification_id']?.toString() ??
+          market?['classification_id']?.toString(),
     );
   }
 
@@ -99,6 +143,9 @@ class ProductData {
       'visibilityMode': visibilityMode,
       'regionSlugs': regionSlugs,
       'regionNames': regionNames,
+      'categoryId': categoryId,
+      'marketId': marketId,
+      'marketClassificationId': marketClassificationId,
     };
   }
 
@@ -123,6 +170,25 @@ class ProductData {
   bool isAllowedBySafeMode(bool safeMode) {
     return !safeMode || isFamilySafe;
   }
+}
+
+Map<String, dynamic>? _mapFromJson(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  return null;
+}
+
+String _resolveImage(Object? value) {
+  final image = value?.toString().trim() ?? '';
+  if (image.isEmpty) return AppAssets.temporaryMarketPlaceholder;
+  final uri = Uri.tryParse(image);
+  if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
+    return image;
+  }
+  if (image.startsWith('/')) {
+    final baseUrl = ApiEndpoints.rootBaseUrl;
+    if (baseUrl.isNotEmpty) return '$baseUrl$image';
+  }
+  return image;
 }
 
 List<String> _stringList(Object? value) {

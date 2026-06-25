@@ -17,10 +17,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   @override
   Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>(
-        '/products',
-        queryParameters: _cityQuery(citySlug),
-      );
+      final payload = await _apiClient.get<Object?>('/home/');
       return _productsFromPayload(payload);
     });
   }
@@ -29,7 +26,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   Future<ApiResult<ProductData>> getProduct(String idOrSlug) {
     return _guard(() async {
       final payload = await _apiClient.get<Map<String, dynamic>>(
-        '/products/$idOrSlug',
+        '/home/products/$idOrSlug/',
       );
       return ProductData.fromJson(payload);
     });
@@ -42,8 +39,8 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   }) {
     return _guard(() async {
       final payload = await _apiClient.get<Object?>(
-        '/products/search',
-        queryParameters: {'query': query.trim(), ..._cityQuery(citySlug)},
+        '/home/search/',
+        queryParameters: {'q': query.trim()},
       );
       return _productsFromPayload(payload);
     });
@@ -52,7 +49,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   @override
   Future<ApiResult<List<CategoryData>>> getCategories() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/categories');
+      final payload = await _apiClient.get<Object?>('/home/classifications/');
       return _categoriesFromPayload(payload);
     });
   }
@@ -60,14 +57,14 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   @override
   Future<ApiResult<List<BrandData>>> getBrands() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/brands');
+      final payload = await _apiClient.get<Object?>('/home/classifications/');
       return _brandsFromPayload(payload);
     });
   }
 
   List<ProductData> _productsFromPayload(Object? payload) {
     final rawItems = payload is Map<String, dynamic>
-        ? payload['items'] ?? payload['products']
+        ? payload['results'] ?? payload['items'] ?? payload['products']
         : payload;
     if (rawItems is! List) return const [];
     return rawItems
@@ -78,7 +75,10 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
 
   List<CategoryData> _categoriesFromPayload(Object? payload) {
     final rawItems = payload is Map<String, dynamic>
-        ? payload['items'] ?? payload['categories']
+        ? payload['common_categories'] ??
+              payload['market_classifications'] ??
+              payload['items'] ??
+              payload['categories']
         : payload;
     if (rawItems is! List) return const [];
     return rawItems
@@ -89,19 +89,16 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
 
   List<BrandData> _brandsFromPayload(Object? payload) {
     final rawItems = payload is Map<String, dynamic>
-        ? payload['items'] ?? payload['brands']
+        ? payload['common_categories'] ??
+              payload['market_classifications'] ??
+              payload['items'] ??
+              payload['brands']
         : payload;
     if (rawItems is! List) return const [];
     return rawItems
         .whereType<Map<String, dynamic>>()
         .map(BrandData.fromJson)
         .toList(growable: false);
-  }
-
-  Map<String, dynamic> _cityQuery(String? citySlug) {
-    final normalized = citySlug?.trim();
-    if (normalized == null || normalized.isEmpty) return const {};
-    return {'region': normalized, 'city': normalized};
   }
 
   Future<ApiResult<T>> _guard<T>(Future<T> Function() action) async {

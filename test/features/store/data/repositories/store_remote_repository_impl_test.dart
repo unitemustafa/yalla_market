@@ -1,0 +1,93 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/features/store/data/repositories/store_remote_repository_impl.dart';
+
+import '../../../../helpers/fake_api_client.dart';
+
+void main() {
+  group('StoreRemoteRepositoryImpl', () {
+    test(
+      'loads classifications, markets, and hydrated market products',
+      () async {
+        final apiClient = FakeApiClient((request) {
+          if (request.path == '/home/classifications/') {
+            expect(request.method, 'GET');
+            return {
+              'common_categories': [
+                {'id': 1, 'name': 'Supermarket', 'product_count': 2},
+              ],
+              'market_classifications': [
+                {'id': 1, 'name': 'Supermarket', 'product_count': 2},
+              ],
+            };
+          }
+          if (request.path == '/home/classifications/1/markets/') {
+            expect(request.method, 'GET');
+            return {
+              'classification': {'id': 1, 'name': 'Supermarket'},
+              'markets': [
+                {
+                  'id': 9,
+                  'name': 'Fresh Market',
+                  'branch': 'Algiers',
+                  'status': 'active',
+                  'classification_id': 1,
+                  'products': [_previewProduct()],
+                },
+              ],
+            };
+          }
+          if (request.path == '/home/search/') {
+            expect(request.method, 'GET');
+            expect(request.queryParameters?['q'], 'Fresh Market');
+            return {
+              'count': 1,
+              'results': [_fullProduct()],
+            };
+          }
+          fail('Unexpected request ${request.method} ${request.path}');
+        });
+        final repository = StoreRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.getStore();
+
+        result.when(
+          success: (store) {
+            expect(store.commonClassifications.single.name, 'Supermarket');
+            expect(store.classifications.single.id, '1');
+            final market = store.marketsFor('1').single;
+            expect(market.name, 'Fresh Market');
+            expect(market.products.single.price, '120.00');
+            expect(market.products.single.marketId, '9');
+          },
+          failure: (failure) => fail(failure.message),
+        );
+      },
+    );
+  });
+}
+
+Map<String, Object?> _previewProduct() {
+  return {
+    'id': 42,
+    'name': 'Red Apple',
+    'description': 'Fresh fruit',
+    'image': '',
+    'discount': '10.00',
+    'category': {'id': 3, 'name': 'Fruit'},
+  };
+}
+
+Map<String, Object?> _fullProduct() {
+  return {
+    'id': 42,
+    'name': 'Red Apple',
+    'description': 'Fresh fruit',
+    'image': '',
+    'discount': '10.00',
+    'category': {'id': 3, 'name': 'Fruit'},
+    'market': {'id': 9, 'name': 'Fresh Market', 'classification_id': 1},
+    'variants': [
+      {'id': 5, 'price': '120.00', 'sku': 'APPLE-1'},
+    ],
+  };
+}

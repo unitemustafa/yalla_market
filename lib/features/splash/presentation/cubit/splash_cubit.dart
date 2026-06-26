@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/errors/failure.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../auth/domain/usecases/auth_usecases.dart';
@@ -32,11 +33,18 @@ class SplashCubit extends Cubit<SplashState> {
     }
 
     AuthSession? session;
+    var sessionExpired = false;
     final sessionResult = await _authUseCases.restoreSavedSession();
-    session = sessionResult.when(success: (s) => s, failure: (_) => null);
+    session = sessionResult.when(
+      success: (s) => s,
+      failure: (failure) {
+        sessionExpired = _isExpiredSessionFailure(failure);
+        return null;
+      },
+    );
 
     if (session == null) {
-      emit(const SplashNavigateTo(AppRoutes.login));
+      emit(SplashNavigateTo(AppRoutes.login, sessionExpired: sessionExpired));
       return;
     }
 
@@ -60,5 +68,10 @@ class SplashCubit extends Cubit<SplashState> {
         city: city,
       ),
     );
+  }
+
+  bool _isExpiredSessionFailure(Failure failure) {
+    return failure is UnauthorizedFailure &&
+        failure.message.toLowerCase().contains('session expired');
   }
 }

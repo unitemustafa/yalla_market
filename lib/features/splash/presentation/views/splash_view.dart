@@ -101,13 +101,17 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
     return BlocListener<SplashCubit, SplashState>(
       listener: (context, state) {
         if (state is! SplashNavigateTo) return;
+        final authCubit = context.read<AuthCubit>();
         if (state.session != null) {
-          context.read<AuthCubit>().hydrate(state.session!);
+          authCubit.hydrate(state.session!);
         }
         if (state.city != null) {
           context.read<LocationCubit>().syncCity(state.city);
         }
         Navigator.of(context).pushReplacementNamed(state.route);
+        if (state.sessionExpired) {
+          authCubit.markSessionExpired();
+        }
       },
       child: Scaffold(
         body: DecoratedBox(

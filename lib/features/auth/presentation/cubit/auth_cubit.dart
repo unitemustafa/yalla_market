@@ -50,6 +50,10 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
+  void markSessionExpired() {
+    _handleSessionExpired();
+  }
+
   /// Hydrates auth state from an already-resolved session (e.g. from SplashCubit).
   void hydrate(AuthSession session) {
     _pendingSignupSession = null;

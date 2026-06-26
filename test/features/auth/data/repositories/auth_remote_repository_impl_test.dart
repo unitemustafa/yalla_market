@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/storage/token_store.dart';
 import 'package:yalla_market/features/auth/data/repositories/auth_remote_repository_impl.dart';
 
@@ -7,7 +8,12 @@ import '../../../../helpers/fake_api_client.dart';
 
 void main() {
   group('AuthRemoteRepositoryImpl', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
     test('login stores secure tokens when remember me is enabled', () async {
+      final startedAt = DateTime.now();
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'POST');
@@ -31,11 +37,18 @@ void main() {
       );
       expect((await tokenStore.read())?.refreshToken, 'refresh-token');
       expect((await tokenStore.read())?.isSessionOnly, isFalse);
+      expect(
+        (await tokenStore.read())?.expiresAt.isAfter(
+          startedAt.add(const Duration(days: 29)),
+        ),
+        isTrue,
+      );
     });
 
     test(
       'login keeps tokens session-only when remember me is disabled',
       () async {
+        final startedAt = DateTime.now();
         final tokenStore = InMemoryTokenStore();
         final apiClient = FakeApiClient((request) {
           expect(request.method, 'POST');
@@ -58,6 +71,42 @@ void main() {
         );
         expect((await tokenStore.read())?.refreshToken, 'refresh-token');
         expect((await tokenStore.read())?.isSessionOnly, isTrue);
+        expect(
+          (await tokenStore.read())?.expiresAt.isAfter(
+            startedAt.add(const Duration(hours: 7)),
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test(
+      'restoreSavedSession reports a closed session-only login as expired',
+      () async {
+        final tokenStore = InMemoryTokenStore();
+        final apiClient = FakeApiClient((request) => _sessionPayload);
+        final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
+
+        await repository.login(
+          email: 'm@example.com',
+          password: 'Password123!',
+        );
+
+        final restartedRepository = AuthRemoteRepositoryImpl(
+          FakeApiClient(
+            (request) => fail('Should not call API without tokens.'),
+          ),
+          InMemoryTokenStore(),
+        );
+        final result = await restartedRepository.restoreSavedSession();
+
+        result.when(
+          success: (_) => fail('Closed session-only login should expire.'),
+          failure: (failure) {
+            expect(failure, isA<UnauthorizedFailure>());
+            expect(failure.message, 'Session expired.');
+          },
+        );
       },
     );
 

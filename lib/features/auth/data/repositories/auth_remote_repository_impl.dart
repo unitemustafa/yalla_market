@@ -15,8 +15,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
+  static const _sessionOnlyActiveKey = 'auth.session_only_active';
   static const _rememberedSessionDuration = Duration(days: 30);
-  static const _temporarySessionDuration = Duration(seconds: 30);
+  static const _temporarySessionDuration = Duration(hours: 8);
   static Options get _skipAuthOptions =>
       Options(extra: const {'skipAuth': true});
 
@@ -28,9 +29,16 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return _guard(() async {
       await _clearLegacyLocalAuth();
       final tokens = await _tokenStore.read();
-      if (tokens == null || tokens.isExpired) {
-        await _tokenStore.clear();
+      if (tokens == null) {
+        if (await _consumeSessionOnlyActiveMarker()) {
+          throw const UnauthorizedFailure('Session expired.');
+        }
         return null;
+      }
+      if (tokens.isExpired) {
+        await _tokenStore.clear();
+        await _clearSessionOnlyActiveMarker();
+        throw const UnauthorizedFailure('Session expired.');
       }
 
       final user = await _loadMe();
@@ -183,6 +191,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         }
       } finally {
         await _tokenStore.clear();
+        await _clearSessionOnlyActiveMarker();
       }
       return true;
     });
@@ -196,6 +205,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         data: {'password': password},
       );
       await _tokenStore.clear();
+      await _clearSessionOnlyActiveMarker();
       return true;
     });
   }
@@ -218,6 +228,11 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       tokensPayload,
     ).copyWith(expiresAt: sessionExpiresAt, isSessionOnly: !persistTokens);
     await _tokenStore.save(tokens);
+    if (persistTokens) {
+      await _clearSessionOnlyActiveMarker();
+    } else {
+      await _markSessionOnlyActive();
+    }
     return AuthSession(
       user: user,
       accessToken: tokens.accessToken,
@@ -245,6 +260,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     final tokens = _optionalTokensFromPayload(payload);
     if (tokens != null) {
       await _tokenStore.save(tokens.copyWith(isSessionOnly: true));
+      await _markSessionOnlyActive();
+    } else {
+      await _clearSessionOnlyActiveMarker();
     }
 
     return AuthSession(
@@ -318,6 +336,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         options: _skipAuthOptions,
       );
       await _tokenStore.clear();
+      await _clearSessionOnlyActiveMarker();
       return true;
     });
   }
@@ -450,5 +469,24 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_legacySessionKey);
     await preferences.remove(_legacyAccountsKey);
+  }
+
+  Future<void> _markSessionOnlyActive() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_sessionOnlyActiveKey, true);
+  }
+
+  Future<void> _clearSessionOnlyActiveMarker() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_sessionOnlyActiveKey);
+  }
+
+  Future<bool> _consumeSessionOnlyActiveMarker() async {
+    final preferences = await SharedPreferences.getInstance();
+    final wasSessionOnly = preferences.getBool(_sessionOnlyActiveKey) ?? false;
+    if (wasSessionOnly) {
+      await preferences.remove(_sessionOnlyActiveKey);
+    }
+    return wasSessionOnly;
   }
 }

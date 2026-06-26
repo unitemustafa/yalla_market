@@ -10,7 +10,12 @@ final class SplashLoading extends SplashState {
 }
 
 final class SplashNavigateTo extends SplashState {
-  const SplashNavigateTo(this.route, {this.session, this.city});
+  const SplashNavigateTo(
+    this.route, {
+    this.session,
+    this.city,
+    this.sessionExpired = false,
+  });
 
   final String route;
 
@@ -19,4 +24,7 @@ final class SplashNavigateTo extends SplashState {
 
   /// Non-null when a city is already selected; pass to [LocationCubit.syncCity].
   final CityData? city;
+
+  /// True when startup found a previously active session that is no longer valid.
+  final bool sessionExpired;
 }

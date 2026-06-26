@@ -11,12 +11,13 @@ import '../../domain/repositories/auth_repository.dart';
 class AuthRepositoryImpl implements AuthRepository {
   static const String _sessionKey = 'auth.local_session';
   static const String _accountsKey = 'auth.local_accounts';
+  static const String _sessionOnlyActiveKey = 'auth.session_only_active';
   static const String _demoEmail = 'm@example.com';
   static const String _demoPassword = 'Password123!';
   static const String _marketEmail = 'market@admin.com';
   static const String _marketPassword = '01266666610';
   static const Duration _rememberedSessionDuration = Duration(days: 30);
-  static const Duration _temporarySessionDuration = Duration(seconds: 30);
+  static const Duration _temporarySessionDuration = Duration(hours: 8);
   static const Set<String> _reservedUsernames = {
     'admin',
     'support',
@@ -213,18 +214,29 @@ class AuthRepositoryImpl implements AuthRepository {
     if (_session != null && !_sessionHasExpired()) return _session;
     if (_sessionHasExpired()) {
       await _clearSession();
-      return null;
+      throw const _AuthRepositoryException(
+        UnauthorizedFailure('Session expired.'),
+      );
     }
 
     final preferences = await SharedPreferences.getInstance();
     final rawSession = preferences.getString(_sessionKey);
-    if (rawSession == null || rawSession.trim().isEmpty) return null;
+    if (rawSession == null || rawSession.trim().isEmpty) {
+      if (await _consumeSessionOnlyActiveMarker(preferences)) {
+        throw const _AuthRepositoryException(
+          UnauthorizedFailure('Session expired.'),
+        );
+      }
+      return null;
+    }
 
     final decoded = jsonDecode(rawSession) as Map<String, dynamic>;
     _sessionExpiresAt = _dateFromString(decoded['expiresAt']);
     if (_sessionHasExpired()) {
       await _clearSession();
-      return null;
+      throw const _AuthRepositoryException(
+        UnauthorizedFailure('Session expired.'),
+      );
     }
 
     final savedUser = _userFromJson(decoded);
@@ -581,9 +593,12 @@ class AuthRepositoryImpl implements AuthRepository {
 
     if (rememberSession) {
       await _saveSession(session);
+      final preferences = await SharedPreferences.getInstance();
+      await preferences.remove(_sessionOnlyActiveKey);
     } else {
       final preferences = await SharedPreferences.getInstance();
       await preferences.remove(_sessionKey);
+      await preferences.setBool(_sessionOnlyActiveKey, true);
     }
 
     return session;
@@ -629,11 +644,22 @@ class AuthRepositoryImpl implements AuthRepository {
     _sessionExpiresAt = null;
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_sessionKey);
+    await preferences.remove(_sessionOnlyActiveKey);
   }
 
   bool _sessionHasExpired() {
     final expiresAt = _sessionExpiresAt;
     return expiresAt != null && !expiresAt.isAfter(DateTime.now());
+  }
+
+  Future<bool> _consumeSessionOnlyActiveMarker(
+    SharedPreferences preferences,
+  ) async {
+    final wasSessionOnly = preferences.getBool(_sessionOnlyActiveKey) ?? false;
+    if (wasSessionOnly) {
+      await preferences.remove(_sessionOnlyActiveKey);
+    }
+    return wasSessionOnly;
   }
 
   List<_LocalAuthAccount> _seedAccounts() {

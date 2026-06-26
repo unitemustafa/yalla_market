@@ -59,6 +59,27 @@ void main() {
       },
     );
 
+    test(
+      'reports a closed temporary session as expired on next startup',
+      () async {
+        await repository.login(
+          email: 'm@example.com',
+          password: 'Password123!',
+        );
+
+        final restartedRepository = AuthRepositoryImpl();
+        final result = await restartedRepository.restoreSavedSession();
+
+        result.when(
+          success: (_) => fail('Closed temporary session should expire.'),
+          failure: (failure) {
+            expect(failure, isA<UnauthorizedFailure>());
+            expect(failure.message, 'Session expired.');
+          },
+        );
+      },
+    );
+
     test('persists signed up users and validates their password', () async {
       await repository.signup(
         firstName: 'Mustafa',

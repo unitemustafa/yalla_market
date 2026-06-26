@@ -53,6 +53,7 @@ class AppRouter {
     AppRoutes.addresses,
     AppRoutes.orders,
     AppRoutes.appPreferences,
+    AppRoutes.selectCity,
   };
 
   static Route<dynamic> generateRoute(RouteSettings settings) {

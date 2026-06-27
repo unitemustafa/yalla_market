@@ -62,9 +62,7 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
         ? (widget.state as LocationFailure).message
         : null;
     final selectedCity = widget.state.selectedCity;
-    final manualCities = CityData.supported
-        .where((city) => !city.isGeneral)
-        .toList(growable: false);
+    final manualCities = widget.state.availableCities;
 
     return Column(
       mainAxisSize: widget.compact ? MainAxisSize.min : MainAxisSize.max,
@@ -109,6 +107,16 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
                         ),
                       ),
                     ),
+                    if (manualCities.isEmpty && !isLoading)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 10),
+                        child: Text(
+                          context.tr(
+                            'No supported cities are available right now.',
+                          ),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
                     _OtherRegionTile(
                       selected: selectedCity?.isGeneral ?? false,
                       disabled: manualDisabled,

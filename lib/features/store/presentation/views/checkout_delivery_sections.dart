@@ -519,6 +519,8 @@ Future<String?> _openCityPicker({
   required bool isDark,
   required String? selectedValue,
 }) async {
+  await context.read<LocationCubit>().loadAvailableCities();
+  if (!context.mounted) return null;
   return showModalBottomSheet<String>(
     context: context,
     isScrollControlled: true,
@@ -554,7 +556,10 @@ class _CityPickerSheetState extends State<_CityPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final query = _searchController.text.trim().toLowerCase();
-    final cities = CityData.dashboardRegions
+    final cities = context
+        .read<LocationCubit>()
+        .state
+        .availableCities
         .where((city) {
           if (query.isEmpty) return true;
           final english = city.name.toLowerCase();

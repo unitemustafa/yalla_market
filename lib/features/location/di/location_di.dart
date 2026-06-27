@@ -6,6 +6,7 @@ import '../../../features/location/data/repositories/location_repository_impl.da
 import '../../../features/location/domain/repositories/location_repository.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
 import '../../../features/location/presentation/cubit/location_cubit.dart';
+import '../../../core/network/api_client.dart';
 
 void registerLocationDependencies(GetIt sl) {
   if (!sl.isRegistered<LocationPreferences>()) {
@@ -21,12 +22,18 @@ void registerLocationDependencies(GetIt sl) {
       () => LocationRepositoryImpl(
         sl<LocationPreferences>(),
         sl<DeviceLocationDataSource>(),
+        sl<ApiClient>(),
       ),
     );
   }
   if (!sl.isRegistered<GetSelectedCityUseCase>()) {
     sl.registerLazySingleton(
       () => GetSelectedCityUseCase(sl<LocationRepository>()),
+    );
+  }
+  if (!sl.isRegistered<GetAvailableCitiesUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetAvailableCitiesUseCase(sl<LocationRepository>()),
     );
   }
   if (!sl.isRegistered<HasSeenCitySelectionUseCase>()) {
@@ -37,6 +44,11 @@ void registerLocationDependencies(GetIt sl) {
   if (!sl.isRegistered<MarkCitySelectionSeenUseCase>()) {
     sl.registerLazySingleton(
       () => MarkCitySelectionSeenUseCase(sl<LocationRepository>()),
+    );
+  }
+  if (!sl.isRegistered<ClearSelectedCityUseCase>()) {
+    sl.registerLazySingleton(
+      () => ClearSelectedCityUseCase(sl<LocationRepository>()),
     );
   }
   if (!sl.isRegistered<SaveSelectedCityUseCase>()) {
@@ -67,9 +79,11 @@ void registerLocationDependencies(GetIt sl) {
   if (!sl.isRegistered<LocationUseCases>()) {
     sl.registerLazySingleton(
       () => LocationUseCases(
+        getAvailableCities: sl<GetAvailableCitiesUseCase>(),
         getSelectedCity: sl<GetSelectedCityUseCase>(),
         hasSeenCitySelection: sl<HasSeenCitySelectionUseCase>(),
         markCitySelectionSeen: sl<MarkCitySelectionSeenUseCase>(),
+        clearSelectedCity: sl<ClearSelectedCityUseCase>(),
         saveSelectedCity: sl<SaveSelectedCityUseCase>(),
         detectCurrentLocation: sl<DetectCurrentLocationUseCase>(),
         useCurrentLocation: sl<UseCurrentLocationUseCase>(),

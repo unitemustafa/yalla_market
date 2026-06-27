@@ -23,11 +23,13 @@ class CityData {
   const CityData({
     required this.name,
     required this.slug,
+    this.nameAr,
     this.source = RegionSource.manual,
   });
 
   final String name;
   final String slug;
+  final String? nameAr;
   final RegionSource source;
 
   static const generalSlug = 'general';
@@ -55,20 +57,34 @@ class CityData {
     final cleanName = cleanRegionName(name);
     if (!arabic) return cleanName;
 
+    final localizedName = nameAr?.trim();
+    if (localizedName != null && localizedName.isNotEmpty) {
+      return localizedName;
+    }
+
     return _arabicRegionNames[_lookupKey(cleanName)] ??
         _arabicRegionNames[_lookupKey(name)] ??
         cleanName;
   }
 
   CityData withSource(RegionSource source) {
-    return CityData(name: name, slug: slug, source: source);
+    return CityData(name: name, slug: slug, nameAr: nameAr, source: source);
   }
 
   CityData asGeneralRegion() {
     return CityData(
       name: name,
       slug: generalSlug,
+      nameAr: nameAr,
       source: RegionSource.general,
+    );
+  }
+
+  factory CityData.fromJson(Map<String, dynamic> json) {
+    return CityData(
+      name: (json['name'] as String? ?? '').trim(),
+      nameAr: (json['name_ar'] as String?)?.trim(),
+      slug: (json['slug'] as String? ?? '').trim().toLowerCase(),
     );
   }
 

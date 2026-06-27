@@ -16,6 +16,7 @@ class CitySelectorSheet {
     Future<void> Function()? onCityChanged,
   }) {
     final locationCubit = context.read<LocationCubit>();
+    locationCubit.loadAvailableCities();
 
     return showModalBottomSheet<void>(
       context: context,

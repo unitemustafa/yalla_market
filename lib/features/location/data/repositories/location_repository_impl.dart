@@ -1,15 +1,37 @@
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../../core/network/api_client.dart';
 import '../../domain/entities/city_data.dart';
 import '../../domain/repositories/location_repository.dart';
 import '../datasources/device_location_data_source.dart';
 import '../datasources/location_preferences.dart';
 
 class LocationRepositoryImpl implements LocationRepository {
-  const LocationRepositoryImpl(this._preferences, this._deviceLocation);
+  const LocationRepositoryImpl(
+    this._preferences,
+    this._deviceLocation, [
+    this._apiClient,
+  ]);
 
   final LocationPreferences _preferences;
   final DeviceLocationDataSource _deviceLocation;
+  final ApiClient? _apiClient;
+
+  @override
+  Future<ApiResult<List<CityData>>> getAvailableCities() async {
+    if (_apiClient == null) {
+      return ApiResult.success(
+        CityData.supported.where((city) => !city.isGeneral).toList(),
+      );
+    }
+    try {
+      return ApiResult.success(await _fetchAvailableCities());
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not load available cities.'),
+      );
+    }
+  }
 
   @override
   Future<ApiResult<CityData?>> getSelectedCity() async {
@@ -36,6 +58,20 @@ class LocationRepositoryImpl implements LocationRepository {
         return ApiResult.success(supportedCity.withSource(source));
       }
 
+      if (_apiClient != null && slug != null && slug.trim().isNotEmpty) {
+        try {
+          final availableCities = await _fetchAvailableCities();
+          for (final city in availableCities) {
+            if (city.slug == slug.trim().toLowerCase()) {
+              return ApiResult.success(city.withSource(source));
+            }
+          }
+          return const ApiResult.success(CityData.general);
+        } catch (_) {
+          // Keep the locally saved choice while the API is temporarily offline.
+        }
+      }
+
       if (slug == null || customName == null || customName.trim().isEmpty) {
         return const ApiResult.success(null);
       }
@@ -48,6 +84,15 @@ class LocationRepositoryImpl implements LocationRepository {
         UnknownFailure('Could not load your selected city.'),
       );
     }
+  }
+
+  Future<List<CityData>> _fetchAvailableCities() async {
+    final payload = await _apiClient!.get<List<dynamic>>('/locations/cities/');
+    return payload
+        .whereType<Map>()
+        .map((item) => CityData.fromJson(Map<String, dynamic>.from(item)))
+        .where((city) => city.name.isNotEmpty && city.slug.isNotEmpty)
+        .toList(growable: false);
   }
 
   @override
@@ -69,6 +114,18 @@ class LocationRepositoryImpl implements LocationRepository {
     } catch (_) {
       return const ApiResult.failure(
         UnknownFailure('Could not save your city selection status.'),
+      );
+    }
+  }
+
+  @override
+  Future<ApiResult<void>> clearSelectedCity() async {
+    try {
+      await _preferences.clearSelectedCity();
+      return const ApiResult.success(null);
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not reset your selected city.'),
       );
     }
   }
@@ -130,6 +187,32 @@ class LocationRepositoryImpl implements LocationRepository {
   Future<CityData> _cityFromCurrentLocation({
     bool requestPermission = true,
   }) async {
+    if (_apiClient != null) {
+      final coordinates = await _deviceLocation.resolveCurrentCoordinates(
+        requestPermission: requestPermission,
+      );
+      final payload = await _apiClient.post<Map<String, dynamic>>(
+        '/locations/resolve/',
+        data: {
+          'latitude': coordinates.latitude,
+          'longitude': coordinates.longitude,
+        },
+      );
+      final cityPayload = payload['city'];
+      if (cityPayload is Map) {
+        return CityData.fromJson(
+          Map<String, dynamic>.from(cityPayload),
+        ).withSource(RegionSource.gps);
+      }
+      final displayName = payload['display_name'] as String?;
+      return CityData(
+        name: displayName?.trim().isNotEmpty == true
+            ? displayName!.trim()
+            : CityData.general.name,
+        slug: CityData.generalSlug,
+        source: RegionSource.general,
+      );
+    }
     final cityName = await _deviceLocation.resolveCurrentCityName(
       requestPermission: requestPermission,
     );

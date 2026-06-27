@@ -8,6 +8,12 @@ import '../../domain/entities/city_data.dart';
 abstract class DeviceLocationDataSource {
   Future<String?> resolveCurrentCityName({bool requestPermission = true});
 
+  Future<DeviceCoordinates> resolveCurrentCoordinates({
+    bool requestPermission = true,
+  }) {
+    throw UnimplementedError();
+  }
+
   Future<void> openAppSettings();
 
   Future<void> openLocationSettings();
@@ -69,6 +75,33 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
     }
 
     return fallbackLocationName;
+  }
+
+  @override
+  Future<DeviceCoordinates> resolveCurrentCoordinates({
+    bool requestPermission = true,
+  }) async {
+    await _ensureLocationReady(requestPermission: requestPermission);
+    final position = await _resolvePosition();
+    return DeviceCoordinates(position.latitude, position.longitude);
+  }
+
+  Future<void> _ensureLocationReady({required bool requestPermission}) async {
+    var permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied && requestPermission) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      throw const LocationSelectionException(
+        'Location permission was not granted. Allow location to continue.',
+      );
+    }
+    if (!await Geolocator.isLocationServiceEnabled()) {
+      throw const LocationSelectionException(
+        'Location services are disabled. Turn on GPS to continue.',
+      );
+    }
   }
 
   Future<List<Placemark>> _resolvePlacemarks(Position position) async {
@@ -148,4 +181,11 @@ class LocationSelectionException implements Exception {
 
   @override
   String toString() => message;
+}
+
+class DeviceCoordinates {
+  const DeviceCoordinates(this.latitude, this.longitude);
+
+  final double latitude;
+  final double longitude;
 }

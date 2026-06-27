@@ -45,6 +45,7 @@ class _SelectCityViewState extends State<SelectCityView>
     )..repeat();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LocationCubit>().markCitySelectionSeen();
+      context.read<LocationCubit>().loadAvailableCities();
       _continueIfCityAlreadySelected();
     });
   }

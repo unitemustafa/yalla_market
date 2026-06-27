@@ -147,6 +147,11 @@ class _FakeLocationRepository implements LocationRepository {
   final CityData? city;
 
   @override
+  Future<ApiResult<List<CityData>>> getAvailableCities() async {
+    return ApiResult.success(CityData.dashboardRegions);
+  }
+
+  @override
   Future<ApiResult<CityData?>> getSelectedCity() async {
     return ApiResult.success(city);
   }
@@ -158,6 +163,11 @@ class _FakeLocationRepository implements LocationRepository {
 
   @override
   Future<ApiResult<void>> markCitySelectionSeen() async {
+    return const ApiResult.success(null);
+  }
+
+  @override
+  Future<ApiResult<void>> clearSelectedCity() async {
     return const ApiResult.success(null);
   }
 

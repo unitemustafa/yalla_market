@@ -11,6 +11,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
+import '../../../location/presentation/cubit/location_cubit.dart';
 import '../cubit/auth_cubit.dart';
 import '../widgets/auth_status_artwork.dart';
 import '../widgets/auth_top_bar.dart';
@@ -155,9 +156,44 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       return;
     }
 
+    final locationReset = await context
+        .read<LocationCubit>()
+        .clearSelectedCity();
+    if (!mounted) return;
+    if (!locationReset) {
+      CustomSnackBar.showError(
+        context: context,
+        title: _copy(
+          context,
+          ar: 'تعذر تجهيز حسابك',
+          en: 'Could not prepare your account',
+        ),
+        message: _copy(
+          context,
+          ar: 'حاول مرة تانية علشان تختار مدينة التوصيل.',
+          en: 'Try again so you can choose your delivery city.',
+        ),
+      );
+      return;
+    }
+
+    CustomSnackBar.showSuccess(
+      context: context,
+      title: _copy(
+        context,
+        ar: 'تم إنشاء حسابك بنجاح',
+        en: 'Account created successfully',
+      ),
+      message: _copy(
+        context,
+        ar: 'أهلًا بيك في يلا ماركت. اختار مدينة التوصيل علشان نبدأ.',
+        en: 'Welcome to Yalla Market. Choose your delivery city to get started.',
+      ),
+    );
+
     Navigator.pushNamedAndRemoveUntil(
       context,
-      AppRoutes.login,
+      AppRoutes.selectCity,
       (route) => false,
     );
   }

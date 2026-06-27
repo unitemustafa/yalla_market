@@ -15,7 +15,10 @@ void main() {
         home: Scaffold(
           body: SingleChildScrollView(
             child: CitySelectionPanel(
-              state: const LocationReady(null),
+              state: const LocationReady(null, [
+                CityData(name: 'Cairo', slug: 'cairo'),
+                CityData(name: 'Sharm El Sheikh', slug: 'sharm-el-sheikh'),
+              ]),
               compact: true,
               onCitySelected: (city) => selectedCity = city,
               onUseCurrentLocation: () {},

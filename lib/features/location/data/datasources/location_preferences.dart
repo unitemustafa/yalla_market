@@ -31,6 +31,16 @@ class LocationPreferences {
     await preferences.setBool(citySelectionSeenKey, true);
   }
 
+  Future<void> clearSelectedCity() async {
+    final preferences = await SharedPreferences.getInstance();
+    await Future.wait([
+      preferences.remove(selectedCitySlugKey),
+      preferences.remove(selectedCityNameKey),
+      preferences.remove(selectedRegionSourceKey),
+      preferences.remove(citySelectionSeenKey),
+    ]);
+  }
+
   Future<void> setSelectedCity(
     String slug,
     String name, {

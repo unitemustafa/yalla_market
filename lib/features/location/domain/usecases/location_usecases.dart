@@ -2,6 +2,14 @@ import '../../../../core/network/api_result.dart';
 import '../entities/city_data.dart';
 import '../repositories/location_repository.dart';
 
+class GetAvailableCitiesUseCase {
+  const GetAvailableCitiesUseCase(this._repository);
+
+  final LocationRepository _repository;
+
+  Future<ApiResult<List<CityData>>> call() => _repository.getAvailableCities();
+}
+
 class GetSelectedCityUseCase {
   const GetSelectedCityUseCase(this._repository);
 
@@ -29,6 +37,16 @@ class MarkCitySelectionSeenUseCase {
 
   Future<ApiResult<void>> call() {
     return _repository.markCitySelectionSeen();
+  }
+}
+
+class ClearSelectedCityUseCase {
+  const ClearSelectedCityUseCase(this._repository);
+
+  final LocationRepository _repository;
+
+  Future<ApiResult<void>> call() {
+    return _repository.clearSelectedCity();
   }
 }
 
@@ -89,9 +107,11 @@ class OpenDeviceLocationSettingsUseCase {
 
 class LocationUseCases {
   const LocationUseCases({
+    required this.getAvailableCities,
     required this.getSelectedCity,
     required this.hasSeenCitySelection,
     required this.markCitySelectionSeen,
+    required this.clearSelectedCity,
     required this.saveSelectedCity,
     required this.detectCurrentLocation,
     required this.useCurrentLocation,
@@ -99,9 +119,12 @@ class LocationUseCases {
     required this.openLocationSettings,
   });
 
+  final GetAvailableCitiesUseCase getAvailableCities;
+
   final GetSelectedCityUseCase getSelectedCity;
   final HasSeenCitySelectionUseCase hasSeenCitySelection;
   final MarkCitySelectionSeenUseCase markCitySelectionSeen;
+  final ClearSelectedCityUseCase clearSelectedCity;
   final SaveSelectedCityUseCase saveSelectedCity;
   final DetectCurrentLocationUseCase detectCurrentLocation;
   final UseCurrentLocationUseCase useCurrentLocation;

@@ -2,6 +2,10 @@ import '../../../cart/domain/entities/cart_item.dart';
 
 enum OrderStatus { pending, processing, shipped, delivered, cancelled }
 
+enum OrderDeliveryType { fixedArea, manualQuote }
+
+enum OrderDeliveryPriceStatus { fixed, pendingQuote }
+
 class ShippingAddressData {
   const ShippingAddressData({
     this.id,
@@ -174,6 +178,10 @@ class OrderData {
     required this.items,
     required this.subtotal,
     required this.shippingFee,
+    this.deliveryType = OrderDeliveryType.fixedArea,
+    this.deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
+    this.customDeliveryArea = '',
+    this.deliveryLabel = '',
     required this.taxTotal,
     required this.discountTotal,
     required this.total,
@@ -189,6 +197,10 @@ class OrderData {
   final List<OrderItemData> items;
   final double subtotal;
   final double shippingFee;
+  final OrderDeliveryType deliveryType;
+  final OrderDeliveryPriceStatus deliveryPriceStatus;
+  final String customDeliveryArea;
+  final String deliveryLabel;
   final double taxTotal;
   final double discountTotal;
   final double total;
@@ -227,6 +239,12 @@ class OrderData {
       shippingFee: _doubleFromJson(
         json['shippingFee'] ?? json['shipping_fee'] ?? json['delivery_price'],
       ),
+      deliveryType: _deliveryTypeFromJson(json['delivery_type']),
+      deliveryPriceStatus: _deliveryPriceStatusFromJson(
+        json['delivery_price_status'],
+      ),
+      customDeliveryArea: json['custom_delivery_area']?.toString() ?? '',
+      deliveryLabel: json['delivery_label']?.toString() ?? '',
       taxTotal: _doubleFromJson(json['taxTotal'] ?? json['tax_total']),
       discountTotal: _doubleFromJson(
         json['discountTotal'] ?? json['discount_total'] ?? json['discount'],
@@ -259,12 +277,28 @@ class OrderData {
       'items': items.map((item) => item.toJson()).toList(),
       'subtotal': subtotal,
       'shippingFee': shippingFee,
+      'deliveryType': deliveryType.name,
+      'deliveryPriceStatus': deliveryPriceStatus.name,
+      'customDeliveryArea': customDeliveryArea,
+      'deliveryLabel': deliveryLabel,
       'taxTotal': taxTotal,
       'discountTotal': discountTotal,
       'total': total,
       'estimatedDeliveryAt': estimatedDeliveryAt?.toIso8601String(),
     };
   }
+}
+
+OrderDeliveryType _deliveryTypeFromJson(Object? value) {
+  final name = value?.toString();
+  if (name == 'manual_quote') return OrderDeliveryType.manualQuote;
+  return OrderDeliveryType.fixedArea;
+}
+
+OrderDeliveryPriceStatus _deliveryPriceStatusFromJson(Object? value) {
+  final name = value?.toString();
+  if (name == 'pending_quote') return OrderDeliveryPriceStatus.pendingQuote;
+  return OrderDeliveryPriceStatus.fixed;
 }
 
 OrderStatus _statusFromJson(Object? value) {

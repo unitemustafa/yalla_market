@@ -28,7 +28,7 @@ void main() {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
         expect(request.path, '/home/');
-        expect(request.queryParameters, isNull);
+        expect(request.queryParameters?['city'], 'sharm-el-sheikh');
         return {
           'products': [_backendProduct()],
         };
@@ -48,7 +48,7 @@ void main() {
         expect(request.method, 'GET');
         expect(request.path, '/home/search/');
         expect(request.queryParameters?['q'], 'shoe');
-        expect(request.queryParameters?['city'], isNull);
+        expect(request.queryParameters?['city'], 'sharm-el-sheikh');
         return {
           'results': [_backendProduct()],
         };

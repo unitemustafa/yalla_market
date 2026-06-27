@@ -14,6 +14,9 @@ class OrderRepositoryImpl implements OrderRepository {
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     String? paymentMethod,
+    String? deliveryType,
+    String? customDeliveryArea,
+    String? deliveryAreaId,
     double shippingFee = 0,
     double taxTotal = 0,
     double discountTotal = 0,
@@ -48,6 +51,14 @@ class OrderRepositoryImpl implements OrderRepository {
         items: List.unmodifiable(items),
         subtotal: subtotal,
         shippingFee: shippingFee,
+        deliveryType: deliveryType == 'manual_quote'
+            ? OrderDeliveryType.manualQuote
+            : OrderDeliveryType.fixedArea,
+        deliveryPriceStatus: deliveryType == 'manual_quote'
+            ? OrderDeliveryPriceStatus.pendingQuote
+            : OrderDeliveryPriceStatus.fixed,
+        customDeliveryArea: customDeliveryArea ?? '',
+        deliveryLabel: deliveryType == 'manual_quote' ? 'دليفري' : '',
         taxTotal: taxTotal,
         discountTotal: discountTotal,
         total: total < 0 ? 0 : total,

@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
+import '../../location/data/datasources/location_preferences.dart';
 import '../data/repositories/home_remote_repository_impl.dart';
 import '../data/repositories/home_repository_impl.dart';
 import '../domain/repositories/home_repository.dart';
@@ -13,7 +14,10 @@ void registerHomeDependencies(GetIt sl) {
     sl.registerLazySingleton<HomeRepository>(
       () => AppEnvironment.useDemoRepositories
           ? HomeRepositoryImpl()
-          : HomeRemoteRepositoryImpl(sl<ApiClient>()),
+          : HomeRemoteRepositoryImpl(
+              sl<ApiClient>(),
+              sl<LocationPreferences>(),
+            ),
     );
   }
   if (!sl.isRegistered<GetHomeUseCase>()) {

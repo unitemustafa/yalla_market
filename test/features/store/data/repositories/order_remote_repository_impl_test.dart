@@ -41,6 +41,8 @@ void main() {
         shippingAddress: _address,
         items: const [_item],
         paymentMethod: 'visa',
+        deliveryType: 'manual_quote',
+        customDeliveryArea: 'Unlisted area',
       );
 
       result.when(
@@ -52,6 +54,14 @@ void main() {
         containsPair('payment_method', 'cash_on_delivery'),
       );
       expect(capturedRequest.data, containsPair('delivery_address_id', 12));
+      expect(
+        capturedRequest.data,
+        containsPair('delivery_type', 'manual_quote'),
+      );
+      expect(
+        capturedRequest.data,
+        containsPair('custom_delivery_area', 'Unlisted area'),
+      );
       expect((capturedRequest.data as Map<String, dynamic>)['items'], [
         {'variant_id': 10, 'quantity': 1},
       ]);

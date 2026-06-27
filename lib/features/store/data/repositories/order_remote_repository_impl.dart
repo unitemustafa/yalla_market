@@ -17,6 +17,9 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     String? paymentMethod,
+    String? deliveryType,
+    String? customDeliveryArea,
+    String? deliveryAreaId,
     double shippingFee = 0,
     double taxTotal = 0,
     double discountTotal = 0,
@@ -26,6 +29,13 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         '/orders/',
         data: {
           'delivery_address_id': int.tryParse(shippingAddress.id ?? ''),
+          if (deliveryAreaId != null && deliveryAreaId.trim().isNotEmpty)
+            'delivery_area_id': int.tryParse(deliveryAreaId),
+          if (deliveryType != null && deliveryType.trim().isNotEmpty)
+            'delivery_type': deliveryType,
+          if (customDeliveryArea != null &&
+              customDeliveryArea.trim().isNotEmpty)
+            'custom_delivery_area': customDeliveryArea.trim(),
           'items': items
               .map(
                 (item) => {

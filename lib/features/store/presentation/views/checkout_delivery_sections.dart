@@ -71,6 +71,88 @@ class _PaymentMethodCard extends StatelessWidget {
   }
 }
 
+class _SavedAddressCheckoutCard extends StatelessWidget {
+  const _SavedAddressCheckoutCard({
+    required this.address,
+    required this.isDark,
+  });
+
+  final AddressData? address;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final hasAddress = address != null;
+
+    return _SectionCard(
+      isDark: isDark,
+      title: 'Shipping Address',
+      icon: AppIcons.location,
+      actionLabel: hasAddress ? 'Change' : 'Add',
+      onAction: () => Navigator.pushNamed(context, AppRoutes.addresses),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              hasAddress ? AppIcons.location : AppIcons.location_add,
+              color: AppColors.primary,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  hasAddress
+                      ? address!.name
+                      : context.tr('Choose a saved address'),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  hasAddress
+                      ? address!.fullAddress
+                      : context.tr('Add an address to start checkout faster.'),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: mutedColor,
+                    fontSize: 12,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (hasAddress)
+            _SoftBadge(
+              label: 'Selected',
+              icon: AppIcons.tick_circle,
+              isDark: isDark,
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ignore: unused_element
 class _ShippingAddressCard extends StatelessWidget {
   const _ShippingAddressCard({
     required this.isDark,

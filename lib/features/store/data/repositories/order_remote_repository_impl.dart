@@ -23,14 +23,20 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   }) {
     return _guard(() async {
       final payload = await _apiClient.post<Map<String, dynamic>>(
-        '/orders',
+        '/orders/',
         data: {
-          'shippingAddress': shippingAddress.toJson(),
-          'items': items.map((item) => item.toJson()).toList(),
-          'paymentMethod': 'cash_on_delivery',
-          'shippingFee': shippingFee,
-          'taxTotal': taxTotal,
-          'discountTotal': discountTotal,
+          'delivery_address_id': int.tryParse(shippingAddress.id ?? ''),
+          'items': items
+              .map(
+                (item) => {
+                  'variant_id': int.tryParse(item.variantId ?? item.id),
+                  'quantity': item.quantity,
+                },
+              )
+              .toList(),
+          'payment_method': 'cash_on_delivery',
+          'delivery_price': shippingFee,
+          'discount': discountTotal,
         },
       );
       return OrderData.fromJson(payload);
@@ -40,7 +46,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/orders');
+      final payload = await _apiClient.get<Object?>('/orders/');
       return _ordersFromPayload(payload);
     });
   }

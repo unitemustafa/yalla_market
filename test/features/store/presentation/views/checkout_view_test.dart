@@ -51,19 +51,9 @@ void main() {
     expect(find.text('Order Review'), findsOneWidget);
     expect(find.text('Order Summary'), findsOneWidget);
     expect(find.text('Cash on Delivery'), findsOneWidget);
+    expect(find.text('Shipping Address'), findsOneWidget);
+    expect(find.text('Coding with T'), findsOneWidget);
     expect(find.text('Confirm Order'), findsOneWidget);
-
-    await tester.enterText(find.byType(TextFormField).at(0), 'Mustafa Ali');
-    await tester.enterText(find.byType(TextFormField).at(1), '+201000000000');
-
-    await tester.ensureVisible(find.text('Choose city'));
-    await tester.tap(find.text('Choose city'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Cairo'));
-    await tester.pumpAndSettle();
-
-    await tester.ensureVisible(find.byType(TextFormField).last);
-    await tester.enterText(find.byType(TextFormField).last, '12 Tahrir St');
 
     await tester.tap(find.text('Confirm Order'));
     await tester.pumpAndSettle();

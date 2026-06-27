@@ -3,14 +3,12 @@ part of 'checkout_view.dart';
 class _CheckoutActionBar extends StatelessWidget {
   const _CheckoutActionBar({
     required this.total,
-    this.deliveryNote,
     required this.isDark,
     required this.isLoading,
     required this.onCheckout,
   });
 
   final double total;
-  final String? deliveryNote;
   final bool isDark;
   final bool isLoading;
   final VoidCallback onCheckout;
@@ -68,17 +66,6 @@ class _CheckoutActionBar extends StatelessWidget {
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  if (deliveryNote != null) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      deliveryNote!,
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ],
                 ],
               ),
             ),

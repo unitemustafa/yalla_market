@@ -15,7 +15,7 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
   @override
   Future<ApiResult<List<AddressData>>> getAddresses() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/addresses');
+      final payload = await _apiClient.get<Object?>('/addresses/');
       return _addressesFromPayload(payload);
     });
   }
@@ -23,7 +23,7 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
   @override
   Future<ApiResult<AddressData?>> getSelectedAddress() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/addresses/default');
+      final payload = await _apiClient.get<Object?>('/addresses/default/');
       if (payload is! Map<String, dynamic>) return null;
       return AddressData.fromJson(payload);
     });
@@ -35,11 +35,11 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
       final hasServerId = address.id.trim().isNotEmpty;
       final payload = hasServerId
           ? await _apiClient.patch<Object?>(
-              '/addresses/${address.id}',
+              '/addresses/${address.id}/',
               data: address.toApiJson(),
             )
           : await _apiClient.post<Object?>(
-              '/addresses',
+              '/addresses/',
               data: address.toApiJson(),
             );
       return _addressesFromPayload(payload);
@@ -49,7 +49,7 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
   @override
   Future<ApiResult<List<AddressData>>> deleteAddress(String id) {
     return _guard(() async {
-      final payload = await _apiClient.delete<Object?>('/addresses/$id');
+      final payload = await _apiClient.delete<Object?>('/addresses/$id/');
       return _addressesFromPayload(payload);
     });
   }
@@ -57,7 +57,9 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
   @override
   Future<ApiResult<List<AddressData>>> selectAddress(String id) {
     return _guard(() async {
-      final payload = await _apiClient.patch<Object?>('/addresses/$id/default');
+      final payload = await _apiClient.patch<Object?>(
+        '/addresses/$id/default/',
+      );
       return _addressesFromPayload(payload);
     });
   }

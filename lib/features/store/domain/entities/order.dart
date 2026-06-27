@@ -4,6 +4,7 @@ enum OrderStatus { pending, processing, shipped, delivered, cancelled }
 
 class ShippingAddressData {
   const ShippingAddressData({
+    this.id,
     required this.fullName,
     required this.phone,
     required this.line1,
@@ -13,6 +14,7 @@ class ShippingAddressData {
     required this.postalCode,
   });
 
+  final String? id;
   final String fullName;
   final String phone;
   final String line1;
@@ -23,6 +25,7 @@ class ShippingAddressData {
 
   factory ShippingAddressData.fromJson(Map<String, dynamic> json) {
     return ShippingAddressData(
+      id: json['id']?.toString(),
       fullName:
           json['fullName']?.toString() ?? json['full_name']?.toString() ?? '',
       phone: json['phone']?.toString() ?? '',
@@ -48,6 +51,7 @@ class ShippingAddressData {
 
   Map<String, Object?> toJson() {
     return {
+      if (id != null && id!.isNotEmpty) 'id': id,
       'fullName': fullName,
       'phone': phone,
       'line1': line1,
@@ -97,17 +101,41 @@ class OrderItemData {
   final List<CartItemAttribute> attributes;
 
   factory OrderItemData.fromJson(Map<String, dynamic> json) {
+    final variant = json['variant'] is Map<String, dynamic>
+        ? json['variant'] as Map<String, dynamic>
+        : const <String, dynamic>{};
+    final product = variant['product'] is Map<String, dynamic>
+        ? variant['product'] as Map<String, dynamic>
+        : const <String, dynamic>{};
     return OrderItemData(
       id: json['id'].toString(),
       productId:
-          json['productId']?.toString() ?? json['product_id']?.toString(),
+          json['productId']?.toString() ??
+          json['product_id']?.toString() ??
+          product['id']?.toString(),
       variantId:
-          json['variantId']?.toString() ?? json['variant_id']?.toString(),
-      image: json['image']?.toString() ?? json['imageUrl']?.toString() ?? '',
-      brand: json['brand']?.toString() ?? '',
-      title: json['title']?.toString() ?? json['name']?.toString() ?? '',
+          json['variantId']?.toString() ??
+          json['variant_id']?.toString() ??
+          variant['id']?.toString(),
+      image:
+          json['image']?.toString() ??
+          json['imageUrl']?.toString() ??
+          product['image']?.toString() ??
+          '',
+      brand:
+          json['brand']?.toString() ??
+          product['category']?['name']?.toString() ??
+          '',
+      title:
+          json['title']?.toString() ??
+          json['name']?.toString() ??
+          product['name']?.toString() ??
+          '',
       unitPrice: _doubleFromJson(
-        json['unitPrice'] ?? json['unit_price'] ?? json['price'],
+        json['unitPrice'] ??
+            json['unit_price'] ??
+            json['price'] ??
+            variant['price'],
       ),
       quantity: _intFromJson(json['quantity']) ?? 1,
       attributes: _attributesFromJson(json['attributes']),
@@ -179,24 +207,31 @@ class OrderData {
           '',
       status: _statusFromJson(json['status']),
       placedAt:
-          _dateFromJson(json['placedAt'] ?? json['placed_at']) ??
+          _dateFromJson(
+            json['placedAt'] ?? json['placed_at'] ?? json['created_at'],
+          ) ??
           DateTime.now(),
       shippingAddress: ShippingAddressData.fromJson(
-        (json['shippingAddress'] ?? json['shipping_address'])
-            as Map<String, dynamic>,
+        _mapFromJson(
+          json['shippingAddress'] ??
+              json['shipping_address'] ??
+              json['delivery_address'],
+        ),
       ),
       paymentMethod:
           json['paymentMethod']?.toString() ??
           json['payment_method']?.toString() ??
           'cash_on_delivery',
       items: _itemsFromJson(json['items']),
-      subtotal: _doubleFromJson(json['subtotal']),
-      shippingFee: _doubleFromJson(json['shippingFee'] ?? json['shipping_fee']),
+      subtotal: _doubleFromJson(json['subtotal'] ?? json['subtotal_price']),
+      shippingFee: _doubleFromJson(
+        json['shippingFee'] ?? json['shipping_fee'] ?? json['delivery_price'],
+      ),
       taxTotal: _doubleFromJson(json['taxTotal'] ?? json['tax_total']),
       discountTotal: _doubleFromJson(
-        json['discountTotal'] ?? json['discount_total'],
+        json['discountTotal'] ?? json['discount_total'] ?? json['discount'],
       ),
-      total: _doubleFromJson(json['total']),
+      total: _doubleFromJson(json['total'] ?? json['total_price']),
       estimatedDeliveryAt: _dateFromJson(
         json['estimatedDeliveryAt'] ?? json['estimated_delivery_at'],
       ),
@@ -234,6 +269,10 @@ class OrderData {
 
 OrderStatus _statusFromJson(Object? value) {
   final name = value?.toString().toLowerCase();
+  if (name == 'confirmed' || name == 'under_preparation') {
+    return OrderStatus.processing;
+  }
+  if (name == 'ready') return OrderStatus.shipped;
   return OrderStatus.values.firstWhere(
     (status) => status.name == name,
     orElse: () => OrderStatus.processing,
@@ -251,6 +290,11 @@ List<OrderItemData> _itemsFromJson(Object? value) {
       .whereType<Map<String, dynamic>>()
       .map(OrderItemData.fromJson)
       .toList(growable: false);
+}
+
+Map<String, dynamic> _mapFromJson(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  return const {};
 }
 
 List<CartItemAttribute> _attributesFromJson(Object? value) {

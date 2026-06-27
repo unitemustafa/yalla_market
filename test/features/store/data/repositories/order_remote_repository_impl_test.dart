@@ -6,23 +6,33 @@ import '../../../../helpers/fake_api_client.dart';
 
 void main() {
   group('OrderRemoteRepositoryImpl', () {
-    test('forces cash on delivery for v1 order creation', () async {
+    test('creates an order with the Django order contract', () async {
       late FakeApiRequest capturedRequest;
       final apiClient = FakeApiClient((request) {
         capturedRequest = request;
         return {
-          'id': 'order-1',
-          'orderNumber': 'YM1',
-          'status': 'processing',
-          'placedAt': DateTime(2026).toIso8601String(),
-          'shippingAddress': _address.toJson(),
-          'paymentMethod': 'cash_on_delivery',
-          'items': [_item.toJson()],
-          'subtotal': 10,
-          'shippingFee': 0,
-          'taxTotal': 0,
-          'discountTotal': 0,
-          'total': 10,
+          'id': 1,
+          'order_number': 'YM-20260627-000001',
+          'status': 'pending',
+          'created_at': DateTime(2026).toIso8601String(),
+          'delivery_address': _address.toJson(),
+          'payment_method': 'cash_on_delivery',
+          'items': [
+            {
+              'id': 7,
+              'quantity': 1,
+              'unit_price': '10.00',
+              'variant': {
+                'id': 10,
+                'price': '10.00',
+                'product': {'id': 2, 'name': 'Fresh product'},
+              },
+            },
+          ],
+          'subtotal_price': '10.00',
+          'delivery_price': '0.00',
+          'discount': '0.00',
+          'total_price': '10.00',
         };
       });
       final repository = OrderRemoteRepositoryImpl(apiClient);
@@ -39,13 +49,18 @@ void main() {
       );
       expect(
         capturedRequest.data,
-        containsPair('paymentMethod', 'cash_on_delivery'),
+        containsPair('payment_method', 'cash_on_delivery'),
       );
+      expect(capturedRequest.data, containsPair('delivery_address_id', 12));
+      expect((capturedRequest.data as Map<String, dynamic>)['items'], [
+        {'variant_id': 10, 'quantity': 1},
+      ]);
     });
   });
 }
 
 const _address = ShippingAddressData(
+  id: '12',
   fullName: 'Mustafa Ali',
   phone: '+201000000000',
   line1: 'Street 1',
@@ -57,6 +72,7 @@ const _address = ShippingAddressData(
 
 const _item = OrderItemData(
   id: 'item-1',
+  variantId: '10',
   image: 'image.png',
   brand: 'Yalla',
   title: 'Fresh product',

@@ -5,11 +5,23 @@ import '../../domain/repositories/location_repository.dart';
 import '../datasources/device_location_data_source.dart';
 import '../datasources/location_preferences.dart';
 
-class LocationRepositoryImpl implements LocationRepository {
+class LocationRepositoryImpl implements LocationRepository, LocationUserScope {
   const LocationRepositoryImpl(this._preferences, this._deviceLocation);
 
   final LocationPreferences _preferences;
   final DeviceLocationDataSource _deviceLocation;
+
+  @override
+  Future<ApiResult<void>> activateUser(String userId) async {
+    try {
+      await _preferences.activateUser(userId);
+      return const ApiResult.success(null);
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not load your saved city.'),
+      );
+    }
+  }
 
   @override
   Future<ApiResult<List<CityData>>> getAvailableCities() async {

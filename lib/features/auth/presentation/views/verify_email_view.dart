@@ -13,6 +13,7 @@ import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../cubit/auth_cubit.dart';
+import '../cubit/auth_state.dart';
 import '../widgets/auth_status_artwork.dart';
 import '../widgets/auth_top_bar.dart';
 
@@ -156,9 +157,12 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       return;
     }
 
-    final locationReset = await context
-        .read<LocationCubit>()
-        .clearSelectedCity();
+    final authState = authCubit.state;
+    if (authState is! AuthAuthenticated) return;
+    final locationCubit = context.read<LocationCubit>();
+    await locationCubit.activateUser(authState.session.user.id);
+    if (!mounted) return;
+    final locationReset = await locationCubit.clearSelectedCity();
     if (!mounted) return;
     if (!locationReset) {
       CustomSnackBar.showError(

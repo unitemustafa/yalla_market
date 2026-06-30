@@ -1,6 +1,12 @@
 import '../../../../core/network/api_result.dart';
 import '../entities/city_data.dart';
 
+abstract class LocationUserScope {
+  Future<ApiResult<void>> activateUser(String userId) {
+    throw UnimplementedError();
+  }
+}
+
 abstract class LocationRepository {
   Future<ApiResult<List<CityData>>> getAvailableCities() {
     throw UnimplementedError();

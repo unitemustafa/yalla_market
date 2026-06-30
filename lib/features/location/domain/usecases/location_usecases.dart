@@ -2,6 +2,16 @@ import '../../../../core/network/api_result.dart';
 import '../entities/city_data.dart';
 import '../repositories/location_repository.dart';
 
+class ActivateLocationUserUseCase {
+  const ActivateLocationUserUseCase(this._repository);
+
+  final LocationUserScope _repository;
+
+  Future<ApiResult<void>> call(String userId) {
+    return _repository.activateUser(userId);
+  }
+}
+
 class GetAvailableCitiesUseCase {
   const GetAvailableCitiesUseCase(this._repository);
 
@@ -107,6 +117,7 @@ class OpenDeviceLocationSettingsUseCase {
 
 class LocationUseCases {
   const LocationUseCases({
+    required this.activateUser,
     required this.getAvailableCities,
     required this.getSelectedCity,
     required this.hasSeenCitySelection,
@@ -118,6 +129,8 @@ class LocationUseCases {
     required this.openAppSettings,
     required this.openLocationSettings,
   });
+
+  final ActivateLocationUserUseCase activateUser;
 
   final GetAvailableCitiesUseCase getAvailableCities;
 

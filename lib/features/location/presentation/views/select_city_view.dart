@@ -28,8 +28,7 @@ class SelectCityView extends StatefulWidget {
 class _SelectCityViewState extends State<SelectCityView>
     with SingleTickerProviderStateMixin {
   late final AnimationController _radarController;
-  LocationChoiceMode _choiceMode = LocationChoiceMode.automatic;
-  bool _gpsVerified = false;
+  LocationChoiceMode _choiceMode = LocationChoiceMode.manual;
   bool _unsupportedDetected = false;
   bool _showRadar = false;
   int _activeLocationRequestId = 0;
@@ -48,8 +47,6 @@ class _SelectCityViewState extends State<SelectCityView>
 
   Future<void> _initializeLocationGate() async {
     await context.read<LocationCubit>().loadAvailableCities();
-    if (!mounted) return;
-    await _detectCurrentLocation(context);
   }
 
   @override
@@ -110,7 +107,7 @@ class _SelectCityViewState extends State<SelectCityView>
                           const SizedBox(height: 10),
                           Text(
                             context.tr(
-                              'Choose manually or let GPS detect your area.',
+                              'Choose your city manually to continue.',
                             ),
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
@@ -136,7 +133,7 @@ class _SelectCityViewState extends State<SelectCityView>
                             state: state,
                             compact: true,
                             mode: _choiceMode,
-                            manualEnabled: _gpsVerified,
+                            manualOnly: true,
                             onModeChanged: _setChoiceMode,
                             onCitySelected: (city) =>
                                 _selectCityAndContinue(context, city),
@@ -157,16 +154,6 @@ class _SelectCityViewState extends State<SelectCityView>
   }
 
   void _setChoiceMode(LocationChoiceMode mode) {
-    if (mode == LocationChoiceMode.manual && !_gpsVerified) {
-      CustomSnackBar.showPersistentWarning(
-        context: context,
-        title: 'Location access is required',
-        message:
-            'Turn on GPS and allow location access before choosing your region.',
-        actionLabel: 'Close',
-      );
-      return;
-    }
     setState(() {
       _choiceMode = mode;
       _showRadar = false;
@@ -191,7 +178,6 @@ class _SelectCityViewState extends State<SelectCityView>
     if (!context.mounted || requestId != _activeLocationRequestId) return;
     if (detectedCity == null) {
       setState(() {
-        _gpsVerified = false;
         _choiceMode = LocationChoiceMode.automatic;
         _unsupportedDetected = false;
         _showRadar = false;
@@ -205,8 +191,6 @@ class _SelectCityViewState extends State<SelectCityView>
       );
       return;
     }
-
-    setState(() => _gpsVerified = true);
 
     final hasNamedGeneral = detectedCity.isNamedGeneral;
     if (detectedCity.isGeneral && !hasNamedGeneral) {
@@ -317,16 +301,6 @@ class _SelectCityViewState extends State<SelectCityView>
     CityData city, {
     RegionSource source = RegionSource.manual,
   }) async {
-    if (!_gpsVerified) {
-      CustomSnackBar.showPersistentWarning(
-        context: context,
-        title: 'Location access is required',
-        message:
-            'Turn on GPS and allow location access before entering the app.',
-        actionLabel: 'Close',
-      );
-      return;
-    }
     final selectedCity = await context.read<LocationCubit>().selectCity(
       city,
       source: source,

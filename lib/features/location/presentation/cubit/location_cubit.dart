@@ -9,6 +9,11 @@ class LocationCubit extends Cubit<LocationState> {
 
   final LocationUseCases _useCases;
 
+  Future<bool> activateUser(String userId) async {
+    final result = await _useCases.activateUser(userId);
+    return result.when(success: (_) => true, failure: (_) => false);
+  }
+
   /// Hydrates city state from an already-resolved city (e.g. from SplashCubit).
   void syncCity(CityData? city) =>
       emit(LocationReady(city, state.availableCities));

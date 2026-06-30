@@ -48,11 +48,18 @@ class SplashCubit extends Cubit<SplashState> {
       return;
     }
 
+    await _locationUseCases.activateUser(session.user.id);
     CityData? city;
     final cityResult = await _locationUseCases.getSelectedCity();
     city = cityResult.when(success: (c) => c, failure: (_) => null);
 
-    emit(SplashNavigateTo(AppRoutes.selectCity, session: session, city: city));
+    emit(
+      SplashNavigateTo(
+        city == null ? AppRoutes.selectCity : AppRoutes.navigationMenu,
+        session: session,
+        city: city,
+      ),
+    );
   }
 
   bool _isExpiredSessionFailure(Failure failure) {

@@ -32,6 +32,65 @@ void main() {
       );
     });
 
+    test('keeps a separate selected city for each user', () async {
+      final repository = LocationRepositoryImpl(
+        LocationPreferences(),
+        const _FakeDeviceLocationDataSource(),
+      );
+
+      await repository.activateUser('user-1');
+      await repository.saveSelectedCity(
+        const CityData(name: 'Cairo', slug: 'cairo'),
+      );
+      await repository.activateUser('user-2');
+      final secondUserBeforeSelection = await repository.getSelectedCity();
+      await repository.saveSelectedCity(CityData.general);
+      await repository.activateUser('user-1');
+      final firstUserCity = await repository.getSelectedCity();
+      await repository.activateUser('user-2');
+      final secondUserCity = await repository.getSelectedCity();
+
+      secondUserBeforeSelection.when(
+        success: (city) => expect(city, isNull),
+        failure: (failure) => fail(failure.message),
+      );
+      firstUserCity.when(
+        success: (city) => expect(city?.slug, 'cairo'),
+        failure: (failure) => fail(failure.message),
+      );
+      secondUserCity.when(
+        success: (city) => expect(city?.isGeneral, isTrue),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('moves the legacy saved city into the active user scope', () async {
+      SharedPreferences.setMockInitialValues({
+        LocationPreferences.selectedCitySlugKey: 'cairo',
+        LocationPreferences.selectedCityNameKey: 'Cairo',
+        LocationPreferences.selectedRegionSourceKey: 'MANUAL',
+        LocationPreferences.citySelectionSeenKey: true,
+      });
+      final preferences = LocationPreferences();
+      final repository = LocationRepositoryImpl(
+        preferences,
+        const _FakeDeviceLocationDataSource(),
+      );
+
+      await repository.activateUser('user-1');
+      final cityResult = await repository.getSelectedCity();
+      final seenResult = await repository.hasSeenCitySelection();
+
+      cityResult.when(
+        success: (city) => expect(city?.slug, 'cairo'),
+        failure: (failure) => fail(failure.message),
+      );
+      seenResult.when(
+        success: (seen) => expect(seen, isTrue),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
     test('uses the cities already supported by the Flutter app', () async {
       final repository = LocationRepositoryImpl(
         LocationPreferences(),

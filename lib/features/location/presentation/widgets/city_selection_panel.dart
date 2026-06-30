@@ -20,6 +20,7 @@ class CitySelectionPanel extends StatefulWidget {
     this.mode,
     this.onModeChanged,
     this.manualEnabled = true,
+    this.manualOnly = false,
   });
 
   final LocationState state;
@@ -30,6 +31,7 @@ class CitySelectionPanel extends StatefulWidget {
   final LocationChoiceMode? mode;
   final ValueChanged<LocationChoiceMode>? onModeChanged;
   final bool manualEnabled;
+  final bool manualOnly;
 
   @override
   State<CitySelectionPanel> createState() => _CitySelectionPanelState();
@@ -41,12 +43,18 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
   @override
   void initState() {
     super.initState();
-    _mode = widget.mode ?? widget.initialMode;
+    _mode = widget.manualOnly
+        ? LocationChoiceMode.manual
+        : widget.mode ?? widget.initialMode;
   }
 
   @override
   void didUpdateWidget(covariant CitySelectionPanel oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.manualOnly) {
+      _mode = LocationChoiceMode.manual;
+      return;
+    }
     final newMode = widget.mode;
     if (newMode != null && newMode != _mode) {
       _mode = newMode;
@@ -72,11 +80,12 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
       children: [
         _LocationIntro(compact: widget.compact),
         const SizedBox(height: 18),
-        _ChoiceModeSwitch(
-          selectedMode: _mode,
-          manualEnabled: widget.manualEnabled,
-          onChanged: _setMode,
-        ),
+        if (!widget.manualOnly)
+          _ChoiceModeSwitch(
+            selectedMode: _mode,
+            manualEnabled: widget.manualEnabled,
+            onChanged: _setMode,
+          ),
         if (error != null && _mode == LocationChoiceMode.automatic) ...[
           const SizedBox(height: 12),
           _LocationError(message: error),
@@ -84,7 +93,7 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
         const SizedBox(height: 18),
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 180),
-          child: _mode == LocationChoiceMode.automatic
+          child: !widget.manualOnly && _mode == LocationChoiceMode.automatic
               ? _AutomaticLocationPanel(
                   key: const ValueKey('automatic-location-choice'),
                   isDetecting: isDetecting,

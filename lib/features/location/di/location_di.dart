@@ -16,17 +16,32 @@ void registerLocationDependencies(GetIt sl) {
       GeolocatorLocationDataSource.new,
     );
   }
-  if (!sl.isRegistered<LocationRepository>()) {
-    sl.registerLazySingleton<LocationRepository>(
+  if (!sl.isRegistered<LocationRepositoryImpl>()) {
+    sl.registerLazySingleton<LocationRepositoryImpl>(
       () => LocationRepositoryImpl(
         sl<LocationPreferences>(),
         sl<DeviceLocationDataSource>(),
       ),
     );
   }
+  if (!sl.isRegistered<LocationRepository>()) {
+    sl.registerLazySingleton<LocationRepository>(
+      () => sl<LocationRepositoryImpl>(),
+    );
+  }
+  if (!sl.isRegistered<LocationUserScope>()) {
+    sl.registerLazySingleton<LocationUserScope>(
+      () => sl<LocationRepositoryImpl>(),
+    );
+  }
   if (!sl.isRegistered<GetSelectedCityUseCase>()) {
     sl.registerLazySingleton(
       () => GetSelectedCityUseCase(sl<LocationRepository>()),
+    );
+  }
+  if (!sl.isRegistered<ActivateLocationUserUseCase>()) {
+    sl.registerLazySingleton(
+      () => ActivateLocationUserUseCase(sl<LocationUserScope>()),
     );
   }
   if (!sl.isRegistered<GetAvailableCitiesUseCase>()) {
@@ -77,6 +92,7 @@ void registerLocationDependencies(GetIt sl) {
   if (!sl.isRegistered<LocationUseCases>()) {
     sl.registerLazySingleton(
       () => LocationUseCases(
+        activateUser: sl<ActivateLocationUserUseCase>(),
         getAvailableCities: sl<GetAvailableCitiesUseCase>(),
         getSelectedCity: sl<GetSelectedCityUseCase>(),
         hasSeenCitySelection: sl<HasSeenCitySelectionUseCase>(),

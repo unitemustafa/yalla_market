@@ -71,6 +71,36 @@ void main() {
     expect(usedCurrentLocation, isTrue);
   });
 
+  testWidgets('manual-only mode shows cities without requesting GPS', (
+    tester,
+  ) async {
+    var usedCurrentLocation = false;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: CitySelectionPanel(
+              state: const LocationReady(null, [
+                CityData(name: 'Cairo', slug: 'cairo'),
+              ]),
+              manualOnly: true,
+              initialMode: LocationChoiceMode.manual,
+              onCitySelected: (_) {},
+              onUseCurrentLocation: () => usedCurrentLocation = true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Cairo'), findsOneWidget);
+    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('Automatic'), findsNothing);
+    expect(find.text('Use GPS location'), findsNothing);
+    expect(usedCurrentLocation, isFalse);
+  });
+
   testWidgets('manual mode stays locked until GPS is verified', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

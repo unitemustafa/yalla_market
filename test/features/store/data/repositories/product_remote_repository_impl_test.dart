@@ -9,7 +9,7 @@ void main() {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
         expect(request.path, '/home/search/');
-        expect(request.queryParameters?['q'], 'shoe');
+        expect(request.queryParameters, {'q': 'shoe'});
         return {
           'results': [_backendProduct()],
         };
@@ -24,11 +24,11 @@ void main() {
       );
     });
 
-    test('loads products with the selected city query parameter', () async {
+    test('loads products without forwarding the selected city', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
         expect(request.path, '/home/');
-        expect(request.queryParameters?['city'], 'sharm-el-sheikh');
+        expect(request.queryParameters, isNull);
         return {
           'products': [_backendProduct()],
         };
@@ -43,12 +43,11 @@ void main() {
       );
     });
 
-    test('searches products with the selected city query parameter', () async {
+    test('searches products without forwarding the selected city', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
         expect(request.path, '/home/search/');
-        expect(request.queryParameters?['q'], 'shoe');
-        expect(request.queryParameters?['city'], 'sharm-el-sheikh');
+        expect(request.queryParameters, {'q': 'shoe'});
         return {
           'results': [_backendProduct()],
         };
@@ -69,6 +68,7 @@ void main() {
     test('loads categories and brands from remote endpoints', () async {
       final apiClient = FakeApiClient((request) {
         if (request.path == '/home/classifications/') {
+          expect(request.queryParameters, isNull);
           return {
             'common_categories': [
               {'id': 7, 'name': 'Supermarket', 'product_count': 5},

@@ -2,7 +2,6 @@ import 'package:get_it/get_it.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
-import '../../../features/location/data/datasources/location_preferences.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
 import '../../../features/store/data/repositories/order_remote_repository_impl.dart';
 import '../../../features/store/data/repositories/order_repository_impl.dart';
@@ -32,10 +31,7 @@ void registerStoreDependencies(GetIt sl) {
     sl.registerLazySingleton<ProductRepository>(
       () => AppEnvironment.useDemoRepositories
           ? ProductRepositoryImpl()
-          : ProductRemoteRepositoryImpl(
-              sl<ApiClient>(),
-              sl<LocationPreferences>(),
-            ),
+          : ProductRemoteRepositoryImpl(sl<ApiClient>()),
     );
   }
   if (!sl.isRegistered<GetProductsUseCase>()) {
@@ -61,10 +57,7 @@ void registerStoreDependencies(GetIt sl) {
     sl.registerLazySingleton<StoreRepository>(
       () => AppEnvironment.useDemoRepositories
           ? StoreRepositoryImpl()
-          : StoreRemoteRepositoryImpl(
-              sl<ApiClient>(),
-              sl<LocationPreferences>(),
-            ),
+          : StoreRemoteRepositoryImpl(sl<ApiClient>()),
     );
   }
   if (!sl.isRegistered<GetStoreUseCase>()) {

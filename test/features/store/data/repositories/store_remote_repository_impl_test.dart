@@ -11,6 +11,7 @@ void main() {
         final apiClient = FakeApiClient((request) {
           if (request.path == '/home/classifications/') {
             expect(request.method, 'GET');
+            expect(request.queryParameters, isNull);
             return {
               'common_categories': [
                 {'id': 1, 'name': 'Supermarket', 'product_count': 2},
@@ -22,6 +23,7 @@ void main() {
           }
           if (request.path == '/home/classifications/1/markets/') {
             expect(request.method, 'GET');
+            expect(request.queryParameters, isNull);
             return {
               'classification': {'id': 1, 'name': 'Supermarket'},
               'markets': [
@@ -38,7 +40,7 @@ void main() {
           }
           if (request.path == '/home/search/') {
             expect(request.method, 'GET');
-            expect(request.queryParameters?['q'], 'Fresh Market');
+            expect(request.queryParameters, {'q': 'Fresh Market'});
             return {
               'count': 1,
               'results': [_fullProduct()],

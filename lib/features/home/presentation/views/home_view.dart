@@ -97,10 +97,36 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
         return;
       }
 
+      final confirmed = await _confirmDetectedRegionChange(detectedCity);
+      if (!mounted || !confirmed) return;
       await _switchToDetectedRegion(detectedCity);
     } finally {
       _isCheckingSupportedRegion = false;
     }
+  }
+
+  Future<bool> _confirmDetectedRegionChange(CityData detectedCity) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Location changed'),
+        content: Text(
+          'Use ${detectedCity.displayName(arabic: context.isArabicLanguage)} as your region?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Keep current'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
   }
 
   Future<void> _loadHomeData({bool force = false}) async {

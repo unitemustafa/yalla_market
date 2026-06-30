@@ -5,8 +5,6 @@ import 'package:yalla_market/features/location/data/datasources/location_prefere
 import 'package:yalla_market/features/location/data/repositories/location_repository_impl.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
 
-import '../../../../helpers/fake_api_client.dart';
-
 void main() {
   group('LocationRepositoryImpl', () {
     setUp(() {
@@ -34,72 +32,39 @@ void main() {
       );
     });
 
-    test('loads active cities from the backend with localized names', () async {
-      final apiClient = FakeApiClient((request) {
-        expect(request.method, 'GET');
-        expect(request.path, '/locations/cities/');
-        return [
-          {
-            'id': 7,
-            'name': 'Mansoura',
-            'name_ar': 'المنصورة',
-            'slug': 'mansoura',
-          },
-        ];
-      });
+    test('uses the cities already supported by the Flutter app', () async {
       final repository = LocationRepositoryImpl(
         LocationPreferences(),
         const _FakeDeviceLocationDataSource(),
-        apiClient,
       );
 
       final result = await repository.getAvailableCities();
 
       result.when(
         success: (cities) {
-          expect(cities, hasLength(1));
-          expect(cities.single.slug, 'mansoura');
-          expect(cities.single.nameAr, 'المنصورة');
+          expect(cities, CityData.dashboardRegions);
+          expect(cities.every((city) => !city.isGeneral), isTrue);
         },
         failure: (failure) => fail(failure.message),
       );
     });
 
-    test(
-      'resolves GPS coordinates through the backend coverage endpoint',
-      () async {
-        final apiClient = FakeApiClient((request) {
-          expect(request.method, 'POST');
-          expect(request.path, '/locations/resolve/');
-          expect(request.data, {'latitude': 30.0444, 'longitude': 31.2357});
-          return {
-            'mode': 'city',
-            'display_name': 'Cairo',
-            'city': {
-              'id': 1,
-              'name': 'Cairo',
-              'name_ar': 'القاهرة',
-              'slug': 'cairo',
-            },
-          };
-        });
-        final repository = LocationRepositoryImpl(
-          LocationPreferences(),
-          const _FakeDeviceLocationDataSource(),
-          apiClient,
-        );
+    test('detects GPS city locally without a backend request', () async {
+      final repository = LocationRepositoryImpl(
+        LocationPreferences(),
+        const _FakeDeviceLocationDataSource(cityName: 'Cairo'),
+      );
 
-        final result = await repository.detectCurrentLocation();
+      final result = await repository.detectCurrentLocation();
 
-        result.when(
-          success: (city) {
-            expect(city.slug, 'cairo');
-            expect(city.source, RegionSource.gps);
-          },
-          failure: (failure) => fail(failure.message),
-        );
-      },
-    );
+      result.when(
+        success: (city) {
+          expect(city.slug, 'cairo');
+          expect(city.source, RegionSource.gps);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
 
     test('saves and loads a custom selected city from preferences', () async {
       final repository = LocationRepositoryImpl(

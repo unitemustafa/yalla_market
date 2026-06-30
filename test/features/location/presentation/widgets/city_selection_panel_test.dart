@@ -70,4 +70,28 @@ void main() {
 
     expect(usedCurrentLocation, isTrue);
   });
+
+  testWidgets('manual mode stays locked until GPS is verified', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CitySelectionPanel(
+            state: const LocationReady(null, [
+              CityData(name: 'Cairo', slug: 'cairo'),
+            ]),
+            manualEnabled: false,
+            onCitySelected: (_) {},
+            onUseCurrentLocation: () {},
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Manual'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Use GPS location'), findsOneWidget);
+    expect(find.text('Cairo'), findsNothing);
+    expect(find.text('Other'), findsNothing);
+  });
 }

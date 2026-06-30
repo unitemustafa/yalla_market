@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -28,10 +27,9 @@ class SelectCityView extends StatefulWidget {
 
 class _SelectCityViewState extends State<SelectCityView>
     with SingleTickerProviderStateMixin {
-  static const _gpsFallbackTimeout = Duration(seconds: 8);
-
   late final AnimationController _radarController;
   LocationChoiceMode _choiceMode = LocationChoiceMode.automatic;
+  bool _gpsVerified = false;
   bool _unsupportedDetected = false;
   bool _showRadar = false;
   int _activeLocationRequestId = 0;
@@ -44,10 +42,14 @@ class _SelectCityViewState extends State<SelectCityView>
       duration: const Duration(milliseconds: 2600),
     )..repeat();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<LocationCubit>().markCitySelectionSeen();
-      context.read<LocationCubit>().loadAvailableCities();
-      _continueIfCityAlreadySelected();
+      _initializeLocationGate();
     });
+  }
+
+  Future<void> _initializeLocationGate() async {
+    await context.read<LocationCubit>().loadAvailableCities();
+    if (!mounted) return;
+    await _detectCurrentLocation(context);
   }
 
   @override
@@ -134,6 +136,7 @@ class _SelectCityViewState extends State<SelectCityView>
                             state: state,
                             compact: true,
                             mode: _choiceMode,
+                            manualEnabled: _gpsVerified,
                             onModeChanged: _setChoiceMode,
                             onCitySelected: (city) =>
                                 _selectCityAndContinue(context, city),
@@ -154,6 +157,16 @@ class _SelectCityViewState extends State<SelectCityView>
   }
 
   void _setChoiceMode(LocationChoiceMode mode) {
+    if (mode == LocationChoiceMode.manual && !_gpsVerified) {
+      CustomSnackBar.showPersistentWarning(
+        context: context,
+        title: 'Location access is required',
+        message:
+            'Turn on GPS and allow location access before choosing your region.',
+        actionLabel: 'Close',
+      );
+      return;
+    }
     setState(() {
       _choiceMode = mode;
       _showRadar = false;
@@ -164,17 +177,6 @@ class _SelectCityViewState extends State<SelectCityView>
     }
   }
 
-  Future<void> _continueIfCityAlreadySelected() async {
-    final selectedCity = await context.read<LocationCubit>().loadSelectedCity();
-    if (!mounted || selectedCity == null) return;
-
-    Navigator.pushNamedAndRemoveUntil(
-      context,
-      AppRoutes.navigationMenu,
-      (route) => false,
-    );
-  }
-
   Future<void> _detectCurrentLocation(BuildContext context) async {
     final requestId = ++_activeLocationRequestId;
     setState(() {
@@ -183,41 +185,28 @@ class _SelectCityViewState extends State<SelectCityView>
       _unsupportedDetected = false;
     });
 
-    final timeout = Timer(_gpsFallbackTimeout, () {
-      if (!mounted || requestId != _activeLocationRequestId) return;
-      _activeLocationRequestId++;
-      setState(() {
-        _choiceMode = LocationChoiceMode.manual;
-        _showRadar = false;
-        _unsupportedDetected = false;
-      });
-      CustomSnackBar.showPersistentWarning(
-        context: context,
-        title: 'Location is taking too long',
-        message: 'Choose your area manually and you can try GPS again later.',
-        actionLabel: 'Close',
-      );
-    });
-
     final detectedCity = await context
         .read<LocationCubit>()
         .detectCurrentLocation();
-    timeout.cancel();
     if (!context.mounted || requestId != _activeLocationRequestId) return;
     if (detectedCity == null) {
       setState(() {
-        _choiceMode = LocationChoiceMode.manual;
+        _gpsVerified = false;
+        _choiceMode = LocationChoiceMode.automatic;
         _unsupportedDetected = false;
         _showRadar = false;
       });
       CustomSnackBar.showPersistentWarning(
         context: context,
-        title: 'Could not use your current location.',
-        message: 'Choose your area manually and you can try GPS again later.',
+        title: 'Location access is required',
+        message:
+            'Turn on GPS and allow location access before entering the app.',
         actionLabel: 'Close',
       );
       return;
     }
+
+    setState(() => _gpsVerified = true);
 
     final hasNamedGeneral = detectedCity.isNamedGeneral;
     if (detectedCity.isGeneral && !hasNamedGeneral) {
@@ -328,6 +317,16 @@ class _SelectCityViewState extends State<SelectCityView>
     CityData city, {
     RegionSource source = RegionSource.manual,
   }) async {
+    if (!_gpsVerified) {
+      CustomSnackBar.showPersistentWarning(
+        context: context,
+        title: 'Location access is required',
+        message:
+            'Turn on GPS and allow location access before entering the app.',
+        actionLabel: 'Close',
+      );
+      return;
+    }
     final selectedCity = await context.read<LocationCubit>().selectCity(
       city,
       source: source,

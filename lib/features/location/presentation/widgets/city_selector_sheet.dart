@@ -86,9 +86,34 @@ class _CitySelectorSheetContent extends StatelessWidget {
   }
 
   Future<void> _useCurrentLocation(BuildContext context) async {
-    final selectedCity = await context
-        .read<LocationCubit>()
-        .useCurrentLocation();
+    final locationCubit = context.read<LocationCubit>();
+    final detectedCity = await locationCubit.detectCurrentLocation();
+    if (!context.mounted || detectedCity == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Confirm your location'),
+        content: Text('Use ${detectedCity.displayName(arabic: false)}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Change'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (!context.mounted || confirmed != true) return;
+
+    final selectedCity = await locationCubit.selectCity(
+      detectedCity,
+      source: detectedCity.source,
+    );
     if (!context.mounted || selectedCity == null) return;
 
     await onCityChanged?.call();

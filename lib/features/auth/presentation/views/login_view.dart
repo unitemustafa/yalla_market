@@ -13,7 +13,6 @@ import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
-import '../../../location/presentation/cubit/location_cubit.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../widgets/custom_text_field.dart';
@@ -63,17 +62,9 @@ class _LoginViewState extends State<LoginView> {
   }
 
   Future<void> _navigateAfterSignIn(BuildContext context) async {
-    final locationCubit = context.read<LocationCubit>();
-    final selectedCity = await locationCubit.loadSelectedCity();
-    if (!context.mounted) return;
-    final hasSeenCitySelection = await locationCubit.hasSeenCitySelection();
-    if (!context.mounted) return;
-
     Navigator.pushNamedAndRemoveUntil(
       context,
-      selectedCity == null && !hasSeenCitySelection
-          ? AppRoutes.selectCity
-          : AppRoutes.navigationMenu,
+      AppRoutes.selectCity,
       (route) => false,
     );
   }

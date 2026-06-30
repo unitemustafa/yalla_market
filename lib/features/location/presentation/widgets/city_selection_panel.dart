@@ -19,6 +19,7 @@ class CitySelectionPanel extends StatefulWidget {
     this.initialMode = LocationChoiceMode.automatic,
     this.mode,
     this.onModeChanged,
+    this.manualEnabled = true,
   });
 
   final LocationState state;
@@ -28,6 +29,7 @@ class CitySelectionPanel extends StatefulWidget {
   final LocationChoiceMode initialMode;
   final LocationChoiceMode? mode;
   final ValueChanged<LocationChoiceMode>? onModeChanged;
+  final bool manualEnabled;
 
   @override
   State<CitySelectionPanel> createState() => _CitySelectionPanelState();
@@ -57,7 +59,7 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
     final isSaving = widget.state is LocationSaving;
     final isLoading = widget.state is LocationLoading;
     final isBusy = isDetecting || isSaving || isLoading;
-    final manualDisabled = isSaving || isLoading;
+    final manualDisabled = isSaving || isLoading || !widget.manualEnabled;
     final error = widget.state is LocationFailure
         ? (widget.state as LocationFailure).message
         : null;
@@ -70,7 +72,11 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
       children: [
         _LocationIntro(compact: widget.compact),
         const SizedBox(height: 18),
-        _ChoiceModeSwitch(selectedMode: _mode, onChanged: _setMode),
+        _ChoiceModeSwitch(
+          selectedMode: _mode,
+          manualEnabled: widget.manualEnabled,
+          onChanged: _setMode,
+        ),
         if (error != null && _mode == LocationChoiceMode.automatic) ...[
           const SizedBox(height: 12),
           _LocationError(message: error),
@@ -147,10 +153,12 @@ class _ChoiceModeSwitch extends StatelessWidget {
   const _ChoiceModeSwitch({
     required this.selectedMode,
     required this.onChanged,
+    required this.manualEnabled,
   });
 
   final LocationChoiceMode selectedMode;
   final ValueChanged<LocationChoiceMode> onChanged;
+  final bool manualEnabled;
 
   @override
   Widget build(BuildContext context) {
@@ -182,7 +190,9 @@ class _ChoiceModeSwitch extends StatelessWidget {
               label: 'Manual',
               icon: AppIcons.edit,
               selected: selectedMode == LocationChoiceMode.manual,
-              onTap: () => onChanged(LocationChoiceMode.manual),
+              onTap: manualEnabled
+                  ? () => onChanged(LocationChoiceMode.manual)
+                  : null,
             ),
           ),
         ],
@@ -202,7 +212,7 @@ class _ChoiceModeButton extends StatelessWidget {
   final String label;
   final IconData icon;
   final bool selected;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {

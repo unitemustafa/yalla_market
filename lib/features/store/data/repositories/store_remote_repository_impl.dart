@@ -111,7 +111,9 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
   Future<Map<String, dynamic>> _cityQuery() async {
     final citySlug = await _locationPreferences?.getSelectedCitySlug();
     if (citySlug == null || citySlug.trim().isEmpty) return const {};
-    return {'city': citySlug.trim()};
+    final normalizedCity = citySlug.trim().toLowerCase();
+    if (normalizedCity == 'general') return const {};
+    return {'city': normalizedCity};
   }
 
   Future<ApiResult<T>> _guard<T>(Future<T> Function() action) async {

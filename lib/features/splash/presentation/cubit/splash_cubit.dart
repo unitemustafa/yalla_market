@@ -51,52 +51,12 @@ class SplashCubit extends Cubit<SplashState> {
     CityData? city;
     final cityResult = await _locationUseCases.getSelectedCity();
     city = cityResult.when(success: (c) => c, failure: (_) => null);
-    city = await _refreshCityFromDevice(city) ?? city;
 
-    final hasSeenCitySelectionResult = await _locationUseCases
-        .hasSeenCitySelection();
-    final hasSeenCitySelection = hasSeenCitySelectionResult.when(
-      success: (seen) => seen,
-      failure: (_) => false,
-    );
-
-    emit(
-      SplashNavigateTo(
-        city == null && !hasSeenCitySelection
-            ? AppRoutes.selectCity
-            : AppRoutes.navigationMenu,
-        session: session,
-        city: city,
-      ),
-    );
+    emit(SplashNavigateTo(AppRoutes.selectCity, session: session, city: city));
   }
 
   bool _isExpiredSessionFailure(Failure failure) {
     return failure is UnauthorizedFailure &&
         failure.message.toLowerCase().contains('session expired');
-  }
-
-  Future<CityData?> _refreshCityFromDevice(CityData? savedCity) async {
-    final detectedResult = await _locationUseCases.detectCurrentLocation(
-      requestPermission: false,
-    );
-    return detectedResult.when(
-      success: (detectedCity) async {
-        if (savedCity != null &&
-            savedCity.slug == detectedCity.slug &&
-            savedCity.name == detectedCity.name) {
-          return savedCity;
-        }
-        final savedResult = await _locationUseCases.saveSelectedCity(
-          detectedCity,
-          source: detectedCity.source,
-        );
-        return savedResult.when(
-          success: (city) => city,
-          failure: (_) => detectedCity,
-        );
-      },
-      failure: (_) => savedCity,
-    );
   }
 }

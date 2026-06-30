@@ -39,6 +39,33 @@ void main() {
       await cubit.close();
     });
 
+    test('marks the first newly created address as default', () async {
+      final repository = _FakeAddressRepository();
+      final cubit = AddressCubit(_addressUseCases(repository));
+      await Future<void>.delayed(Duration.zero);
+
+      final saved = await cubit.saveAddress(
+        sampleAddress.copyWith(id: '', isDefault: false),
+      );
+
+      expect(saved, isTrue);
+      expect(repository.lastSavedAddress?.isDefault, isTrue);
+      await cubit.close();
+    });
+
+    test(
+      'uses the dedicated default-address lookup during initial load',
+      () async {
+        final repository = _FakeAddressRepository(addresses: [sampleAddress]);
+        final cubit = AddressCubit(_addressUseCases(repository));
+        await Future<void>.delayed(Duration.zero);
+
+        expect(repository.getSelectedAddressCalls, 1);
+        expect(cubit.state.selectedAddress?.id, sampleAddress.id);
+        await cubit.close();
+      },
+    );
+
     test('keeps stale addresses when an operation fails', () async {
       final repository = _FakeAddressRepository(addresses: [sampleAddress]);
       final cubit = AddressCubit(_addressUseCases(repository));
@@ -73,6 +100,8 @@ class _FakeAddressRepository implements AddressRepository {
   final List<AddressData> _addresses;
   String? _selectedAddressId;
   Failure? nextFailure;
+  AddressData? lastSavedAddress;
+  int getSelectedAddressCalls = 0;
 
   @override
   Future<ApiResult<List<AddressData>>> getAddresses() async {
@@ -81,11 +110,13 @@ class _FakeAddressRepository implements AddressRepository {
 
   @override
   Future<ApiResult<AddressData?>> getSelectedAddress() async {
+    getSelectedAddressCalls += 1;
     return ApiResult.success(_selectedAddress());
   }
 
   @override
   Future<ApiResult<List<AddressData>>> saveAddress(AddressData address) async {
+    lastSavedAddress = address;
     final index = _addresses.indexWhere((item) => item.id == address.id);
     if (index == -1) {
       _addresses.add(address);

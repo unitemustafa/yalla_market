@@ -5,13 +5,20 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/buttons/app_action_button.dart';
+import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/utils/validators.dart';
+import '../../../../location/data/datasources/device_location_data_source.dart';
 import 'address_entry.dart';
 
 class AddNewAddressView extends StatefulWidget {
-  const AddNewAddressView({super.key, this.address});
+  const AddNewAddressView({
+    super.key,
+    this.address,
+    required this.locationDataSource,
+  });
 
   final AddressEntry? address;
+  final DeviceLocationDataSource locationDataSource;
 
   @override
   State<AddNewAddressView> createState() => _AddNewAddressViewState();
@@ -25,6 +32,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
   late final TextEditingController _cityController;
   late final TextEditingController _stateController;
   late final TextEditingController _countryController;
+  bool _isSaving = false;
 
   bool get _isEditing => widget.address != null;
 
@@ -52,10 +60,46 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     super.dispose();
   }
 
-  void _saveAddress() {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+  Future<void> _saveAddress() async {
+    if (!(_formKey.currentState?.validate() ?? false) || _isSaving) return;
+
+    setState(() => _isSaving = true);
 
     final existingAddress = widget.address;
+    DeviceCoordinates coordinates;
+    try {
+      if (existingAddress?.latitude != null &&
+          existingAddress?.longitude != null) {
+        coordinates = DeviceCoordinates(
+          existingAddress!.latitude!,
+          existingAddress.longitude!,
+        );
+      } else {
+        coordinates = await widget.locationDataSource
+            .resolveCurrentCoordinates();
+      }
+    } on LocationSelectionException catch (error) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      CustomSnackBar.showError(
+        context: context,
+        title: 'Location required',
+        message: error.message,
+      );
+      return;
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isSaving = false);
+      CustomSnackBar.showError(
+        context: context,
+        title: 'Location required',
+        message:
+            'Turn on GPS and allow location access before saving the address.',
+      );
+      return;
+    }
+
+    if (!mounted) return;
     final address = AddressEntry(
       id: existingAddress?.id ?? '',
       name: _nameController.text.trim(),
@@ -65,6 +109,9 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       city: _cityController.text.trim(),
       state: _stateController.text.trim(),
       country: _countryController.text.trim(),
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      isDefault: existingAddress?.isDefault ?? false,
     );
 
     Navigator.pop(context, address);
@@ -170,7 +217,8 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                         AppActionButton(
                           label: _isEditing ? 'Save Changes' : 'Save',
                           icon: AppIcons.tick_circle,
-                          onPressed: _saveAddress,
+                          isLoading: _isSaving,
+                          onPressed: _isSaving ? null : _saveAddress,
                         ),
                       ],
                     ),

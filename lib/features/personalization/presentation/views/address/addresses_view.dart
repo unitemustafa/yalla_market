@@ -4,9 +4,11 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../domain/entities/address.dart';
+import '../../../../location/data/datasources/device_location_data_source.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_display_text.dart';
@@ -22,7 +24,12 @@ class AddressesView extends StatelessWidget {
   }) async {
     final result = await Navigator.push<AddressData>(
       context,
-      MaterialPageRoute(builder: (_) => AddNewAddressView(address: address)),
+      MaterialPageRoute(
+        builder: (_) => AddNewAddressView(
+          address: address,
+          locationDataSource: sl<DeviceLocationDataSource>(),
+        ),
+      ),
     );
 
     if (result == null || !context.mounted) return;

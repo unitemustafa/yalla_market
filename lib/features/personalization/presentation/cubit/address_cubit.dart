@@ -23,11 +23,38 @@ class AddressCubit extends Cubit<AddressState> {
     );
 
     final result = await _addressUseCases.getAddresses();
-    _emitAddresses(result);
+    await result.when(
+      success: (addresses) async {
+        var selectedAddressId = _selectedIdFrom(addresses);
+        final selectedResult = await _addressUseCases.getSelectedAddress();
+        selectedAddressId = selectedResult.when(
+          success: (address) => address?.id ?? selectedAddressId,
+          failure: (_) => selectedAddressId,
+        );
+        emit(
+          AddressReady(
+            addresses: addresses,
+            selectedAddressId: selectedAddressId,
+          ),
+        );
+      },
+      failure: (failure) async {
+        emit(
+          AddressFailure(
+            failure.message,
+            addresses: staleAddresses,
+            selectedAddressId: staleSelectedId,
+          ),
+        );
+      },
+    );
   }
 
   Future<bool> saveAddress(AddressData address) async {
-    final result = await _addressUseCases.saveAddress(address);
+    final isFirstAddress = address.id.trim().isEmpty && state.addresses.isEmpty;
+    final result = await _addressUseCases.saveAddress(
+      isFirstAddress ? address.copyWith(isDefault: true) : address,
+    );
     return _emitAddresses(result);
   }
 

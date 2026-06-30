@@ -8,6 +8,8 @@ class AddressData {
     required this.city,
     required this.state,
     required this.country,
+    this.latitude,
+    this.longitude,
     this.isDefault = false,
   });
 
@@ -19,6 +21,8 @@ class AddressData {
   final String city;
   final String state;
   final String country;
+  final double? latitude;
+  final double? longitude;
   final bool isDefault;
 
   factory AddressData.fromJson(Map<String, dynamic> json) {
@@ -46,6 +50,8 @@ class AddressData {
       city: json['city']?.toString() ?? '',
       state: json['state']?.toString() ?? '',
       country: json['country']?.toString() ?? '',
+      latitude: _doubleFromJson(json['latitude']),
+      longitude: _doubleFromJson(json['longitude']),
       isDefault:
           json['isDefault'] as bool? ??
           json['is_default'] as bool? ??
@@ -76,21 +82,21 @@ class AddressData {
       'city': city,
       'state': state,
       'country': country,
+      'latitude': latitude,
+      'longitude': longitude,
       'isDefault': isDefault,
     };
   }
 
   Map<String, Object?> toApiJson() {
     return {
-      if (id.isNotEmpty) 'id': id,
-      'fullName': name,
-      'phone': phoneNumber,
       'line1': street,
-      'postalCode': postalCode,
       'city': city,
       'state': state,
       'country': country,
-      'isDefault': isDefault,
+      'latitude': latitude,
+      'longitude': longitude,
+      'is_default': isDefault,
     };
   }
 
@@ -103,6 +109,8 @@ class AddressData {
     String? city,
     String? state,
     String? country,
+    double? latitude,
+    double? longitude,
     bool? isDefault,
   }) {
     return AddressData(
@@ -114,7 +122,15 @@ class AddressData {
       city: city ?? this.city,
       state: state ?? this.state,
       country: country ?? this.country,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
       isDefault: isDefault ?? this.isDefault,
     );
   }
+}
+
+double? _doubleFromJson(Object? value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
 }

@@ -31,6 +31,15 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
 
   @override
   Future<ApiResult<List<AddressData>>> saveAddress(AddressData address) {
+    if (address.latitude == null || address.longitude == null) {
+      return Future.value(
+        const ApiResult.failure(
+          ValidationFailure(
+            'Turn on GPS and allow location access before saving the address.',
+          ),
+        ),
+      );
+    }
     return _guard(() async {
       final hasServerId = address.id.trim().isNotEmpty;
       final payload = hasServerId

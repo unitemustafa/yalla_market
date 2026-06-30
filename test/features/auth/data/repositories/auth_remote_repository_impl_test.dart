@@ -17,7 +17,11 @@ void main() {
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'POST');
-        expect(request.path, '/auth/login');
+        expect(request.path, '/auth/login/client');
+        expect(request.data, {
+          'identifier': 'm@example.com',
+          'password': 'Password123!',
+        });
         return _sessionPayload;
       });
       final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
@@ -52,7 +56,11 @@ void main() {
         final tokenStore = InMemoryTokenStore();
         final apiClient = FakeApiClient((request) {
           expect(request.method, 'POST');
-          expect(request.path, '/auth/login');
+          expect(request.path, '/auth/login/client');
+          expect(request.data, {
+            'identifier': 'm@example.com',
+            'password': 'Password123!',
+          });
           return _sessionPayload;
         });
         final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
@@ -127,7 +135,9 @@ void main() {
           expect(request.data, {
             'first_name': 'Mustafa',
             'last_name': 'Ali',
+            'username': 'mustafa_ali',
             'email': 'mustafa@example.com',
+            'phone': '+201000000000',
             'password': 'Password123!',
             'password_confirm': 'Password123!',
             'terms_accepted': true,
@@ -144,6 +154,8 @@ void main() {
           lastName: 'Ali',
           email: 'mustafa@example.com',
           password: 'Password123!',
+          username: 'mustafa_ali',
+          phone: '+201000000000',
         );
 
         result.when(

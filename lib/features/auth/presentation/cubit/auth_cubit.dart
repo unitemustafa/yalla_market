@@ -148,8 +148,8 @@ class AuthCubit extends Cubit<AuthState> {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   }) async {
     if (state is AuthLoading) return;
 
@@ -161,8 +161,8 @@ class AuthCubit extends Cubit<AuthState> {
       lastName: lastName.trim(),
       email: email.trim(),
       password: password,
-      username: username?.trim(),
-      phone: phone?.trim(),
+      username: username.trim(),
+      phone: phone.trim(),
     );
     result.when(
       success: (session) {

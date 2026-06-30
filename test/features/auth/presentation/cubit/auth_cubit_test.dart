@@ -107,6 +107,8 @@ void main() {
         lastName: 'Ali',
         email: ' mustafa@example.com ',
         password: 'Password123!',
+        username: 'mustafa_ali',
+        phone: '+201000000000',
       );
 
       expect((cubit.state as AuthSignupSucceeded).email, sampleUser.email);
@@ -134,6 +136,8 @@ void main() {
           lastName: 'Ali',
           email: 'mustafa@example.com',
           password: 'Password123!',
+          username: 'mustafa_ali',
+          phone: '+201000000000',
         );
         final completed = await cubit.completeSignupVerification('123456');
 
@@ -169,6 +173,8 @@ void main() {
           lastName: 'Ali',
           email: 'mustafa@example.com',
           password: 'Password123!',
+          username: 'mustafa_ali',
+          phone: '+201000000000',
         );
         final completed = await cubit.completeSignupVerification('123456');
 
@@ -324,8 +330,8 @@ class _FakeAuthRepository implements AuthRepository {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   }) async {
     return ApiResult.success(loginResult ?? sampleSession);
   }

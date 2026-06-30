@@ -75,8 +75,8 @@ class AuthRepositoryImpl implements AuthRepository {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   }) {
     return _guard(
       () => _signup(
@@ -310,20 +310,24 @@ class AuthRepositoryImpl implements AuthRepository {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   }) async {
     final normalizedEmail = _normalizeEmail(email);
-    final normalizedUsername = _normalizeUsername(username ?? '');
+    final normalizedUsername = _normalizeUsername(username);
     final cleanFirstName = firstName.trim();
     final cleanLastName = lastName.trim();
 
     if (cleanFirstName.isEmpty ||
         cleanLastName.isEmpty ||
         normalizedEmail.isEmpty ||
-        password.isEmpty) {
+        password.isEmpty ||
+        normalizedUsername.isEmpty ||
+        phone.trim().isEmpty) {
       throw const _AuthRepositoryException(
-        ValidationFailure('Name, email, and password are required.'),
+        ValidationFailure(
+          'Name, username, email, phone, and password are required.',
+        ),
       );
     }
 
@@ -334,9 +338,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
     }
 
-    if (phone != null &&
-        _normalizePhone(phone).isNotEmpty &&
-        await _isPhoneRegistered(phone)) {
+    if (await _isPhoneRegistered(phone)) {
       throw const _AuthRepositoryException(
         ValidationFailure('Phone number is already registered.'),
       );
@@ -354,8 +356,8 @@ class AuthRepositoryImpl implements AuthRepository {
       email: normalizedEmail,
       firstName: cleanFirstName,
       lastName: cleanLastName,
-      username: normalizedUsername.isEmpty ? null : normalizedUsername,
-      phone: phone?.trim().isEmpty ?? true ? null : phone?.trim(),
+      username: normalizedUsername,
+      phone: phone.trim(),
       role: 'CUSTOMER',
     );
 

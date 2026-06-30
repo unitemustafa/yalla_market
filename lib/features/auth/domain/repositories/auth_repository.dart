@@ -22,8 +22,8 @@ abstract class AuthRepository {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   });
 
   Future<ApiResult<AuthSession>> verifyEmail({

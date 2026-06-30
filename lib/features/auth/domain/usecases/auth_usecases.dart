@@ -107,8 +107,8 @@ class SignupUseCase {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   }) {
     return _repository.signup(
       firstName: firstName,

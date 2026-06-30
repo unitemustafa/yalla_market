@@ -60,13 +60,8 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return _guard(() async {
       final identifier = _normalizeLoginIdentifier(email);
       final payload = await _apiClient.post<Map<String, dynamic>>(
-        '/auth/login',
-        data: {
-          'email': identifier,
-          'identifier': identifier,
-          'password': password,
-          'rememberMe': rememberMe,
-        },
+        '/auth/login/client',
+        data: {'identifier': identifier, 'password': password},
         options: _skipAuthOptions,
       );
       return _sessionFromPayload(payload, persistTokens: rememberMe);
@@ -115,8 +110,8 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     required String lastName,
     required String email,
     required String password,
-    String? username,
-    String? phone,
+    required String username,
+    required String phone,
   }) {
     return _guard(() async {
       await _tokenStore.clear();
@@ -129,8 +124,8 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
           'password': password,
           'password_confirm': password,
           'terms_accepted': true,
-          if (username?.trim().isNotEmpty == true) 'username': username,
-          if (phone?.trim().isNotEmpty == true) 'phone': phone,
+          'username': username,
+          'phone': phone,
         },
         options: _skipAuthOptions,
       );

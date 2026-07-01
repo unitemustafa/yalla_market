@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/formatters/app_currency.dart';
@@ -416,9 +417,11 @@ class _PromoSliderState extends State<PromoSlider> {
     List<HomeOfferData>? apiOffers,
   ) {
     final normalized = regionSlug.trim().toLowerCase();
-    final source = apiOffers == null
+    final source = apiOffers != null && apiOffers.isNotEmpty
+        ? apiOffers.map(_offerFromApi).toList(growable: false)
+        : AppEnvironment.useDemoRepositories
         ? _offers
-        : apiOffers.map(_offerFromApi).toList(growable: false);
+        : const <_PromoOfferData>[];
 
     return source
         .where((offer) {

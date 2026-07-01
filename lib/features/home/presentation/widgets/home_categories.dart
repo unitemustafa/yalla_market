@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../store/data/demo/demo_categories.dart';
 import '../../../../core/localization/app_translations.dart';
@@ -16,6 +17,7 @@ class HomeCategories extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final visibleCategories = _visibleCategories();
+    if (visibleCategories.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
       height: 82,
@@ -61,6 +63,8 @@ class HomeCategories extends StatelessWidget {
           )
           .toList(growable: false);
     }
+
+    if (!AppEnvironment.useDemoRepositories) return const [];
 
     const fallbackCategories = [
       MarketCategories.restaurants,

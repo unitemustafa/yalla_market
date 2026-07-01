@@ -230,9 +230,11 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     required List<ProductData> products,
     required String citySlug,
   }) {
-    final shops = MarketShops.byCategoryAndCity(category.name, citySlug);
-    if (shops.isNotEmpty) {
-      return shops.fold<int>(0, (sum, shop) => sum + shop.productCount);
+    if (AppEnvironment.useDemoRepositories) {
+      final shops = MarketShops.byCategoryAndCity(category.name, citySlug);
+      if (shops.isNotEmpty) {
+        return shops.fold<int>(0, (sum, shop) => sum + shop.productCount);
+      }
     }
 
     return products

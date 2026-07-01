@@ -203,6 +203,8 @@ class _BrandPill extends StatelessWidget {
   }
 
   MarketShopData? _shopForBrand() {
+    if (!AppEnvironment.useDemoRepositories) return null;
+
     final normalizedBrand = _normalize(brand);
 
     for (final shop in MarketShops.all) {
@@ -213,6 +215,8 @@ class _BrandPill extends StatelessWidget {
   }
 
   MarketCategoryData? _categoryForBrand() {
+    if (!AppEnvironment.useDemoRepositories) return null;
+
     final normalizedBrand = _normalize(brand);
 
     for (final category in MarketCategories.all) {

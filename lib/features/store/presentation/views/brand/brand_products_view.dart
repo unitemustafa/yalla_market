@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
+import '../../../../../core/config/app_environment.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../data/demo/demo_categories.dart';
 import '../../../data/demo/demo_shops.dart';
@@ -87,7 +88,9 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     final storeContent = _buildStoreContent(context, storeState);
     if (storeContent != null) return storeContent;
 
-    final isLocalShopCategory = MarketCategories.hasLocalShops(widget.brand);
+    final isLocalShopCategory =
+        AppEnvironment.useDemoRepositories &&
+        MarketCategories.hasLocalShops(widget.brand);
     final selectedShopId = widget.shopId;
 
     if (state is ProductCatalogInitial || state is ProductCatalogLoading) {

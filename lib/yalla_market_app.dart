@@ -58,11 +58,22 @@ class YallaMarketApp extends StatelessWidget {
             UserProfileController.instance.updateFromAuthUser(
               state.session.user,
             );
+            final userKey = _wishlistUserKey(
+              id: state.session.user.id,
+              email: state.session.user.email,
+            );
+            if (userKey == null) {
+              context.read<WishlistCubit>().clearSession();
+            } else {
+              context.read<WishlistCubit>().loadWishlistForUser(userKey);
+            }
           } else if (state is AuthInitial) {
             UserProfileController.instance.reset();
+            context.read<WishlistCubit>().clearSession();
             AppNavigator.goToLogin();
           } else if (state is AuthSessionExpired) {
             UserProfileController.instance.reset();
+            context.read<WishlistCubit>().clearSession();
             AppNavigator.goToLogin();
             _showSessionExpiredDialog(context);
           }
@@ -111,6 +122,16 @@ class YallaMarketApp extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String? _wishlistUserKey({required String id, required String email}) {
+    final trimmedId = id.trim();
+    if (trimmedId.isNotEmpty) return trimmedId;
+
+    final trimmedEmail = email.trim();
+    if (trimmedEmail.isNotEmpty) return trimmedEmail;
+
+    return null;
   }
 
   void _showSessionExpiredDialog(BuildContext context) {

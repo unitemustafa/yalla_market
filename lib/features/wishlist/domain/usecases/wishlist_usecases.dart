@@ -14,7 +14,9 @@ class GetWishlistItemsUseCase {
 
   final WishlistRepository _repository;
 
-  Future<ApiResult<List<WishlistItem>>> call() => _repository.getItems();
+  Future<ApiResult<List<WishlistItem>>> call(String userKey) {
+    return _repository.getItems(userKey);
+  }
 }
 
 class ToggleWishlistItemUseCase {
@@ -22,7 +24,10 @@ class ToggleWishlistItemUseCase {
 
   final WishlistRepository _repository;
 
-  Future<ApiResult<List<WishlistItem>>> call(WishlistItem item) {
-    return _repository.toggleItem(item);
+  Future<ApiResult<List<WishlistItem>>> call(
+    String userKey,
+    WishlistItem item,
+  ) {
+    return _repository.toggleItem(userKey, item);
   }
 }

@@ -1,5 +1,6 @@
 class WishlistItem {
   const WishlistItem({
+    required this.productId,
     required this.image,
     required this.title,
     required this.brand,
@@ -8,6 +9,7 @@ class WishlistItem {
     this.discount,
   });
 
+  final String productId;
   final String image;
   final String title;
   final String brand;
@@ -17,6 +19,9 @@ class WishlistItem {
 
   factory WishlistItem.fromJson(Map<String, dynamic> json) {
     return WishlistItem(
+      productId:
+          (json['productId'] ?? json['product_id'] ?? json['id'])?.toString() ??
+          '',
       image: json['image']?.toString() ?? json['imageUrl']?.toString() ?? '',
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
       brand: json['brand']?.toString() ?? '',
@@ -28,6 +33,7 @@ class WishlistItem {
 
   Map<String, Object?> toJson() {
     return {
+      'productId': productId,
       'image': image,
       'title': title,
       'brand': brand,

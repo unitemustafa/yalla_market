@@ -10,7 +10,7 @@ import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
   group('WishlistCubit', () {
-    test('loads wishlist items when it is created', () async {
+    test('loads wishlist items for the current user', () async {
       final cubit = WishlistCubit(
         _wishlistUseCases(
           _FakeWishlistRepository(items: const [sampleWishlistItem]),
@@ -27,22 +27,23 @@ void main() {
         ),
       );
 
+      await cubit.loadWishlistForUser(sampleUser.id);
       await expectedStates;
 
-      expect(cubit.isFavorite(sampleWishlistItem.title), isTrue);
+      expect(cubit.isFavorite(sampleWishlistItem.productId), isTrue);
       await cubit.close();
     });
 
     test('toggles an item in and out of the wishlist', () async {
       final repository = _FakeWishlistRepository();
       final cubit = WishlistCubit(_wishlistUseCases(repository));
-      await Future<void>.delayed(Duration.zero);
+      await cubit.loadWishlistForUser(sampleUser.id);
 
       await cubit.toggleItem(sampleWishlistItem);
-      expect(cubit.isFavorite(sampleWishlistItem.title), isTrue);
+      expect(cubit.isFavorite(sampleWishlistItem.productId), isTrue);
 
       await cubit.toggleItem(sampleWishlistItem);
-      expect(cubit.isFavorite(sampleWishlistItem.title), isFalse);
+      expect(cubit.isFavorite(sampleWishlistItem.productId), isFalse);
       await cubit.close();
     });
 
@@ -51,12 +52,12 @@ void main() {
         items: const [sampleWishlistItem],
       );
       final cubit = WishlistCubit(_wishlistUseCases(repository));
-      await Future<void>.delayed(Duration.zero);
+      await cubit.loadWishlistForUser(sampleUser.id);
       repository.nextFailure = const ServerFailure('Wishlist is unavailable.');
 
       await cubit.toggleItem(sampleWishlistItem);
 
-      expect(cubit.isFavorite(sampleWishlistItem.title), isTrue);
+      expect(cubit.isFavorite(sampleWishlistItem.productId), isTrue);
       await cubit.close();
     });
   });
@@ -86,11 +87,16 @@ class _FakeWishlistRepository implements WishlistRepository {
   }
 
   @override
-  Future<ApiResult<List<WishlistItem>>> getItems() => _result();
+  Future<ApiResult<List<WishlistItem>>> getItems(String userKey) => _result();
 
   @override
-  Future<ApiResult<List<WishlistItem>>> toggleItem(WishlistItem item) async {
-    final index = _items.indexWhere((entry) => entry.title == item.title);
+  Future<ApiResult<List<WishlistItem>>> toggleItem(
+    String userKey,
+    WishlistItem item,
+  ) async {
+    final index = _items.indexWhere(
+      (entry) => entry.productId == item.productId,
+    );
     if (index == -1) {
       _items.add(item);
     } else {

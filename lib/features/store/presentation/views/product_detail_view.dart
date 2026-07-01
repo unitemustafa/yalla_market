@@ -115,6 +115,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   String? get _productOldPrice => _loadedProduct?.oldPrice ?? widget.oldPrice;
   String? get _productDiscount => _loadedProduct?.discount ?? widget.discount;
   String? get _productId => _loadedProduct?.id ?? widget.productId;
+  String get _resolvedProductId {
+    final productId = _productId?.trim();
+    if (productId != null && productId.isNotEmpty) return productId;
+    // TODO: Pass productId from all product sources instead of falling back.
+    return _productTitle;
+  }
 
   Future<void> _loadProductDetails() async {
     final id = widget.productId?.trim();
@@ -316,6 +322,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   void _toggleWishlist(BuildContext context, bool wasFavorite) {
     context.read<WishlistCubit>().toggleItem(
       WishlistItem(
+        productId: _resolvedProductId,
         image: _productImage,
         title: _productTitle,
         brand: _productBrand,
@@ -412,7 +419,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final isFavorite = context.watch<WishlistCubit>().isFavorite(_productTitle);
+    final isFavorite = context.watch<WishlistCubit>().isFavorite(
+      _resolvedProductId,
+    );
     final thumbnailImages = _uniqueImageSources([
       _productImage,
       AppAssets.temporaryMarketPlaceholder,

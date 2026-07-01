@@ -34,6 +34,7 @@ const sampleCartItem = CartItemData(
 );
 
 const sampleWishlistItem = WishlistItem(
+  productId: 'product_1',
   image: 'shoe.png',
   title: 'Running Shoe',
   brand: 'Yalla',

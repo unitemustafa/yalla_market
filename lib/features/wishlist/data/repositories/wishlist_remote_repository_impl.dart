@@ -13,7 +13,7 @@ class WishlistRemoteRepositoryImpl implements WishlistRepository {
   final ApiClient _apiClient;
 
   @override
-  Future<ApiResult<List<WishlistItem>>> getItems() {
+  Future<ApiResult<List<WishlistItem>>> getItems(String userKey) {
     return _guard(() async {
       final payload = await _apiClient.get<Object?>('/wishlist');
       return _itemsFromPayload(payload);
@@ -21,7 +21,10 @@ class WishlistRemoteRepositoryImpl implements WishlistRepository {
   }
 
   @override
-  Future<ApiResult<List<WishlistItem>>> toggleItem(WishlistItem item) {
+  Future<ApiResult<List<WishlistItem>>> toggleItem(
+    String userKey,
+    WishlistItem item,
+  ) {
     return _guard(() async {
       final payload = await _apiClient.post<Object?>(
         '/wishlist/items/toggle',

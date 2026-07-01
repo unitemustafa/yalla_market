@@ -50,6 +50,13 @@ class ProductCardVertical extends StatefulWidget {
 }
 
 class _ProductCardVerticalState extends State<ProductCardVertical> {
+  String get _resolvedProductId {
+    final productId = widget.productId?.trim();
+    if (productId != null && productId.isNotEmpty) return productId;
+    // TODO: Pass productId from all product sources instead of falling back.
+    return widget.title;
+  }
+
   String _formatPrice(String? price) {
     return AppCurrency.formatPriceText(price);
   }
@@ -85,6 +92,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
     final discount = _validDiscountLabel(widget.discount);
 
     final item = WishlistItem(
+      productId: _resolvedProductId,
       image: widget.image,
       title: widget.title,
       brand: widget.brand,
@@ -216,7 +224,8 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                       child:
                           BlocSelector<WishlistCubit, List<WishlistItem>, bool>(
                             selector: (items) => items.any(
-                              (element) => element.title == widget.title,
+                              (element) =>
+                                  element.productId == _resolvedProductId,
                             ),
                             builder: (context, isFavorite) {
                               return _ProductIconButton(

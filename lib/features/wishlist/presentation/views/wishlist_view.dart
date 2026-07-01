@@ -62,6 +62,7 @@ class WishlistView extends StatelessWidget {
                                 title: item.title,
                                 brand: item.brand,
                                 price: item.price,
+                                productId: item.productId,
                                 oldPrice: item.oldPrice,
                                 discount: item.discount,
                               );

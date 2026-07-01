@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/data/repositories/order_remote_repository_impl.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
 
@@ -187,8 +188,98 @@ void main() {
         failure: (failure) => fail(failure.message),
       );
     });
+
+    test('sends POST orders preview with product items', () async {
+      late FakeApiRequest capturedRequest;
+      final apiClient = FakeApiClient((request) {
+        capturedRequest = request;
+        return _previewPayload;
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            productId: 'product-1',
+            variantId: '23',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 700,
+            quantity: 2,
+          ),
+        ],
+      );
+
+      result.when(success: (_) {}, failure: (failure) => fail(failure.message));
+      expect(capturedRequest.method, 'POST');
+      expect(capturedRequest.path, '/orders/preview/');
+      expect((capturedRequest.data as Map<String, dynamic>)['items'], [
+        {'variant_id': 23, 'quantity': 2},
+      ]);
+      expect((capturedRequest.data as Map<String, dynamic>)['offers'], isEmpty);
+    });
+
+    test('parses preview summary', () async {
+      final apiClient = FakeApiClient((request) => _previewPayload);
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            variantId: '23',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 700,
+            quantity: 2,
+          ),
+        ],
+      );
+
+      result.when(
+        success: (preview) {
+          expect(preview.summary.subtotal, 2975);
+          expect(preview.summary.discountTotal, 168);
+          expect(preview.summary.deliveryTotal, 250);
+          expect(preview.summary.grandTotal, 3057);
+          expect(preview.hasUnavailableDelivery, isFalse);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
   });
 }
+
+const _previewPayload = {
+  'addresses': [
+    {'id': 1, 'name': 'Home'},
+  ],
+  'selected_address': {'id': 1, 'name': 'Home'},
+  'market_groups': [
+    {
+      'market': {'id': 5, 'name': 'Market'},
+      'delivery_area': {'id': 2, 'name': 'Cairo'},
+      'delivery_available': true,
+      'selected_products': [],
+      'selected_offers': [],
+      'pricing': {
+        'products_subtotal': '1400.00',
+        'total_offer_discounts': '168.00',
+        'delivery_price': '250.00',
+        'market_total': '1482.00',
+      },
+    },
+  ],
+  'summary': {
+    'subtotal': '2975.00',
+    'discount_total': '168.00',
+    'delivery_total': '250.00',
+    'grand_total': '3057.00',
+  },
+};
 
 const _address = ShippingAddressData(
   id: '12',

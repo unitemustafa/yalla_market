@@ -18,6 +18,7 @@ import '../../../features/store/domain/usecases/get_categories_usecase.dart';
 import '../../../features/store/domain/usecases/get_my_orders_usecase.dart';
 import '../../../features/store/domain/usecases/get_product_usecase.dart';
 import '../../../features/store/domain/usecases/get_products_usecase.dart';
+import '../../../features/store/domain/usecases/preview_order_usecase.dart';
 import '../../../features/store/domain/usecases/search_products_usecase.dart';
 import '../../../features/store/domain/usecases/get_store_usecase.dart';
 import '../../../features/store/presentation/cubit/checkout_cubit.dart';
@@ -95,6 +96,15 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
   if (!sl.isRegistered<CreateOrderUseCase>()) {
     sl.registerLazySingleton(() => CreateOrderUseCase(sl<OrderRepository>()));
   }
+  if (!sl.isRegistered<PreviewOrderUseCase>()) {
+    sl.registerLazySingleton(
+      () => PreviewOrderUseCase(
+        useDemo
+            ? sl<OrderRepository>()
+            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+      ),
+    );
+  }
   if (!sl.isRegistered<GetMyOrdersUseCase>()) {
     sl.registerLazySingleton(
       () => GetMyOrdersUseCase(
@@ -105,7 +115,9 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
     );
   }
   if (!sl.isRegistered<CheckoutCubit>()) {
-    sl.registerFactory(() => CheckoutCubit(sl<CreateOrderUseCase>()));
+    sl.registerFactory(
+      () => CheckoutCubit(sl<CreateOrderUseCase>(), sl<PreviewOrderUseCase>()),
+    );
   }
   if (!sl.isRegistered<OrderHistoryCubit>()) {
     sl.registerFactory(() => OrderHistoryCubit(sl<GetMyOrdersUseCase>()));

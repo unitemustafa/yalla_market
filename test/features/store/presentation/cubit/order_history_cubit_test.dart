@@ -1,7 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
+import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
@@ -88,5 +90,14 @@ class _FakeOrderRepository implements OrderRepository {
     }
 
     return ApiResult.success(orders);
+  }
+
+  @override
+  Future<ApiResult<OrderPreviewData>> previewOrder({
+    required List<CartItemData> cartItems,
+  }) async {
+    return const ApiResult.failure(
+      ValidationFailure('Order preview is not used in this test.'),
+    );
   }
 }

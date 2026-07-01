@@ -1,5 +1,7 @@
 import '../../../../core/network/api_result.dart';
+import '../../../cart/domain/entities/cart_item.dart';
 import '../entities/order.dart';
+import '../entities/order_preview.dart';
 
 abstract class OrderRepository {
   Future<ApiResult<OrderData>> createOrder({
@@ -15,4 +17,8 @@ abstract class OrderRepository {
   });
 
   Future<ApiResult<List<OrderData>>> getMyOrders();
+
+  Future<ApiResult<OrderPreviewData>> previewOrder({
+    required List<CartItemData> cartItems,
+  });
 }

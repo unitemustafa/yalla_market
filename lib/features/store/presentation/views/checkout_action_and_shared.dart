@@ -145,6 +145,41 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
+class _CheckoutNotice extends StatelessWidget {
+  const _CheckoutNotice({
+    required this.message,
+    required this.isDark,
+    this.isBlocking = false,
+  });
+
+  final String message;
+  final bool isDark;
+  final bool isBlocking;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isBlocking ? Colors.redAccent : AppColors.primary;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: isDark ? 0.16 : 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        context.tr(message),
+        style: TextStyle(
+          color: isBlocking ? color : AppColors.primary,
+          fontSize: 13,
+          fontWeight: FontWeight.w800,
+          height: 1.35,
+        ),
+      ),
+    );
+  }
+}
+
 class _IconTile extends StatelessWidget {
   const _IconTile({required this.icon, required this.isDark});
 

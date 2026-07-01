@@ -1,6 +1,8 @@
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../cart/domain/entities/cart_item.dart';
 import '../../domain/entities/order.dart';
+import '../../domain/entities/order_preview.dart';
 import '../../domain/repositories/order_repository.dart';
 
 const orderCreationUnavailableMessage =
@@ -28,6 +30,15 @@ class OrderUnavailableRepositoryImpl implements OrderRepository {
   Future<ApiResult<List<OrderData>>> getMyOrders() async {
     return const ApiResult.failure(
       ValidationFailure('Order history is not available yet.'),
+    );
+  }
+
+  @override
+  Future<ApiResult<OrderPreviewData>> previewOrder({
+    required List<CartItemData> cartItems,
+  }) async {
+    return const ApiResult.failure(
+      ValidationFailure('Order preview is not available yet.'),
     );
   }
 }

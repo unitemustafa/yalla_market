@@ -2,7 +2,9 @@ import 'dart:math';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../cart/domain/entities/cart_item.dart';
 import '../../domain/entities/order.dart';
+import '../../domain/entities/order_preview.dart';
 import '../../domain/repositories/order_repository.dart';
 
 class OrderRepositoryImpl implements OrderRepository {
@@ -82,6 +84,27 @@ class OrderRepositoryImpl implements OrderRepository {
         UnknownFailure('Could not load your orders.'),
       );
     }
+  }
+
+  @override
+  Future<ApiResult<OrderPreviewData>> previewOrder({
+    required List<CartItemData> cartItems,
+  }) async {
+    final subtotal = cartItems.fold<double>(
+      0,
+      (sum, item) => sum + item.price * item.quantity,
+    );
+
+    return ApiResult.success(
+      OrderPreviewData(
+        summary: OrderPreviewSummaryData(
+          subtotal: subtotal,
+          discountTotal: 0,
+          deliveryTotal: 0,
+          grandTotal: subtotal,
+        ),
+      ),
+    );
   }
 
   String _randomOrderNumber(DateTime now) {

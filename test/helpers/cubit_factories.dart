@@ -10,6 +10,7 @@ import 'package:yalla_market/features/store/data/repositories/order_repository_i
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
 import 'package:yalla_market/features/store/domain/usecases/create_order_usecase.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
+import 'package:yalla_market/features/store/domain/usecases/preview_order_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/checkout_cubit.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
 import 'package:yalla_market/features/wishlist/data/repositories/wishlist_repository_impl.dart';
@@ -56,7 +57,7 @@ AddressCubit makeAddressCubit({AddressRepository? repository}) {
 
 CheckoutCubit makeCheckoutCubit({OrderRepository? repository}) {
   final repo = repository ?? OrderRepositoryImpl();
-  return CheckoutCubit(CreateOrderUseCase(repo));
+  return CheckoutCubit(CreateOrderUseCase(repo), PreviewOrderUseCase(repo));
 }
 
 OrderHistoryCubit makeOrderHistoryCubit({OrderRepository? repository}) {

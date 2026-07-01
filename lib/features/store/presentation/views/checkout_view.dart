@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -17,7 +18,6 @@ import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../personalization/domain/entities/address.dart';
 import '../../../personalization/presentation/cubit/address_cubit.dart';
 import '../../../personalization/presentation/cubit/address_state.dart';
-import '../../domain/entities/order.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import 'checkout/checkout_bottom_sheets.dart';
@@ -36,6 +36,7 @@ class CheckoutView extends StatefulWidget {
 
 class _CheckoutViewState extends State<CheckoutView> {
   static const double _shippingFee = 5;
+  String? _lastPreviewKey;
 
   double _subtotal(List<CartItemData> items) {
     return items.fold(0, (sum, item) => sum + item.price * item.quantity);
@@ -43,6 +44,30 @@ class _CheckoutViewState extends State<CheckoutView> {
 
   int _itemCount(List<CartItemData> items) {
     return items.fold(0, (sum, item) => sum + item.quantity);
+  }
+
+  void _loadPreviewIfNeeded(
+    BuildContext context,
+    List<CartItemData> cartItems,
+  ) {
+    if (AppEnvironment.useDemoRepositories || cartItems.isEmpty) return;
+
+    final previewKey = cartItems
+        .map(
+          (item) =>
+              '${item.id}:${item.variantId}:${item.productId}:${item.quantity}:${item.itemType}',
+        )
+        .join('|');
+    if (previewKey == _lastPreviewKey) return;
+    _lastPreviewKey = previewKey;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<CheckoutCubit>().loadPreview(
+        cartItems: cartItems,
+        useRemotePreview: true,
+      );
+    });
   }
 
   @override
@@ -67,6 +92,7 @@ class _CheckoutViewState extends State<CheckoutView> {
       builder: (context, checkoutState) {
         return BlocBuilder<CartCubit, List<CartItemData>>(
           builder: (context, cartItems) {
+            _loadPreviewIfNeeded(context, cartItems);
             return BlocBuilder<AddressCubit, AddressState>(
               builder: (context, addressState) {
                 final selectedAddress = addressState.selectedAddress;
@@ -75,11 +101,22 @@ class _CheckoutViewState extends State<CheckoutView> {
                 final backgroundColor = isDark
                     ? AppColors.darkBackground
                     : const Color(0xFFF7F8FB);
-                final subtotal = _subtotal(cartItems);
-                final shippingFee = cartItems.isEmpty || !hasSavedAddress
+                final localSubtotal = _subtotal(cartItems);
+                final localShippingFee = cartItems.isEmpty || !hasSavedAddress
                     ? 0.0
                     : _shippingFee;
-                final total = subtotal + shippingFee;
+                final preview = checkoutState.preview;
+                final previewSummary = preview?.summary;
+                final subtotal = previewSummary?.subtotal ?? localSubtotal;
+                final discount = previewSummary?.discountTotal ?? 0.0;
+                final shippingFee =
+                    previewSummary?.deliveryTotal ?? localShippingFee;
+                final total =
+                    previewSummary?.grandTotal ??
+                    (localSubtotal + localShippingFee - discount);
+                final hasPreviewTotals = previewSummary != null;
+                final hasUnavailableDelivery =
+                    preview?.hasUnavailableDelivery ?? false;
 
                 return Scaffold(
                   backgroundColor: backgroundColor,
@@ -117,6 +154,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 const SizedBox(height: 14),
                                 _OrderSummaryCard(
                                   subtotal: subtotal,
+                                  discount: discount,
                                   shippingFeeLabel: hasSavedAddress
                                       ? _formatMoney(shippingFee)
                                       : _notSpecifiedLabel(context),
@@ -124,6 +162,24 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   total: total,
                                   isDark: isDark,
                                 ),
+                                if (checkoutState.previewErrorMessage !=
+                                    null) ...[
+                                  const SizedBox(height: 10),
+                                  _CheckoutNotice(
+                                    message:
+                                        'Could not refresh backend totals. Showing local estimate.',
+                                    isDark: isDark,
+                                  ),
+                                ],
+                                if (hasUnavailableDelivery) ...[
+                                  const SizedBox(height: 10),
+                                  _CheckoutNotice(
+                                    message:
+                                        'Delivery is not available for one or more market groups.',
+                                    isDark: isDark,
+                                    isBlocking: true,
+                                  ),
+                                ],
                                 const SizedBox(height: 14),
                                 _PaymentMethodCard(isDark: isDark),
                                 const SizedBox(height: 14),
@@ -166,6 +222,16 @@ class _CheckoutViewState extends State<CheckoutView> {
                               return;
                             }
 
+                            if (hasUnavailableDelivery) {
+                              CustomSnackBar.showError(
+                                context: context,
+                                title: 'Cannot complete order',
+                                message:
+                                    'Delivery is not available for one or more market groups.',
+                              );
+                              return;
+                            }
+
                             final hasMissingVariant = cartItems.any(
                               (item) => item.variantId?.trim().isEmpty ?? true,
                             );
@@ -179,16 +245,12 @@ class _CheckoutViewState extends State<CheckoutView> {
                               return;
                             }
 
-                            context.read<CheckoutCubit>().createOrder(
-                              shippingAddress: _shippingAddressFrom(
-                                selectedAddress,
-                              ),
-                              items: cartItems
-                                  .map(OrderItemData.fromCartItem)
-                                  .toList(growable: false),
-                              paymentMethod: 'cash_on_delivery',
-                              shippingFee: shippingFee,
-                              taxTotal: 0.0,
+                            CustomSnackBar.showInfo(
+                              context: context,
+                              title: 'Order preview ready',
+                              message: hasPreviewTotals
+                                  ? 'Totals are refreshed from the backend. Order creation is not enabled in this phase.'
+                                  : 'Order creation is not enabled in this phase.',
                             );
                           },
                         ),
@@ -252,17 +314,4 @@ CityData _regionFromAddress(AddressData address) {
   ].where((part) => part.trim().isNotEmpty).join(' ');
 
   return CityData.fromName(parts) ?? CityData.general;
-}
-
-ShippingAddressData _shippingAddressFrom(AddressData address) {
-  return ShippingAddressData(
-    id: address.id,
-    fullName: address.name,
-    phone: address.phoneNumber,
-    line1: address.street,
-    city: address.city,
-    state: address.state,
-    country: address.country,
-    postalCode: address.postalCode,
-  );
 }

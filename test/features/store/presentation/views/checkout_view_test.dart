@@ -14,7 +14,7 @@ import '../../../../helpers/cubit_factories.dart';
 import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
-  testWidgets('renders checkout summary and completes cash order flow', (
+  testWidgets('renders checkout summary without creating a real order', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -64,8 +64,9 @@ void main() {
     await tester.tap(find.text('Confirm Order'));
     await tester.pumpAndSettle();
 
-    expect(find.text('processing order'), findsOneWidget);
-    expect(cartCubit.state, isEmpty);
+    expect(find.text('Order preview ready'), findsOneWidget);
+    expect(find.text('processing order'), findsNothing);
+    expect(cartCubit.state, isNotEmpty);
   });
 
   testWidgets('blocks checkout when cart items are missing variant ids', (

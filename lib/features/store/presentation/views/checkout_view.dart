@@ -166,6 +166,19 @@ class _CheckoutViewState extends State<CheckoutView> {
                               return;
                             }
 
+                            final hasMissingVariant = cartItems.any(
+                              (item) => item.variantId?.trim().isEmpty ?? true,
+                            );
+                            if (hasMissingVariant) {
+                              CustomSnackBar.showError(
+                                context: context,
+                                title: 'Cannot complete order',
+                                message:
+                                    'Some cart items are missing variant information. Please add them again.',
+                              );
+                              return;
+                            }
+
                             context.read<CheckoutCubit>().createOrder(
                               shippingAddress: _shippingAddressFrom(
                                 selectedAddress,

@@ -1,6 +1,43 @@
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/network/api_endpoints.dart';
 
+class ProductVariantData {
+  const ProductVariantData({
+    required this.id,
+    required this.price,
+    this.sku,
+    this.attributeValues = const {},
+  });
+
+  final String id;
+  final String price;
+  final String? sku;
+  final Map<String, Object?> attributeValues;
+
+  factory ProductVariantData.fromJson(Map<String, dynamic> json) {
+    return ProductVariantData(
+      id: json['id']?.toString() ?? '',
+      price: json['price']?.toString() ?? '',
+      sku: json['sku']?.toString(),
+      attributeValues: _mapObject(
+        json['attributeValues'] ??
+            json['attribute_values'] ??
+            json['attributes'] ??
+            json['options'],
+      ),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'price': price,
+      'sku': sku,
+      'attributeValues': attributeValues,
+    };
+  }
+}
+
 class ProductData {
   const ProductData({
     this.id,
@@ -22,6 +59,7 @@ class ProductData {
     this.categoryId,
     this.marketId,
     this.marketClassificationId,
+    this.variants = const [],
   });
 
   final String? id;
@@ -43,6 +81,20 @@ class ProductData {
   final String? categoryId;
   final String? marketId;
   final String? marketClassificationId;
+  final List<ProductVariantData> variants;
+
+  ProductVariantData? get defaultVariant =>
+      variants.isEmpty ? null : variants.first;
+
+  String? get defaultVariantId {
+    final id = defaultVariant?.id.trim();
+    return id == null || id.isEmpty ? null : id;
+  }
+
+  String? get defaultVariantPrice {
+    final price = defaultVariant?.price.trim();
+    return price == null || price.isEmpty ? null : price;
+  }
 
   bool get isGeneralVisibility {
     final mode = visibilityMode?.trim().toLowerCase();
@@ -67,10 +119,14 @@ class ProductData {
     final variants = json['variants'] is List
         ? json['variants'] as List
         : const [];
-    final firstVariant = variants.whereType<Map<String, dynamic>>().firstOrNull;
-    final variantPrices = variants
+    final parsedVariants = variants
         .whereType<Map<String, dynamic>>()
-        .map((variant) => variant['price']?.toString() ?? '')
+        .map(ProductVariantData.fromJson)
+        .where((variant) => variant.id.isNotEmpty || variant.price.isNotEmpty)
+        .toList(growable: false);
+    final firstVariant = parsedVariants.firstOrNull;
+    final variantPrices = parsedVariants
+        .map((variant) => variant.price)
         .where((price) => price.trim().isNotEmpty)
         .toList(growable: false);
     final price =
@@ -83,7 +139,7 @@ class ProductData {
           json['code']?.toString() ??
           json['productCode']?.toString() ??
           json['product_code']?.toString() ??
-          firstVariant?['sku']?.toString(),
+          firstVariant?.sku,
       slug: json['slug']?.toString(),
       image: _resolveImage(json['image'] ?? json['imageUrl']),
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
@@ -122,6 +178,7 @@ class ProductData {
           json['marketClassificationId']?.toString() ??
           json['market_classification_id']?.toString() ??
           market?['classification_id']?.toString(),
+      variants: parsedVariants,
     );
   }
 
@@ -146,6 +203,7 @@ class ProductData {
       'categoryId': categoryId,
       'marketId': marketId,
       'marketClassificationId': marketClassificationId,
+      'variants': variants.map((variant) => variant.toJson()).toList(),
     };
   }
 
@@ -175,6 +233,12 @@ class ProductData {
 Map<String, dynamic>? _mapFromJson(Object? value) {
   if (value is Map<String, dynamic>) return value;
   return null;
+}
+
+Map<String, Object?> _mapObject(Object? value) {
+  if (value is Map<String, dynamic>) return Map<String, Object?>.from(value);
+  if (value is Map) return value.map((key, value) => MapEntry('$key', value));
+  return const {};
 }
 
 String _resolveImage(Object? value) {

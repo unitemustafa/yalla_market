@@ -35,5 +35,31 @@ void main() {
       expect(product.cityName, 'Sharm El Sheikh');
       expect(product.toJson()['citySlug'], 'sharm-el-sheikh');
     });
+
+    test('parses variants and exposes the default variant', () {
+      final product = ProductData.fromJson({
+        'id': 'product_1',
+        'image': 'shoe.png',
+        'title': 'Running Shoe',
+        'brand': 'Yalla',
+        'variants': [
+          {
+            'id': 23,
+            'price': '980.00',
+            'sku': 'SEED-08-1',
+            'attribute_values': {'size': 'Medium'},
+          },
+          {'id': 24, 'price': '1100.00'},
+        ],
+      });
+
+      expect(product.price, '980.00 - 1100.00');
+      expect(product.variants, hasLength(2));
+      expect(product.defaultVariantId, '23');
+      expect(product.defaultVariantPrice, '980.00');
+      expect(product.code, 'SEED-08-1');
+      expect(product.variants.first.attributeValues['size'], 'Medium');
+      expect(product.toJson()['variants'], isA<List>());
+    });
   });
 }

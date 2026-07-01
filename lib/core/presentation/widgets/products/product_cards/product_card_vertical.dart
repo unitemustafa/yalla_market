@@ -37,12 +37,15 @@ class ProductCardVertical extends StatefulWidget {
     required this.price,
     this.productId,
     this.productSlug,
+    this.defaultVariantId,
+    this.marketId,
+    this.marketName,
     this.oldPrice,
     this.discount,
   });
 
   final String image, title, brand, price;
-  final String? productId, productSlug;
+  final String? productId, productSlug, defaultVariantId, marketId, marketName;
   final String? oldPrice, discount;
 
   @override
@@ -56,6 +59,13 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
     // TODO: Pass productId from all product sources instead of falling back.
     return widget.title;
   }
+
+  String? get _resolvedVariantId {
+    final variantId = widget.defaultVariantId?.trim();
+    return variantId == null || variantId.isEmpty ? null : variantId;
+  }
+
+  String get _resolvedCartItemId => _resolvedVariantId ?? _resolvedProductId;
 
   String _formatPrice(String? price) {
     return AppCurrency.formatPriceText(price);
@@ -118,8 +128,11 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
   void _addToCart(BuildContext context) {
     context.read<CartCubit>().addItem(
       CartItemData(
-        id: _resolvedProductId,
+        id: _resolvedCartItemId,
         productId: _resolvedProductId,
+        variantId: _resolvedVariantId,
+        marketId: widget.marketId,
+        marketName: widget.marketName ?? widget.brand,
         image: widget.image,
         brand: widget.brand,
         title: widget.title,
@@ -303,8 +316,12 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                               final cartItem = items
                                   .where(
                                     (i) =>
+                                        (_resolvedVariantId != null &&
+                                            i.variantId ==
+                                                _resolvedVariantId) ||
                                         (widget.productId != null &&
                                             i.productId == widget.productId) ||
+                                        i.id == _resolvedCartItemId ||
                                         i.id == widget.title,
                                   )
                                   .firstOrNull;

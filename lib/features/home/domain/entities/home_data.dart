@@ -159,6 +159,7 @@ ProductData _productWithResolvedImage(ProductData product) {
     categoryId: product.categoryId,
     marketId: product.marketId,
     marketClassificationId: product.marketClassificationId,
+    variants: product.variants,
   );
 }
 

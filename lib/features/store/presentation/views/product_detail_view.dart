@@ -115,11 +115,19 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   String? get _productOldPrice => _loadedProduct?.oldPrice ?? widget.oldPrice;
   String? get _productDiscount => _loadedProduct?.discount ?? widget.discount;
   String? get _productId => _loadedProduct?.id ?? widget.productId;
+  String? get _defaultVariantId => _loadedProduct?.defaultVariantId;
+  String? get _marketId => _loadedProduct?.marketId;
   String get _resolvedProductId {
     final productId = _productId?.trim();
     if (productId != null && productId.isNotEmpty) return productId;
     // TODO: Pass productId from all product sources instead of falling back.
     return _productTitle;
+  }
+
+  String get _resolvedCartItemId {
+    final variantId = _defaultVariantId?.trim();
+    if (variantId != null && variantId.isNotEmpty) return variantId;
+    return _resolvedProductId;
   }
 
   Future<void> _loadProductDetails() async {
@@ -378,8 +386,11 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
     context.read<CartCubit>().addItem(
       CartItemData(
-        id: _resolvedProductId,
+        id: _resolvedCartItemId,
         productId: _resolvedProductId,
+        variantId: _defaultVariantId,
+        marketId: _marketId,
+        marketName: _productBrand,
         image: currentImage,
         brand: _productBrand,
         title: _productTitle,

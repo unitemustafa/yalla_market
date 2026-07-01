@@ -172,6 +172,9 @@ class _ProductResultsViewState extends State<ProductResultsView> {
                         price: product.price,
                         productId: product.id,
                         productSlug: product.slug,
+                        defaultVariantId: product.defaultVariantId,
+                        marketId: product.marketId,
+                        marketName: product.brand,
                         oldPrice: product.oldPrice,
                         discount: product.discount,
                       );

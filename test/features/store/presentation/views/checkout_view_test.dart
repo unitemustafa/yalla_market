@@ -26,7 +26,10 @@ void main() {
       repository: orderRepository,
     );
     await cartCubit.loadCartForUser('user-a');
-    await cartCubit.addItem(sampleCartItem, sampleCartItem.quantity);
+    await cartCubit.addItem(
+      sampleCartItem.copyWith(variantId: 'variant_1'),
+      sampleCartItem.quantity,
+    );
     addTearDown(cartCubit.close);
     addTearDown(addressCubit.close);
     addTearDown(checkoutCubit.close);
@@ -63,5 +66,55 @@ void main() {
 
     expect(find.text('processing order'), findsOneWidget);
     expect(cartCubit.state, isEmpty);
+  });
+
+  testWidgets('blocks checkout when cart items are missing variant ids', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final orderRepository = OrderRepositoryImpl();
+    final cartCubit = makeCartCubit();
+    final addressCubit = makeAddressCubit();
+    final checkoutCubit = makeCheckoutCubit(repository: orderRepository);
+    final orderHistoryCubit = makeOrderHistoryCubit(
+      repository: orderRepository,
+    );
+    await cartCubit.loadCartForUser('user-a');
+    await cartCubit.addItem(sampleCartItem, sampleCartItem.quantity);
+    addTearDown(cartCubit.close);
+    addTearDown(addressCubit.close);
+    addTearDown(checkoutCubit.close);
+    addTearDown(orderHistoryCubit.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<CartCubit>.value(value: cartCubit),
+          BlocProvider<AddressCubit>.value(value: addressCubit),
+          BlocProvider<CheckoutCubit>.value(value: checkoutCubit),
+          BlocProvider<OrderHistoryCubit>.value(value: orderHistoryCubit),
+        ],
+        child: MaterialApp(
+          routes: {
+            AppRoutes.processingOrder: (_) =>
+                const Scaffold(body: Text('processing order')),
+          },
+          home: const CheckoutView(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Confirm Order'));
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Some cart items are missing variant information. Please add them again.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('processing order'), findsNothing);
+    expect(cartCubit.state, isNotEmpty);
   });
 }

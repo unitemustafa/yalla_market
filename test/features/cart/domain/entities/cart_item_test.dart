@@ -23,6 +23,8 @@ void main() {
         'id': 10,
         'product_id': 20,
         'variant_id': 30,
+        'market_id': 40,
+        'market_name': 'Atlas Market',
         'imageUrl': 'https://cdn.example.com/products/product.png',
         'brand': 'Yalla',
         'name': 'Market basket',
@@ -36,6 +38,8 @@ void main() {
       expect(item.id, '10');
       expect(item.productId, '20');
       expect(item.variantId, '30');
+      expect(item.marketId, '40');
+      expect(item.marketName, 'Atlas Market');
       expect(item.image, 'https://cdn.example.com/products/product.png');
       expect(item.title, 'Market basket');
       expect(item.price, 1250.5);
@@ -82,6 +86,8 @@ void main() {
         id: '1',
         productId: 'product-1',
         variantId: 'variant-1',
+        marketId: 'market-1',
+        marketName: 'Atlas Market',
         image: 'product.png',
         brand: 'Yalla',
         title: 'Market basket',
@@ -94,6 +100,8 @@ void main() {
         'id': '1',
         'productId': 'product-1',
         'variantId': 'variant-1',
+        'marketId': 'market-1',
+        'marketName': 'Atlas Market',
         'image': 'product.png',
         'brand': 'Yalla',
         'title': 'Market basket',

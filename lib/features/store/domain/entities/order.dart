@@ -216,6 +216,7 @@ class OrderData {
           json['order_code']?.toString() ??
           json['number']?.toString() ??
           json['code']?.toString() ??
+          json['id']?.toString() ??
           '',
       status: _statusFromJson(json['status']),
       placedAt:

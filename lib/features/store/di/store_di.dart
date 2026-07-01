@@ -4,6 +4,7 @@ import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
 import '../../../features/store/data/repositories/order_unavailable_repository_impl.dart';
+import '../../../features/store/data/repositories/order_remote_repository_impl.dart';
 import '../../../features/store/data/repositories/product_remote_repository_impl.dart';
 import '../../../features/store/data/repositories/product_repository_impl.dart';
 import '../../../features/store/data/repositories/store_remote_repository_impl.dart';
@@ -25,10 +26,12 @@ import '../../../features/store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../features/store/presentation/cubit/product_discovery_cubit.dart';
 import '../../../features/store/presentation/cubit/store_cubit.dart';
 
-void registerStoreDependencies(GetIt sl) {
+void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
+  final useDemo = useDemoRepositories ?? AppEnvironment.useDemoRepositories;
+
   if (!sl.isRegistered<ProductRepository>()) {
     sl.registerLazySingleton<ProductRepository>(
-      () => AppEnvironment.useDemoRepositories
+      () => useDemo
           ? ProductRepositoryImpl()
           : ProductRemoteRepositoryImpl(sl<ApiClient>()),
     );
@@ -54,7 +57,7 @@ void registerStoreDependencies(GetIt sl) {
   }
   if (!sl.isRegistered<StoreRepository>()) {
     sl.registerLazySingleton<StoreRepository>(
-      () => AppEnvironment.useDemoRepositories
+      () => useDemo
           ? StoreRepositoryImpl()
           : StoreRemoteRepositoryImpl(sl<ApiClient>()),
     );
@@ -93,7 +96,13 @@ void registerStoreDependencies(GetIt sl) {
     sl.registerLazySingleton(() => CreateOrderUseCase(sl<OrderRepository>()));
   }
   if (!sl.isRegistered<GetMyOrdersUseCase>()) {
-    sl.registerLazySingleton(() => GetMyOrdersUseCase(sl<OrderRepository>()));
+    sl.registerLazySingleton(
+      () => GetMyOrdersUseCase(
+        useDemo
+            ? sl<OrderRepository>()
+            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+      ),
+    );
   }
   if (!sl.isRegistered<CheckoutCubit>()) {
     sl.registerFactory(() => CheckoutCubit(sl<CreateOrderUseCase>()));

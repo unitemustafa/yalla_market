@@ -70,7 +70,7 @@ void main() {
     test('loads orders from paginated results payload', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
-        expect(request.path, '/orders/');
+        expect(request.path, '/orders/my/');
         return {
           'count': 1,
           'next': null,
@@ -111,6 +111,78 @@ void main() {
         success: (orders) {
           expect(orders, hasLength(1));
           expect(orders.single.orderNumber, 'YM-20260627-000001');
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('parses list response from GET orders endpoint', () async {
+      final createdAt = DateTime.utc(2026, 7, 1, 17, 48, 30);
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'GET');
+        expect(request.path, '/orders/my/');
+        return [
+          {
+            'id': 9,
+            'user_id': 15,
+            'delivery_address_id': 2,
+            'assigned_representative_id': null,
+            'market_id': 5,
+            'payment_method': 'cash_on_delivery',
+            'discount': '20.00',
+            'description': 'Leave at door',
+            'status': 'pending',
+            'delivery_price': '250.00',
+            'subtotal_price': '890.00',
+            'total_price': '1120.00',
+            'image': null,
+            'assigned_at': null,
+            'delivered_at': null,
+            'delivery_note': '',
+            'delivery_proof': null,
+            'items': [
+              {
+                'id': 21,
+                'variant_id': 2,
+                'quantity': 2,
+                'unit_price': '320.00',
+              },
+            ],
+            'offers': [
+              {
+                'id': 10,
+                'offer_id': 4,
+                'discount_amount': '20.00',
+                'created_at': '2026-07-01T17:48:30.473909Z',
+              },
+            ],
+            'created_at': createdAt.toIso8601String(),
+            'updated_at': '2026-07-01T17:48:30.456948Z',
+          },
+        ];
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.getMyOrders();
+
+      result.when(
+        success: (orders) {
+          expect(orders, hasLength(1));
+          final order = orders.single;
+          expect(order.id, '9');
+          expect(order.orderNumber, '9');
+          expect(order.status, OrderStatus.pending);
+          expect(order.placedAt, createdAt);
+          expect(order.subtotal, 890);
+          expect(order.shippingFee, 250);
+          expect(order.discountTotal, 20);
+          expect(order.total, 1120);
+          expect(order.items, hasLength(1));
+          expect(order.items.single.id, '21');
+          expect(order.items.single.variantId, '2');
+          expect(order.items.single.quantity, 2);
+          expect(order.items.single.unitPrice, 320);
+          expect(order.items.single.title, isEmpty);
         },
         failure: (failure) => fail(failure.message),
       );

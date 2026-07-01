@@ -56,7 +56,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/orders/');
+      final payload = await _apiClient.get<Object?>('/orders/my/');
       return _ordersFromPayload(payload);
     });
   }

@@ -357,17 +357,25 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
 
     final profile = UserProfileController.instance;
     final value = _controller.text.trim();
+    final authCubit = context.read<AuthCubit>();
     if (!_canSaveContactChange(value)) return;
 
     setState(() => _isSaving = true);
 
+    if (!await _canSaveUsernameChange(authCubit, value)) {
+      if (mounted) setState(() => _isSaving = false);
+      return;
+    }
+
     final names = _splitName(value);
-    final updatedUser = await context.read<AuthCubit>().updateProfile(
+    final updatedUser = await authCubit.updateProfile(
       firstName: widget.field == EditableProfileField.name ? names.$1 : null,
       lastName: widget.field == EditableProfileField.name ? names.$2 : null,
       username: widget.field == EditableProfileField.username ? value : null,
       phone: widget.field == EditableProfileField.phone ? value : null,
-      gender: widget.field == EditableProfileField.gender ? value : null,
+      gender: widget.field == EditableProfileField.gender
+          ? value.toLowerCase()
+          : null,
       birthDate: widget.field == EditableProfileField.birthDate
           ? _selectedDate
           : null,
@@ -428,6 +436,22 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
     }
 
     return true;
+  }
+
+  Future<bool> _canSaveUsernameChange(AuthCubit authCubit, String value) async {
+    if (widget.field != EditableProfileField.username) return true;
+    if (value == _initialFieldValue.trim()) return true;
+
+    final isAvailable = await authCubit.isUsernameAvailable(value);
+    if (isAvailable) return true;
+    if (!mounted) return false;
+
+    CustomSnackBar.showError(
+      context: context,
+      title: 'Username is not available',
+      message: 'Please choose another username.',
+    );
+    return false;
   }
 
   (String, String) _splitName(String displayName) {

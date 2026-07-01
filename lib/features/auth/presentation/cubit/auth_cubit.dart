@@ -293,12 +293,13 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<AuthUser?> refreshProfile() async {
-    if (state is! AuthAuthenticated) return null;
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return null;
 
     final result = await _authUseCases.refreshProfile();
     return result.when(
       success: (user) {
-        emit(AuthAuthenticated(AuthSession(user: user)));
+        emit(AuthAuthenticated(_sessionWithUser(currentState.session, user)));
         return user;
       },
       failure: (_) => null,
@@ -325,13 +326,26 @@ class AuthCubit extends Cubit<AuthState> {
     );
     return result.when(
       success: (user) {
-        emit(AuthAuthenticated(AuthSession(user: user)));
+        final currentState = state;
+        final nextSession = currentState is AuthAuthenticated
+            ? _sessionWithUser(currentState.session, user)
+            : AuthSession(user: user);
+        emit(AuthAuthenticated(nextSession));
         return user;
       },
       failure: (failure) {
         emit(AuthFailure(failure.message));
         return null;
       },
+    );
+  }
+
+  AuthSession _sessionWithUser(AuthSession session, AuthUser user) {
+    return AuthSession(
+      user: user,
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresAt: session.expiresAt,
     );
   }
 

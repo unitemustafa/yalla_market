@@ -207,6 +207,46 @@ void main() {
       await cubit.close();
     });
 
+    test('refreshProfile preserves current session tokens', () async {
+      final refreshedUser = sampleUser.copyWith(firstName: 'Mona');
+      final repository = _FakeAuthRepository(
+        loginResult: sampleSession,
+        meResult: refreshedUser,
+      );
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final user = await cubit.refreshProfile();
+      final session = (cubit.state as AuthAuthenticated).session;
+
+      expect(user, refreshedUser);
+      expect(session.user, refreshedUser);
+      expect(session.accessToken, sampleSession.accessToken);
+      expect(session.refreshToken, sampleSession.refreshToken);
+      expect(session.expiresAt, sampleSession.expiresAt);
+      await cubit.close();
+    });
+
+    test('updateProfile preserves current session tokens', () async {
+      final updatedUser = sampleUser.copyWith(firstName: 'Mona');
+      final repository = _FakeAuthRepository(
+        loginResult: sampleSession,
+        updateProfileResult: updatedUser,
+      );
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final user = await cubit.updateProfile(firstName: 'Mona');
+      final session = (cubit.state as AuthAuthenticated).session;
+
+      expect(user, updatedUser);
+      expect(session.user, updatedUser);
+      expect(session.accessToken, sampleSession.accessToken);
+      expect(session.refreshToken, sampleSession.refreshToken);
+      expect(session.expiresAt, sampleSession.expiresAt);
+      await cubit.close();
+    });
+
     test('keeps auth guard active when profile update fails', () async {
       final repository = _FakeAuthRepository(
         loginResult: sampleSession,
@@ -274,6 +314,7 @@ class _FakeAuthRepository implements AuthRepository {
     this.loginResult,
     this.loginFailure,
     this.verifyEmailResult,
+    this.meResult,
     this.updateProfileResult,
     this.updateProfileFailure,
   });
@@ -282,6 +323,7 @@ class _FakeAuthRepository implements AuthRepository {
   final AuthSession? loginResult;
   final Failure? loginFailure;
   final AuthSession? verifyEmailResult;
+  final AuthUser? meResult;
   final AuthUser? updateProfileResult;
   final Failure? updateProfileFailure;
   String? lastLoginEmail;
@@ -372,7 +414,7 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<AuthUser>> me() async {
-    return const ApiResult.success(sampleUser);
+    return ApiResult.success(meResult ?? sampleUser);
   }
 
   @override

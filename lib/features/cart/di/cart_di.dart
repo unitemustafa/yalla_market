@@ -1,8 +1,5 @@
 import 'package:get_it/get_it.dart';
 
-import '../../../core/config/app_environment.dart';
-import '../../../core/network/api_client.dart';
-import '../../../features/cart/data/repositories/cart_remote_repository_impl.dart';
 import '../../../features/cart/data/repositories/cart_repository_impl.dart';
 import '../../../features/cart/domain/repositories/cart_repository.dart';
 import '../../../features/cart/domain/usecases/cart_usecases.dart';
@@ -10,11 +7,7 @@ import '../../../features/cart/presentation/cubit/cart_cubit.dart';
 
 void registerCartDependencies(GetIt sl) {
   if (!sl.isRegistered<CartRepository>()) {
-    sl.registerLazySingleton<CartRepository>(
-      () => AppEnvironment.useDemoRepositories
-          ? CartRepositoryImpl()
-          : CartRemoteRepositoryImpl(sl<ApiClient>()),
-    );
+    sl.registerLazySingleton<CartRepository>(CartRepositoryImpl.new);
   }
   if (!sl.isRegistered<GetCartItemsUseCase>()) {
     sl.registerLazySingleton(() => GetCartItemsUseCase(sl<CartRepository>()));

@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/errors/api_error_handler.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
@@ -108,6 +109,11 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
     try {
       return ApiResult.success(await action());
     } on DioException catch (error) {
+      if (isAddressRequiredError(error)) {
+        return const ApiResult.failure(
+          ValidationFailure(addressRequiredMessage),
+        );
+      }
       return ApiResult.failure(ApiErrorHandler.handle(error));
     } catch (_) {
       return const ApiResult.failure(

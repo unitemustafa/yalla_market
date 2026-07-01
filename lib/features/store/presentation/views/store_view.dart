@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../core/presentation/widgets/brands/brand_showcase.dart';
@@ -53,14 +54,29 @@ class _StoreViewState extends State<StoreView> {
         }
 
         if (state is StoreFailure && store == null) {
+          final requiresAddress = state.message == addressRequiredMessage;
           return _StorePlainScaffold(
             backgroundColor: backgroundColor,
             isDark: isDark,
-            child: AppErrorState(
-              title: 'Store could not load',
-              message: state.message,
-              onRetry: () => context.read<StoreCubit>().loadStore(force: true),
-            ),
+            child: requiresAddress
+                ? AppStateView(
+                    icon: AppIcons.location_add,
+                    title: 'Address required',
+                    message: addressRequiredMessage,
+                    actionLabel: 'Add Address',
+                    onAction: () async {
+                      await Navigator.pushNamed(context, AppRoutes.addresses);
+                      if (context.mounted) {
+                        await context.read<StoreCubit>().loadStore(force: true);
+                      }
+                    },
+                  )
+                : AppErrorState(
+                    title: 'Store could not load',
+                    message: state.message,
+                    onRetry: () =>
+                        context.read<StoreCubit>().loadStore(force: true),
+                  ),
           );
         }
 

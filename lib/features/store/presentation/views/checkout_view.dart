@@ -20,7 +20,6 @@ import '../../../personalization/presentation/cubit/address_state.dart';
 import '../../domain/entities/order.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
-import '../cubit/order_history_cubit.dart';
 import 'checkout/checkout_bottom_sheets.dart';
 
 part 'checkout_review_items.dart';
@@ -54,7 +53,6 @@ class _CheckoutViewState extends State<CheckoutView> {
       listener: (context, state) {
         if (state is CheckoutSuccess) {
           context.read<CartCubit>().clearLocalCart();
-          context.read<OrderHistoryCubit>().loadOrders();
           Navigator.pushNamed(context, AppRoutes.processingOrder);
         }
 

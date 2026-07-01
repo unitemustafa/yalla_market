@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/errors/address_required_error.dart';
 import 'package:yalla_market/features/store/data/repositories/store_remote_repository_impl.dart';
 
 import '../../../../helpers/fake_api_client.dart';
@@ -65,7 +67,39 @@ void main() {
         );
       },
     );
+
+    test(
+      'maps a missing address response to the add address message',
+      () async {
+        final repository = StoreRemoteRepositoryImpl(
+          FakeApiClient((_) => throw _addressRequiredException()),
+        );
+
+        final result = await repository.getStore();
+
+        result.when(
+          success: (_) => fail('Expected the request to fail.'),
+          failure: (failure) => expect(failure.message, addressRequiredMessage),
+        );
+      },
+    );
   });
+}
+
+DioException _addressRequiredException() {
+  final options = RequestOptions(path: '/home/classifications/');
+  return DioException(
+    requestOptions: options,
+    response: Response<Object?>(
+      requestOptions: options,
+      statusCode: 400,
+      data: {
+        'detail':
+            'A user address is required before loading market classifications.',
+      },
+    ),
+    type: DioExceptionType.badResponse,
+  );
 }
 
 Map<String, Object?> _previewProduct() {

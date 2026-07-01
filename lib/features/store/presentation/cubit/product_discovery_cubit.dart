@@ -31,70 +31,77 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   final GetCategoriesUseCase _getCategories;
   final GetBrandsUseCase _getBrands;
   final GetSelectedCityUseCase _getSelectedCity;
+  bool _isLoadingDiscovery = false;
 
   Future<void> loadDiscovery({bool force = false}) async {
+    if (_isLoadingDiscovery) return;
     if (!force && state is ProductDiscoveryReady) return;
+    _isLoadingDiscovery = true;
 
-    final cityResult = await _getSelectedCity();
-    final selectedCity = cityResult.when(
-      success: (city) => city,
-      failure: (_) => null,
-    );
+    try {
+      final cityResult = await _getSelectedCity();
+      final selectedCity = cityResult.when(
+        success: (city) => city,
+        failure: (_) => null,
+      );
 
-    if (selectedCity == null) {
-      emit(const ProductDiscoveryNeedsCity());
-      return;
+      if (selectedCity == null) {
+        emit(const ProductDiscoveryNeedsCity());
+        return;
+      }
+
+      emit(
+        ProductDiscoveryLoading(
+          query: state.query,
+          products: state.products,
+          categories: state.categories,
+          brands: state.brands,
+          city: selectedCity,
+        ),
+      );
+
+      final productsResult = await _getProducts(citySlug: selectedCity.slug);
+      final categoriesResult = await _getCategories();
+      final brandsResult = await _getBrands();
+
+      productsResult.when(
+        success: (products) {
+          final allProducts = _productsWithShopMenus(
+            products,
+            citySlug: selectedCity.slug,
+          );
+
+          categoriesResult.when(
+            success: (categories) {
+              final countedCategories = _categoriesWithProductCounts(
+                categories: categories,
+                products: allProducts,
+                citySlug: selectedCity.slug,
+              );
+
+              brandsResult.when(
+                success: (brands) {
+                  emit(
+                    ProductDiscoveryReady(
+                      query: '',
+                      products: allProducts,
+                      categories: countedCategories,
+                      brands: brands,
+                      city: selectedCity,
+                    ),
+                  );
+                },
+                failure: (failure) => _emitFailure(failure.message),
+              );
+            },
+            failure: (failure) => _emitFailure(failure.message),
+          );
+        },
+        failure: (failure) => _emitFailure(failure.message),
+      );
+    } finally {
+      _isLoadingDiscovery = false;
     }
-
-    emit(
-      ProductDiscoveryLoading(
-        query: state.query,
-        products: state.products,
-        categories: state.categories,
-        brands: state.brands,
-        city: selectedCity,
-      ),
-    );
-
-    final productsResult = await _getProducts(citySlug: selectedCity.slug);
-    final categoriesResult = await _getCategories();
-    final brandsResult = await _getBrands();
-
-    productsResult.when(
-      success: (products) {
-        final allProducts = _productsWithShopMenus(
-          products,
-          citySlug: selectedCity.slug,
-        );
-
-        categoriesResult.when(
-          success: (categories) {
-            final countedCategories = _categoriesWithProductCounts(
-              categories: categories,
-              products: allProducts,
-              citySlug: selectedCity.slug,
-            );
-
-            brandsResult.when(
-              success: (brands) {
-                emit(
-                  ProductDiscoveryReady(
-                    query: '',
-                    products: allProducts,
-                    categories: countedCategories,
-                    brands: brands,
-                    city: selectedCity,
-                  ),
-                );
-              },
-              failure: (failure) => _emitFailure(failure.message),
-            );
-          },
-          failure: (failure) => _emitFailure(failure.message),
-        );
-      },
-      failure: (failure) => _emitFailure(failure.message),
-    );
   }
 
   Future<void> search(String query) async {

@@ -9,10 +9,6 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
-import '../../../home/presentation/cubit/home_cubit.dart';
-import '../../../store/presentation/cubit/product_catalog_cubit.dart';
-import '../../../store/presentation/cubit/product_discovery_cubit.dart';
-import '../../../store/presentation/cubit/store_cubit.dart';
 import '../../domain/entities/city_data.dart';
 import '../cubit/location_cubit.dart';
 import '../cubit/location_state.dart';
@@ -306,15 +302,6 @@ class _SelectCityViewState extends State<SelectCityView>
       source: source,
     );
     if (!context.mounted || selectedCity == null) return;
-
-    await context.read<ProductCatalogCubit>().loadProducts(force: true);
-    if (!context.mounted) return;
-    await context.read<ProductDiscoveryCubit>().loadDiscovery(force: true);
-    if (!context.mounted) return;
-    await context.read<HomeCubit>().loadHome(force: true);
-    if (!context.mounted) return;
-    await context.read<StoreCubit>().loadStore(force: true);
-    if (!context.mounted) return;
 
     CustomSnackBar.showSuccess(
       context: context,

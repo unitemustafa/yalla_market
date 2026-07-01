@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
@@ -132,6 +133,10 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
   Future<void> _loadHomeData({bool force = false}) async {
     await context.read<HomeCubit>().loadHome(force: force);
     if (!mounted) return;
+    final homeState = context.read<HomeCubit>().state;
+    if (homeState is HomeFailure && homeState.data == null) {
+      return;
+    }
     await context.read<ProductCatalogCubit>().loadProducts(force: force);
     if (!mounted) return;
     await context.read<ProductDiscoveryCubit>().loadDiscovery(force: force);
@@ -146,20 +151,16 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     );
     if (!mounted || selectedCity == null) return;
 
-    await context.read<ProductCatalogCubit>().loadProducts(force: true);
-    if (!mounted) return;
-    await context.read<ProductDiscoveryCubit>().loadDiscovery(force: true);
-    if (!mounted) return;
-    await context.read<HomeCubit>().loadHome(force: true);
-    if (!mounted) return;
-    await context.read<StoreCubit>().loadStore(force: true);
-    if (!mounted) return;
-
     CustomSnackBar.showPersistentSuccess(
       context: context,
       title: 'Region saved',
       message: 'Products and offers will refresh for your region.',
     );
+  }
+
+  Future<void> _openAddresses() async {
+    await Navigator.pushNamed(context, AppRoutes.addresses);
+    if (mounted) await _loadHomeData(force: true);
   }
 
   @override
@@ -184,6 +185,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               BlocBuilder<HomeCubit, HomeState>(
                 builder: (context, homeState) {
                   final home = homeState.data;
+                  if (homeState is HomeFailure &&
+                      home == null &&
+                      homeState.message == addressRequiredMessage) {
+                    return AppStateView(
+                      icon: AppIcons.location_add,
+                      title: 'Address required',
+                      message: addressRequiredMessage,
+                      actionLabel: 'Add Address',
+                      onAction: _openAddresses,
+                    );
+                  }
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

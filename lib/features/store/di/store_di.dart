@@ -3,8 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
-import '../../../features/store/data/repositories/order_remote_repository_impl.dart';
-import '../../../features/store/data/repositories/order_repository_impl.dart';
+import '../../../features/store/data/repositories/order_unavailable_repository_impl.dart';
 import '../../../features/store/data/repositories/product_remote_repository_impl.dart';
 import '../../../features/store/data/repositories/product_repository_impl.dart';
 import '../../../features/store/data/repositories/store_remote_repository_impl.dart';
@@ -87,9 +86,7 @@ void registerStoreDependencies(GetIt sl) {
   }
   if (!sl.isRegistered<OrderRepository>()) {
     sl.registerLazySingleton<OrderRepository>(
-      () => AppEnvironment.useDemoRepositories
-          ? OrderRepositoryImpl()
-          : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+      OrderUnavailableRepositoryImpl.new,
     );
   }
   if (!sl.isRegistered<CreateOrderUseCase>()) {

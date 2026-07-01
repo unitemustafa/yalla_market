@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/errors/api_error_handler.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
@@ -24,9 +25,9 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
     try {
       return ApiResult.success(await action());
     } on DioException catch (error) {
-      if (_requiresAddress(error)) {
+      if (isAddressRequiredError(error)) {
         return const ApiResult.failure(
-          ValidationFailure('أضف عنوانًا لعرض المتاجر والمنتجات المتاحة لك'),
+          ValidationFailure(addressRequiredMessage),
         );
       }
       return ApiResult.failure(ApiErrorHandler.handle(error));
@@ -35,13 +36,5 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
         UnknownFailure('Could not load home data.'),
       );
     }
-  }
-
-  bool _requiresAddress(DioException error) {
-    final data = error.response?.data;
-    if (data is! Map) return false;
-    final detail = data['detail'];
-    return detail is String &&
-        detail.toLowerCase().contains('address is required');
   }
 }

@@ -12,32 +12,38 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
 
   final GetProductsUseCase _getProductsUseCase;
   final GetSelectedCityUseCase _getSelectedCityUseCase;
+  bool _isLoading = false;
 
   Future<void> loadProducts({bool force = false}) async {
-    if (state is ProductCatalogLoading) return;
+    if (_isLoading || state is ProductCatalogLoading) return;
     if (!force && state is ProductCatalogReady) return;
+    _isLoading = true;
 
-    final cityResult = await _getSelectedCityUseCase();
-    final selectedCity = cityResult.when(
-      success: (city) => city,
-      failure: (_) => null,
-    );
+    try {
+      final cityResult = await _getSelectedCityUseCase();
+      final selectedCity = cityResult.when(
+        success: (city) => city,
+        failure: (_) => null,
+      );
 
-    if (selectedCity == null) {
-      emit(const ProductCatalogNeedsCity());
-      return;
+      if (selectedCity == null) {
+        emit(const ProductCatalogNeedsCity());
+        return;
+      }
+
+      emit(const ProductCatalogLoading());
+
+      final result = await _getProductsUseCase(citySlug: selectedCity.slug);
+      result.when(
+        success: (products) {
+          emit(ProductCatalogReady(products, city: selectedCity));
+        },
+        failure: (failure) {
+          emit(ProductCatalogFailure(failure.message));
+        },
+      );
+    } finally {
+      _isLoading = false;
     }
-
-    emit(const ProductCatalogLoading());
-
-    final result = await _getProductsUseCase(citySlug: selectedCity.slug);
-    result.when(
-      success: (products) {
-        emit(ProductCatalogReady(products, city: selectedCity));
-      },
-      failure: (failure) {
-        emit(ProductCatalogFailure(failure.message));
-      },
-    );
   }
 }

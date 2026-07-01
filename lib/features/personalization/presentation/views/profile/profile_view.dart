@@ -22,6 +22,9 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
+  bool _isRefreshingProfile = false;
+  String? _refreshProfileError;
+
   @override
   void initState() {
     super.initState();
@@ -29,11 +32,23 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Future<void> _loadProfile() async {
+    if (!mounted) return;
+    setState(() {
+      _isRefreshingProfile = true;
+      _refreshProfileError = null;
+    });
+
     final user = await context.read<AuthCubit>().refreshProfile();
+    if (!mounted) return;
 
     if (user != null) {
       UserProfileController.instance.updateFromAuthUser(user);
     }
+
+    setState(() {
+      _isRefreshingProfile = false;
+      _refreshProfileError = user == null ? 'Could not refresh profile' : null;
+    });
   }
 
   Future<void> _pickProfileImage(BuildContext context) async {
@@ -82,6 +97,14 @@ class _ProfileViewState extends State<ProfileView> {
                     title: 'Profile',
                     subtitle: 'Edit personal details',
                   ),
+                  if (_isRefreshingProfile) ...[
+                    const SizedBox(height: 10),
+                    const LinearProgressIndicator(minHeight: 2),
+                  ],
+                  if (_refreshProfileError != null) ...[
+                    const SizedBox(height: 10),
+                    _RefreshProfileError(message: _refreshProfileError!),
+                  ],
                   const SizedBox(height: 18),
                   _ProfileHeaderCard(
                     isDark: isDark,
@@ -254,6 +277,44 @@ class _ProfileViewState extends State<ProfileView> {
     final month = value.month.toString().padLeft(2, '0');
     final day = value.day.toString().padLeft(2, '0');
     return '$year-$month-$day';
+  }
+}
+
+class _RefreshProfileError extends StatelessWidget {
+  const _RefreshProfileError({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: isDark ? 0.18 : 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: AppColors.error.withValues(alpha: isDark ? 0.26 : 0.14),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(AppIcons.warning_2, color: AppColors.error, size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              context.tr(message),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

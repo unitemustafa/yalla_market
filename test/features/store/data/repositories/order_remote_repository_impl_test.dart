@@ -66,6 +66,55 @@ void main() {
         {'variant_id': 10, 'quantity': 1},
       ]);
     });
+
+    test('loads orders from paginated results payload', () async {
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'GET');
+        expect(request.path, '/orders/');
+        return {
+          'count': 1,
+          'next': null,
+          'previous': null,
+          'results': [
+            {
+              'id': 1,
+              'order_number': 'YM-20260627-000001',
+              'status': 'pending',
+              'created_at': DateTime(2026).toIso8601String(),
+              'delivery_address': _address.toJson(),
+              'payment_method': 'cash_on_delivery',
+              'items': [
+                {
+                  'id': 7,
+                  'quantity': 1,
+                  'unit_price': '10.00',
+                  'variant': {
+                    'id': 10,
+                    'price': '10.00',
+                    'product': {'id': 2, 'name': 'Fresh product'},
+                  },
+                },
+              ],
+              'subtotal_price': '10.00',
+              'delivery_price': '0.00',
+              'discount': '0.00',
+              'total_price': '10.00',
+            },
+          ],
+        };
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.getMyOrders();
+
+      result.when(
+        success: (orders) {
+          expect(orders, hasLength(1));
+          expect(orders.single.orderNumber, 'YM-20260627-000001');
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
   });
 }
 

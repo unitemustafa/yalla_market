@@ -3,6 +3,7 @@ import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
+import '../../../../../core/config/app_environment.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/formatters/app_currency.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
@@ -16,7 +17,9 @@ import 'widgets/custom_date_range_sheet.dart';
 import 'widgets/order_list_item.dart';
 
 class OrdersView extends StatefulWidget {
-  const OrdersView({super.key});
+  const OrdersView({super.key, this.useDemoOrders});
+
+  final bool? useDemoOrders;
 
   @override
   State<OrdersView> createState() => _OrdersViewState();
@@ -46,6 +49,8 @@ class _OrdersViewState extends State<OrdersView> {
     final backgroundColor = isDark
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
+    final useDemoOrders =
+        widget.useDemoOrders ?? AppEnvironment.useDemoRepositories;
 
     return BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
       builder: (context, state) {
@@ -54,7 +59,9 @@ class _OrdersViewState extends State<OrdersView> {
             : state is OrderHistoryFailure
             ? state.orders.map(_mapStoredOrder).toList(growable: false)
             : const <_OrderData>[];
-        final orders = loadedOrders.isEmpty ? _orders : loadedOrders;
+        final orders = loadedOrders.isEmpty && useDemoOrders
+            ? _orders
+            : loadedOrders;
         final filteredOrders = _filterOrders(orders);
 
         return Scaffold(
@@ -100,7 +107,9 @@ class _OrdersViewState extends State<OrdersView> {
                       }
 
                       if (filteredOrders.isEmpty) {
-                        return _OrdersEmptyFilterState(isDark: isDark);
+                        return orders.isEmpty
+                            ? const _OrdersEmptyState()
+                            : _OrdersEmptyFilterState(isDark: isDark);
                       }
 
                       final order = filteredOrders[index - 3];
@@ -584,6 +593,22 @@ class _OrdersEmptyFilterState extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _OrdersEmptyState extends StatelessWidget {
+  const _OrdersEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SizedBox(
+      height: 320,
+      child: AppEmptyState(
+        title: 'No orders yet',
+        message: 'Your orders will appear here once you place an order.',
+        icon: AppIcons.receipt_text,
       ),
     );
   }

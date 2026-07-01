@@ -45,6 +45,17 @@ void main() {
       await expectedStates;
       await cubit.close();
     });
+
+    test('clearSession resets order history state', () async {
+      final repository = _FakeOrderRepository(orders: [sampleOrder]);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+      await cubit.loadOrders();
+
+      cubit.clearSession();
+
+      expect(cubit.state, isA<OrderHistoryInitial>());
+      await cubit.close();
+    });
   });
 }
 

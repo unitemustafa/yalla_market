@@ -63,7 +63,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
 
   List<OrderData> _ordersFromPayload(Object? payload) {
     final rawItems = payload is Map<String, dynamic>
-        ? payload['items'] ?? payload['orders']
+        ? payload['results'] ?? payload['items'] ?? payload['orders']
         : payload;
     if (rawItems is! List) return const [];
     return rawItems

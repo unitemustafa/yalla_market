@@ -10,6 +10,10 @@ class OrderHistoryCubit extends Cubit<OrderHistoryState> {
 
   final GetMyOrdersUseCase _getMyOrdersUseCase;
 
+  void clearSession() {
+    emit(const OrderHistoryInitial());
+  }
+
   Future<void> loadOrders() async {
     if (state is OrderHistoryLoading) return;
 

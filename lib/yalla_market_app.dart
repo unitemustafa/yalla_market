@@ -73,11 +73,13 @@ class YallaMarketApp extends StatelessWidget {
             UserProfileController.instance.reset();
             context.read<WishlistCubit>().clearSession();
             context.read<CartCubit>().clearSession();
+            context.read<OrderHistoryCubit>().clearSession();
             AppNavigator.goToLogin();
           } else if (state is AuthSessionExpired) {
             UserProfileController.instance.reset();
             context.read<WishlistCubit>().clearSession();
             context.read<CartCubit>().clearSession();
+            context.read<OrderHistoryCubit>().clearSession();
             AppNavigator.goToLogin();
             _showSessionExpiredDialog(context);
           }

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/config/app_environment.dart';
 import '../../data/demo/demo_shops.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
 import '../../domain/entities/category_data.dart';
@@ -173,6 +174,10 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     required String citySlug,
     String query = '',
   }) {
+    if (!AppEnvironment.useDemoRepositories) {
+      return _dedupeProducts(products);
+    }
+
     final normalizedCity = _normalize(citySlug);
     final shopProducts = MarketShops.all
         .where((shop) => shop.citySlug == normalizedCity)

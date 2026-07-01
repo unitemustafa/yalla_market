@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
+import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -30,6 +34,7 @@ class SearchView extends StatefulWidget {
 class _SearchViewState extends State<SearchView> {
   late SearchFilter _filter;
   final TextEditingController _queryController = TextEditingController();
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -40,13 +45,18 @@ class _SearchViewState extends State<SearchView> {
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _queryController.removeListener(_onQueryChanged);
     _queryController.dispose();
     super.dispose();
   }
 
   void _onQueryChanged() {
-    context.read<ProductDiscoveryCubit>().search(_queryController.text);
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      context.read<ProductDiscoveryCubit>().search(_queryController.text);
+    });
   }
 
   @override
@@ -94,6 +104,9 @@ class _SearchViewState extends State<SearchView> {
                         categories.isEmpty;
                     final needsCity =
                         discoveryState is ProductDiscoveryNeedsCity;
+                    final failure = discoveryState is ProductDiscoveryFailure
+                        ? discoveryState
+                        : null;
 
                     return SingleChildScrollView(
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -131,6 +144,17 @@ class _SearchViewState extends State<SearchView> {
                                   message:
                                       'So we can show shops available in your area.',
                                   onClear: () => Navigator.pop(context),
+                                )
+                              else if (failure != null)
+                                AppStateView(
+                                  icon: AppIcons.warning_2,
+                                  title: _failureTitle(failure.message),
+                                  message: failure.message,
+                                  actionLabel: 'Retry',
+                                  color: AppColors.error,
+                                  onAction: () => context
+                                      .read<ProductDiscoveryCubit>()
+                                      .search(query),
                                 )
                               else if (query.isEmpty)
                                 _SearchStarter(
@@ -234,6 +258,8 @@ class _SearchViewState extends State<SearchView> {
     final safeSource = source
         .where((product) => product.isAllowedBySafeMode(safeMode))
         .toList(growable: false);
+    if (!AppEnvironment.useDemoRepositories) return safeSource;
+
     if (query.isEmpty) return safeSource.take(4).toList(growable: false);
     final lowerQuery = query.toLowerCase();
     return safeSource
@@ -243,6 +269,18 @@ class _SearchViewState extends State<SearchView> {
               product.tags.any((tag) => tag.contains(lowerQuery));
         })
         .toList(growable: false);
+  }
+
+  String _failureTitle(String message) {
+    final normalized = message.toLowerCase();
+    if (normalized.contains('unauthorized') ||
+        normalized.contains('401') ||
+        normalized.contains('login') ||
+        normalized.contains('sign in')) {
+      return 'Please login to search products';
+    }
+
+    return 'Search failed';
   }
 
   List<CategoryData> _filteredCategories(

@@ -64,13 +64,20 @@ void main() {
       expect(Validators.phone('01012345678'), isNull);
     });
 
-    test('egyptian mobile validates local and international formats', () {
+    test('egyptian mobile accepts only the four supported formats', () {
       expect(Validators.egyptianMobile(''), 'This field is required');
       expect(Validators.egyptianMobile('01012345678'), isNull);
-      expect(Validators.egyptianMobile('011 1234 5678'), isNull);
       expect(Validators.egyptianMobile('1012345678'), isNull);
+      expect(Validators.egyptianMobile('201012345678'), isNull);
       expect(Validators.egyptianMobile('+201212345678'), isNull);
-      expect(Validators.egyptianMobile('00201512345678'), isNull);
+      expect(
+        Validators.egyptianMobile('011 1234 5678'),
+        'Please enter a valid phone number',
+      );
+      expect(
+        Validators.egyptianMobile('00201512345678'),
+        'Please enter a valid phone number',
+      );
       expect(
         Validators.egyptianMobile('+447890123456'),
         'Please enter a valid phone number',
@@ -91,6 +98,26 @@ void main() {
         Validators.egyptianMobile('00000000000'),
         'Please enter a valid phone number',
       );
+    });
+
+    test('normalizes every supported Egyptian format', () {
+      expect(
+        Validators.normalizeEgyptianMobileNumber('01012345678'),
+        '+201012345678',
+      );
+      expect(
+        Validators.normalizeEgyptianMobileNumber('1012345678'),
+        '+201012345678',
+      );
+      expect(
+        Validators.normalizeEgyptianMobileNumber('201012345678'),
+        '+201012345678',
+      );
+      expect(
+        Validators.normalizeEgyptianMobileNumber('+201012345678'),
+        '+201012345678',
+      );
+      expect(Validators.normalizeEgyptianMobileNumber('+447890123456'), '');
     });
   });
 }

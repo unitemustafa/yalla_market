@@ -35,11 +35,7 @@ class MembershipBenefitsView extends StatelessWidget {
               const SizedBox(height: 18),
               _ActivationCard(isDark: isDark),
               const SizedBox(height: 24),
-              AppActionButton(
-                label: 'Contact to Activate',
-                icon: AppIcons.call,
-                onPressed: null,
-              ),
+              AppActionButton(label: 'Activate now', onPressed: null),
             ],
           ),
         ),
@@ -199,7 +195,7 @@ class _ActivationCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(AppIcons.call, color: AppColors.primary),
+          const Icon(AppIcons.security_safe, color: AppColors.primary),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

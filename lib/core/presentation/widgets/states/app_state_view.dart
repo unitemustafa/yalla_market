@@ -13,6 +13,7 @@ class AppStateView extends StatelessWidget {
     required this.message,
     this.actionLabel,
     this.onAction,
+    this.showActionIcon = true,
     this.color = AppColors.primary,
   });
 
@@ -21,6 +22,7 @@ class AppStateView extends StatelessWidget {
   final String message;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool showActionIcon;
   final Color color;
 
   @override
@@ -73,7 +75,7 @@ class AppStateView extends StatelessWidget {
                 const SizedBox(height: 22),
                 AppActionButton(
                   label: actionLabel!,
-                  icon: actionIcon,
+                  icon: showActionIcon ? actionIcon : null,
                   onPressed: onAction,
                 ),
               ],

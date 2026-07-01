@@ -105,23 +105,31 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.tr('Change region manually'),
+                      context.tr('Choose your current city or the nearest one'),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    ...manualCities.map(
-                      (city) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _CityTile(
-                          city: city,
-                          selected: selectedCity?.slug == city.slug,
-                          disabled: manualDisabled,
-                          onTap: () => _selectSupportedCity(city),
-                        ),
+                    const SizedBox(height: 4),
+                    Text(
+                      context.tr(
+                        'If your city is not available, choose Other.',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? AppColors.darkTextSecondary
+                            : AppColors.lightTextSecondary,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    if (manualCities.isNotEmpty)
+                      _ManualCitiesList(
+                        cities: manualCities,
+                        selectedCity: selectedCity,
+                        disabled: manualDisabled,
+                        onSelected: _selectSupportedCity,
+                      ),
                     if (manualCities.isEmpty && !isLoading)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
@@ -155,6 +163,47 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
 
   void _selectSupportedCity(CityData city) {
     widget.onCitySelected(city);
+  }
+}
+
+class _ManualCitiesList extends StatelessWidget {
+  const _ManualCitiesList({
+    required this.cities,
+    required this.selectedCity,
+    required this.disabled,
+    required this.onSelected,
+  });
+
+  final List<CityData> cities;
+  final CityData? selectedCity;
+  final bool disabled;
+  final ValueChanged<CityData> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    const tileExtent = 60.0;
+    final visibleCount = cities.length > 5 ? 5 : cities.length;
+
+    return SizedBox(
+      height: visibleCount * tileExtent,
+      child: Scrollbar(
+        child: ListView.separated(
+          primary: false,
+          padding: EdgeInsets.zero,
+          itemCount: cities.length,
+          separatorBuilder: (_, _) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final city = cities[index];
+            return _CityTile(
+              city: city,
+              selected: selectedCity?.slug == city.slug,
+              disabled: disabled,
+              onTap: () => onSelected(city),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 

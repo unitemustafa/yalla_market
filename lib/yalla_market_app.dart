@@ -147,7 +147,7 @@ class YallaMarketApp extends StatelessWidget {
             ),
             content: Text(
               dialogContext.tr(
-                'Sign in again to continue. Keep Remember Me on to stay signed in for 30 days after closing the app.',
+                'Sign in again to continue. Remember Me keeps you signed in for 30 days after closing the app. Without it, your session lasts up to 8 hours and ends when the app closes.',
               ),
               textAlign: TextAlign.center,
               style: TextStyle(

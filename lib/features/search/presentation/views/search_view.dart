@@ -129,7 +129,7 @@ class _SearchViewState extends State<SearchView> {
                                   isDark: isDark,
                                   title: 'Choose your city',
                                   message:
-                                      'So we can show products available in your area.',
+                                      'So we can show shops available in your area.',
                                   onClear: () => Navigator.pop(context),
                                 )
                               else if (query.isEmpty)

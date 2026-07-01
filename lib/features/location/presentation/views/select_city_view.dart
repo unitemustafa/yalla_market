@@ -103,7 +103,7 @@ class _SelectCityViewState extends State<SelectCityView>
                           const SizedBox(height: 10),
                           Text(
                             context.tr(
-                              'Choose your city manually to continue.',
+                              'Choose your current city or the nearest one.',
                             ),
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(

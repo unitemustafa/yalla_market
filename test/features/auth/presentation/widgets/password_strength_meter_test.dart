@@ -9,6 +9,8 @@ void main() {
   });
 
   testWidgets('updates the visible password requirements', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     final controller = TextEditingController();
     addTearDown(controller.dispose);
 
@@ -18,9 +20,10 @@ void main() {
       ),
     );
 
-    expect(find.text('At least 8 characters'), findsOneWidget);
-    expect(find.text('Uppercase and lowercase letters'), findsOneWidget);
-    expect(find.text('Number and special character'), findsOneWidget);
+    expect(find.text('8+ characters'), findsOneWidget);
+    expect(find.text('Upper & lowercase'), findsOneWidget);
+    expect(find.text('Number & symbol'), findsOneWidget);
+    expect(tester.takeException(), isNull);
 
     controller.text = 'abcdefgh';
     await tester.pumpAndSettle();

@@ -190,10 +190,11 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
                       homeState.message == addressRequiredMessage) {
                     return AppStateView(
                       icon: AppIcons.location_add,
-                      title: 'Address required',
+                      title: 'Delivery address needed',
                       message: addressRequiredMessage,
-                      actionLabel: 'Add Address',
+                      actionLabel: 'Review address',
                       onAction: _openAddresses,
+                      showActionIcon: false,
                     );
                   }
                   return Column(

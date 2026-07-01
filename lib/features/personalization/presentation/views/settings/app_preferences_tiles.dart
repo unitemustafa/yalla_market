@@ -101,7 +101,8 @@ class _PreferenceInfoTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(trailingIcon, color: mutedColor, size: 18),
+              if (onTap != null)
+                Icon(trailingIcon, color: mutedColor, size: 18),
             ],
           ),
         ),

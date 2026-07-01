@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
-const addressRequiredMessage = 'أضف عنوانًا لعرض المتاجر والمنتجات المتاحة لك';
+const addressRequiredMessage =
+    'راجع عنوان التوصيل المختار لعرض المتاجر والمنتجات المتاحة لك';
 
 bool isAddressRequiredError(DioException error) {
   if (error.response?.statusCode != 400) return false;

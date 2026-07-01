@@ -192,8 +192,8 @@ extension _SignupFormFields on _SignupViewState {
         autovalidateMode: AutovalidateMode.onUserInteraction,
         validator: _validatePhone,
         inputFormatters: [
-          FilteringTextInputFormatter.digitsOnly,
-          LengthLimitingTextInputFormatter(_selectedCountry.maxDigits),
+          FilteringTextInputFormatter.allow(RegExp(r'[+0-9]')),
+          LengthLimitingTextInputFormatter(13),
         ],
         cursorColor: theme.colorScheme.primary,
         style: theme.textTheme.bodyMedium?.copyWith(
@@ -214,16 +214,8 @@ extension _SignupFormFields on _SignupViewState {
             fontSize: 14,
             fontWeight: FontWeight.w700,
           ),
-          prefixIcon: PhoneCountryPrefix(
-            country: _selectedCountry,
-            isDarkMode: isDarkMode,
-            onTap: _showCountryPicker,
-          ),
-          prefixIconConstraints: const BoxConstraints(
-            minWidth: 118,
-            maxWidth: 126,
-            minHeight: 58,
-          ),
+          prefixIcon: Icon(AppIcons.call, color: iconColor, size: 21),
+          hintText: '01xxxxxxxxx',
           suffixIcon: _buildAvailabilityStatusSuffix(
             isDarkMode,
             isChecking: _phoneFocusNode.hasFocus && _checker.isCheckingPhone,

@@ -3,7 +3,6 @@ import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/formatters/app_currency.dart';
 import '../../../../../core/localization/app_language_controller.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -89,15 +88,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                                 title: 'Currency',
                                 subtitle: 'Egyptian Pound',
                                 accentColor: AppColors.success,
-                                onTap: () => _showFixedPreferenceSheet(
-                                  context: context,
-                                  title: 'Currency',
-                                  selectedTitle: 'Egyptian Pound',
-                                  selectedSubtitle: AppCurrency.symbol,
-                                  icon: AppIcons.receipt_text,
-                                  accentColor: AppColors.success,
-                                  snackTitle: 'Currency saved',
-                                ),
                               ),
                             ],
                           ),
@@ -255,44 +245,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                   context: context,
                   title: 'Language updated',
                 );
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showFixedPreferenceSheet({
-    required BuildContext context,
-    required String title,
-    required String selectedTitle,
-    required String selectedSubtitle,
-    required IconData icon,
-    required Color accentColor,
-    required String snackTitle,
-  }) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? AppColors.darkCardColor : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetContext) {
-        return _PreferenceSelectionSheet(
-          title: title,
-          children: [
-            _PreferenceOptionTile(
-              title: selectedTitle,
-              subtitle: selectedSubtitle,
-              icon: icon,
-              accentColor: accentColor,
-              isSelected: true,
-              onTap: () {
-                Navigator.pop(sheetContext);
-                CustomSnackBar.showSuccess(context: context, title: snackTitle);
               },
             ),
           ],

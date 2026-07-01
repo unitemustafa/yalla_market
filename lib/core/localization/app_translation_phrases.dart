@@ -6,8 +6,15 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Enter a valid email, username, or phone number':
         'اكتب إيميل أو اسم مستخدم أو رقم موبايل صحيح',
     'Session expired': 'انتهت الجلسة',
-    'Sign in again to continue. Keep Remember Me on to stay signed in for 30 days after closing the app.':
-        'سجل دخول تاني عشان تكمل. فعل افتكرني عشان تفضل داخل لمدة 30 يوم حتى بعد غلق التطبيق.',
+    'Delivery address needed': 'مطلوب تحديد عنوان التوصيل',
+    'Review address': 'مراجعة العنوان',
+    'Activate now': 'فعّل الآن',
+    'This login is only for client accounts.':
+        'تسجيل الدخول ده مخصص لحسابات العملاء فقط.',
+    'Enter a valid Egyptian mobile number starting with 01, 1, 201, or +201.':
+        'اكتب رقم موبايل مصري صحيح يبدأ بـ 01 أو 1 أو 201 أو +201.',
+    'Sign in again to continue. Remember Me keeps you signed in for 30 days after closing the app. Without it, your session lasts up to 8 hours and ends when the app closes.':
+        'سجل دخول تاني عشان تكمل. مع تفعيل افتكرني هتفضل داخل لمدة 30 يوم حتى بعد غلق التطبيق، ومن غيرها الجلسة مدتها بحد أقصى 8 ساعات وبتنتهي عند غلق التطبيق.',
     'Choose date': 'اختيار التاريخ',
     'Day': 'اليوم',
     'From': 'من',
@@ -26,6 +33,12 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Browsing region': 'منطقة التصفح',
     'Change region': 'تغيير المنطقة',
     'Change region manually': 'غيّر المنطقة يدويًا',
+    'Choose your current city or the nearest one':
+        'اختر مدينتك الحالية أو أقربهم لك',
+    'Choose your current city or the nearest one.':
+        'اختر مدينتك الحالية أو أقربهم لك.',
+    'If your city is not available, choose Other.':
+        'في حال عدم تواجد مدينتك اختر أخرى.',
     'Manual': 'يدوي',
     'Automatic': 'تلقائي',
     'Automatic location': 'تحديد تلقائي',
@@ -95,6 +108,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Save city': 'حفظ المدينة',
     'So we can show products available in your area.':
         'علشان نعرض لك المنتجات المتاحة في منطقتك.',
+    'So we can show shops available in your area.':
+        'علشان نعرض لك المحلات المتاحة في منطقتك.',
     'Use my current location': 'استخدم موقعي الحالي',
     'We could not detect a supported city. Choose one manually.':
         'مش قادرين نحدد مدينة مدعومة. اختار مدينة يدويًا.',

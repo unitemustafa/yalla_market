@@ -123,19 +123,18 @@ class Validators {
   }
 
   static bool isEgyptianMobileNumber(String value) {
-    final digits = value.replaceAll(RegExp(r'\D'), '');
-    var nationalNumber = digits;
+    final phone = value.trim();
+    return RegExp(
+      r'^(?:01[0125]\d{8}|1[0125]\d{8}|201[0125]\d{8}|\+201[0125]\d{8})$',
+    ).hasMatch(phone);
+  }
 
-    if (nationalNumber.startsWith('0020')) {
-      nationalNumber = nationalNumber.substring(4);
-    } else if (nationalNumber.startsWith('20')) {
-      nationalNumber = nationalNumber.substring(2);
-    }
-
-    if (nationalNumber.length == 10 && nationalNumber.startsWith('1')) {
-      nationalNumber = '0$nationalNumber';
-    }
-
-    return RegExp(r'^01[0125]\d{8}$').hasMatch(nationalNumber);
+  static String normalizeEgyptianMobileNumber(String value) {
+    final phone = value.trim();
+    if (!isEgyptianMobileNumber(phone)) return '';
+    if (phone.startsWith('+20')) return phone;
+    if (phone.startsWith('20')) return '+$phone';
+    if (phone.startsWith('0')) return '+20${phone.substring(1)}';
+    return '+20$phone';
   }
 }

@@ -15,7 +15,6 @@ import '../widgets/custom_text_field.dart';
 import '../widgets/auth_top_bar.dart';
 import '../widgets/password_strength_meter.dart';
 import '../widgets/policy_link.dart';
-import '../widgets/signup_phone_country_picker.dart';
 import '../widgets/warning_checkbox.dart';
 import 'signup_availability_checker.dart';
 
@@ -31,65 +30,6 @@ class SignupView extends StatefulWidget {
 }
 
 class _SignupViewState extends State<SignupView> {
-  static const List<PhoneCountry> _phoneCountries = [
-    PhoneCountry(
-      name: 'Egypt',
-      isoCode: 'EG',
-      dialCode: '+20',
-      minDigits: 10,
-      maxDigits: 11,
-    ),
-    PhoneCountry(
-      name: 'United States',
-      isoCode: 'US',
-      dialCode: '+1',
-      minDigits: 10,
-      maxDigits: 10,
-    ),
-    PhoneCountry(
-      name: 'United Kingdom',
-      isoCode: 'UK',
-      dialCode: '+44',
-      minDigits: 10,
-      maxDigits: 10,
-    ),
-    PhoneCountry(
-      name: 'Saudi Arabia',
-      isoCode: 'SA',
-      dialCode: '+966',
-      minDigits: 9,
-      maxDigits: 9,
-    ),
-    PhoneCountry(
-      name: 'United Arab Emirates',
-      isoCode: 'AE',
-      dialCode: '+971',
-      minDigits: 9,
-      maxDigits: 9,
-    ),
-    PhoneCountry(
-      name: 'India',
-      isoCode: 'IN',
-      dialCode: '+91',
-      minDigits: 10,
-      maxDigits: 10,
-    ),
-    PhoneCountry(
-      name: 'Pakistan',
-      isoCode: 'PK',
-      dialCode: '+92',
-      minDigits: 10,
-      maxDigits: 10,
-    ),
-    PhoneCountry(
-      name: 'Turkey',
-      isoCode: 'TR',
-      dialCode: '+90',
-      minDigits: 10,
-      maxDigits: 10,
-    ),
-  ];
-
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
@@ -100,7 +40,6 @@ class _SignupViewState extends State<SignupView> {
   late final FocusNode _usernameFocusNode;
   late final FocusNode _emailFocusNode;
   late final FocusNode _phoneFocusNode;
-  late PhoneCountry _selectedCountry;
   bool _obscurePassword = true;
   bool _agreeToPrivacy = true;
   bool _showPrivacyError = false;
@@ -120,7 +59,6 @@ class _SignupViewState extends State<SignupView> {
     _usernameFocusNode = FocusNode();
     _emailFocusNode = FocusNode();
     _phoneFocusNode = FocusNode();
-    _selectedCountry = _phoneCountries.first;
     _checker = SignupAvailabilityChecker(
       emailController: _emailController,
       phoneController: _phoneController,
@@ -208,14 +146,13 @@ class _SignupViewState extends State<SignupView> {
     if (!mounted) return;
 
     if (emailAvailable && phoneAvailable && usernameAvailable) {
-      final digits = _normalizedPhoneDigits();
       final username = _usernameController.text.trim();
       context.read<AuthCubit>().signup(
         firstName: _firstNameController.text.trim(),
         lastName: _lastNameController.text.trim(),
         username: username,
         email: _emailController.text.trim(),
-        phone: _phoneForSignup(digits),
+        phone: _phoneForLookup(),
         password: _passwordController.text,
       );
     }
@@ -470,13 +407,7 @@ class _SignupViewState extends State<SignupView> {
     final whitespaceMessage = _validateNoWhitespace(phone);
     if (whitespaceMessage != null) return whitespaceMessage;
 
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    final isValidLength = _selectedCountry.isoCode == 'EG'
-        ? Validators.isEgyptianMobileNumber(digits)
-        : digits.length >= _selectedCountry.minDigits &&
-              digits.length <= _selectedCountry.maxDigits;
-
-    if (!isValidLength) {
+    if (!Validators.isEgyptianMobileNumber(phone)) {
       return AppTranslations.current.invalidPhone;
     }
 
@@ -484,28 +415,9 @@ class _SignupViewState extends State<SignupView> {
   }
 
   String _phoneForLookup([String? value]) {
-    final digits = _normalizedPhoneDigits(value);
-    return digits.isEmpty ? '' : '${_selectedCountry.dialCode}$digits';
-  }
-
-  String _phoneForSignup(String digits) {
-    if (_selectedCountry.isoCode == 'EG' && digits.length == 10) {
-      return '0$digits';
-    }
-    return '${_selectedCountry.dialCode}$digits';
-  }
-
-  String _normalizedPhoneDigits([String? value]) {
-    final digits = (value ?? _phoneController.text).replaceAll(
-      RegExp(r'\D'),
-      '',
+    return Validators.normalizeEgyptianMobileNumber(
+      value ?? _phoneController.text,
     );
-    if (_selectedCountry.isoCode == 'EG' &&
-        digits.length == 11 &&
-        digits.startsWith('0')) {
-      return digits.substring(1);
-    }
-    return digits;
   }
 
   bool _canCheckEmailAvailability() {
@@ -561,25 +473,5 @@ class _SignupViewState extends State<SignupView> {
     if (requiredMessage != null) return requiredMessage;
 
     return _validateNoWhitespace(value);
-  }
-
-  Future<void> _showCountryPicker() async {
-    final selectedCountry = await showModalBottomSheet<PhoneCountry>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => CountryPickerSheet(
-        countries: _phoneCountries,
-        selectedCountry: _selectedCountry,
-      ),
-    );
-
-    if (!mounted || selectedCountry == null) return;
-
-    setState(() {
-      _selectedCountry = selectedCountry;
-    });
-    _formKey.currentState?.validate();
-    _checker.schedulePhoneCheck();
   }
 }

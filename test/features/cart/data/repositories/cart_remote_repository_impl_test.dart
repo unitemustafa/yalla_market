@@ -27,6 +27,7 @@ void main() {
       final repository = CartRemoteRepositoryImpl(apiClient);
 
       final result = await repository.addItem(
+        'user-a',
         const CartItemData(
           id: 'fallback-id',
           productId: 'product-1',

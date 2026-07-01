@@ -13,7 +13,7 @@ class CartRemoteRepositoryImpl implements CartRepository {
   final ApiClient _apiClient;
 
   @override
-  Future<ApiResult<List<CartItemData>>> getItems() {
+  Future<ApiResult<List<CartItemData>>> getItems(String userKey) {
     return _guard(() async {
       final payload = await _apiClient.get<Object?>('/cart');
       return _itemsFromPayload(payload);
@@ -22,6 +22,7 @@ class CartRemoteRepositoryImpl implements CartRepository {
 
   @override
   Future<ApiResult<List<CartItemData>>> addItem(
+    String userKey,
     CartItemData item,
     int quantityToAdd,
   ) {
@@ -42,7 +43,10 @@ class CartRemoteRepositoryImpl implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> incrementQuantity(String id) {
+  Future<ApiResult<List<CartItemData>>> incrementQuantity(
+    String userKey,
+    String id,
+  ) {
     return _guard(() async {
       final payload = await _apiClient.post<Object?>(
         '/cart/items/$id/increment',
@@ -52,7 +56,10 @@ class CartRemoteRepositoryImpl implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> decrementQuantity(String id) {
+  Future<ApiResult<List<CartItemData>>> decrementQuantity(
+    String userKey,
+    String id,
+  ) {
     return _guard(() async {
       final payload = await _apiClient.post<Object?>(
         '/cart/items/$id/decrement',
@@ -62,7 +69,7 @@ class CartRemoteRepositoryImpl implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> removeItem(String id) {
+  Future<ApiResult<List<CartItemData>>> removeItem(String userKey, String id) {
     return _guard(() async {
       final payload = await _apiClient.delete<Object?>('/cart/items/$id');
       return _itemsFromPayload(payload);
@@ -70,7 +77,7 @@ class CartRemoteRepositoryImpl implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> clear() {
+  Future<ApiResult<List<CartItemData>>> clear(String userKey) {
     return _guard(() async {
       final payload = await _apiClient.delete<Object?>('/cart');
       return _itemsFromPayload(payload);

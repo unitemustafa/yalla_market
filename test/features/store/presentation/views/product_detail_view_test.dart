@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
@@ -13,8 +14,10 @@ void main() {
   testWidgets('renders product details and adds the selected item to cart', (
     tester,
   ) async {
+    SharedPreferences.setMockInitialValues({});
     final cartCubit = makeCartCubit();
     final wishlistCubit = makeWishlistCubit();
+    await cartCubit.loadCartForUser('user-a');
     addTearDown(cartCubit.close);
     addTearDown(wishlistCubit.close);
 
@@ -48,6 +51,10 @@ void main() {
     await tester.tap(find.byType(ElevatedButton).last);
     await tester.pumpAndSettle();
 
-    expect(cartCubit.state.any((item) => item.title == 'Running Shoe'), isTrue);
+    final cartItem = cartCubit.state.singleWhere(
+      (item) => item.title == 'Running Shoe',
+    );
+    expect(cartItem.id, 'product_1');
+    expect(cartItem.productId, 'product_1');
   });
 }

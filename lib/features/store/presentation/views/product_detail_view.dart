@@ -378,8 +378,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
     context.read<CartCubit>().addItem(
       CartItemData(
-        id: '${_productTitle}_${selectedColor}_${selectedSize}_$selectedType',
-        productId: _productId,
+        id: _resolvedProductId,
+        productId: _resolvedProductId,
         image: currentImage,
         brand: _productBrand,
         title: _productTitle,

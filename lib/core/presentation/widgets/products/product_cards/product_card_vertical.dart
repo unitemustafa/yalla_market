@@ -118,8 +118,8 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
   void _addToCart(BuildContext context) {
     context.read<CartCubit>().addItem(
       CartItemData(
-        id: widget.title,
-        productId: widget.productId,
+        id: _resolvedProductId,
+        productId: _resolvedProductId,
         image: widget.image,
         brand: widget.brand,
         title: widget.title,

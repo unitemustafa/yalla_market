@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/features/cart/data/repositories/cart_repository_impl.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/cart/domain/repositories/cart_repository.dart';
 import 'package:yalla_market/features/cart/domain/usecases/cart_usecases.dart';
@@ -23,6 +25,7 @@ void main() {
         ),
       );
 
+      await cubit.loadCartForUser('user-a');
       await expectedStates;
 
       expect(cubit.state.single.id, sampleCartItem.id);
@@ -32,7 +35,7 @@ void main() {
     test('adds items and clears stale error messages', () async {
       final repository = _FakeCartRepository();
       final cubit = CartCubit(_cartUseCases(repository));
-      await Future<void>.delayed(Duration.zero);
+      await cubit.loadCartForUser('user-a');
 
       await cubit.addItem(sampleCartItem, 2);
 
@@ -46,7 +49,7 @@ void main() {
       () async {
         final repository = _FakeCartRepository(items: const [sampleCartItem]);
         final cubit = CartCubit(_cartUseCases(repository));
-        await Future<void>.delayed(Duration.zero);
+        await cubit.loadCartForUser('user-a');
         repository.nextFailure = const ServerFailure('Cart is unavailable.');
 
         await cubit.incrementQuantity(sampleCartItem.id);
@@ -60,7 +63,7 @@ void main() {
     test('removes and clears items through the use cases', () async {
       final repository = _FakeCartRepository(items: const [sampleCartItem]);
       final cubit = CartCubit(_cartUseCases(repository));
-      await Future<void>.delayed(Duration.zero);
+      await cubit.loadCartForUser('user-a');
 
       await cubit.removeItem(sampleCartItem.id);
       expect(cubit.state, isEmpty);
@@ -69,6 +72,43 @@ void main() {
       await cubit.clearLocalCart();
 
       expect(cubit.state, isEmpty);
+      await cubit.close();
+    });
+
+    test(
+      'clearSession clears visible state without removing storage',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final repository = CartRepositoryImpl();
+        final cubit = CartCubit(_cartUseCases(repository));
+        await cubit.loadCartForUser('user-a');
+        await cubit.addItem(sampleCartItem, 1);
+
+        cubit.clearSession();
+
+        expect(cubit.state, isEmpty);
+        final result = await repository.getItems('user-a');
+        result.when(
+          success: (items) => expect(items.single.id, sampleCartItem.id),
+          failure: (failure) => fail(failure.message),
+        );
+        await cubit.close();
+      },
+    );
+
+    test('addItem after loadCartForUser persists to storage', () async {
+      SharedPreferences.setMockInitialValues({});
+      final repository = CartRepositoryImpl();
+      final cubit = CartCubit(_cartUseCases(repository));
+
+      await cubit.loadCartForUser('user-a');
+      await cubit.addItem(sampleCartItem, 3);
+
+      final reloaded = await repository.getItems('user-a');
+      reloaded.when(
+        success: (items) => expect(items.single.quantity, 3),
+        failure: (failure) => fail(failure.message),
+      );
       await cubit.close();
     });
   });
@@ -102,10 +142,11 @@ class _FakeCartRepository implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> getItems() => _result();
+  Future<ApiResult<List<CartItemData>>> getItems(String userKey) => _result();
 
   @override
   Future<ApiResult<List<CartItemData>>> addItem(
+    String userKey,
     CartItemData item,
     int quantityToAdd,
   ) async {
@@ -125,7 +166,10 @@ class _FakeCartRepository implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> incrementQuantity(String id) async {
+  Future<ApiResult<List<CartItemData>>> incrementQuantity(
+    String userKey,
+    String id,
+  ) async {
     final index = _items.indexWhere((item) => item.id == id);
     if (index != -1) {
       final item = _items[index];
@@ -136,7 +180,10 @@ class _FakeCartRepository implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> decrementQuantity(String id) async {
+  Future<ApiResult<List<CartItemData>>> decrementQuantity(
+    String userKey,
+    String id,
+  ) async {
     final index = _items.indexWhere((item) => item.id == id);
     if (index != -1) {
       final item = _items[index];
@@ -147,13 +194,16 @@ class _FakeCartRepository implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> removeItem(String id) async {
+  Future<ApiResult<List<CartItemData>>> removeItem(
+    String userKey,
+    String id,
+  ) async {
     _items.removeWhere((item) => item.id == id);
     return _result();
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> clear() async {
+  Future<ApiResult<List<CartItemData>>> clear(String userKey) async {
     _items.clear();
     return _result();
   }

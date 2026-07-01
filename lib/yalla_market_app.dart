@@ -64,16 +64,20 @@ class YallaMarketApp extends StatelessWidget {
             );
             if (userKey == null) {
               context.read<WishlistCubit>().clearSession();
+              context.read<CartCubit>().clearSession();
             } else {
               context.read<WishlistCubit>().loadWishlistForUser(userKey);
+              context.read<CartCubit>().loadCartForUser(userKey);
             }
           } else if (state is AuthInitial) {
             UserProfileController.instance.reset();
             context.read<WishlistCubit>().clearSession();
+            context.read<CartCubit>().clearSession();
             AppNavigator.goToLogin();
           } else if (state is AuthSessionExpired) {
             UserProfileController.instance.reset();
             context.read<WishlistCubit>().clearSession();
+            context.read<CartCubit>().clearSession();
             AppNavigator.goToLogin();
             _showSessionExpiredDialog(context);
           }

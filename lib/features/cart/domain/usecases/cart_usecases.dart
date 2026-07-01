@@ -25,7 +25,9 @@ class GetCartItemsUseCase {
 
   final CartRepository _repository;
 
-  Future<ApiResult<List<CartItemData>>> call() => _repository.getItems();
+  Future<ApiResult<List<CartItemData>>> call(String userKey) {
+    return _repository.getItems(userKey);
+  }
 }
 
 class AddCartItemUseCase {
@@ -34,10 +36,11 @@ class AddCartItemUseCase {
   final CartRepository _repository;
 
   Future<ApiResult<List<CartItemData>>> call(
+    String userKey,
     CartItemData item,
     int quantityToAdd,
   ) {
-    return _repository.addItem(item, quantityToAdd);
+    return _repository.addItem(userKey, item, quantityToAdd);
   }
 }
 
@@ -46,8 +49,8 @@ class IncrementCartItemQuantityUseCase {
 
   final CartRepository _repository;
 
-  Future<ApiResult<List<CartItemData>>> call(String id) {
-    return _repository.incrementQuantity(id);
+  Future<ApiResult<List<CartItemData>>> call(String userKey, String id) {
+    return _repository.incrementQuantity(userKey, id);
   }
 }
 
@@ -56,8 +59,8 @@ class DecrementCartItemQuantityUseCase {
 
   final CartRepository _repository;
 
-  Future<ApiResult<List<CartItemData>>> call(String id) {
-    return _repository.decrementQuantity(id);
+  Future<ApiResult<List<CartItemData>>> call(String userKey, String id) {
+    return _repository.decrementQuantity(userKey, id);
   }
 }
 
@@ -66,8 +69,8 @@ class RemoveCartItemUseCase {
 
   final CartRepository _repository;
 
-  Future<ApiResult<List<CartItemData>>> call(String id) {
-    return _repository.removeItem(id);
+  Future<ApiResult<List<CartItemData>>> call(String userKey, String id) {
+    return _repository.removeItem(userKey, id);
   }
 }
 
@@ -76,5 +79,7 @@ class ClearCartUseCase {
 
   final CartRepository _repository;
 
-  Future<ApiResult<List<CartItemData>>> call() => _repository.clear();
+  Future<ApiResult<List<CartItemData>>> call(String userKey) {
+    return _repository.clear(userKey);
+  }
 }

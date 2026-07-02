@@ -44,6 +44,11 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
       );
     }
 
+    final invalidOfferFailure = _validateOfferIds(cartItems);
+    if (invalidOfferFailure != null) {
+      return Future.value(ApiResult.failure(invalidOfferFailure));
+    }
+
     return _guard(() async {
       final payload = await _apiClient.post<Object?>(
         '/orders/create/',
@@ -83,6 +88,11 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
       );
     }
 
+    final invalidOfferFailure = _validateOfferIds(cartItems);
+    if (invalidOfferFailure != null) {
+      return Future.value(ApiResult.failure(invalidOfferFailure));
+    }
+
     return _guard(() async {
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/orders/preview/',
@@ -98,11 +108,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
               .toList(growable: false),
           'offers': cartItems
               .where((item) => item.isOffer)
-              .map(
-                (item) => {
-                  'offer_id': _idFromString(item.productId ?? item.id),
-                },
-              )
+              .map((item) => {'offer_id': _offerIdFromCartItem(item)!})
               .toList(growable: false),
         },
       );
@@ -199,14 +205,52 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
                 .toList(growable: false),
       'offers': cartItems
           .where((item) => item.isOffer)
-          .map((item) => {'offer_id': _idFromString(item.productId ?? item.id)})
+          .map((item) => {'offer_id': _offerIdFromCartItem(item)!})
           .toList(growable: false),
     };
   }
+
+  ValidationFailure? _validateOfferIds(List<CartItemData> cartItems) {
+    for (final item in cartItems.where((item) => item.isOffer)) {
+      if (_offerIdFromCartItem(item) == null) {
+        return const ValidationFailure(
+          'Some offer items are missing valid offer information. Please add them again.',
+        );
+      }
+    }
+    return null;
+  }
+}
+
+int? _offerIdFromCartItem(CartItemData item) {
+  return _offerIdFromValue(item.productId) ?? _offerIdFromValue(item.id);
 }
 
 Object? _idFromString(String? value) {
   final trimmed = value?.trim();
   if (trimmed == null || trimmed.isEmpty) return null;
   return int.tryParse(trimmed) ?? trimmed;
+}
+
+int? _offerIdFromValue(Object? value) {
+  if (value is int) return value > 0 ? value : null;
+  if (value is num) {
+    final id = value.toInt();
+    return value == id && id > 0 ? id : null;
+  }
+
+  final trimmed = value?.toString().trim();
+  if (trimmed == null || trimmed.isEmpty) return null;
+
+  final directId = int.tryParse(trimmed);
+  if (directId != null) return directId > 0 ? directId : null;
+
+  final clearOfferId = RegExp(
+    r'^offer[_-](\d+)$',
+    caseSensitive: false,
+  ).firstMatch(trimmed);
+  if (clearOfferId == null) return null;
+
+  final parsedId = int.tryParse(clearOfferId.group(1)!);
+  return parsedId != null && parsedId > 0 ? parsedId : null;
 }

@@ -67,6 +67,38 @@ void main() {
       ]);
     });
 
+    test('createOrder sends offers as integer offer_id', () async {
+      late FakeApiRequest capturedRequest;
+      final apiClient = FakeApiClient((request) {
+        capturedRequest = request;
+        return _createdOrderPayload;
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+        cartItems: const [
+          CartItemData(
+            id: 'cart-offer',
+            productId: 'offer_5',
+            image: 'offer.png',
+            brand: 'Yalla',
+            title: 'Bundle offer',
+            price: 250,
+            quantity: 1,
+            itemType: 'offer',
+          ),
+        ],
+      );
+
+      result.when(success: (_) {}, failure: (failure) => fail(failure.message));
+      expect((capturedRequest.data as Map<String, dynamic>)['items'], isEmpty);
+      expect((capturedRequest.data as Map<String, dynamic>)['offers'], [
+        {'offer_id': 5},
+      ]);
+    });
+
     test('createOrder parses object response', () async {
       final apiClient = FakeApiClient((request) => _createdOrderPayload);
       final repository = OrderRemoteRepositoryImpl(apiClient);
@@ -353,6 +385,144 @@ void main() {
       ]);
       expect((capturedRequest.data as Map<String, dynamic>)['offers'], isEmpty);
     });
+
+    test('previewOrder sends offers as integer offer_id', () async {
+      late FakeApiRequest capturedRequest;
+      final apiClient = FakeApiClient((request) {
+        capturedRequest = request;
+        return _previewPayload;
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            productId: 'product-1',
+            variantId: '23',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 700,
+            quantity: 2,
+          ),
+          CartItemData(
+            id: 'offer-row',
+            productId: 'offer-5',
+            image: 'offer.png',
+            brand: 'Yalla',
+            title: 'Bundle offer',
+            price: 250,
+            quantity: 1,
+            itemType: 'offer',
+          ),
+        ],
+      );
+
+      result.when(success: (_) {}, failure: (failure) => fail(failure.message));
+      expect(capturedRequest.method, 'POST');
+      expect(capturedRequest.path, '/orders/preview/');
+      expect((capturedRequest.data as Map<String, dynamic>)['items'], [
+        {'variant_id': 23, 'quantity': 2},
+      ]);
+      expect((capturedRequest.data as Map<String, dynamic>)['offers'], [
+        {'offer_id': 5},
+      ]);
+    });
+
+    test('string offer id becomes int', () async {
+      late FakeApiRequest capturedRequest;
+      final apiClient = FakeApiClient((request) {
+        capturedRequest = request;
+        return _previewPayload;
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        cartItems: const [
+          CartItemData(
+            id: '5',
+            productId: '5',
+            image: 'offer.png',
+            brand: 'Yalla',
+            title: 'Bundle offer',
+            price: 250,
+            quantity: 1,
+            itemType: 'offer',
+          ),
+        ],
+      );
+
+      result.when(success: (_) {}, failure: (failure) => fail(failure.message));
+      expect((capturedRequest.data as Map<String, dynamic>)['offers'], [
+        {'offer_id': 5},
+      ]);
+    });
+
+    test('invalid offer id returns failure and does not call API', () async {
+      final apiClient = FakeApiClient((request) {
+        fail('API should not be called for invalid offer ids.');
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        cartItems: const [
+          CartItemData(
+            id: 'offer-five',
+            image: 'offer.png',
+            brand: 'Yalla',
+            title: 'Bundle offer',
+            price: 250,
+            quantity: 1,
+            itemType: 'offer',
+          ),
+        ],
+      );
+
+      result.when(
+        success: (_) => fail('Expected validation failure.'),
+        failure: (failure) => expect(
+          failure.message,
+          'Some offer items are missing valid offer information. Please add them again.',
+        ),
+      );
+      expect(apiClient.requests, isEmpty);
+    });
+
+    test(
+      'createOrder invalid offer id returns failure and does not call API',
+      () async {
+        final apiClient = FakeApiClient((request) {
+          fail('API should not be called for invalid offer ids.');
+        });
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: const [
+            CartItemData(
+              id: 'bundle-five',
+              image: 'offer.png',
+              brand: 'Yalla',
+              title: 'Bundle offer',
+              price: 250,
+              quantity: 1,
+              itemType: 'offer',
+            ),
+          ],
+        );
+
+        result.when(
+          success: (_) => fail('Expected validation failure.'),
+          failure: (failure) => expect(
+            failure.message,
+            'Some offer items are missing valid offer information. Please add them again.',
+          ),
+        );
+        expect(apiClient.requests, isEmpty);
+      },
+    );
 
     test('parses preview summary', () async {
       final apiClient = FakeApiClient((request) => _previewPayload);

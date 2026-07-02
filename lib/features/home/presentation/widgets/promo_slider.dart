@@ -451,6 +451,7 @@ class _PromoSliderState extends State<PromoSlider> {
         : offer.description.trim();
 
     return _PromoOfferData(
+      offerId: offer.id,
       icon: _iconForApiOffer(type),
       color: _colorForApiOffer(type),
       image: offer.image,
@@ -1083,9 +1084,18 @@ class _PromoOfferSheet extends StatelessWidget {
 
   Future<void> _checkoutOffer(BuildContext context) async {
     final cartCubit = context.read<CartCubit>();
+    final offerId = offer.validOfferId;
+    if (offerId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This offer cannot be added to cart right now.'),
+        ),
+      );
+      return;
+    }
 
     for (final product in offer.products) {
-      await cartCubit.addItem(product.toCartItem(offer, context), 1);
+      await cartCubit.addItem(product.toCartItem(offer, context, offerId), 1);
     }
 
     if (!context.mounted) return;
@@ -2018,6 +2028,7 @@ class _OfferPanel extends StatelessWidget {
 
 class _PromoOfferData {
   const _PromoOfferData({
+    this.offerId,
     required this.icon,
     required this.color,
     required this.image,
@@ -2052,6 +2063,7 @@ class _PromoOfferData {
     this.linkLabelAr,
   });
 
+  final String? offerId;
   final IconData icon;
   final Color color;
   final String image;
@@ -2087,6 +2099,14 @@ class _PromoOfferData {
 
   bool get isGeneralVisibility =>
       visibilityMode.trim().toLowerCase() == 'general' || regionSlugs.isEmpty;
+
+  String? get validOfferId {
+    final value = offerId?.trim();
+    if (value == null || value.isEmpty) return null;
+    final id = int.tryParse(value);
+    if (id == null || id <= 0) return null;
+    return id.toString();
+  }
 
   DateTime? get endsAt {
     final value = endsAtIso;
@@ -2180,9 +2200,14 @@ class _OfferProduct {
   String meta(BuildContext context) =>
       _useArabicCopy(context) ? metaAr : metaEn;
 
-  CartItemData toCartItem(_PromoOfferData offer, BuildContext context) {
+  CartItemData toCartItem(
+    _PromoOfferData offer,
+    BuildContext context,
+    String offerId,
+  ) {
     return CartItemData(
-      id: 'promo:${offer.titleEn}:$titleEn',
+      id: offerId,
+      productId: offerId,
       image: image,
       brand: brand(context),
       title: title(context),

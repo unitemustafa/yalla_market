@@ -29,19 +29,25 @@ class AuthUser {
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
-      id: json['id'] as String,
-      email: json['email'] as String,
+      id: _stringFromJson(json['id']) ?? '',
+      email: _stringFromJson(json['email']) ?? '',
       firstName:
-          json['firstName'] as String? ?? json['first_name'] as String? ?? '',
+          _stringFromJson(json['firstName']) ??
+          _stringFromJson(json['first_name']) ??
+          '',
       lastName:
-          json['lastName'] as String? ?? json['last_name'] as String? ?? '',
-      role: json['role'] as String? ?? 'CUSTOMER',
-      avatarUrl: json['avatarUrl'] as String? ?? json['avatar_url'] as String?,
+          _stringFromJson(json['lastName']) ??
+          _stringFromJson(json['last_name']) ??
+          '',
+      role: _stringFromJson(json['role']) ?? 'CUSTOMER',
+      avatarUrl:
+          _stringFromJson(json['avatarUrl']) ??
+          _stringFromJson(json['avatar_url']),
       hasPassword:
           json['hasPassword'] as bool? ?? json['has_password'] as bool? ?? true,
-      username: json['username'] as String?,
-      phone: json['phone'] as String?,
-      gender: json['gender'] as String?,
+      username: _stringFromJson(json['username']),
+      phone: _stringFromJson(json['phone']),
+      gender: _stringFromJson(json['gender']),
       birthDate: _dateFromString(json['birthDate'] ?? json['birth_date']),
       usernameChangedAt: _dateFromString(
         json['usernameChangedAt'] ?? json['username_changed_at'],
@@ -95,6 +101,11 @@ class AuthUser {
       usernameChangedAt: usernameChangedAt ?? this.usernameChangedAt,
     );
   }
+}
+
+String? _stringFromJson(Object? value) {
+  if (value == null) return null;
+  return value.toString();
 }
 
 DateTime? _dateFromString(Object? value) {

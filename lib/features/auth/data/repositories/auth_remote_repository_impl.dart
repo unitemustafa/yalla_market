@@ -158,7 +158,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return _guard(() {
       return _apiClient
           .patch<Map<String, dynamic>>(
-            '/auth/me',
+            '/auth/client/profile/',
             data: {
               'first_name': ?firstName,
               'last_name': ?lastName,

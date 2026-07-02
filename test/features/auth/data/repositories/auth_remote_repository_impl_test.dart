@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/storage/token_store.dart';
 import 'package:yalla_market/features/auth/data/repositories/auth_remote_repository_impl.dart';
+import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
 
 import '../../../../helpers/fake_api_client.dart';
 
@@ -278,7 +279,7 @@ void main() {
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'PATCH');
-        expect(request.path, '/auth/me');
+        expect(request.path, '/auth/client/profile/');
         expect(request.data, {
           'first_name': 'Mustafa',
           'last_name': 'Ali',
@@ -320,6 +321,21 @@ void main() {
         },
         failure: (failure) => fail(failure.message),
       );
+    });
+
+    test('AuthUser parses string and integer ids from backend payloads', () {
+      final stringIdUser = AuthUser.fromJson({..._userPayload, 'id': '15'});
+      final integerIdUser = AuthUser.fromJson({
+        ..._userPayload,
+        'id': 15,
+        'phone': 213555100002,
+        'avatar_url': 123,
+      });
+
+      expect(stringIdUser.id, '15');
+      expect(integerIdUser.id, '15');
+      expect(integerIdUser.phone, '213555100002');
+      expect(integerIdUser.avatarUrl, '123');
     });
 
     test('requestPasswordReset posts the email', () async {

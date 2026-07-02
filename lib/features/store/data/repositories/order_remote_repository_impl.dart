@@ -18,41 +18,44 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   Future<ApiResult<OrderData>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
+    List<CartItemData> cartItems = const [],
     String? paymentMethod,
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    String? description,
+    String? deliveryNote,
     double shippingFee = 0,
     double taxTotal = 0,
     double discountTotal = 0,
   }) {
-    return _guard(() async {
-      final payload = await _apiClient.post<Map<String, dynamic>>(
-        '/orders/',
-        data: {
-          'delivery_address_id': int.tryParse(shippingAddress.id ?? ''),
-          if (deliveryAreaId != null && deliveryAreaId.trim().isNotEmpty)
-            'delivery_area_id': int.tryParse(deliveryAreaId),
-          if (deliveryType != null && deliveryType.trim().isNotEmpty)
-            'delivery_type': deliveryType,
-          if (customDeliveryArea != null &&
-              customDeliveryArea.trim().isNotEmpty)
-            'custom_delivery_area': customDeliveryArea.trim(),
-          'items': items
-              .map(
-                (item) => {
-                  'variant_id': int.tryParse(item.variantId ?? item.id),
-                  'quantity': item.quantity,
-                },
-              )
-              .toList(),
-          'payment_method': 'cash_on_delivery',
-          'delivery_price': shippingFee,
-          'discount': discountTotal,
-        },
+    final invalidProductItem = cartItems.isNotEmpty
+        ? cartItems
+              .where((item) => !item.isOffer)
+              .any((item) => item.variantId?.trim().isEmpty ?? true)
+        : items.any((item) => item.variantId?.trim().isEmpty ?? true);
+    if (invalidProductItem) {
+      return Future.value(
+        const ApiResult.failure(
+          ValidationFailure(
+            'Some cart items are missing variant information. Please add them again.',
+          ),
+        ),
       );
-      return OrderData.fromJson(payload);
-    });
+    }
+
+    return _guard(() async {
+      final payload = await _apiClient.post<Object?>(
+        '/orders/create/',
+        data: _createOrderPayload(
+          cartItems: cartItems,
+          orderItems: items,
+          description: description,
+          deliveryNote: deliveryNote,
+        ),
+      );
+      return _orderFromCreatePayload(payload);
+    }, fallbackMessage: 'Could not create order');
   }
 
   @override
@@ -118,14 +121,87 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         .toList(growable: false);
   }
 
-  Future<ApiResult<T>> _guard<T>(Future<T> Function() action) async {
+  OrderData _orderFromCreatePayload(Object? payload) {
+    final order = _orderMapFromCreatePayload(payload);
+    if (order != null) return OrderData.fromJson(order);
+
+    throw const FormatException('Create order response did not contain order.');
+  }
+
+  Map<String, dynamic>? _orderMapFromCreatePayload(Object? payload) {
+    final directOrder = _mapFromPayload(payload);
+    if (directOrder != null) return directOrder;
+
+    if (payload is List) {
+      for (final item in payload) {
+        final order = _orderMapFromCreatePayload(item);
+        if (order != null) return order;
+      }
+    }
+
+    if (payload is Map) {
+      for (final key in const ['order', 'data', 'result']) {
+        final order = _orderMapFromCreatePayload(payload[key]);
+        if (order != null) return order;
+      }
+    }
+
+    return null;
+  }
+
+  Map<String, dynamic>? _mapFromPayload(Object? payload) {
+    if (payload is! Map) return null;
+    final map = Map<String, dynamic>.from(payload);
+    return map.containsKey('id') ? map : null;
+  }
+
+  Future<ApiResult<T>> _guard<T>(
+    Future<T> Function() action, {
+    String fallbackMessage = 'Could not load orders.',
+  }) async {
     try {
       return ApiResult.success(await action());
     } on DioException catch (error) {
       return ApiResult.failure(ApiErrorHandler.handle(error));
     } catch (_) {
-      return const ApiResult.failure(UnknownFailure('Could not load orders.'));
+      return ApiResult.failure(UnknownFailure(fallbackMessage));
     }
+  }
+
+  Map<String, Object?> _createOrderPayload({
+    required List<CartItemData> cartItems,
+    required List<OrderItemData> orderItems,
+    String? description,
+    String? deliveryNote,
+  }) {
+    final hasCartItems = cartItems.isNotEmpty;
+    return {
+      'payment_method': 'cash_on_delivery',
+      'description': description?.trim() ?? '',
+      'delivery_note': deliveryNote?.trim() ?? '',
+      'items': hasCartItems
+          ? cartItems
+                .where((item) => !item.isOffer)
+                .map(
+                  (item) => {
+                    'variant_id': _idFromString(item.variantId),
+                    'quantity': item.quantity,
+                  },
+                )
+                .toList(growable: false)
+          : orderItems
+                .map(
+                  (item) => {
+                    'variant_id': _idFromString(item.variantId),
+                    'quantity': item.quantity,
+                  },
+                )
+                .toList(growable: false),
+      'offers': cartItems
+          .where((item) => item.isOffer)
+          .map((item) => {'offer_id': _idFromString(item.productId ?? item.id)})
+          .toList(growable: false),
+    };
   }
 }
 

@@ -71,10 +71,13 @@ class _FakeOrderRepository implements OrderRepository {
   Future<ApiResult<OrderData>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
+    List<CartItemData> cartItems = const [],
     String? paymentMethod,
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    String? description,
+    String? deliveryNote,
     double shippingFee = 0,
     double taxTotal = 0,
     double discountTotal = 0,

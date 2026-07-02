@@ -7,66 +7,199 @@ import '../../../../helpers/fake_api_client.dart';
 
 void main() {
   group('OrderRemoteRepositoryImpl', () {
-    test('creates an order with the Django order contract', () async {
+    test('sends POST orders create with cart products and offers', () async {
       late FakeApiRequest capturedRequest;
       final apiClient = FakeApiClient((request) {
         capturedRequest = request;
-        return {
-          'id': 1,
-          'order_number': 'YM-20260627-000001',
-          'status': 'pending',
-          'created_at': DateTime(2026).toIso8601String(),
-          'delivery_address': _address.toJson(),
-          'payment_method': 'cash_on_delivery',
-          'items': [
-            {
-              'id': 7,
-              'quantity': 1,
-              'unit_price': '10.00',
-              'variant': {
-                'id': 10,
-                'price': '10.00',
-                'product': {'id': 2, 'name': 'Fresh product'},
-              },
-            },
-          ],
-          'subtotal_price': '10.00',
-          'delivery_price': '0.00',
-          'discount': '0.00',
-          'total_price': '10.00',
-        };
+        return _createdOrderPayload;
       });
       final repository = OrderRemoteRepositoryImpl(apiClient);
 
       final result = await repository.createOrder(
         shippingAddress: _address,
         items: const [_item],
-        paymentMethod: 'visa',
-        deliveryType: 'manual_quote',
-        customDeliveryArea: 'Unlisted area',
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            productId: 'product-1',
+            variantId: '2',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 320,
+            quantity: 2,
+          ),
+          CartItemData(
+            id: '4',
+            productId: '4',
+            image: 'offer.png',
+            brand: 'Yalla',
+            title: 'Bundle offer',
+            price: 250,
+            quantity: 1,
+            itemType: 'offer',
+          ),
+        ],
+        description: 'Leave at door',
+        deliveryNote: '',
       );
 
       result.when(
         success: (order) => expect(order.paymentMethod, 'cash_on_delivery'),
         failure: (failure) => fail(failure.message),
       );
+      expect(capturedRequest.method, 'POST');
+      expect(capturedRequest.path, '/orders/create/');
       expect(
         capturedRequest.data,
         containsPair('payment_method', 'cash_on_delivery'),
       );
-      expect(capturedRequest.data, containsPair('delivery_address_id', 12));
       expect(
         capturedRequest.data,
-        containsPair('delivery_type', 'manual_quote'),
+        containsPair('description', 'Leave at door'),
       );
-      expect(
-        capturedRequest.data,
-        containsPair('custom_delivery_area', 'Unlisted area'),
-      );
+      expect(capturedRequest.data, containsPair('delivery_note', ''));
       expect((capturedRequest.data as Map<String, dynamic>)['items'], [
-        {'variant_id': 10, 'quantity': 1},
+        {'variant_id': 2, 'quantity': 2},
+      ]);
+      expect((capturedRequest.data as Map<String, dynamic>)['offers'], [
+        {'offer_id': 4},
       ]);
     });
+
+    test('createOrder parses object response', () async {
+      final apiClient = FakeApiClient((request) => _createdOrderPayload);
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+        cartItems: const [_cartItem],
+      );
+
+      result.when(
+        success: (order) {
+          expect(order.id, '9');
+          expect(order.total, 1520);
+          expect(order.items, hasLength(2));
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('createOrder parses list response with one order', () async {
+      final apiClient = FakeApiClient((request) => [_createdOrderPayload]);
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+        cartItems: const [_cartItem],
+      );
+
+      result.when(
+        success: (order) => expect(order.id, '9'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('createOrder 201 list response returns success', () async {
+      final apiClient = FakeApiClient((request) => [_createdOrderPayload]);
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+        cartItems: const [_cartItem],
+      );
+
+      result.when(
+        success: (order) => expect(order.status, OrderStatus.pending),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('createOrder parses nested order payloads', () async {
+      final responses = [
+        {'order': _createdOrderPayload},
+        {'data': _createdOrderPayload},
+        {
+          'result': [_createdOrderPayload],
+        },
+      ];
+
+      for (final response in responses) {
+        final apiClient = FakeApiClient((request) => response);
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: const [_cartItem],
+        );
+
+        result.when(
+          success: (order) => expect(order.id, '9'),
+          failure: (failure) => fail(failure.message),
+        );
+      }
+    });
+
+    test(
+      'createOrder parser failure does not say could not load orders',
+      () async {
+        final apiClient = FakeApiClient((request) => {'detail': 'Created'});
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: const [_cartItem],
+        );
+
+        result.when(
+          success: (_) => fail('Expected parser failure.'),
+          failure: (failure) {
+            expect(failure.message, 'Could not create order');
+            expect(failure.message, isNot('Could not load orders.'));
+          },
+        );
+      },
+    );
+
+    test(
+      'does not call create API when product item is missing variant',
+      () async {
+        final apiClient = FakeApiClient((request) {
+          fail('API should not be called for invalid cart items.');
+        });
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [],
+          cartItems: const [
+            CartItemData(
+              id: 'cart-1',
+              image: 'image.png',
+              brand: 'Yalla',
+              title: 'Fresh product',
+              price: 320,
+              quantity: 2,
+            ),
+          ],
+        );
+
+        result.when(
+          success: (_) => fail('Expected validation failure.'),
+          failure: (failure) => expect(
+            failure.message,
+            'Some cart items are missing variant information. Please add them again.',
+          ),
+        );
+        expect(apiClient.requests, isEmpty);
+      },
+    );
 
     test('loads orders from paginated results payload', () async {
       final apiClient = FakeApiClient((request) {
@@ -281,6 +414,27 @@ const _previewPayload = {
   },
 };
 
+const _createdOrderPayload = {
+  'id': 9,
+  'user_id': 2,
+  'delivery_address_id': 1,
+  'market_id': 2,
+  'payment_method': 'cash_on_delivery',
+  'discount': '0.00',
+  'description': '',
+  'status': 'pending',
+  'delivery_price': '250.00',
+  'subtotal_price': '1270.00',
+  'total_price': '1520.00',
+  'items': [
+    {'id': 15, 'variant_id': 13, 'quantity': 1, 'unit_price': '420.00'},
+    {'id': 16, 'variant_id': 11, 'quantity': 1, 'unit_price': '850.00'},
+  ],
+  'offers': [],
+  'created_at': '2026-07-01T23:54:53.440326Z',
+  'updated_at': '2026-07-01T23:54:53.440346Z',
+};
+
 const _address = ShippingAddressData(
   id: '12',
   fullName: 'Mustafa Ali',
@@ -299,5 +453,16 @@ const _item = OrderItemData(
   brand: 'Yalla',
   title: 'Fresh product',
   unitPrice: 10,
+  quantity: 1,
+);
+
+const _cartItem = CartItemData(
+  id: 'cart-1',
+  productId: 'product-1',
+  variantId: '13',
+  image: 'image.png',
+  brand: 'Yalla',
+  title: 'Fresh product',
+  price: 420,
   quantity: 1,
 );

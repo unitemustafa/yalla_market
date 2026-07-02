@@ -94,7 +94,13 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
     );
   }
   if (!sl.isRegistered<CreateOrderUseCase>()) {
-    sl.registerLazySingleton(() => CreateOrderUseCase(sl<OrderRepository>()));
+    sl.registerLazySingleton(
+      () => CreateOrderUseCase(
+        useDemo
+            ? sl<OrderRepository>()
+            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+      ),
+    );
   }
   if (!sl.isRegistered<PreviewOrderUseCase>()) {
     sl.registerLazySingleton(

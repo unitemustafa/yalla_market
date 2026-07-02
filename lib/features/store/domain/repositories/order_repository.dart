@@ -7,10 +7,13 @@ abstract class OrderRepository {
   Future<ApiResult<OrderData>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
+    List<CartItemData> cartItems,
     String? paymentMethod,
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    String? description,
+    String? deliveryNote,
     double shippingFee,
     double taxTotal,
     double discountTotal,

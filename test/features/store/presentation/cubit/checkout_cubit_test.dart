@@ -28,11 +28,13 @@ void main() {
       await cubit.createOrder(
         shippingAddress: sampleShippingAddress,
         items: const [sampleOrderItem],
+        cartItems: const [sampleCartItemWithVariant],
         paymentMethod: 'cash_on_delivery',
         shippingFee: 50,
       );
 
       expect(repository.lastPaymentMethod, 'cash_on_delivery');
+      expect(repository.lastCartItems, const [sampleCartItemWithVariant]);
       expect((cubit.state as CheckoutSuccess).order.id, sampleOrder.id);
       await expectedStates;
       await cubit.close();
@@ -149,20 +151,25 @@ class _FakeOrderRepository implements OrderRepository {
   final OrderPreviewData? previewResult;
   final Failure? previewFailure;
   String? lastPaymentMethod;
+  List<CartItemData> lastCartItems = const [];
 
   @override
   Future<ApiResult<OrderData>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
+    List<CartItemData> cartItems = const [],
     String? paymentMethod,
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    String? description,
+    String? deliveryNote,
     double shippingFee = 0,
     double taxTotal = 0,
     double discountTotal = 0,
   }) async {
     lastPaymentMethod = paymentMethod;
+    lastCartItems = cartItems;
 
     if (createFailure case final failure?) {
       return ApiResult.failure(failure);

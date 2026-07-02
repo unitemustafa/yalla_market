@@ -18,6 +18,7 @@ import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../personalization/domain/entities/address.dart';
 import '../../../personalization/presentation/cubit/address_cubit.dart';
 import '../../../personalization/presentation/cubit/address_state.dart';
+import '../../domain/entities/order.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import 'checkout/checkout_bottom_sheets.dart';
@@ -28,7 +29,9 @@ part 'checkout_delivery_sections.dart';
 part 'checkout_action_and_shared.dart';
 
 class CheckoutView extends StatefulWidget {
-  const CheckoutView({super.key});
+  const CheckoutView({super.key, this.useDemoRepositories});
+
+  final bool? useDemoRepositories;
 
   @override
   State<CheckoutView> createState() => _CheckoutViewState();
@@ -37,6 +40,9 @@ class CheckoutView extends StatefulWidget {
 class _CheckoutViewState extends State<CheckoutView> {
   static const double _shippingFee = 5;
   String? _lastPreviewKey;
+
+  bool get _useDemoRepositories =>
+      widget.useDemoRepositories ?? AppEnvironment.useDemoRepositories;
 
   double _subtotal(List<CartItemData> items) {
     return items.fold(0, (sum, item) => sum + item.price * item.quantity);
@@ -50,7 +56,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     BuildContext context,
     List<CartItemData> cartItems,
   ) {
-    if (AppEnvironment.useDemoRepositories || cartItems.isEmpty) return;
+    if (_useDemoRepositories || cartItems.isEmpty) return;
 
     final previewKey = cartItems
         .map(
@@ -77,6 +83,11 @@ class _CheckoutViewState extends State<CheckoutView> {
           previous.runtimeType != current.runtimeType,
       listener: (context, state) {
         if (state is CheckoutSuccess) {
+          CustomSnackBar.showSuccess(
+            context: context,
+            title: 'Order confirmed',
+            message: 'Your order has been created successfully.',
+          );
           context.read<CartCubit>().clearLocalCart();
           Navigator.pushNamed(context, AppRoutes.processingOrder);
         }
@@ -233,7 +244,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                             }
 
                             final hasMissingVariant = cartItems.any(
-                              (item) => item.variantId?.trim().isEmpty ?? true,
+                              (item) =>
+                                  !item.isOffer &&
+                                  (item.variantId?.trim().isEmpty ?? true),
                             );
                             if (hasMissingVariant) {
                               CustomSnackBar.showError(
@@ -245,12 +258,31 @@ class _CheckoutViewState extends State<CheckoutView> {
                               return;
                             }
 
-                            CustomSnackBar.showInfo(
-                              context: context,
-                              title: 'Order preview ready',
-                              message: hasPreviewTotals
-                                  ? 'Totals are refreshed from the backend. Order creation is not enabled in this phase.'
-                                  : 'Order creation is not enabled in this phase.',
+                            if (_useDemoRepositories) {
+                              CustomSnackBar.showInfo(
+                                context: context,
+                                title: 'Order preview ready',
+                                message: hasPreviewTotals
+                                    ? 'Totals are refreshed from the backend. Order creation is not enabled in this phase.'
+                                    : 'Order creation is not enabled in this phase.',
+                              );
+                              return;
+                            }
+
+                            context.read<CheckoutCubit>().createOrder(
+                              shippingAddress: _shippingAddressFromAddress(
+                                selectedAddress,
+                              ),
+                              items: cartItems
+                                  .where((item) => !item.isOffer)
+                                  .map(OrderItemData.fromCartItem)
+                                  .toList(growable: false),
+                              cartItems: cartItems,
+                              paymentMethod: 'cash_on_delivery',
+                              description: '',
+                              deliveryNote: '',
+                              shippingFee: shippingFee,
+                              discountTotal: discount,
                             );
                           },
                         ),
@@ -314,4 +346,17 @@ CityData _regionFromAddress(AddressData address) {
   ].where((part) => part.trim().isNotEmpty).join(' ');
 
   return CityData.fromName(parts) ?? CityData.general;
+}
+
+ShippingAddressData _shippingAddressFromAddress(AddressData address) {
+  return ShippingAddressData(
+    id: address.id,
+    fullName: address.name,
+    phone: address.phoneNumber,
+    line1: address.street,
+    city: address.city,
+    state: address.state,
+    country: address.country,
+    postalCode: address.postalCode,
+  );
 }

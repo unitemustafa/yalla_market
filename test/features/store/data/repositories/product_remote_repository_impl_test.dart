@@ -29,7 +29,7 @@ void main() {
     test('loads products without forwarding the selected city', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');
-        expect(request.path, '/home/');
+        expect(request.path, '/home/products/');
         expect(request.queryParameters, isNull);
         return {
           'products': [_backendProduct()],
@@ -44,6 +44,35 @@ void main() {
         failure: (failure) => fail(failure.message),
       );
     });
+
+    for (final entry in <String, Object?>{
+      'a direct list': [_backendProduct()],
+      'a results envelope': {
+        'results': [_backendProduct()],
+      },
+      'an items envelope': {
+        'items': [_backendProduct()],
+      },
+      'a products envelope': {
+        'products': [_backendProduct()],
+      },
+    }.entries) {
+      test('loads products from ${entry.key}', () async {
+        final apiClient = FakeApiClient((request) {
+          expect(request.method, 'GET');
+          expect(request.path, '/home/products/');
+          return entry.value;
+        });
+        final repository = ProductRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.getProducts();
+
+        result.when(
+          success: (products) => expect(products.single.id, '42'),
+          failure: (failure) => fail(failure.message),
+        );
+      });
+    }
 
     test('searches products without forwarding the selected city', () async {
       final apiClient = FakeApiClient((request) {
@@ -96,7 +125,7 @@ void main() {
 
     test('maps backend product category, market, and variant price', () async {
       final apiClient = FakeApiClient((request) {
-        expect(request.path, '/home/');
+        expect(request.path, '/home/products/');
         return {
           'products': [_backendProduct()],
         };
@@ -123,7 +152,9 @@ void main() {
       'maps a missing address response to the add address message',
       () async {
         final repository = ProductRemoteRepositoryImpl(
-          FakeApiClient((_) => throw _addressRequiredException('/home/')),
+          FakeApiClient(
+            (_) => throw _addressRequiredException('/home/products/'),
+          ),
         );
 
         final result = await repository.getProducts();
@@ -134,6 +165,23 @@ void main() {
         );
       },
     );
+
+    test('returns a backend failure without demo fallback', () async {
+      final apiClient = FakeApiClient(
+        (_) => throw _serverException('/home/products/'),
+      );
+      final repository = ProductRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.getProducts();
+
+      result.when(
+        success: (_) => fail('Expected the backend failure to be surfaced.'),
+        failure: (failure) {
+          expect(failure.message, isNotEmpty);
+          expect(apiClient.requests, hasLength(1));
+        },
+      );
+    });
   });
 }
 
@@ -147,6 +195,19 @@ DioException _addressRequiredException(String path) {
       data: {
         'detail': 'A user address is required before loading the home page.',
       },
+    ),
+    type: DioExceptionType.badResponse,
+  );
+}
+
+DioException _serverException(String path) {
+  final options = RequestOptions(path: path);
+  return DioException(
+    requestOptions: options,
+    response: Response<Object?>(
+      requestOptions: options,
+      statusCode: 500,
+      data: {'detail': 'Catalog unavailable.'},
     ),
     type: DioExceptionType.badResponse,
   );

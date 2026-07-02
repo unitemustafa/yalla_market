@@ -18,7 +18,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   @override
   Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/home/');
+      final payload = await _apiClient.get<Object?>('/home/products/');
       return _productsFromPayload(payload);
     });
   }

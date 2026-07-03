@@ -62,6 +62,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'GPS helps Yalla Market show nearby products, local offers, better delivery suggestions, and more accurate delivery pricing later.':
         'الموقع بيساعد يلا ماركت يعرض منتجات قريبة، عروض محلية، اقتراحات توصيل أفضل، وتسعير توصيل أدق بعدين.',
     'In-progress and completed orders': 'طلبات جارية ومكتملة',
+    'If your area is not here, add it manually':
+        'لو منطقتك مش موجودة، ضيفها يدويًا',
     'Location permission was not granted. Allow location to continue.':
         'صلاحية الموقع غير مفعلة. اسمح بالموقع عشان تكمل.',
     'Location services are disabled. Turn on GPS to continue.':
@@ -306,6 +308,19 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Order tracking visibility': 'إظهار تتبع الطلب',
     'Orders': 'الطلبات',
     'Other': 'أخرى',
+    'Nasr City': 'مدينة نصر',
+    'Heliopolis': 'مصر الجديدة',
+    'New Cairo': 'القاهرة الجديدة',
+    'Maadi': 'المعادي',
+    'Zamalek': 'الزمالك',
+    'Shubra': 'شبرا',
+    'Mokattam': 'المقطم',
+    'Downtown Cairo': 'وسط البلد',
+    'Helwan': 'حلوان',
+    '15 May': '15 مايو',
+    'Naama Bay': 'خليج نعمة',
+    'Nabq': 'نبق',
+    'Hadaba': 'الهضبة',
     'Orders could not load': 'مش قادرين نحمّل الطلبات',
     'Order Confirmed Successfully!': 'تم تأكيد طلبك بنجاح!',
     'Orders, deals and account updates': 'طلبات وعروض وتحديثات الحساب',

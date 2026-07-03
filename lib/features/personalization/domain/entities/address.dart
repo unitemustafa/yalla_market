@@ -4,6 +4,7 @@ class AddressData {
     required this.name,
     required this.phoneNumber,
     required this.street,
+    this.district = '',
     required this.postalCode,
     required this.city,
     required this.state,
@@ -17,6 +18,7 @@ class AddressData {
   final String name;
   final String phoneNumber;
   final String street;
+  final String district;
   final String postalCode;
   final String city;
   final String state;
@@ -43,6 +45,13 @@ class AddressData {
           json['line1']?.toString() ??
           json['address']?.toString() ??
           '',
+      district:
+          json['district']?.toString() ??
+          json['area']?.toString() ??
+          json['region']?.toString() ??
+          json['delivery_area_name']?.toString() ??
+          _deliveryAreaName(json['delivery_area']) ??
+          '',
       postalCode:
           json['postalCode']?.toString() ??
           json['postal_code']?.toString() ??
@@ -64,6 +73,7 @@ class AddressData {
   String get fullAddress {
     final parts = [
       street,
+      district,
       city,
       state,
       country,
@@ -78,6 +88,7 @@ class AddressData {
       'name': name,
       'phoneNumber': phoneNumber,
       'street': street,
+      'district': district,
       'postalCode': postalCode,
       'city': city,
       'state': state,
@@ -90,7 +101,7 @@ class AddressData {
 
   Map<String, Object?> toApiJson() {
     return {
-      'line1': street,
+      'line1': _lineWithDistrict,
       'city': city,
       'state': state,
       'country': country,
@@ -105,6 +116,7 @@ class AddressData {
     String? name,
     String? phoneNumber,
     String? street,
+    String? district,
     String? postalCode,
     String? city,
     String? state,
@@ -118,6 +130,7 @@ class AddressData {
       name: name ?? this.name,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       street: street ?? this.street,
+      district: district ?? this.district,
       postalCode: postalCode ?? this.postalCode,
       city: city ?? this.city,
       state: state ?? this.state,
@@ -127,6 +140,24 @@ class AddressData {
       isDefault: isDefault ?? this.isDefault,
     );
   }
+
+  String get _lineWithDistrict {
+    final cleanStreet = street.trim();
+    final cleanDistrict = district.trim();
+    if (cleanDistrict.isEmpty) return cleanStreet;
+    if (cleanStreet.isEmpty) return cleanDistrict;
+    if (cleanStreet.toLowerCase().contains(cleanDistrict.toLowerCase())) {
+      return cleanStreet;
+    }
+    return '$cleanStreet, $cleanDistrict';
+  }
+}
+
+String? _deliveryAreaName(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value['name']?.toString();
+  }
+  return null;
 }
 
 double? _doubleFromJson(Object? value) {

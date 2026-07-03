@@ -6,6 +6,7 @@ import '../../../domain/entities/address.dart';
 String localizedAddressText(BuildContext context, AddressData address) {
   final parts = [
     address.street,
+    context.tr(address.district),
     context.tr(address.city),
     context.tr(address.state),
     context.tr(address.country),

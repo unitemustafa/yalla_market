@@ -339,6 +339,7 @@ List<String> _checkoutRegionProblems({
 
 CityData _regionFromAddress(AddressData address) {
   final parts = [
+    address.district,
     address.city,
     address.state,
     address.street,

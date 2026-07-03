@@ -90,6 +90,14 @@ class _SettingsViewState extends State<SettingsView> {
                     onTap: () => Navigator.pushNamed(context, AppRoutes.cart),
                   ),
                   SettingsMenuTile(
+                    icon: AppIcons.location,
+                    title: 'My Addresses',
+                    subTitle: 'Choose where orders should arrive',
+                    accentColor: AppColors.success,
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.addresses),
+                  ),
+                  SettingsMenuTile(
                     icon: AppIcons.receipt_text,
                     title: 'My Orders',
                     subTitle: 'In-progress and completed orders',

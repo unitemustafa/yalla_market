@@ -9,6 +9,7 @@ import '../../../data/demo/demo_shops.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
+import '../../../../../core/presentation/widgets/brands/brand_showcase.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -254,28 +255,28 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           )
         else
           ...markets.map(
-            (market) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: BrandCard(
-                showBorder: true,
-                brand: market.name,
-                logo: market.image,
-                productCount: market.productCountLabel,
-                accentColor: Color(market.accentColorValue),
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.brandProducts,
-                    arguments: BrandProductsRouteArgs(
-                      brand: market.name,
-                      logo: market.image,
-                      productCount: market.productCountLabel,
-                      classificationId: market.classificationId,
-                      marketId: market.id,
-                    ),
-                  );
-                },
-              ),
+            (market) => BrandShowcase(
+              brand: market.name,
+              productCount: market.productCountLabel,
+              logo: market.image,
+              accentColor: Color(market.accentColorValue),
+              images: market.products
+                  .map((product) => product.image)
+                  .take(3)
+                  .toList(growable: false),
+              onTap: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.brandProducts,
+                  arguments: BrandProductsRouteArgs(
+                    brand: market.name,
+                    logo: market.image,
+                    productCount: market.productCountLabel,
+                    classificationId: market.classificationId,
+                    marketId: market.id,
+                  ),
+                );
+              },
             ),
           ),
       ],
@@ -301,12 +302,15 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           subtitle: subtitle.isEmpty ? market.productCountLabel : subtitle,
         ),
         const SizedBox(height: 18),
-        BrandCard(
-          showBorder: true,
+        BrandShowcase(
           brand: market.name,
           logo: market.image,
           productCount: market.productCountLabel,
           accentColor: Color(market.accentColorValue),
+          images: market.products
+              .map((product) => product.image)
+              .take(3)
+              .toList(growable: false),
         ),
         const SizedBox(height: 26),
         ProductResultsView(

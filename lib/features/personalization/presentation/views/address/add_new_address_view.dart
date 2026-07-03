@@ -29,10 +29,12 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _streetController;
+  late final TextEditingController _districtController;
   late final TextEditingController _cityController;
   late final TextEditingController _stateController;
   late final TextEditingController _countryController;
   bool _isSaving = false;
+  late bool _usesCustomDistrict;
 
   bool get _isEditing => widget.address != null;
 
@@ -44,9 +46,13 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     _nameController = TextEditingController(text: address?.name ?? '');
     _phoneController = TextEditingController(text: address?.phoneNumber ?? '');
     _streetController = TextEditingController(text: address?.street ?? '');
+    _districtController = TextEditingController(text: address?.district ?? '');
     _cityController = TextEditingController(text: address?.city ?? '');
     _stateController = TextEditingController(text: address?.state ?? '');
     _countryController = TextEditingController(text: address?.country ?? '');
+    _usesCustomDistrict =
+        _districtController.text.trim().isNotEmpty &&
+        !_knownDistricts.contains(_districtController.text.trim());
   }
 
   @override
@@ -54,6 +60,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     _nameController.dispose();
     _phoneController.dispose();
     _streetController.dispose();
+    _districtController.dispose();
     _cityController.dispose();
     _stateController.dispose();
     _countryController.dispose();
@@ -105,6 +112,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       name: _nameController.text.trim(),
       phoneNumber: _phoneController.text.trim(),
       street: _streetController.text.trim(),
+      district: _districtController.text.trim(),
       postalCode: existingAddress?.postalCode ?? '',
       city: _cityController.text.trim(),
       state: _stateController.text.trim(),
@@ -187,6 +195,14 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                               validator: _requiredField,
                               textInputAction: TextInputAction.next,
                             ),
+                            _AddressDistrictField(
+                              controller: _districtController,
+                              usesCustomDistrict: _usesCustomDistrict,
+                              onCustomModeChanged: (value) {
+                                setState(() => _usesCustomDistrict = value);
+                              },
+                              validator: _requiredField,
+                            ),
                             _ResponsiveFieldPair(
                               first: _AddressTextField(
                                 controller: _cityController,
@@ -232,6 +248,22 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     );
   }
 }
+
+const _knownDistricts = [
+  'Nasr City',
+  'Heliopolis',
+  'New Cairo',
+  'Maadi',
+  'Zamalek',
+  'Shubra',
+  'Mokattam',
+  'Downtown Cairo',
+  'Helwan',
+  '15 May',
+  'Naama Bay',
+  'Nabq',
+  'Hadaba',
+];
 
 class _AddressHero extends StatelessWidget {
   const _AddressHero({required this.isDark, required this.isEditing});
@@ -302,6 +334,177 @@ class _AddressHero extends StatelessWidget {
   }
 }
 
+class _AddressDistrictField extends StatelessWidget {
+  const _AddressDistrictField({
+    required this.controller,
+    required this.usesCustomDistrict,
+    required this.onCustomModeChanged,
+    required this.validator,
+  });
+
+  final TextEditingController controller;
+  final bool usesCustomDistrict;
+  final ValueChanged<bool> onCustomModeChanged;
+  final FormFieldValidator<String>? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    if (usesCustomDistrict) {
+      return _AddressTextField(
+        controller: controller,
+        icon: AppIcons.location,
+        label: 'Region',
+        validator: validator,
+        textInputAction: TextInputAction.next,
+        suffixIcon: IconButton(
+          onPressed: () => _showDistrictPicker(context),
+          icon: const Icon(AppIcons.arrow_down_1),
+          tooltip: context.tr('Choose manually'),
+        ),
+      );
+    }
+
+    return _AddressPickerField(
+      controller: controller,
+      icon: AppIcons.location,
+      label: 'Region',
+      validator: validator,
+      onTap: () => _showDistrictPicker(context),
+    );
+  }
+
+  Future<void> _showDistrictPicker(BuildContext context) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => const _DistrictPickerSheet(),
+    );
+
+    if (selected == null || !context.mounted) return;
+
+    if (selected == _customDistrictToken) {
+      controller.clear();
+      onCustomModeChanged(true);
+      return;
+    }
+
+    controller.text = selected;
+    onCustomModeChanged(false);
+  }
+}
+
+const _customDistrictToken = '__custom_district__';
+
+class _DistrictPickerSheet extends StatelessWidget {
+  const _DistrictPickerSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 18),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.tr('Region'),
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 12),
+            _DistrictTile(
+              icon: AppIcons.edit,
+              label: 'If your area is not here, add it manually',
+              color: AppColors.primary,
+              isDark: isDark,
+              onTap: () => Navigator.pop(context, _customDistrictToken),
+            ),
+            const SizedBox(height: 8),
+            Flexible(
+              child: ListView.separated(
+                shrinkWrap: true,
+                itemCount: _knownDistricts.length,
+                separatorBuilder: (_, _) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final district = _knownDistricts[index];
+                  return _DistrictTile(
+                    icon: AppIcons.location,
+                    label: district,
+                    color: AppColors.primary,
+                    isDark: isDark,
+                    onTap: () => Navigator.pop(context, district),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DistrictTile extends StatelessWidget {
+  const _DistrictTile({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isDark;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isDark ? AppColors.darkCardColor : Colors.white,
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 52,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.06),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  context.tr(label),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+                ),
+              ),
+              const Icon(AppIcons.arrow_right_3, size: 17),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddressFormCard extends StatelessWidget {
   const _AddressFormCard({required this.isDark, required this.children});
 
@@ -342,6 +545,7 @@ class _AddressTextField extends StatelessWidget {
     this.keyboardType,
     this.textInputAction,
     this.onSubmitted,
+    this.suffixIcon,
   });
 
   final TextEditingController controller;
@@ -351,6 +555,7 @@ class _AddressTextField extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
+  final Widget? suffixIcon;
 
   @override
   Widget build(BuildContext context) {
@@ -367,6 +572,56 @@ class _AddressTextField extends StatelessWidget {
       ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
       decoration: InputDecoration(
         prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
+        labelText: context.tr(label),
+        filled: true,
+        fillColor: isDark
+            ? Colors.white.withValues(alpha: 0.04)
+            : const Color(0xFFF7F8FB),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.08)
+                : Colors.black.withValues(alpha: 0.08),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AddressPickerField extends StatelessWidget {
+  const _AddressPickerField({
+    required this.controller,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    this.validator,
+  });
+
+  final TextEditingController controller;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  final FormFieldValidator<String>? validator;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return TextFormField(
+      controller: controller,
+      validator: validator,
+      readOnly: true,
+      onTap: onTap,
+      style: Theme.of(
+        context,
+      ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+      decoration: InputDecoration(
+        prefixIcon: Icon(icon),
+        suffixIcon: const Icon(AppIcons.arrow_down_1),
         labelText: context.tr(label),
         filled: true,
         fillColor: isDark

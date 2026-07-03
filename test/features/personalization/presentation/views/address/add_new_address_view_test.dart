@@ -16,13 +16,20 @@ void main() {
     );
 
     final fields = find.byType(TextFormField);
-    expect(fields, findsNWidgets(6));
+    expect(fields, findsNWidgets(7));
     await tester.enterText(fields.at(0), 'Mustafa Ali');
     await tester.enterText(fields.at(1), '01000000000');
     await tester.enterText(fields.at(2), '12 Tahrir St');
-    await tester.enterText(fields.at(3), 'Cairo');
+    await tester.tap(fields.at(3));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Nasr City'));
+    await tester.pumpAndSettle();
     await tester.enterText(fields.at(4), 'Cairo');
-    await tester.enterText(fields.at(5), 'Egypt');
+    await tester.enterText(fields.at(5), 'Cairo');
+    await tester.enterText(fields.at(6), 'Egypt');
+
+    await tester.ensureVisible(find.text('Save'));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();

@@ -331,10 +331,9 @@ class _SearchInput extends StatelessWidget {
         prefixIcon: const Icon(AppIcons.search_normal),
         suffixIcon: controller.text.isEmpty
             ? const Icon(AppIcons.filter_search, color: AppColors.primary)
-            : IconButton(
-                onPressed: controller.clear,
-                icon: const Icon(Icons.close_rounded),
-                tooltip: context.tr('Clear'),
+            : Padding(
+                padding: const EdgeInsetsDirectional.only(end: 8),
+                child: _SearchClearIconButton(onPressed: controller.clear),
               ),
         filled: true,
         fillColor: isDark ? AppColors.darkCardColor : Colors.white,
@@ -584,11 +583,84 @@ class _EmptySearchState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 18),
-            OutlinedButton(
+            _ClearSearchButton(
               onPressed: onClear,
-              child: Text(context.tr(title == null ? 'Clear search' : 'Back')),
+              label: title == null ? 'Clear search' : 'Back',
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchClearIconButton extends StatelessWidget {
+  const _SearchClearIconButton({required this.onPressed});
+
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Tooltip(
+      message: context.tr('Clear search'),
+      child: Material(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: const SizedBox(
+            width: 34,
+            height: 34,
+            child: Icon(Icons.close_rounded, color: AppColors.primary),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ClearSearchButton extends StatelessWidget {
+  const _ClearSearchButton({required this.onPressed, required this.label});
+
+  final VoidCallback onPressed;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Material(
+      color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.30),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(AppIcons.trash, color: AppColors.primary, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                context.tr(label),
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

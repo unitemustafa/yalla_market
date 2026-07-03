@@ -14,43 +14,62 @@ class CartCounterIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        IconButton(
-          onPressed:
-              onPressed ?? () => Navigator.pushNamed(context, AppRoutes.cart),
-          icon: Icon(AppIcons.shopping_bag, color: iconColor),
-        ),
-        Positioned(
-          right: 0,
-          top: 0,
-          child: Container(
-            width: 18,
-            height: 18,
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Center(
-              child: BlocBuilder<CartCubit, List<CartItemData>>(
-                builder: (context, cartItems) {
-                  int count = cartItems.fold(
-                    0,
-                    (sum, item) => sum + item.quantity,
-                  );
-                  return Text(
-                    count.toString(),
-                    style: Theme.of(context).textTheme.labelLarge!.apply(
-                      color: Colors.white,
-                      fontSizeFactor: 0.8,
-                    ),
-                  );
-                },
+    return BlocBuilder<CartCubit, List<CartItemData>>(
+      builder: (context, cartItems) {
+        final count = cartItems.fold(0, (sum, item) => sum + item.quantity);
+
+        return Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Center(
+              child: IconButton(
+                onPressed:
+                    onPressed ??
+                    () => Navigator.pushNamed(context, AppRoutes.cart),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints.tightFor(
+                  width: 44,
+                  height: 44,
+                ),
+                icon: Icon(AppIcons.shopping_bag, color: iconColor, size: 24),
               ),
             ),
-          ),
-        ),
-      ],
+            if (count > 0)
+              PositionedDirectional(
+                end: 2,
+                top: 2,
+                child: Container(
+                  constraints: const BoxConstraints(
+                    minWidth: 18,
+                    minHeight: 18,
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: Theme.of(context).brightness == Brightness.dark
+                          ? AppColors.darkCardColor
+                          : Colors.white,
+                      width: 1.5,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    count > 99 ? '99+' : count.toString(),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white,
+                      fontSize: 10,
+                      height: 1,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        );
+      },
     );
   }
 }

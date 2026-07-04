@@ -4,10 +4,14 @@ import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../features/personalization/data/repositories/address_remote_repository_impl.dart';
 import '../../../features/personalization/data/repositories/address_repository_impl.dart';
+import '../../../features/personalization/data/repositories/delivery_area_remote_repository_impl.dart';
+import '../../../features/personalization/data/repositories/delivery_area_repository_impl.dart';
 import '../../../features/personalization/data/repositories/profile_image_repository_impl.dart';
 import '../../../features/personalization/domain/repositories/address_repository.dart';
+import '../../../features/personalization/domain/repositories/delivery_area_repository.dart';
 import '../../../features/personalization/domain/repositories/profile_image_repository.dart';
 import '../../../features/personalization/domain/usecases/address_usecases.dart';
+import '../../../features/personalization/domain/usecases/delivery_area_usecases.dart';
 import '../../../features/personalization/domain/usecases/pick_profile_image_usecase.dart';
 import '../../../features/personalization/presentation/cubit/address_cubit.dart';
 import '../../../features/personalization/presentation/cubit/profile_image_cubit.dart';
@@ -18,6 +22,18 @@ void registerPersonalizationDependencies(GetIt sl) {
       () => AppEnvironment.useDemoRepositories
           ? AddressRepositoryImpl()
           : AddressRemoteRepositoryImpl(sl<ApiClient>()),
+    );
+  }
+  if (!sl.isRegistered<DeliveryAreaRepository>()) {
+    sl.registerLazySingleton<DeliveryAreaRepository>(
+      () => AppEnvironment.useDemoRepositories
+          ? DeliveryAreaRepositoryImpl()
+          : DeliveryAreaRemoteRepositoryImpl(sl<ApiClient>()),
+    );
+  }
+  if (!sl.isRegistered<GetDeliveryAreasUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetDeliveryAreasUseCase(sl<DeliveryAreaRepository>()),
     );
   }
   if (!sl.isRegistered<GetAddressesUseCase>()) {

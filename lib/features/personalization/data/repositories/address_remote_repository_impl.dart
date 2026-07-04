@@ -31,15 +31,6 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
 
   @override
   Future<ApiResult<List<AddressData>>> saveAddress(AddressData address) {
-    if (address.latitude == null || address.longitude == null) {
-      return Future.value(
-        const ApiResult.failure(
-          ValidationFailure(
-            'Turn on GPS and allow location access before saving the address.',
-          ),
-        ),
-      );
-    }
     return _guard(() async {
       final hasServerId = address.id.trim().isNotEmpty;
       final payload = hasServerId
@@ -74,9 +65,7 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
   }
 
   List<AddressData> _addressesFromPayload(Object? payload) {
-    final rawItems = payload is Map<String, dynamic>
-        ? payload['items'] ?? payload['addresses']
-        : payload;
+    final rawItems = _listPayload(payload);
     if (rawItems is! List) return const [];
     return rawItems
         .whereType<Map<String, dynamic>>()
@@ -95,4 +84,21 @@ class AddressRemoteRepositoryImpl implements AddressRepository {
       );
     }
   }
+}
+
+Object? _listPayload(Object? payload) {
+  if (payload is List) return payload;
+  if (payload is Map<String, dynamic>) {
+    final data = payload['data'];
+    if (payload['results'] is List) return payload['results'];
+    if (payload['items'] is List) return payload['items'];
+    if (payload['addresses'] is List) return payload['addresses'];
+    if (data is List) return data;
+    if (data is Map<String, dynamic>) {
+      if (data['results'] is List) return data['results'];
+      if (data['items'] is List) return data['items'];
+      if (data['addresses'] is List) return data['addresses'];
+    }
+  }
+  return null;
 }

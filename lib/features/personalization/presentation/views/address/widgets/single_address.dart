@@ -11,6 +11,9 @@ class SingleAddress extends StatelessWidget {
     required this.name,
     required this.phoneNumber,
     required this.address,
+    required this.city,
+    required this.area,
+    required this.deliveryPriceLabel,
     this.onTap,
     this.onEdit,
     this.onDelete,
@@ -20,6 +23,9 @@ class SingleAddress extends StatelessWidget {
   final String name;
   final String phoneNumber;
   final String address;
+  final String city;
+  final String area;
+  final String deliveryPriceLabel;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -132,6 +138,10 @@ class SingleAddress extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
+              _InfoLine(icon: AppIcons.building, text: city),
+              const SizedBox(height: 6),
+              _InfoLine(icon: AppIcons.location, text: area),
+              const SizedBox(height: 6),
               Text(
                 address,
                 maxLines: 3,
@@ -142,6 +152,8 @@ class SingleAddress extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(height: 8),
+              _InfoLine(icon: AppIcons.truck_fast, text: deliveryPriceLabel),
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -164,6 +176,39 @@ class SingleAddress extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.icon, required this.text});
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    if (text.trim().isEmpty) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = isDark
+        ? Colors.white.withValues(alpha: 0.58)
+        : Colors.black.withValues(alpha: 0.56);
+    return Row(
+      children: [
+        Icon(icon, size: 15, color: mutedColor),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: mutedColor,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

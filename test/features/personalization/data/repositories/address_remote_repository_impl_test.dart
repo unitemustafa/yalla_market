@@ -41,23 +41,26 @@ void main() {
       );
 
       expect(body, {
-        'line1': sampleAddress.street,
-        'city': sampleAddress.city,
-        'state': sampleAddress.state,
-        'country': sampleAddress.country,
-        'latitude': sampleAddress.latitude,
-        'longitude': sampleAddress.longitude,
+        'name': sampleAddress.name,
+        'details': sampleAddress.street,
+        'service_city_id': null,
+        'delivery_area_id': null,
+        'manual_city': null,
+        'manual_area': null,
         'is_default': sampleAddress.isDefault,
       });
       result.when(
-        success: (addresses) => expect(addresses.single.id, sampleAddress.id),
+        success: (addresses) => expect(addresses.single.id, 'address_1'),
         failure: (failure) => fail(failure.message),
       );
     });
 
-    test('rejects saving an address without GPS coordinates', () async {
+    test('saves an address without GPS coordinates', () async {
+      late Map<String, Object?> body;
       final apiClient = FakeApiClient((request) {
-        fail('The API must not be called without coordinates.');
+        expect(request.method, 'POST');
+        body = request.data! as Map<String, Object?>;
+        return [_apiAddressPayload];
       });
       final repository = AddressRemoteRepositoryImpl(apiClient);
 
@@ -75,13 +78,11 @@ void main() {
       );
 
       result.when(
-        success: (_) => fail('Saving without coordinates should fail.'),
-        failure: (failure) => expect(
-          failure.message,
-          'Turn on GPS and allow location access before saving the address.',
-        ),
+        success: (addresses) => expect(addresses, isNotEmpty),
+        failure: (failure) => fail(failure.message),
       );
-      expect(apiClient.requests, isEmpty);
+      expect(body.containsKey('latitude'), isFalse);
+      expect(body.containsKey('longitude'), isFalse);
     });
 
     test(
@@ -98,8 +99,7 @@ void main() {
 
         final result = await repository.saveAddress(sampleAddress);
 
-        expect(body['latitude'], sampleAddress.latitude);
-        expect(body['longitude'], sampleAddress.longitude);
+        expect(body['details'], sampleAddress.street);
         expect(body['is_default'], isTrue);
         result.when(
           success: (addresses) => expect(addresses.single.isDefault, isTrue),
@@ -120,7 +120,7 @@ void main() {
 
       result.when(
         success: (address) {
-          expect(address?.id, sampleAddress.id);
+          expect(address?.id, 'address_1');
           expect(address?.latitude, sampleAddress.latitude);
           expect(address?.longitude, sampleAddress.longitude);
         },
@@ -143,18 +143,55 @@ void main() {
         failure: (failure) => fail(failure.message),
       );
     });
+
+    test('parses addresses from results payload', () async {
+      final apiClient = FakeApiClient((request) {
+        return {
+          'results': [_apiAddressPayload],
+        };
+      });
+      final repository = AddressRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.getAddresses();
+
+      result.when(
+        success: (addresses) => expect(addresses.single.id, 'address_1'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('parses addresses from data results payload', () async {
+      final apiClient = FakeApiClient((request) {
+        return {
+          'data': {
+            'results': [_apiAddressPayload],
+          },
+        };
+      });
+      final repository = AddressRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.getAddresses();
+
+      result.when(
+        success: (addresses) => expect(addresses.single.id, 'address_1'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
   });
 }
 
 const _apiAddressPayload = <String, Object?>{
   'id': 'address_1',
-  'name': '12 Tahrir St, Cairo, Cairo, Egypt',
-  'phoneNumber': '+201000000000',
-  'street': '12 Tahrir St, Cairo, Cairo, Egypt',
-  'city': '',
-  'state': '',
-  'country': 'Egypt',
-  'postalCode': '',
+  'name': 'Home',
+  'phone': '+201000000000',
+  'details': '12 Tahrir St',
+  'service_city_id': 1,
+  'service_city_name': 'Cairo',
+  'delivery_area_id': 2,
+  'delivery_area_name': 'Nasr City',
+  'delivery_area_price': '50.00',
+  'manual_city': null,
+  'manual_area': null,
   'latitude': '30.0444000',
   'longitude': '31.2357000',
   'is_default': true,

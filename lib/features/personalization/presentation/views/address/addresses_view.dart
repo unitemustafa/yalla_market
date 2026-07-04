@@ -9,6 +9,7 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../domain/entities/address.dart';
 import '../../../../location/data/datasources/device_location_data_source.dart';
+import '../../../domain/usecases/delivery_area_usecases.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_display_text.dart';
@@ -22,25 +23,15 @@ class AddressesView extends StatelessWidget {
     BuildContext context, {
     AddressData? address,
   }) async {
-    final result = await Navigator.push<AddressData>(
+    await Navigator.push<AddressData>(
       context,
       MaterialPageRoute(
         builder: (_) => AddNewAddressView(
           address: address,
           locationDataSource: sl<DeviceLocationDataSource>(),
+          getDeliveryAreas: sl<GetDeliveryAreasUseCase>(),
         ),
       ),
-    );
-
-    if (result == null || !context.mounted) return;
-
-    final saved = await context.read<AddressCubit>().saveAddress(result);
-    if (!saved || !context.mounted) return;
-
-    CustomSnackBar.showSuccess(
-      context: context,
-      title: address == null ? 'Address saved' : 'Address updated',
-      message: result.name,
     );
   }
 
@@ -174,6 +165,12 @@ class AddressesView extends StatelessWidget {
                         name: address.name,
                         phoneNumber: address.phoneNumber,
                         address: localizedAddressText(context, address),
+                        city: address.cityLabel,
+                        area: address.areaLabel,
+                        deliveryPriceLabel: _deliveryPriceLabel(
+                          context,
+                          address.deliveryAreaPrice,
+                        ),
                         onTap: () => context.read<AddressCubit>().selectAddress(
                           address.id,
                         ),
@@ -188,6 +185,20 @@ class AddressesView extends StatelessWidget {
       },
     );
   }
+}
+
+String _deliveryPriceLabel(BuildContext context, double? price) {
+  if (price == null) {
+    return context.isArabicLanguage
+        ? 'التوصيل: دليفيري - يحدد لاحقا'
+        : 'Delivery: Delivery - confirmed later';
+  }
+  final value = price == price.roundToDouble()
+      ? price.toStringAsFixed(0)
+      : price.toStringAsFixed(2);
+  return context.isArabicLanguage
+      ? 'التوصيل: $value ج.م'
+      : 'Delivery: EGP $value';
 }
 
 class _AddressSummaryCard extends StatelessWidget {

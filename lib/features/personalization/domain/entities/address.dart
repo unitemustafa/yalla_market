@@ -12,12 +12,21 @@ class AddressData {
     this.latitude,
     this.longitude,
     this.isDefault = false,
+    this.manualCity,
+    this.manualArea,
+    this.serviceCityId,
+    this.serviceCityName,
+    this.deliveryAreaId,
+    this.deliveryAreaName,
+    this.deliveryAreaPrice,
+    this.deliveryType,
   });
 
   final String id;
   final String name;
   final String phoneNumber;
   final String street;
+  String get details => street;
   final String district;
   final String postalCode;
   final String city;
@@ -26,6 +35,14 @@ class AddressData {
   final double? latitude;
   final double? longitude;
   final bool isDefault;
+  final String? manualCity;
+  final String? manualArea;
+  final int? serviceCityId;
+  final String? serviceCityName;
+  final int? deliveryAreaId;
+  final String? deliveryAreaName;
+  final double? deliveryAreaPrice;
+  final String? deliveryType;
 
   factory AddressData.fromJson(Map<String, dynamic> json) {
     return AddressData(
@@ -36,16 +53,18 @@ class AddressData {
           json['full_name']?.toString() ??
           '',
       phoneNumber:
+          json['phone']?.toString() ??
           json['phoneNumber']?.toString() ??
           json['phone_number']?.toString() ??
-          json['phone']?.toString() ??
           '',
       street:
-          json['street']?.toString() ??
+          json['details']?.toString() ??
           json['line1']?.toString() ??
+          json['street']?.toString() ??
           json['address']?.toString() ??
           '',
       district:
+          json['manual_area']?.toString() ??
           json['district']?.toString() ??
           json['area']?.toString() ??
           json['region']?.toString() ??
@@ -56,31 +75,58 @@ class AddressData {
           json['postalCode']?.toString() ??
           json['postal_code']?.toString() ??
           '',
-      city: json['city']?.toString() ?? '',
+      city:
+          json['service_city_name']?.toString() ??
+          _serviceCityName(json['service_city']) ??
+          json['manual_city']?.toString() ??
+          json['city']?.toString() ??
+          '',
       state: json['state']?.toString() ?? '',
       country: json['country']?.toString() ?? '',
       latitude: _doubleFromJson(json['latitude']),
       longitude: _doubleFromJson(json['longitude']),
       isDefault:
-          json['isDefault'] as bool? ??
-          json['is_default'] as bool? ??
+          _boolFromJson(json['is_default']) ??
+          _boolFromJson(json['isDefault']) ??
           json['default'] as bool? ??
           json['selected'] as bool? ??
           false,
+      manualCity: _stringOrNull(json['manual_city']),
+      manualArea: _stringOrNull(json['manual_area']),
+      serviceCityId: _intFromJson(
+        json['service_city_id'] ?? _nestedValue(json['service_city'], 'id'),
+      ),
+      serviceCityName:
+          _stringOrNull(json['service_city_name']) ??
+          _stringOrNull(_nestedValue(json['service_city'], 'name')),
+      deliveryAreaId: _intFromJson(
+        json['delivery_area_id'] ?? _nestedValue(json['delivery_area'], 'id'),
+      ),
+      deliveryAreaName:
+          _stringOrNull(json['delivery_area_name']) ??
+          _stringOrNull(_nestedValue(json['delivery_area'], 'name')),
+      deliveryAreaPrice: _doubleFromJson(
+        json['delivery_area_price'] ?? json['delivery_price_preview'],
+      ),
+      deliveryType: _stringOrNull(json['delivery_type']),
     );
   }
 
   String get fullAddress {
     final parts = [
       street,
-      district,
-      city,
+      areaLabel,
+      cityLabel,
       state,
       country,
     ].where((part) => part.trim().isNotEmpty).toList();
 
     return parts.join(', ');
   }
+
+  String get cityLabel => serviceCityName ?? manualCity ?? city;
+
+  String get areaLabel => deliveryAreaName ?? manualArea ?? district;
 
   Map<String, Object?> toJson() {
     return {
@@ -96,17 +142,25 @@ class AddressData {
       'latitude': latitude,
       'longitude': longitude,
       'isDefault': isDefault,
+      'manualCity': manualCity,
+      'manualArea': manualArea,
+      'serviceCityId': serviceCityId,
+      'serviceCityName': serviceCityName,
+      'deliveryAreaId': deliveryAreaId,
+      'deliveryAreaName': deliveryAreaName,
+      'deliveryAreaPrice': deliveryAreaPrice,
+      'deliveryType': deliveryType,
     };
   }
 
   Map<String, Object?> toApiJson() {
     return {
-      'line1': _lineWithDistrict,
-      'city': city,
-      'state': state,
-      'country': country,
-      'latitude': latitude,
-      'longitude': longitude,
+      'name': name,
+      'details': street,
+      'service_city_id': serviceCityId,
+      'delivery_area_id': deliveryAreaId,
+      'manual_city': manualCity,
+      'manual_area': manualArea,
       'is_default': isDefault,
     };
   }
@@ -124,6 +178,14 @@ class AddressData {
     double? latitude,
     double? longitude,
     bool? isDefault,
+    String? manualCity,
+    String? manualArea,
+    int? serviceCityId,
+    String? serviceCityName,
+    int? deliveryAreaId,
+    String? deliveryAreaName,
+    double? deliveryAreaPrice,
+    String? deliveryType,
   }) {
     return AddressData(
       id: id ?? this.id,
@@ -138,18 +200,15 @@ class AddressData {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       isDefault: isDefault ?? this.isDefault,
+      manualCity: manualCity ?? this.manualCity,
+      manualArea: manualArea ?? this.manualArea,
+      serviceCityId: serviceCityId ?? this.serviceCityId,
+      serviceCityName: serviceCityName ?? this.serviceCityName,
+      deliveryAreaId: deliveryAreaId ?? this.deliveryAreaId,
+      deliveryAreaName: deliveryAreaName ?? this.deliveryAreaName,
+      deliveryAreaPrice: deliveryAreaPrice ?? this.deliveryAreaPrice,
+      deliveryType: deliveryType ?? this.deliveryType,
     );
-  }
-
-  String get _lineWithDistrict {
-    final cleanStreet = street.trim();
-    final cleanDistrict = district.trim();
-    if (cleanDistrict.isEmpty) return cleanStreet;
-    if (cleanStreet.isEmpty) return cleanDistrict;
-    if (cleanStreet.toLowerCase().contains(cleanDistrict.toLowerCase())) {
-      return cleanStreet;
-    }
-    return '$cleanStreet, $cleanDistrict';
   }
 }
 
@@ -163,5 +222,36 @@ String? _deliveryAreaName(Object? value) {
 double? _doubleFromJson(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
+  return null;
+}
+
+int? _intFromJson(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+bool? _boolFromJson(Object? value) {
+  if (value is bool) return value;
+  if (value is String) return bool.tryParse(value);
+  return null;
+}
+
+String? _stringOrNull(Object? value) {
+  final text = value?.toString().trim();
+  if (text == null || text.isEmpty) return null;
+  return text;
+}
+
+Object? _nestedValue(Object? value, String key) {
+  if (value is Map<String, dynamic>) return value[key];
+  return null;
+}
+
+String? _serviceCityName(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value['name']?.toString();
+  }
   return null;
 }

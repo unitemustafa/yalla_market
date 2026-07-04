@@ -65,7 +65,7 @@ const Map<String, Map<String, String>> _translationValues = {
   },
   'ar': {
     'appName': 'يلا ماركت',
-    'skip': 'تخطِ',
+    'skip': 'تخطي',
     'continueText': 'كمّل',
     'done': 'تمام',
     'startShopping': 'ابدأ التسوق',

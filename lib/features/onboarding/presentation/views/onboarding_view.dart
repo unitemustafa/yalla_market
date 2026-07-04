@@ -5,6 +5,7 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
+import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../domain/entities/onboarding_model.dart';
 import '../cubit/onboarding_cubit.dart';
@@ -73,9 +74,21 @@ class _OnboardingViewState extends State<OnboardingView> {
       _isFinishing = true;
     });
 
-    await context.read<OnboardingCubit>().markOnboardingSeen();
+    final saved = await context.read<OnboardingCubit>().markOnboardingSeen();
 
     if (!mounted) return;
+
+    if (!saved) {
+      setState(() {
+        _isFinishing = false;
+      });
+      CustomSnackBar.showError(
+        context: context,
+        title: 'Could not continue',
+        message: 'Please try again.',
+      );
+      return;
+    }
 
     Navigator.of(
       context,

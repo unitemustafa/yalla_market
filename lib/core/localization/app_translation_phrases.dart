@@ -183,6 +183,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Could not check this email.': 'مش قادرين نراجع الإيميل ده.',
     'Could not check this phone number.': 'مش قادرين نراجع رقم الموبايل ده.',
     'Could not check this username.': 'مش قادرين نراجع اسم المستخدم ده.',
+    'Could not continue': 'مش قادرين نكمّل',
     'Could not create your account.': 'مش قادرين نعمل الحساب.',
     'Could not delete your account.': 'مش قادرين نحذف الحساب.',
     'Could not load your profile.': 'مش قادرين نحمّل البروفايل.',
@@ -580,6 +581,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Please enter a valid phone number': 'اكتب رقم موبايل صحيح',
     'Please accept the Privacy Policy and Terms of use.':
         'لازم توافق على سياسة الخصوصية وشروط الاستخدام.',
+    'Please try again.': 'حاول تاني.',
     'Please agree to the Privacy Policy and Terms of use before creating your account.':
         'لازم توافق على سياسة الخصوصية وشروط الاستخدام قبل إنشاء الحساب.',
     'Phone check skipped': 'تخطينا فحص رقم الموبايل',

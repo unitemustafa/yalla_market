@@ -14,16 +14,18 @@ class OrderHistoryCubit extends Cubit<OrderHistoryState> {
     emit(const OrderHistoryInitial());
   }
 
-  Future<void> loadOrders() async {
+  Future<void> loadOrders({bool force = false}) async {
     if (state is OrderHistoryLoading) return;
+    if (!force && state is OrderHistoryReady) return;
 
     final staleOrders = switch (state) {
       OrderHistoryReady(:final orders) => orders,
       OrderHistoryFailure(:final orders) => orders,
+      OrderHistoryLoading(:final orders) => orders,
       _ => const <OrderData>[],
     };
 
-    emit(const OrderHistoryLoading());
+    emit(OrderHistoryLoading(orders: staleOrders));
 
     final result = await _getMyOrdersUseCase();
     result.when(

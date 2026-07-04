@@ -9,7 +9,9 @@ final class OrderHistoryInitial extends OrderHistoryState {
 }
 
 final class OrderHistoryLoading extends OrderHistoryState {
-  const OrderHistoryLoading();
+  const OrderHistoryLoading({this.orders = const []});
+
+  final List<OrderData> orders;
 }
 
 final class OrderHistoryReady extends OrderHistoryState {

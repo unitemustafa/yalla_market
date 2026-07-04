@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -39,12 +41,47 @@ void main() {
         cubit.stream,
         emitsInOrder([isA<OrderHistoryLoading>(), isA<OrderHistoryFailure>()]),
       );
-      await cubit.loadOrders();
+      await cubit.loadOrders(force: true);
 
       final state = cubit.state as OrderHistoryFailure;
       expect(state.message, 'Orders are unavailable.');
       expect(state.orders.single.id, sampleOrder.id);
       await expectedStates;
+      await cubit.close();
+    });
+
+    test('does not reload ready orders unless forced', () async {
+      final repository = _FakeOrderRepository(orders: [sampleOrder]);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+
+      await cubit.loadOrders();
+      await cubit.loadOrders();
+
+      expect(repository.getMyOrdersCalls, 1);
+
+      await cubit.loadOrders(force: true);
+
+      expect(repository.getMyOrdersCalls, 2);
+      await cubit.close();
+    });
+
+    test('does not start parallel loads while loading', () async {
+      final repository = _FakeOrderRepository(
+        orders: [sampleOrder],
+        delay: Completer<void>(),
+      );
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+
+      final firstLoad = cubit.loadOrders();
+      final secondLoad = cubit.loadOrders(force: true);
+
+      expect(repository.getMyOrdersCalls, 1);
+
+      repository.completeDelay();
+      await Future.wait([firstLoad, secondLoad]);
+
+      expect(cubit.state, isA<OrderHistoryReady>());
+      expect(repository.getMyOrdersCalls, 1);
       await cubit.close();
     });
 
@@ -62,10 +99,18 @@ void main() {
 }
 
 class _FakeOrderRepository implements OrderRepository {
-  _FakeOrderRepository({required this.orders});
+  _FakeOrderRepository({required this.orders, Completer<void>? delay})
+    : _delay = delay;
 
   final List<OrderData> orders;
+  final Completer<void>? _delay;
   Failure? nextFailure;
+  int getMyOrdersCalls = 0;
+
+  void completeDelay() {
+    final delay = _delay;
+    if (delay != null && !delay.isCompleted) delay.complete();
+  }
 
   @override
   Future<ApiResult<OrderData>> createOrder({
@@ -87,6 +132,9 @@ class _FakeOrderRepository implements OrderRepository {
 
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() async {
+    getMyOrdersCalls += 1;
+    await _delay?.future;
+
     if (nextFailure case final failure?) {
       nextFailure = null;
       return ApiResult.failure(failure);

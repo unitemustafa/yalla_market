@@ -169,6 +169,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(orderRepository.createCalls, 1);
+    expect(orderRepository.getMyOrdersCalls, 1);
     expect(orderRepository.lastCartItems, hasLength(1));
     expect(cartCubit.state, isEmpty);
     expect(find.text('processing order'), findsOneWidget);
@@ -218,6 +219,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(orderRepository.createCalls, 1);
+    expect(orderRepository.getMyOrdersCalls, 0);
     expect(find.text('Create order failed.'), findsOneWidget);
     expect(find.text('processing order'), findsNothing);
     expect(cartCubit.state, isNotEmpty);
@@ -229,6 +231,7 @@ class _CreateOrderRepository implements OrderRepository {
 
   final Failure? failure;
   int createCalls = 0;
+  int getMyOrdersCalls = 0;
   List<CartItemData> lastCartItems = const [];
 
   @override
@@ -256,6 +259,7 @@ class _CreateOrderRepository implements OrderRepository {
 
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() async {
+    getMyOrdersCalls += 1;
     return ApiResult.success([sampleOrder]);
   }
 

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -21,6 +23,7 @@ import '../../../personalization/presentation/cubit/address_state.dart';
 import '../../domain/entities/order.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
+import '../cubit/order_history_cubit.dart';
 import 'checkout/checkout_bottom_sheets.dart';
 
 part 'checkout_review_items.dart';
@@ -89,6 +92,7 @@ class _CheckoutViewState extends State<CheckoutView> {
             message: 'Your order has been created successfully.',
           );
           context.read<CartCubit>().clearLocalCart();
+          unawaited(context.read<OrderHistoryCubit>().loadOrders(force: true));
           Navigator.pushNamed(context, AppRoutes.processingOrder);
         }
 

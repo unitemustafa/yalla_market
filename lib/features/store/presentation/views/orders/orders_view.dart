@@ -73,7 +73,9 @@ class _OrdersViewState extends State<OrdersView> {
                 ? AppErrorState(
                     title: 'Orders could not load',
                     message: state.message,
-                    onRetry: context.read<OrderHistoryCubit>().loadOrders,
+                    onRetry: () => context.read<OrderHistoryCubit>().loadOrders(
+                      force: true,
+                    ),
                   )
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),

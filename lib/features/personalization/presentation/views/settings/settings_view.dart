@@ -22,6 +22,14 @@ class SettingsView extends StatefulWidget {
 
 class _SettingsViewState extends State<SettingsView> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<OrderHistoryCubit>().loadOrders();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final backgroundColor = isDark
@@ -58,10 +66,12 @@ class _SettingsViewState extends State<SettingsView> {
               const SizedBox(height: 14),
               BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
                 builder: (context, state) {
-                  final count = switch (state) {
-                    OrderHistoryReady(:final orders) => orders.length,
-                    OrderHistoryFailure(:final orders) => orders.length,
-                    _ => 0,
+                  final value = switch (state) {
+                    OrderHistoryReady(:final orders) => '${orders.length}',
+                    OrderHistoryFailure(:final orders) => '${orders.length}',
+                    OrderHistoryLoading(:final orders) when orders.isNotEmpty =>
+                      '${orders.length}',
+                    _ => '-',
                   };
 
                   return Row(
@@ -70,7 +80,7 @@ class _SettingsViewState extends State<SettingsView> {
                         child: _ProfileStat(
                           icon: AppIcons.bag_tick,
                           label: 'Orders',
-                          value: '$count',
+                          value: value,
                           color: AppColors.primary,
                         ),
                       ),

@@ -282,8 +282,6 @@ class _VariationCard extends StatelessWidget {
     required this.price,
     required this.oldPrice,
     required this.stock,
-    required this.stockQuantity,
-    required this.isLowStock,
     required this.stockColor,
     required this.isDark,
   });
@@ -291,8 +289,6 @@ class _VariationCard extends StatelessWidget {
   final String price;
   final String oldPrice;
   final String stock;
-  final int stockQuantity;
-  final bool isLowStock;
   final Color stockColor;
   final bool isDark;
 
@@ -357,70 +353,9 @@ class _VariationCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                context.isArabicLanguage ? 'الكمية المتاحة' : 'Available',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '$stockQuantity',
-                style: TextStyle(
-                  color: _quantityColor,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            _stockDescription(context),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: stockQuantity == 0
-                  ? AppColors.error
-                  : isLowStock
-                  ? AppColors.warning
-                  : isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-              height: 1.4,
-              fontWeight: isLowStock ? FontWeight.w800 : FontWeight.w600,
-            ),
-          ),
         ],
       ),
     );
-  }
-
-  Color get _quantityColor {
-    if (stockQuantity == 0) return AppColors.error;
-    if (isLowStock) return AppColors.warning;
-    return AppColors.success;
-  }
-
-  String _stockDescription(BuildContext context) {
-    if (stockQuantity == 0) {
-      return context.isArabicLanguage
-          ? 'الاختيار ده غير متوفر حاليًا.'
-          : 'This variation is currently unavailable.';
-    }
-
-    if (isLowStock) {
-      return context.isArabicLanguage
-          ? 'متبقي $stockQuantity فقط.'
-          : 'Only $stockQuantity left in stock.';
-    }
-
-    return context.isArabicLanguage
-        ? 'متوفر حاليًا بعدد $stockQuantity قطعة.'
-        : 'Available now: $stockQuantity in stock.';
   }
 }
 

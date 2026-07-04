@@ -18,7 +18,7 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
-  testWidgets('renders product details and adds the selected item to cart', (
+  testWidgets('renders backend variants and adds selected variant to cart', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -49,54 +49,98 @@ void main() {
           home: ProductDetailView(
             productId: 'product_1',
             image: AppAssets.temporaryMarketPlaceholder,
-            title: 'Running Shoe',
+            title: 'شوربة خضار',
             brand: 'Yalla',
-            price: 'EGP 1200',
-            oldPrice: 'EGP 1500',
-            discount: '20%',
+            price: '420.00 - 735.00',
           ),
         ),
       ),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Running Shoe'), findsWidgets);
+    expect(find.text('شوربة خضار'), findsWidgets);
+    expect(find.text('منتج تجريبي: شوربة خضار.'), findsOneWidget);
+    expect(find.text('الحصة'), findsOneWidget);
+    expect(find.text('عادية'), findsOneWidget);
+    expect(find.text('عائلية'), findsOneWidget);
+    expect(find.text('Options'), findsNothing);
+    expect(find.textContaining('SEED-07-1'), findsNothing);
+    expect(find.textContaining('SEED-07-2'), findsNothing);
+    expect(find.text('Electronic devices'), findsNothing);
+    expect(find.text('Mobile'), findsNothing);
+    expect(find.text('Accessories'), findsNothing);
+    expect(find.text('Spare parts'), findsNothing);
+    expect(find.text('X-Large'), findsNothing);
     expect(find.text('Reviews & Ratings'), findsNothing);
     expect(find.text('Add to Bag'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('عائلية'));
+    await tester.tap(find.text('عائلية'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
     await tester.tap(find.byIcon(AppIcons.add).last);
     await tester.pump();
     await tester.tap(find.byType(ElevatedButton).last);
     await tester.pumpAndSettle();
 
     final cartItem = cartCubit.state.singleWhere(
-      (item) => item.title == 'Running Shoe',
+      (item) => item.title == 'شوربة خضار',
     );
-    expect(cartItem.id, 'variant_1');
+    expect(cartItem.id, 'variant_2');
     expect(cartItem.productId, 'product_1');
-    expect(cartItem.variantId, 'variant_1');
+    expect(cartItem.variantId, 'variant_2');
     expect(cartItem.marketId, 'market_1');
+    expect(cartItem.price, 735);
+    expect(cartItem.quantity, 2);
+    expect(cartItem.attributes, hasLength(1));
+    expect(cartItem.attributes.single.label, 'الحصة');
+    expect(cartItem.attributes.single.value, 'عائلية');
   });
 }
 
 class _FakeProductRepository implements ProductRepository {
   @override
   Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
-    return const ApiResult.success(
-      ProductData(
-        id: 'product_1',
-        image: AppAssets.temporaryMarketPlaceholder,
-        title: 'Running Shoe',
-        brand: 'Yalla',
-        price: 'EGP 1200',
-        oldPrice: 'EGP 1500',
-        discount: '20%',
-        tags: ['shoe'],
-        marketId: 'market_1',
-        variants: [
-          ProductVariantData(id: 'variant_1', price: '1200.00', sku: 'SHOE-1'),
+    return ApiResult.success(
+      ProductData.fromJson({
+        'id': 'product_1',
+        'image': AppAssets.temporaryMarketPlaceholder,
+        'name': 'شوربة خضار',
+        'brand': 'Yalla',
+        'description': 'منتج تجريبي: شوربة خضار.',
+        'market_id': 'market_1',
+        'variants': [
+          {
+            'id': 'variant_1',
+            'price': '420.00',
+            'sku': 'SEED-07-1',
+            'attribute_values': [
+              {
+                'id': 1,
+                'attribute_id': 4,
+                'attribute_name': 'الحصة',
+                'option_id': 7,
+                'option_value': 'عادية',
+              },
+            ],
+          },
+          {
+            'id': 'variant_2',
+            'price': '735.00',
+            'sku': 'SEED-07-2',
+            'attribute_values': [
+              {
+                'id': 2,
+                'attribute_id': 4,
+                'attribute_name': 'الحصة',
+                'option_id': 8,
+                'option_value': 'عائلية',
+              },
+            ],
+          },
         ],
-      ),
+      }),
     );
   }
 

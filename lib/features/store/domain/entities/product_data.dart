@@ -12,14 +12,14 @@ class ProductVariantData {
   final String id;
   final String price;
   final String? sku;
-  final Map<String, Object?> attributeValues;
+  final Map<String, String> attributeValues;
 
   factory ProductVariantData.fromJson(Map<String, dynamic> json) {
     return ProductVariantData(
       id: json['id']?.toString() ?? '',
       price: json['price']?.toString() ?? '',
       sku: json['sku']?.toString(),
-      attributeValues: _mapObject(
+      attributeValues: _attributeValuesFromJson(
         json['attributeValues'] ??
             json['attribute_values'] ??
             json['attributes'] ??
@@ -50,6 +50,8 @@ class ProductData {
     required this.oldPrice,
     required this.discount,
     required this.tags,
+    this.description = '',
+    this.isAvailable = true,
     this.isFamilySafe = true,
     this.citySlug,
     this.cityName,
@@ -72,6 +74,8 @@ class ProductData {
   final String? oldPrice;
   final String discount;
   final List<String> tags;
+  final String description;
+  final bool isAvailable;
   final bool isFamilySafe;
   final String? citySlug;
   final String? cityName;
@@ -156,6 +160,9 @@ class ProductData {
         if (category?['name'] != null) category!['name'].toString(),
         if (market?['name'] != null) market!['name'].toString(),
       ],
+      description: json['description']?.toString() ?? '',
+      isAvailable:
+          _boolFromJson(json['isAvailable'] ?? json['is_available']) ?? true,
       isFamilySafe: _familySafeFromJson(json, tags),
       citySlug: json['citySlug']?.toString() ?? json['city_slug']?.toString(),
       cityName: json['cityName']?.toString() ?? json['city_name']?.toString(),
@@ -194,6 +201,8 @@ class ProductData {
       'oldPrice': oldPrice,
       'discount': discount,
       'tags': tags,
+      'description': description,
+      'isAvailable': isAvailable,
       'isFamilySafe': isFamilySafe,
       'citySlug': citySlug,
       'cityName': cityName,
@@ -235,10 +244,56 @@ Map<String, dynamic>? _mapFromJson(Object? value) {
   return null;
 }
 
-Map<String, Object?> _mapObject(Object? value) {
-  if (value is Map<String, dynamic>) return Map<String, Object?>.from(value);
-  if (value is Map) return value.map((key, value) => MapEntry('$key', value));
+Map<String, String> _attributeValuesFromJson(Object? value) {
+  if (value is List) return _attributeValuesFromList(value);
+  if (value is Map) {
+    final attributes = <String, String>{};
+    for (final entry in value.entries) {
+      final key = entry.key.toString().trim();
+      final attributeValue = entry.value?.toString().trim() ?? '';
+      if (key.isEmpty || attributeValue.isEmpty) continue;
+      attributes[key] = attributeValue;
+    }
+    return attributes;
+  }
   return const {};
+}
+
+Map<String, String> _attributeValuesFromList(List<Object?> values) {
+  final attributes = <String, String>{};
+
+  for (final value in values) {
+    if (value is! Map) continue;
+    final attribute = value['attribute'];
+    final option = value['option'];
+    final attributeName =
+        _stringFromJson(value['attribute_name'] ?? value['attributeName']) ??
+        (attribute is Map
+            ? _stringFromJson(attribute['name'] ?? attribute['attributeName'])
+            : null);
+    final optionValue =
+        _stringFromJson(value['option_value'] ?? value['optionValue']) ??
+        (option is Map
+            ? _stringFromJson(option['value'] ?? option['optionValue'])
+            : null);
+
+    if (attributeName == null ||
+        attributeName.isEmpty ||
+        optionValue == null ||
+        optionValue.isEmpty) {
+      continue;
+    }
+
+    attributes[attributeName] = optionValue;
+  }
+
+  return attributes;
+}
+
+String? _stringFromJson(Object? value) {
+  final text = value?.toString().trim();
+  if (text == null || text.isEmpty) return null;
+  return text;
 }
 
 String _resolveImage(Object? value) {

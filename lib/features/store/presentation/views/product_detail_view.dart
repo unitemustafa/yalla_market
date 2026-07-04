@@ -76,28 +76,9 @@ class ProductDetailView extends StatefulWidget {
   State<ProductDetailView> createState() => _ProductDetailViewState();
 }
 
-class _ProductVariationData {
-  const _ProductVariationData({
-    required this.price,
-    required this.stockQuantity,
-    this.oldPrice,
-    this.stock = 'In Stock',
-  });
-
-  final String price;
-  final int stockQuantity;
-  final String? oldPrice;
-  final String stock;
-
-  bool get isOutOfStock => stock == 'Out of Stock';
-  bool get isLowStock => stockQuantity > 0 && stockQuantity < 5;
-}
-
 class _ProductDetailViewState extends State<ProductDetailView> {
   int quantity = 0;
-  String selectedColor = 'Green';
-  String selectedSize = 'Medium';
-  String selectedType = 'Electronic devices';
+  String? selectedVariantId;
   late String currentImage;
   ProductData? _loadedProduct;
   bool _isLoadingProductDetails = false;
@@ -115,9 +96,34 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   String get _productPrice => _loadedProduct?.price ?? widget.price;
   String? get _productOldPrice => _loadedProduct?.oldPrice ?? widget.oldPrice;
   String? get _productDiscount => _loadedProduct?.discount ?? widget.discount;
+  String get _productDescription {
+    final description = _loadedProduct?.description.trim() ?? '';
+    if (description.isNotEmpty) return description;
+    return context.isArabicLanguage
+        ? 'لا يوجد وصف متاح لهذا المنتج.'
+        : 'No description available for this product.';
+  }
+
   String? get _productId => _loadedProduct?.id ?? widget.productId;
-  String? get _defaultVariantId => _loadedProduct?.defaultVariantId;
   String? get _marketId => _loadedProduct?.marketId;
+  bool get _isProductAvailable => _loadedProduct?.isAvailable ?? true;
+  List<ProductVariantData> get _variants =>
+      _loadedProduct?.variants ?? const [];
+  ProductVariantData? get _selectedVariant {
+    final id = selectedVariantId?.trim();
+    if (id == null || id.isEmpty) return null;
+    for (final variant in _variants) {
+      if (variant.id == id) return variant;
+    }
+    return null;
+  }
+
+  String get _selectedPrice {
+    final variantPrice = _selectedVariant?.price.trim();
+    if (variantPrice != null && variantPrice.isNotEmpty) return variantPrice;
+    return _productPrice;
+  }
+
   String get _resolvedProductId {
     final productId = _productId?.trim();
     if (productId != null && productId.isNotEmpty) return productId;
@@ -126,7 +132,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   String get _resolvedCartItemId {
-    final variantId = _defaultVariantId?.trim();
+    final variantId = _selectedVariant?.id.trim();
     if (variantId != null && variantId.isNotEmpty) return variantId;
     return _resolvedProductId;
   }
@@ -144,6 +150,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       success: (product) {
         setState(() {
           _loadedProduct = product;
+          _syncSelectedVariant(product);
           if (currentImage == widget.image) currentImage = product.image;
           _isLoadingProductDetails = false;
         });
@@ -154,64 +161,19 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     );
   }
 
-  _ProductVariationData get _currentVariation {
-    final tier = _selectedPriceTier;
-    final oldPrice = _variationPrice(_productOldPrice, tier);
-    final outOfStock =
-        selectedSize == 'X-Large' ||
-        (selectedColor == 'Red' && selectedSize == 'Large');
-    final stockQuantity = outOfStock ? 0 : _availableQuantity;
+  void _syncSelectedVariant(ProductData product) {
+    final variants = product.variants;
+    if (variants.isEmpty) {
+      selectedVariantId = null;
+      return;
+    }
 
-    return _ProductVariationData(
-      price: _variationPrice(_productPrice, tier),
-      stockQuantity: stockQuantity,
-      oldPrice: oldPrice.isEmpty ? null : oldPrice,
-      stock: outOfStock ? 'Out of Stock' : 'In Stock',
-    );
-  }
-
-  int get _selectedPriceTier {
-    return selectedSize == 'Large' || selectedSize == 'X-Large' ? 1 : 0;
-  }
-
-  int get _availableQuantity {
-    final baseQuantity = switch (selectedSize) {
-      'Small' => 12,
-      'Medium' => 8,
-      'Large' => 4,
-      _ => 0,
-    };
-    final colorAdjustment = switch (selectedColor) {
-      'Red' => -1,
-      'Black' => 0,
-      'Green' => 0,
-      _ => 0,
-    };
-    final typeAdjustment = switch (selectedType) {
-      'Mobile' => -2,
-      'Accessories' => 4,
-      'Spare parts' => 1,
-      _ => 0,
-    };
-    return (baseQuantity + colorAdjustment + typeAdjustment)
-        .clamp(1, 99)
-        .toInt();
-  }
-
-  String _variationPrice(String? price, int tier) {
-    final formatted = AppCurrency.formatPriceText(price);
-    if (formatted.isEmpty) return '';
-
-    final parts = formatted
-        .split('-')
-        .map((part) => part.trim())
-        .where((part) => part.isNotEmpty)
-        .toList(growable: false);
-
-    if (parts.isEmpty) return '';
-
-    final index = tier.clamp(0, parts.length - 1);
-    return parts[index];
+    final selectedId = selectedVariantId?.trim();
+    final selectedStillExists =
+        selectedId != null &&
+        selectedId.isNotEmpty &&
+        variants.any((variant) => variant.id == selectedId);
+    if (!selectedStillExists) selectedVariantId = variants.first.id;
   }
 
   String _formatPrice(String? price) {
@@ -328,6 +290,64 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     return name == null || name.isEmpty ? 'image' : name;
   }
 
+  Map<String, List<String>> _variantOptionsByAttribute() {
+    final optionsByAttribute = <String, List<String>>{};
+    final seenOptions = <String, Set<String>>{};
+
+    for (final variant in _variants) {
+      for (final entry in variant.attributeValues.entries) {
+        final attribute = entry.key.trim();
+        final option = entry.value.trim();
+        if (attribute.isEmpty || option.isEmpty) continue;
+
+        final seen = seenOptions.putIfAbsent(attribute, () => <String>{});
+        if (!seen.add(option)) continue;
+        optionsByAttribute.putIfAbsent(attribute, () => <String>[]).add(option);
+      }
+    }
+
+    return optionsByAttribute;
+  }
+
+  bool _hasVariantAttributes() {
+    return _variants.any((variant) => variant.attributeValues.isNotEmpty);
+  }
+
+  void _selectVariantOption(String attribute, String option) {
+    final selectedAttributes = Map<String, String>.from(
+      _selectedVariant?.attributeValues ?? const {},
+    );
+    selectedAttributes[attribute] = option;
+
+    ProductVariantData? bestMatch;
+    for (final variant in _variants) {
+      final matchesRequestedOption =
+          variant.attributeValues[attribute] == option;
+      final matchesOtherSelections = selectedAttributes.entries.every((entry) {
+        final value = variant.attributeValues[entry.key];
+        return value == null || value == entry.value;
+      });
+      if (matchesRequestedOption && matchesOtherSelections) {
+        bestMatch = variant;
+        break;
+      }
+    }
+
+    bestMatch ??= _variants.firstWhere(
+      (variant) => variant.attributeValues[attribute] == option,
+      orElse: () => _variants.first,
+    );
+
+    setState(() => selectedVariantId = bestMatch?.id);
+  }
+
+  String _variantFallbackLabel(ProductVariantData variant, int index) {
+    final sku = variant.sku?.trim();
+    final label = sku != null && sku.isNotEmpty ? sku : 'Option ${index + 1}';
+    final price = _formatSinglePrice(variant.price);
+    return price.isEmpty ? label : '$label - $price';
+  }
+
   void _toggleWishlist(BuildContext context, bool wasFavorite) {
     context.read<WishlistCubit>().toggleItem(
       WishlistItem(
@@ -356,7 +376,6 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
   void _addSelectedProductToCart({
     required BuildContext context,
-    required _ProductVariationData variation,
     required bool isOutOfStock,
   }) {
     if (isOutOfStock) {
@@ -375,33 +394,32 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       return;
     }
 
-    if (quantity > variation.stockQuantity) {
-      CustomSnackBar.showWarning(
-        context: context,
-        title: context.isArabicLanguage
-            ? 'متبقي ${variation.stockQuantity} فقط'
-            : 'Only ${variation.stockQuantity} left in stock',
-      );
-      return;
-    }
+    final selectedVariant = _selectedVariant;
+    final selectedVariantId = selectedVariant?.id.trim();
+    final selectedPrice = selectedVariant?.price ?? _selectedPrice;
 
     context.read<CartCubit>().addItem(
       CartItemData(
         id: _resolvedCartItemId,
         productId: _resolvedProductId,
-        variantId: _defaultVariantId,
+        variantId: selectedVariantId == null || selectedVariantId.isEmpty
+            ? null
+            : selectedVariantId,
         marketId: _marketId,
         marketName: _productBrand,
         image: currentImage,
         brand: _productBrand,
         title: _productTitle,
-        price: _parsePrice(variation.price),
-        quantity: 1,
-        attributes: [
-          CartItemAttribute(label: 'Color', value: selectedColor),
-          CartItemAttribute(label: 'Size', value: selectedSize),
-          CartItemAttribute(label: 'Type', value: selectedType),
-        ],
+        price: _parsePrice(selectedPrice),
+        quantity: quantity,
+        attributes:
+            selectedVariant?.attributeValues.entries
+                .map(
+                  (entry) =>
+                      CartItemAttribute(label: entry.key, value: entry.value),
+                )
+                .toList(growable: false) ??
+            const [],
       ),
       quantity,
     );
@@ -415,14 +433,66 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     setState(() => quantity = 0);
   }
 
+  Widget _buildVariantSelectors({required bool isDark}) {
+    if (_variants.length <= 1) return const SizedBox.shrink();
+
+    if (!_hasVariantAttributes()) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(title: 'Options', isDark: isDark),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (var index = 0; index < _variants.length; index++)
+                _buildChoiceOption(
+                  label: _variantFallbackLabel(_variants[index], index),
+                  isSelected: selectedVariantId == _variants[index].id,
+                  onTap: () =>
+                      setState(() => selectedVariantId = _variants[index].id),
+                ),
+            ],
+          ),
+        ],
+      );
+    }
+
+    final optionsByAttribute = _variantOptionsByAttribute();
+    if (optionsByAttribute.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final entry in optionsByAttribute.entries) ...[
+          _SectionTitle(title: entry.key, isDark: isDark),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final option in entry.value)
+                _buildChoiceOption(
+                  label: option,
+                  isSelected:
+                      _selectedVariant?.attributeValues[entry.key] == option,
+                  onTap: () => _selectVariantOption(entry.key, option),
+                ),
+            ],
+          ),
+          const SizedBox(height: 20),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final variation = _currentVariation;
-    final variationPrice = variation.price;
-    final oldVariationPrice = variation.oldPrice;
-    final stock = variation.stock;
-    final isOutOfStock = variation.isOutOfStock;
+    final selectedPrice = _selectedPrice;
+    final isOutOfStock = !_isProductAvailable;
+    final stock = isOutOfStock ? 'Out of Stock' : 'Available';
     final stockColor = isOutOfStock ? AppColors.error : AppColors.success;
     final backgroundColor = isDark
         ? AppColors.darkBackground
@@ -464,7 +534,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 children: [
                   _PriceHeader(
                     discount: _validDiscountLabel(_productDiscount),
-                    price: _formatPrice(_productPrice),
+                    price: _formatSinglePrice(selectedPrice),
                     oldPrice: _formatPrice(_productOldPrice),
                     isDark: isDark,
                   ),
@@ -496,85 +566,20 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   ),
                   const SizedBox(height: 18),
                   _VariationCard(
-                    price: _formatSinglePrice(variationPrice),
-                    oldPrice: _formatSinglePrice(oldVariationPrice),
+                    price: _formatSinglePrice(selectedPrice),
+                    oldPrice: _formatSinglePrice(_productOldPrice),
                     stock: stock,
-                    stockQuantity: variation.stockQuantity,
-                    isLowStock: variation.isLowStock,
                     stockColor: stockColor,
                     isDark: isDark,
                   ),
                   const SizedBox(height: 20),
-                  _SectionTitle(title: 'Color', isDark: isDark),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _buildColorOption(Colors.green, 'Green'),
-                      const SizedBox(width: 12),
-                      _buildColorOption(Colors.black, 'Black'),
-                      const SizedBox(width: 12),
-                      _buildColorOption(Colors.red.shade400, 'Red'),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _SectionTitle(title: 'Size', isDark: isDark),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildSizeOption('Small', isAvailable: true),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSizeOption('Medium', isAvailable: true),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSizeOption('Large', isAvailable: true),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildSizeOption('X-Large', isAvailable: false),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _SectionTitle(title: 'Type', isDark: isDark),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildTypeOption(
-                          'Electronic devices',
-                          isAvailable: true,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildTypeOption('Mobile', isAvailable: true),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildTypeOption(
-                          'Accessories',
-                          isAvailable: true,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildTypeOption(
-                          'Spare parts',
-                          isAvailable: true,
-                        ),
-                      ),
-                    ],
-                  ),
+                  _buildVariantSelectors(isDark: isDark),
                   const SizedBox(height: 20),
                   _InfoCard(
                     isDark: isDark,
                     title: 'Description',
                     child: Text(
-                      context.tr(_productTitle),
+                      _productDescription,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: mutedColor,
                         height: 1.45,
@@ -591,7 +596,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       bottomNavigationBar: _BottomAddToCartBar(
         isDark: isDark,
         quantity: quantity,
-        price: _parsePrice(variationPrice),
+        price: _parsePrice(selectedPrice),
         isOutOfStock: isOutOfStock,
         onDecrease: () {
           if (quantity > 0) setState(() => quantity--);
@@ -604,81 +609,19 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             );
             return;
           }
-
-          if (quantity >= variation.stockQuantity) {
-            CustomSnackBar.showWarning(
-              context: context,
-              title: context.isArabicLanguage
-                  ? 'متبقي ${variation.stockQuantity} فقط'
-                  : 'Only ${variation.stockQuantity} left in stock',
-            );
-            return;
-          }
           setState(() => quantity++);
         },
         onAddToCart: () => _addSelectedProductToCart(
           context: context,
-          variation: variation,
           isOutOfStock: isOutOfStock,
         ),
       ),
     );
   }
 
-  Widget _buildColorOption(Color color, String colorName) {
-    final isSelected = selectedColor == colorName;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return GestureDetector(
-      onTap: () => setState(() => selectedColor = colorName),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: 42,
-        height: 42,
-        padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: isSelected
-                ? AppColors.primary
-                : isDark
-                ? Colors.white.withValues(alpha: 0.10)
-                : Colors.black.withValues(alpha: 0.08),
-            width: 2,
-          ),
-        ),
-        child: Container(
-          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-          child: isSelected
-              ? const Icon(Icons.check, color: Colors.white, size: 18)
-              : null,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSizeOption(String size, {required bool isAvailable}) {
-    return _buildChoiceOption(
-      label: size,
-      isSelected: selectedSize == size,
-      isAvailable: isAvailable,
-      onTap: () => setState(() => selectedSize = size),
-    );
-  }
-
-  Widget _buildTypeOption(String type, {required bool isAvailable}) {
-    return _buildChoiceOption(
-      label: type,
-      isSelected: selectedType == type,
-      isAvailable: isAvailable,
-      onTap: () => setState(() => selectedType = type),
-    );
-  }
-
   Widget _buildChoiceOption({
     required String label,
     required bool isSelected,
-    required bool isAvailable,
     required VoidCallback onTap,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -686,20 +629,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isAvailable ? onTap : null,
+        onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 160),
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 6),
+          constraints: const BoxConstraints(minHeight: 40),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
           decoration: BoxDecoration(
             color: isSelected
                 ? AppColors.primary
-                : (!isAvailable
-                      ? (isDark
-                            ? Colors.white.withValues(alpha: 0.05)
-                            : Colors.black.withValues(alpha: 0.04))
-                      : (isDark ? AppColors.darkCardColor : Colors.white)),
+                : (isDark ? AppColors.darkCardColor : Colors.white),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected
@@ -721,11 +660,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: isSelected
                         ? Colors.white
-                        : (!isAvailable
-                              ? Colors.grey
-                              : (isDark
-                                    ? Colors.white
-                                    : AppColors.lightTextPrimary)),
+                        : (isDark ? Colors.white : AppColors.lightTextPrimary),
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
                   ),

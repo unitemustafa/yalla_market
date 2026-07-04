@@ -5,9 +5,7 @@ import 'package:yalla_market/features/location/presentation/cubit/location_state
 import 'package:yalla_market/features/location/presentation/widgets/city_selection_panel.dart';
 
 void main() {
-  testWidgets('manual mode shows cities and other general region', (
-    tester,
-  ) async {
+  testWidgets('manual mode shows cities and general region', (tester) async {
     CityData? selectedCity;
 
     await tester.pumpWidget(
@@ -37,8 +35,8 @@ void main() {
 
     expect(find.text('Cairo'), findsOneWidget);
     expect(find.text('Sharm El Sheikh'), findsOneWidget);
-    expect(find.text('General'), findsOneWidget);
-    await tester.tap(find.text('Other'));
+    expect(find.text('General'), findsNWidgets(2));
+    await tester.tap(find.text('General').first);
     await tester.pumpAndSettle();
 
     expect(selectedCity?.name, 'General');
@@ -95,7 +93,7 @@ void main() {
     );
 
     expect(find.text('Cairo'), findsOneWidget);
-    expect(find.text('Other'), findsOneWidget);
+    expect(find.text('General'), findsNWidgets(2));
     expect(find.text('Automatic'), findsNothing);
     expect(find.text('Use GPS location'), findsNothing);
     expect(usedCurrentLocation, isFalse);
@@ -122,6 +120,6 @@ void main() {
 
     expect(find.text('Use GPS location'), findsOneWidget);
     expect(find.text('Cairo'), findsNothing);
-    expect(find.text('Other'), findsNothing);
+    expect(find.text('General'), findsNothing);
   });
 }

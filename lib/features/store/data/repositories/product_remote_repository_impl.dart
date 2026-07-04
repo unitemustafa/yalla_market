@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/errors/api_error_handler.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/errors/region_required_error.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_result.dart';
 import '../../domain/entities/brand_data.dart';
@@ -106,6 +107,11 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     try {
       return ApiResult.success(await action());
     } on DioException catch (error) {
+      if (isRegionRequiredPayload(error.response?.data)) {
+        return const ApiResult.failure(
+          ValidationFailure(regionRequiredMessage),
+        );
+      }
       if (isAddressRequiredError(error)) {
         return const ApiResult.failure(
           ValidationFailure(addressRequiredMessage),

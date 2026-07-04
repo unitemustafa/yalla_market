@@ -56,8 +56,9 @@ class _CitySelectorSheetContent extends StatelessWidget {
             return CitySelectionPanel(
               state: state,
               compact: true,
+              manualOnly: true,
               onCitySelected: (city) => _selectCity(context, city),
-              onUseCurrentLocation: () => _useCurrentLocation(context),
+              onUseCurrentLocation: () {},
             );
           },
         ),
@@ -70,50 +71,6 @@ class _CitySelectorSheetContent extends StatelessWidget {
     final selectedCity = city.isGeneral
         ? await locationCubit.selectGeneralRegion()
         : await locationCubit.selectCity(city);
-    if (!context.mounted || selectedCity == null) return;
-
-    await onCityChanged?.call();
-    if (!context.mounted) return;
-
-    CustomSnackBar.showSuccess(
-      context: context,
-      title: selectedCity.isGeneral ? 'General region saved' : 'Region saved',
-      message: selectedCity.isGeneral
-          ? 'General products and offers will be shown.'
-          : 'Products will refresh for your selected region.',
-    );
-    Navigator.pop(context);
-  }
-
-  Future<void> _useCurrentLocation(BuildContext context) async {
-    final locationCubit = context.read<LocationCubit>();
-    final detectedCity = await locationCubit.detectCurrentLocation();
-    if (!context.mounted || detectedCity == null) return;
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Confirm your location'),
-        content: Text('Use ${detectedCity.displayName(arabic: false)}?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Change'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    if (!context.mounted || confirmed != true) return;
-
-    final selectedCity = await locationCubit.selectCity(
-      detectedCity,
-      source: detectedCity.source,
-    );
     if (!context.mounted || selectedCity == null) return;
 
     await onCityChanged?.call();

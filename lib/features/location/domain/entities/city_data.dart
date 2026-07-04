@@ -19,17 +19,43 @@ enum RegionSource {
   String get storageValue => name.toUpperCase();
 }
 
+enum RegionMode { general, serviceCity }
+
+enum GpsRegionAction {
+  sameRegion,
+  suggestSwitch,
+  unsupportedLocation,
+  selectDetectedRegion,
+  unknown;
+
+  static GpsRegionAction fromString(String? value) {
+    switch (value) {
+      case 'same_region':
+        return GpsRegionAction.sameRegion;
+      case 'suggest_switch':
+        return GpsRegionAction.suggestSwitch;
+      case 'unsupported_location':
+        return GpsRegionAction.unsupportedLocation;
+      case 'select_detected_region':
+        return GpsRegionAction.selectDetectedRegion;
+    }
+    return GpsRegionAction.unknown;
+  }
+}
+
 class CityData {
   const CityData({
     required this.name,
     required this.slug,
     this.nameAr,
+    this.serviceCityId,
     this.source = RegionSource.manual,
   });
 
   final String name;
   final String slug;
   final String? nameAr;
+  final int? serviceCityId;
   final RegionSource source;
 
   static const generalSlug = 'general';
@@ -68,7 +94,13 @@ class CityData {
   }
 
   CityData withSource(RegionSource source) {
-    return CityData(name: name, slug: slug, nameAr: nameAr, source: source);
+    return CityData(
+      name: name,
+      slug: slug,
+      nameAr: nameAr,
+      serviceCityId: serviceCityId,
+      source: source,
+    );
   }
 
   CityData asGeneralRegion() {
@@ -80,11 +112,30 @@ class CityData {
     );
   }
 
+  Map<String, dynamic> toMarketRegionPatchJson() {
+    if (isGeneral) return const {'mode': 'general'};
+    return {
+      'mode': 'service_city',
+      'service_city_id': serviceCityId ?? int.tryParse(slug),
+    };
+  }
+
   factory CityData.fromJson(Map<String, dynamic> json) {
     return CityData(
       name: (json['name'] as String? ?? '').trim(),
       nameAr: (json['name_ar'] as String?)?.trim(),
       slug: (json['slug'] as String? ?? '').trim().toLowerCase(),
+      serviceCityId: _intFromJson(json['id'] ?? json['service_city_id']),
+    );
+  }
+
+  factory CityData.fromServiceCityJson(Map<String, dynamic> json) {
+    final id = _intFromJson(json['id']);
+    final name = (json['name'] as String? ?? '').trim();
+    return CityData(
+      name: name,
+      slug: id?.toString() ?? _customSlug(name),
+      serviceCityId: id,
     );
   }
 
@@ -409,4 +460,99 @@ class CityData {
     'الهضبة',
     'رأس محمد',
   };
+}
+
+class RegionSelection {
+  const RegionSelection({required this.mode, required this.city});
+
+  final RegionMode mode;
+  final CityData city;
+
+  factory RegionSelection.fromJson(Map<String, dynamic> json) {
+    final mode = json['mode'] as String?;
+    if (mode == 'general') {
+      return const RegionSelection(
+        mode: RegionMode.general,
+        city: CityData.general,
+      );
+    }
+
+    final serviceCity = json['service_city'];
+    final city = serviceCity is Map<String, dynamic>
+        ? CityData.fromServiceCityJson(serviceCity)
+        : CityData.fromCustomName(json['label'] as String?) ??
+              const CityData(name: '', slug: '');
+    return RegionSelection(mode: RegionMode.serviceCity, city: city);
+  }
+}
+
+class RegionOptionsResponse {
+  const RegionOptionsResponse({
+    required this.options,
+    required this.currentSelection,
+  });
+
+  final List<CityData> options;
+  final RegionSelection? currentSelection;
+
+  factory RegionOptionsResponse.fromJson(Map<String, dynamic> json) {
+    final options = <CityData>[];
+    final rawOptions = json['options'];
+    if (rawOptions is List) {
+      for (final option in rawOptions.whereType<Map<String, dynamic>>()) {
+        final mode = option['mode'];
+        if (mode == 'general') {
+          options.add(CityData.general);
+          continue;
+        }
+        final serviceCity = option['service_city'];
+        if (serviceCity is Map<String, dynamic>) {
+          options.add(CityData.fromServiceCityJson(serviceCity));
+        }
+      }
+    }
+
+    final current = json['current_selection'];
+    return RegionOptionsResponse(
+      options: options,
+      currentSelection: current is Map<String, dynamic>
+          ? RegionSelection.fromJson(current)
+          : null,
+    );
+  }
+}
+
+class GpsRegionDetection {
+  const GpsRegionDetection({
+    required this.action,
+    required this.currentSelection,
+    required this.detectedRegion,
+    required this.message,
+  });
+
+  final GpsRegionAction action;
+  final RegionSelection? currentSelection;
+  final RegionSelection? detectedRegion;
+  final String message;
+
+  factory GpsRegionDetection.fromJson(Map<String, dynamic> json) {
+    return GpsRegionDetection(
+      action: GpsRegionAction.fromString(json['action'] as String?),
+      currentSelection: _selectionFromJson(json['current_selection']),
+      detectedRegion: _selectionFromJson(json['detected_region']),
+      message: (json['message'] as String? ?? '').trim(),
+    );
+  }
+
+  static RegionSelection? _selectionFromJson(Object? value) {
+    if (value is Map<String, dynamic>) return RegionSelection.fromJson(value);
+    return null;
+  }
+}
+
+int? _intFromJson(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }

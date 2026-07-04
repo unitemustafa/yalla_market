@@ -72,7 +72,9 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
         ? (widget.state as LocationFailure).message
         : null;
     final selectedCity = widget.state.selectedCity;
-    final manualCities = widget.state.availableCities;
+    final manualCities = widget.state.availableCities
+        .where((city) => !city.isGeneral)
+        .toList(growable: false);
 
     return Column(
       mainAxisSize: widget.compact ? MainAxisSize.min : MainAxisSize.max,
@@ -586,7 +588,7 @@ class _OtherRegionTile extends StatelessWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  context.tr('Other'),
+                  context.tr('General'),
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     color: textColor,
                     fontWeight: FontWeight.w900,

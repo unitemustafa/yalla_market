@@ -21,6 +21,7 @@ void registerLocationDependencies(GetIt sl) {
       () => LocationRepositoryImpl(
         sl<LocationPreferences>(),
         sl<DeviceLocationDataSource>(),
+        sl(),
       ),
     );
   }
@@ -79,6 +80,11 @@ void registerLocationDependencies(GetIt sl) {
       () => DetectCurrentLocationUseCase(sl<LocationRepository>()),
     );
   }
+  if (!sl.isRegistered<DetectMarketRegionUseCase>()) {
+    sl.registerLazySingleton(
+      () => DetectMarketRegionUseCase(sl<LocationRepository>()),
+    );
+  }
   if (!sl.isRegistered<OpenLocationAppSettingsUseCase>()) {
     sl.registerLazySingleton(
       () => OpenLocationAppSettingsUseCase(sl<LocationRepository>()),
@@ -100,6 +106,7 @@ void registerLocationDependencies(GetIt sl) {
         clearSelectedCity: sl<ClearSelectedCityUseCase>(),
         saveSelectedCity: sl<SaveSelectedCityUseCase>(),
         detectCurrentLocation: sl<DetectCurrentLocationUseCase>(),
+        detectMarketRegion: sl<DetectMarketRegionUseCase>(),
         useCurrentLocation: sl<UseCurrentLocationUseCase>(),
         openAppSettings: sl<OpenLocationAppSettingsUseCase>(),
         openLocationSettings: sl<OpenDeviceLocationSettingsUseCase>(),

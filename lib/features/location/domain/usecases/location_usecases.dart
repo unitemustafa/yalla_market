@@ -95,6 +95,17 @@ class DetectCurrentLocationUseCase {
   }
 }
 
+class DetectMarketRegionUseCase {
+  const DetectMarketRegionUseCase(this._repository);
+
+  final LocationRepository _repository;
+
+  Future<ApiResult<GpsRegionDetection>> call() {
+    return (_repository as dynamic).detectMarketRegion()
+        as Future<ApiResult<GpsRegionDetection>>;
+  }
+}
+
 class OpenLocationAppSettingsUseCase {
   const OpenLocationAppSettingsUseCase(this._repository);
 
@@ -125,6 +136,7 @@ class LocationUseCases {
     required this.clearSelectedCity,
     required this.saveSelectedCity,
     required this.detectCurrentLocation,
+    this.detectMarketRegion,
     required this.useCurrentLocation,
     required this.openAppSettings,
     required this.openLocationSettings,
@@ -140,6 +152,7 @@ class LocationUseCases {
   final ClearSelectedCityUseCase clearSelectedCity;
   final SaveSelectedCityUseCase saveSelectedCity;
   final DetectCurrentLocationUseCase detectCurrentLocation;
+  final DetectMarketRegionUseCase? detectMarketRegion;
   final UseCurrentLocationUseCase useCurrentLocation;
   final OpenLocationAppSettingsUseCase openAppSettings;
   final OpenDeviceLocationSettingsUseCase openLocationSettings;

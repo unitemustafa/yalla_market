@@ -302,6 +302,7 @@ class _SelectCityViewState extends State<SelectCityView>
       source: source,
     );
     if (!context.mounted || selectedCity == null) return;
+    context.read<LocationCubit>().consumeGpsSuggestionSlot();
 
     CustomSnackBar.showSuccess(
       context: context,

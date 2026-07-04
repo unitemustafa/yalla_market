@@ -1,8 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
+import '../../../../core/routing/app_navigator.dart';
+import '../../../../core/routing/app_routes.dart';
+import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../home/presentation/views/home_view.dart';
+import '../../../home/presentation/cubit/home_cubit.dart';
+import '../../../location/domain/entities/city_data.dart';
+import '../../../location/presentation/cubit/location_cubit.dart';
+import '../../../store/presentation/cubit/product_catalog_cubit.dart';
+import '../../../store/presentation/cubit/product_discovery_cubit.dart';
+import '../../../store/presentation/cubit/store_cubit.dart';
 import '../../../store/presentation/views/store_view.dart';
 import '../../../wishlist/presentation/views/wishlist_view.dart';
 import '../../../personalization/presentation/views/settings/settings_view.dart';
@@ -53,6 +64,158 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
   void initState() {
     super.initState();
     selectedIndex = widget.initialIndex.clamp(0, screens.length - 1).toInt();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _runOneTimeGpsSuggestion();
+    });
+  }
+
+  Future<void> _runOneTimeGpsSuggestion() async {
+    final locationCubit = context.read<LocationCubit>();
+    if (locationCubit.state.selectedCity == null) return;
+    if (!locationCubit.consumeGpsSuggestionSlot()) return;
+
+    final detection = await locationCubit.detectMarketRegionSuggestion();
+    if (!mounted || detection == null) return;
+
+    switch (detection.action) {
+      case GpsRegionAction.sameRegion:
+        return;
+      case GpsRegionAction.selectDetectedRegion:
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.selectCity,
+          (route) => false,
+        );
+        return;
+      case GpsRegionAction.suggestSwitch:
+        await _handleSuggestedSwitch(detection);
+        return;
+      case GpsRegionAction.unsupportedLocation:
+        await _handleUnsupportedLocation(detection);
+        return;
+      case GpsRegionAction.unknown:
+        return;
+    }
+  }
+
+  Future<void> _handleSuggestedSwitch(GpsRegionDetection detection) async {
+    final locationCubit = context.read<LocationCubit>();
+    final current =
+        detection.currentSelection?.city ?? locationCubit.state.selectedCity;
+    final detected = detection.detectedRegion?.city;
+    if (detected == null) return;
+    if (locationCubit.wasSuggestionDismissed(current, detected)) return;
+
+    final accepted = await _showSwitchRegionDialog(
+      currentLabel: _regionLabel(current),
+      detectedLabel: _regionLabel(detected),
+      unsupported: false,
+    );
+    if (!mounted) return;
+    if (!accepted) {
+      locationCubit.markSuggestionDismissed(current, detected);
+      return;
+    }
+
+    await _applyRegionChange(detected.withSource(RegionSource.gps));
+  }
+
+  Future<void> _handleUnsupportedLocation(GpsRegionDetection detection) async {
+    final locationCubit = context.read<LocationCubit>();
+    final current =
+        detection.currentSelection?.city ?? locationCubit.state.selectedCity;
+    if (locationCubit.wasSuggestionDismissed(current, CityData.general)) return;
+
+    final accepted = await _showSwitchRegionDialog(
+      currentLabel: _regionLabel(current),
+      detectedLabel: context.tr('General'),
+      unsupported: true,
+    );
+    if (!mounted) return;
+    if (!accepted) {
+      locationCubit.markSuggestionDismissed(current, CityData.general);
+      return;
+    }
+
+    await _applyRegionChange(CityData.general);
+  }
+
+  Future<void> _applyRegionChange(CityData city) async {
+    final selectedCity = await context.read<LocationCubit>().selectCity(
+      city,
+      source: city.source,
+    );
+    if (!mounted || selectedCity == null) {
+      final snackContext = AppNavigator.key.currentContext;
+      if (snackContext == null) return;
+      if (!snackContext.mounted) return;
+      CustomSnackBar.showError(
+        context: snackContext,
+        title: 'Region not changed',
+        message: 'Could not update your region. Your cart was not changed.',
+      );
+      return;
+    }
+
+    await context.read<CartCubit>().clearLocalCart();
+    if (!mounted) return;
+    await Future.wait([
+      context.read<HomeCubit>().loadHome(force: true),
+      context.read<ProductCatalogCubit>().loadProducts(force: true),
+      context.read<ProductDiscoveryCubit>().loadDiscovery(force: true),
+      context.read<StoreCubit>().loadStore(force: true),
+    ]);
+    if (!mounted) return;
+    CustomSnackBar.showPersistentSuccess(
+      context: context,
+      title: selectedCity.isGeneral ? 'General region saved' : 'Region saved',
+      message: 'Your cart was cleared and content was refreshed.',
+    );
+  }
+
+  Future<bool> _showSwitchRegionDialog({
+    required String currentLabel,
+    required String detectedLabel,
+    required bool unsupported,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(
+          unsupported
+              ? dialogContext.tr('Outside service cities')
+              : dialogContext.tr('Location changed'),
+          textAlign: TextAlign.center,
+        ),
+        content: Text(
+          unsupported
+              ? dialogContext.tr(
+                  'You are outside our current service cities. Switch your region to General? Changing region will clear your cart.',
+                )
+              : dialogContext.tr(
+                  'Your current region is $currentLabel. We detected $detectedLabel. Changing region will clear your cart.',
+                ),
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: Text(dialogContext.tr('Keep current region')),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: Text(dialogContext.tr('Change region')),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  String _regionLabel(CityData? city) {
+    if (city == null || city.isGeneral) return context.tr('General');
+    return city.displayName(arabic: context.isArabicLanguage);
   }
 
   @override

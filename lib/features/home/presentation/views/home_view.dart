@@ -1,16 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/address_required_error.dart';
+import '../../../../core/errors/region_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
-import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../cubit/home_cubit.dart';
@@ -26,22 +24,11 @@ import '../widgets/home_categories.dart';
 import '../widgets/home_products_grid.dart';
 import '../widgets/promo_slider.dart';
 
-const _supportedRegionCheckInterval = Duration(seconds: 20);
-
-String _homeRegionLabel(BuildContext context, CityData? city) {
-  if (city == null) return context.tr('General');
-  if (city.isNamedGeneral) {
-    return city.displayName(arabic: context.isArabicLanguage);
-  }
-
-  final supportedCity =
-      CityData.fromSlug(city.slug) ?? CityData.fromName(city.name);
-
-  if (supportedCity == null || supportedCity.isGeneral) {
-    return context.tr('General');
-  }
-
-  return supportedCity.displayName(arabic: context.isArabicLanguage);
+@visibleForTesting
+String homeRegionLabel(BuildContext context, CityData? city) {
+  if (city == null) return '';
+  if (city.isGeneral) return context.tr('General');
+  return city.displayName(arabic: context.isArabicLanguage);
 }
 
 class HomeView extends StatefulWidget {
@@ -51,89 +38,25 @@ class HomeView extends StatefulWidget {
   State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
-  bool _isCheckingSupportedRegion = false;
-  Timer? _supportedRegionTimer;
-
+class _HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      unawaited(_loadHomeData(force: true));
-      unawaited(_checkForSupportedRegion());
+      _loadHomeData(force: true);
     });
-    _supportedRegionTimer = Timer.periodic(_supportedRegionCheckInterval, (_) {
-      if (mounted) _checkForSupportedRegion();
-    });
-  }
-
-  @override
-  void dispose() {
-    _supportedRegionTimer?.cancel();
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _checkForSupportedRegion();
-    }
-  }
-
-  Future<void> _checkForSupportedRegion() async {
-    if (_isCheckingSupportedRegion) return;
-    _isCheckingSupportedRegion = true;
-
-    try {
-      final locationCubit = context.read<LocationCubit>();
-      final currentCity = locationCubit.state.selectedCity;
-      final detectedCity = await locationCubit.previewCurrentLocation();
-
-      if (!mounted || detectedCity == null) return;
-      if (currentCity?.slug == detectedCity.slug &&
-          currentCity?.name == detectedCity.name) {
-        return;
-      }
-
-      final confirmed = await _confirmDetectedRegionChange(detectedCity);
-      if (!mounted || !confirmed) return;
-      await _switchToDetectedRegion(detectedCity);
-    } finally {
-      _isCheckingSupportedRegion = false;
-    }
-  }
-
-  Future<bool> _confirmDetectedRegionChange(CityData detectedCity) async {
-    final result = await showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Location changed'),
-        content: Text(
-          'Use ${detectedCity.displayName(arabic: context.isArabicLanguage)} as your region?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Keep current'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Confirm'),
-          ),
-        ],
-      ),
-    );
-    return result ?? false;
   }
 
   Future<void> _loadHomeData({bool force = false}) async {
     await context.read<HomeCubit>().loadHome(force: force);
     if (!mounted) return;
     final homeState = context.read<HomeCubit>().state;
+    if (homeState is HomeFailure &&
+        homeState.message == regionRequiredMessage) {
+      _goToSelectCity();
+      return;
+    }
     if (homeState is HomeFailure && homeState.data == null) {
       return;
     }
@@ -144,23 +67,17 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
     await context.read<StoreCubit>().loadStore(force: force);
   }
 
-  Future<void> _switchToDetectedRegion(CityData detectedCity) async {
-    final selectedCity = await context.read<LocationCubit>().selectCity(
-      detectedCity,
-      source: detectedCity.source,
-    );
-    if (!mounted || selectedCity == null) return;
-
-    CustomSnackBar.showPersistentSuccess(
-      context: context,
-      title: 'Region saved',
-      message: 'Products and offers will refresh for your region.',
-    );
-  }
-
   Future<void> _openAddresses() async {
     await Navigator.pushNamed(context, AppRoutes.addresses);
     if (mounted) await _loadHomeData(force: true);
+  }
+
+  void _goToSelectCity() {
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.selectCity,
+      (route) => false,
+    );
   }
 
   @override
@@ -182,7 +99,13 @@ class _HomeViewState extends State<HomeView> with WidgetsBindingObserver {
               const SizedBox(height: 18),
               _HomeSearchField(isDark: isDark),
               const SizedBox(height: 22),
-              BlocBuilder<HomeCubit, HomeState>(
+              BlocConsumer<HomeCubit, HomeState>(
+                listener: (context, homeState) {
+                  if (homeState is HomeFailure &&
+                      homeState.message == regionRequiredMessage) {
+                    _goToSelectCity();
+                  }
+                },
                 builder: (context, homeState) {
                   final home = homeState.data;
                   if (homeState is HomeFailure &&
@@ -276,7 +199,7 @@ class _HomeTopBar extends StatelessWidget {
                 builder: (context, state) {
                   return _HomeCustomerSummary(
                     customerName: profile.displayName,
-                    regionLabel: _homeRegionLabel(context, state.selectedCity),
+                    regionLabel: homeRegionLabel(context, state.selectedCity),
                   );
                 },
               ),

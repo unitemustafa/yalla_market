@@ -8,6 +8,8 @@ class LocationCubit extends Cubit<LocationState> {
   LocationCubit(this._useCases) : super(const LocationInitial());
 
   final LocationUseCases _useCases;
+  bool _gpsSuggestionCheckedThisSession = false;
+  final Set<String> _dismissedSuggestionKeys = {};
 
   Future<bool> activateUser(String userId) async {
     final result = await _useCases.activateUser(userId);
@@ -17,6 +19,26 @@ class LocationCubit extends Cubit<LocationState> {
   /// Hydrates city state from an already-resolved city (e.g. from SplashCubit).
   void syncCity(CityData? city) =>
       emit(LocationReady(city, state.availableCities));
+
+  void clearSession() {
+    _gpsSuggestionCheckedThisSession = false;
+    _dismissedSuggestionKeys.clear();
+    emit(const LocationReady(null));
+  }
+
+  bool consumeGpsSuggestionSlot() {
+    if (_gpsSuggestionCheckedThisSession) return false;
+    _gpsSuggestionCheckedThisSession = true;
+    return true;
+  }
+
+  bool wasSuggestionDismissed(CityData? current, CityData? detected) {
+    return _dismissedSuggestionKeys.contains(_suggestionKey(current, detected));
+  }
+
+  void markSuggestionDismissed(CityData? current, CityData? detected) {
+    _dismissedSuggestionKeys.add(_suggestionKey(current, detected));
+  }
 
   Future<List<CityData>> loadAvailableCities() async {
     emit(LocationLoading(state.selectedCity, state.availableCities));
@@ -49,14 +71,8 @@ class LocationCubit extends Cubit<LocationState> {
         return city;
       },
       failure: (failure) {
-        emit(
-          LocationFailure(
-            failure.message,
-            state.selectedCity,
-            state.availableCities,
-          ),
-        );
-        return state.selectedCity;
+        emit(LocationFailure(failure.message, null, state.availableCities));
+        return null;
       },
     );
   }
@@ -141,6 +157,30 @@ class LocationCubit extends Cubit<LocationState> {
     );
   }
 
+  Future<GpsRegionDetection?> detectMarketRegionSuggestion() async {
+    final useCase = _useCases.detectMarketRegion;
+    if (useCase == null) return null;
+    emit(LocationDetecting(state.selectedCity, state.availableCities));
+
+    final result = await useCase();
+    return result.when(
+      success: (detection) {
+        emit(LocationReady(state.selectedCity, state.availableCities));
+        return detection;
+      },
+      failure: (failure) {
+        emit(
+          LocationFailure(
+            failure.message,
+            state.selectedCity,
+            state.availableCities,
+          ),
+        );
+        return null;
+      },
+    );
+  }
+
   Future<CityData?> previewCurrentLocation() async {
     final result = await _useCases.detectCurrentLocation(
       requestPermission: false,
@@ -176,5 +216,10 @@ class LocationCubit extends Cubit<LocationState> {
 
   Future<void> openLocationSettings() async {
     await _useCases.openLocationSettings();
+  }
+
+  String _suggestionKey(CityData? current, CityData? detected) {
+    return '${current?.slug ?? 'none'}:${current?.serviceCityId ?? ''}->'
+        '${detected?.slug ?? 'none'}:${detected?.serviceCityId ?? ''}';
   }
 }

@@ -58,15 +58,25 @@ class CartCubit extends Cubit<List<CartItemData>> {
     _emitResult(result);
   }
 
-  Future<void> clearLocalCart() async {
+  Future<bool> clearLocalCart() async {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) {
       clearSession();
-      return;
+      return true;
     }
 
     final result = await _cartUseCases.clearCart(userKey);
-    _emitResult(result);
+    return result.when(
+      success: (items) {
+        lastErrorMessage = null;
+        emit(items);
+        return true;
+      },
+      failure: (failure) {
+        lastErrorMessage = failure.message;
+        return false;
+      },
+    );
   }
 
   void clearSession() {

@@ -180,10 +180,11 @@ class _SelectCityViewState extends State<SelectCityView>
       });
       CustomSnackBar.showPersistentWarning(
         context: context,
-        title: 'Location access is required',
-        message:
-            'Turn on GPS and allow location access before entering the app.',
-        actionLabel: 'Close',
+        title: context.tr('Location access is required'),
+        message: context.tr(
+          'Turn on GPS and allow location access before entering the app.',
+        ),
+        actionLabel: context.tr('Close'),
       );
       return;
     }
@@ -306,10 +307,12 @@ class _SelectCityViewState extends State<SelectCityView>
 
     CustomSnackBar.showSuccess(
       context: context,
-      title: selectedCity.isGeneral ? 'General region saved' : 'Region saved',
+      title: context.tr(
+        selectedCity.isGeneral ? 'General region saved' : 'Region saved',
+      ),
       message: selectedCity.isGeneral
-          ? 'You will see general products and offers.'
-          : 'Products and offers will refresh for your region.',
+          ? context.tr('You will see general products and offers.')
+          : context.tr('Products and offers will refresh for your region.'),
     );
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -341,10 +344,10 @@ class _DetectedGovernorateCard extends StatelessWidget {
     final isCustomCity = city.isNamedGeneral;
     final locationName = city.displayName(arabic: context.isArabicLanguage);
     final detectedTitle = isCustomCity
-        ? (context.isArabicLanguage ? 'حددنا مدينتك' : 'We detected your city')
+        ? context.tr('We detected your city')
         : context.tr('We detected your governorate');
     final confirmQuestion = isCustomCity
-        ? (context.isArabicLanguage ? 'هل دي مدينتك؟' : 'Is this your city?')
+        ? context.tr('Is this your city?')
         : context.tr('Is this your governorate?');
 
     final card = Container(
@@ -417,7 +420,7 @@ class _DetectedGovernorateCard extends StatelessWidget {
             children: [
               Expanded(
                 child: AppActionButton(
-                  label: 'Yes, continue',
+                  label: context.tr('Yes, continue'),
                   icon: AppIcons.tick_circle,
                   onPressed: onConfirm,
                 ),
@@ -425,7 +428,7 @@ class _DetectedGovernorateCard extends StatelessWidget {
               const SizedBox(width: 10),
               Expanded(
                 child: AppActionButton(
-                  label: 'Change',
+                  label: context.tr('Change'),
                   icon: AppIcons.edit,
                   variant: AppActionButtonVariant.outlined,
                   onPressed: onChange,

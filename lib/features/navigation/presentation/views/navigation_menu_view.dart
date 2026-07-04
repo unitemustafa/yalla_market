@@ -152,13 +152,15 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
       if (!snackContext.mounted) return;
       CustomSnackBar.showError(
         context: snackContext,
-        title: 'Region not changed',
-        message: 'Could not update your region. Your cart was not changed.',
+        title: snackContext.tr('Region not changed'),
+        message: snackContext.tr(
+          'Could not update your region. Your cart was not changed.',
+        ),
       );
       return;
     }
 
-    await context.read<CartCubit>().clearLocalCart();
+    final cartCleared = await context.read<CartCubit>().clearLocalCart();
     if (!mounted) return;
     await Future.wait([
       context.read<HomeCubit>().loadHome(force: true),
@@ -167,10 +169,25 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
       context.read<StoreCubit>().loadStore(force: true),
     ]);
     if (!mounted) return;
-    CustomSnackBar.showPersistentSuccess(
+    if (cartCleared) {
+      CustomSnackBar.showSuccess(
+        context: context,
+        title: context.tr(
+          selectedCity.isGeneral ? 'General region saved' : 'Region saved',
+        ),
+        message: context.tr('Your cart was cleared and content was refreshed.'),
+      );
+      return;
+    }
+
+    CustomSnackBar.showError(
       context: context,
-      title: selectedCity.isGeneral ? 'General region saved' : 'Region saved',
-      message: 'Your cart was cleared and content was refreshed.',
+      title: context.tr(
+        selectedCity.isGeneral ? 'General region saved' : 'Region saved',
+      ),
+      message: context.tr(
+        'The region was changed, but the cart could not be cleared.',
+      ),
     );
   }
 

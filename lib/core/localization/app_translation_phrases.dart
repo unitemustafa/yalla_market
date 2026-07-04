@@ -58,6 +58,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'GPS can try to detect your area automatically.':
         'GPS هيحاول يحدد منطقتك تلقائيًا، ولو ما ظبطش تقدر تختار يدويًا.',
     'Location is taking too long': 'تحديد الموقع أخد وقت طويل',
+    'Location access is required': 'مطلوب السماح بالموقع',
     'Choose your area manually and you can try GPS again later.':
         'اختار منطقتك يدويًا، وتقدر تجرب GPS تاني بعدين.',
     'Choose the browsing region used for products':
@@ -79,13 +80,15 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'صلاحية الموقع غير مفعلة. اسمح بالموقع عشان تكمل.',
     'Location services are disabled. Turn on GPS to continue.':
         'خدمات الموقع مقفولة. فعّل GPS عشان تكمل.',
+    'Turn on GPS and allow location access before entering the app.':
+        'فعّل GPS واسمح بالوصول للموقع قبل ما تدخل التطبيق.',
     'Location settings': 'إعدادات الموقع',
     'More accurate delivery price later': 'سعر توصيل أدق لاحقًا',
     'Nearby offers': 'عروض قريبة',
     'Offline': 'غير متصل',
     'Online': 'متصل',
     'Products and offers will refresh for your region.':
-        'المنتجات والعروض هتتحدث حسب منطقتك.',
+        'المنتجات والعروض هتتحدّث حسب منطقتك.',
     'Products that fit your region': 'منتجات مناسبة لمنطقتك',
     'Products will refresh for your selected region.':
         'المنتجات هتتحدث حسب المنطقة المختارة.',
@@ -93,6 +96,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Switch': 'تبديل',
     'Use GPS location': 'استخدم موقع GPS',
     'Is this your governorate?': 'هل دي محافظتك؟',
+    'Is this your city?': 'هل دي مدينتك؟',
+    'We detected your city': 'حددنا مدينتك',
     'We detected your governorate': 'حددنا محافظتك',
     'We could not detect a supported governorate. Choose one manually.':
         'مقدرناش نحدد محافظة مدعومة. اختار محافظتك يدويًا.',
@@ -387,7 +392,14 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Refund': 'استرجاع',
     'Refund from order CWT0152': 'استرجاع من طلب CWT0152',
     'Region': 'المنطقة',
+    'Region not changed': 'المنطقة ما اتغيرتش',
     'Region saved': 'تم حفظ المنطقة',
+    'Could not update your region. Your cart was not changed.':
+        'مش قادرين نحدّث منطقتك، والسلة ما اتغيرتش.',
+    'The region was changed, but the cart could not be cleared.':
+        'المنطقة اتغيرت، لكن مش قادرين نمسح السلة.',
+    'Your cart was cleared and content was refreshed.':
+        'السلة اتمسحت والمحتوى اتحدّث.',
     'Removed from wishlist': 'اتشال من المفضلة',
     'Remember Me': 'افتكرني',
     'Review active refunds before deleting.': 'راجع أي مستردات نشطة قبل الحذف.',

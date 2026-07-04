@@ -109,9 +109,9 @@ class YallaMarketApp extends StatelessWidget {
                           ? TextDirection.rtl
                           : TextDirection.ltr,
                       child: OfflineConnectionBanner(
-                        message: language.isArabic
-                            ? 'لا يوجد اتصال بالإنترنت. تحقق من الشبكة لإكمال التحديثات.'
-                            : 'No internet connection. Check your network to continue updates.',
+                        message: context.tr(
+                          'No internet connection. Check your network to continue updates.',
+                        ),
                         child: child ?? const SizedBox.shrink(),
                       ),
                     );
@@ -176,7 +176,7 @@ class YallaMarketApp extends StatelessWidget {
             ),
             content: Text(
               dialogContext.tr(
-                'Sign in again to continue. Remember Me keeps you signed in for 30 days after closing the app. Without it, your session lasts up to 8 hours and ends when the app closes.',
+                'Sign in again to continue. Remember Me keeps you signed in after closing the app.',
               ),
               textAlign: TextAlign.center,
               style: TextStyle(

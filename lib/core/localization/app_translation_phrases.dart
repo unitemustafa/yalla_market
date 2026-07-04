@@ -9,12 +9,17 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Delivery address needed': 'مطلوب تحديد عنوان التوصيل',
     'Review address': 'مراجعة العنوان',
     'Activate now': 'فعّل الآن',
+    'Account email has not been verified.': 'الإيميل لسه ما اتفعّلش.',
+    'No internet connection.': 'مفيش اتصال بالإنترنت.',
+    'No internet connection': 'مفيش اتصال بالإنترنت.',
+    'No internet connection. Check your network to continue updates.':
+        'مفيش اتصال بالإنترنت. راجع الشبكة عشان نحدّث البيانات.',
     'This login is only for client accounts.':
         'تسجيل الدخول ده مخصص لحسابات العملاء فقط.',
     'Enter a valid Egyptian mobile number starting with 01, 1, 201, or +201.':
         'اكتب رقم موبايل مصري صحيح يبدأ بـ 01 أو 1 أو 201 أو +201.',
-    'Sign in again to continue. Remember Me keeps you signed in for 30 days after closing the app. Without it, your session lasts up to 8 hours and ends when the app closes.':
-        'سجل دخول تاني عشان تكمل. مع تفعيل افتكرني هتفضل داخل لمدة 30 يوم حتى بعد غلق التطبيق، ومن غيرها الجلسة مدتها بحد أقصى 8 ساعات وبتنتهي عند غلق التطبيق.',
+    'Sign in again to continue. Remember Me keeps you signed in after closing the app.':
+        'سجّل دخول تاني عشان تكمل. «افتكرني» بتحافظ على تسجيل دخولك بعد قفل التطبيق.',
     'Choose date': 'اختيار التاريخ',
     'Day': 'اليوم',
     'From': 'من',

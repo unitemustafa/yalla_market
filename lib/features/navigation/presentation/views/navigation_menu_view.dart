@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_navigator.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -181,40 +182,20 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(
-          unsupported
-              ? dialogContext.tr('Outside service cities')
-              : dialogContext.tr('Location changed'),
-          textAlign: TextAlign.center,
-        ),
-        content: Text(
-          unsupported
-              ? dialogContext.tr(
-                  'You are outside our current service cities. Switch your region to General? Changing region will clear your cart.',
-                )
-              : dialogContext.tr(
-                  'Your current region is $currentLabel. We detected $detectedLabel. Changing region will clear your cart.',
-                ),
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: Text(dialogContext.tr('Keep current region')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: Text(dialogContext.tr('Change region')),
-          ),
-        ],
+      builder: (dialogContext) => _RegionSwitchDialog(
+        currentLabel: currentLabel,
+        detectedLabel: detectedLabel,
+        unsupported: unsupported,
+        onKeepCurrent: () => Navigator.pop(dialogContext, false),
+        onChangeRegion: () => Navigator.pop(dialogContext, true),
       ),
     );
     return result ?? false;
   }
 
   String _regionLabel(CityData? city) {
-    if (city == null || city.isGeneral) return context.tr('General');
+    if (city == null) return '';
+    if (city.isGeneral) return context.tr('General');
     return city.displayName(arabic: context.isArabicLanguage);
   }
 
@@ -226,6 +207,186 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
         items: _items,
         selectedIndex: selectedIndex,
         onSelected: (index) => setState(() => selectedIndex = index),
+      ),
+    );
+  }
+}
+
+class _RegionSwitchDialog extends StatelessWidget {
+  const _RegionSwitchDialog({
+    required this.currentLabel,
+    required this.detectedLabel,
+    required this.unsupported,
+    required this.onKeepCurrent,
+    required this.onChangeRegion,
+  });
+
+  final String currentLabel;
+  final String detectedLabel;
+  final bool unsupported;
+  final VoidCallback onKeepCurrent;
+  final VoidCallback onChangeRegion;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final surfaceColor = isDark ? AppColors.darkCardColor : Colors.white;
+    final textColor = isDark
+        ? AppColors.darkTextPrimary
+        : AppColors.lightTextPrimary;
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.08);
+    final safeCurrentLabel = currentLabel.trim().isEmpty
+        ? context.currentRegionFallback
+        : currentLabel;
+
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: surfaceColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.12),
+                blurRadius: 24,
+                offset: const Offset(0, 14),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: Alignment.center,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      AppIcons.location,
+                      color: AppColors.primary,
+                      size: 24,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  context.regionSwitchTitle(unsupported: unsupported),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: textColor,
+                    fontWeight: FontWeight.w900,
+                    height: 1.25,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  context.regionSwitchMessage(
+                    currentRegion: safeCurrentLabel,
+                    detectedRegion: detectedLabel,
+                    unsupported: unsupported,
+                  ),
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: mutedColor,
+                    fontWeight: FontWeight.w600,
+                    height: 1.55,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.warning.withValues(
+                      alpha: isDark ? 0.16 : 0.10,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: AppColors.warning.withValues(alpha: 0.20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        AppIcons.shopping_cart,
+                        color: AppColors.warning,
+                        size: 18,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          context.cartClearedRegionWarning,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: textColor,
+                                fontWeight: FontWeight.w700,
+                                height: 1.35,
+                              ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 18),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final stackButtons = constraints.maxWidth < 340;
+                    final keepButton = AppActionButton(
+                      label: context.keepCurrentRegion(safeCurrentLabel),
+                      icon: AppIcons.arrow_left_2,
+                      variant: AppActionButtonVariant.outlined,
+                      onPressed: onKeepCurrent,
+                    );
+                    final changeButton = AppActionButton(
+                      label: context.changeToRegion(detectedLabel),
+                      icon: AppIcons.tick_circle,
+                      onPressed: onChangeRegion,
+                    );
+
+                    if (stackButtons) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          changeButton,
+                          const SizedBox(height: 10),
+                          keepButton,
+                        ],
+                      );
+                    }
+
+                    return Row(
+                      children: [
+                        Expanded(child: keepButton),
+                        const SizedBox(width: 10),
+                        Expanded(child: changeButton),
+                      ],
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

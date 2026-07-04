@@ -204,6 +204,48 @@ class AppTranslations {
         ? '$count عنوان محفوظ'
         : '$count saved location${count == 1 ? '' : 's'}';
   }
+
+  String regionSwitchTitle({required bool unsupported}) {
+    if (unsupported) {
+      return language.isArabic
+          ? 'أنت خارج مناطق الخدمة'
+          : 'Outside service area';
+    }
+    return language.isArabic ? 'تم اكتشاف تغيير في موقعك' : 'Location changed';
+  }
+
+  String regionSwitchMessage({
+    required String currentRegion,
+    required String detectedRegion,
+    required bool unsupported,
+  }) {
+    if (unsupported) {
+      return language.isArabic
+          ? 'يبدو أنك خارج مدن الخدمة الحالية. هل تريد التبديل إلى عام؟'
+          : 'It looks like you are outside our current service cities. Do you want to switch to General?';
+    }
+    return language.isArabic
+        ? 'منطقتك الحالية هي $currentRegion، ويبدو أنك الآن في $detectedRegion. هل تريد تغيير المنطقة؟'
+        : 'Your current region is $currentRegion, and it looks like you are now in $detectedRegion. Do you want to change region?';
+  }
+
+  String keepCurrentRegion(String region) {
+    return language.isArabic ? 'البقاء في $region' : 'Keep $region';
+  }
+
+  String changeToRegion(String region) {
+    return language.isArabic ? 'التغيير إلى $region' : 'Change to $region';
+  }
+
+  String get currentRegionFallback {
+    return language.isArabic ? 'منطقتك الحالية' : 'your current region';
+  }
+
+  String get cartClearedRegionWarning {
+    return language.isArabic
+        ? 'سيؤدي تغيير المنطقة إلى تفريغ السلة.'
+        : 'Changing region will clear your cart.';
+  }
 }
 
 extension AppTranslationContext on BuildContext {
@@ -219,4 +261,26 @@ extension AppTranslationContext on BuildContext {
       translations.searchResults(count, query);
 
   String savedLocations(int count) => translations.savedLocations(count);
+
+  String regionSwitchTitle({required bool unsupported}) =>
+      translations.regionSwitchTitle(unsupported: unsupported);
+
+  String regionSwitchMessage({
+    required String currentRegion,
+    required String detectedRegion,
+    required bool unsupported,
+  }) => translations.regionSwitchMessage(
+    currentRegion: currentRegion,
+    detectedRegion: detectedRegion,
+    unsupported: unsupported,
+  );
+
+  String keepCurrentRegion(String region) =>
+      translations.keepCurrentRegion(region);
+
+  String changeToRegion(String region) => translations.changeToRegion(region);
+
+  String get currentRegionFallback => translations.currentRegionFallback;
+
+  String get cartClearedRegionWarning => translations.cartClearedRegionWarning;
 }

@@ -2,6 +2,12 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    '8+ characters': '8 حروف على الأقل',
+    'Upper & lowercase': 'حرف كبير وصغير',
+    'Number & symbol': 'رقم ورمز خاص',
+    'Sending...': 'جاري الإرسال...',
+    'Use English letters, numbers, dots, and underscores only':
+        'استخدم حروف إنجليزية وأرقام ونقطة وشرطة سفلية بس',
     'Email, username, or phone': 'الإيميل أو اسم المستخدم أو الموبايل',
     'Enter a valid email, username, or phone number':
         'اكتب إيميل أو اسم مستخدم أو رقم موبايل صحيح',

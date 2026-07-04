@@ -115,7 +115,7 @@ class AuthCubit extends Cubit<AuthState> {
     );
     return result.when(
       success: (isAvailable) => isAvailable,
-      failure: (_) => false,
+      failure: (failure) => throw failure,
     );
   }
 
@@ -131,7 +131,7 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _authUseCases.checkEmailRegistration(email.trim());
     return result.when(
       success: (isRegistered) => !isRegistered,
-      failure: (_) => false,
+      failure: (failure) => throw failure,
     );
   }
 
@@ -139,7 +139,7 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _authUseCases.checkPhoneRegistration(phone.trim());
     return result.when(
       success: (isRegistered) => !isRegistered,
-      failure: (_) => false,
+      failure: (failure) => throw failure,
     );
   }
 

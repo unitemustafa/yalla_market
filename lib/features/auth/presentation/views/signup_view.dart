@@ -31,6 +31,9 @@ class SignupView extends StatefulWidget {
 
 class _SignupViewState extends State<SignupView> {
   final _formKey = GlobalKey<FormState>();
+  final _usernameFieldKey = GlobalKey<FormFieldState<String>>();
+  final _emailFieldKey = GlobalKey<FormFieldState<String>>();
+  final _phoneFieldKey = GlobalKey<FormFieldState<String>>();
   late final TextEditingController _firstNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _usernameController;
@@ -63,8 +66,10 @@ class _SignupViewState extends State<SignupView> {
       emailController: _emailController,
       phoneController: _phoneController,
       usernameController: _usernameController,
-      formKey: _formKey,
       onStateChanged: _handleAvailabilityStateChanged,
+      validateUsernameField: () => _usernameFieldKey.currentState?.validate(),
+      validateEmailField: () => _emailFieldKey.currentState?.validate(),
+      validatePhoneField: () => _phoneFieldKey.currentState?.validate(),
       phoneForLookup: _phoneForLookup,
       validatePhoneFormat: _validatePhoneFormat,
       validateUsername: _validateUsername,
@@ -273,6 +278,8 @@ class _SignupViewState extends State<SignupView> {
                                       _obscurePassword = !_obscurePassword;
                                     });
                                   },
+                                  autovalidateMode:
+                                      AutovalidateMode.onUserInteraction,
                                   validator: _validatePassword,
                                   inputFormatters: [
                                     _noWhitespaceInputFormatter,
@@ -362,6 +369,10 @@ class _SignupViewState extends State<SignupView> {
       return context.tr('This username is already taken');
     }
 
+    if (_checker.hasUsernameCheckError) {
+      return context.tr('Could not check this username.');
+    }
+
     return null;
   }
 
@@ -378,6 +389,10 @@ class _SignupViewState extends State<SignupView> {
       return context.tr('This email is already registered.');
     }
 
+    if (_checker.hasEmailCheckError) {
+      return context.tr('Could not check this email.');
+    }
+
     return null;
   }
 
@@ -392,6 +407,10 @@ class _SignupViewState extends State<SignupView> {
     if (_checker.lastCheckedPhone == phone &&
         _checker.isPhoneAvailable == false) {
       return context.tr('This phone number is already registered.');
+    }
+
+    if (_checker.hasPhoneCheckError) {
+      return context.tr('Could not check this phone number.');
     }
 
     return null;
@@ -444,8 +463,10 @@ class _SignupViewState extends State<SignupView> {
       return context.tr('Username is too long');
     }
 
-    if (!RegExp(r'^[a-zA-Z._]+$').hasMatch(username)) {
-      return context.tr('Use English letters, dots, and underscores only');
+    if (!RegExp(r'^[a-zA-Z0-9._]+$').hasMatch(username)) {
+      return context.tr(
+        'Use English letters, numbers, dots, and underscores only',
+      );
     }
 
     if (!RegExp(r'[a-zA-Z]').hasMatch(username)) {

@@ -16,8 +16,10 @@ class SignupAvailabilityChecker {
     required this.emailController,
     required this.phoneController,
     required this.usernameController,
-    required this.formKey,
     required this.onStateChanged,
+    required this.validateUsernameField,
+    required this.validateEmailField,
+    required this.validatePhoneField,
     required this.phoneForLookup,
     required this.validatePhoneFormat,
     required this.validateUsername,
@@ -28,10 +30,12 @@ class SignupAvailabilityChecker {
   final TextEditingController emailController;
   final TextEditingController phoneController;
   final TextEditingController usernameController;
-  final GlobalKey<FormState> formKey;
 
   /// Called whenever internal state changes — pass `() => setState(() {})`.
   final VoidCallback onStateChanged;
+  final VoidCallback validateUsernameField;
+  final VoidCallback validateEmailField;
+  final VoidCallback validatePhoneField;
 
   /// Returns the phone number in lookup format (dial code + digits).
   final String Function() phoneForLookup;
@@ -47,6 +51,7 @@ class SignupAvailabilityChecker {
 
   /// Allows phone lookup only after email has already been verified available.
   final bool Function() canCheckPhone;
+  bool _isNotifyingStateChange = false;
 
   /// Must be updated each build via [updateContext].
   BuildContext? _context;
@@ -68,10 +73,22 @@ class SignupAvailabilityChecker {
   String? _lastCheckedUsername;
   String? _lastCheckedEmail;
   String? _lastCheckedPhone;
+  String? _lastRequestedUsername;
+  String? _lastRequestedEmail;
+  String? _lastRequestedPhone;
+  int _usernameRequestGeneration = 0;
+  int _emailRequestGeneration = 0;
+  int _phoneRequestGeneration = 0;
 
   String? get lastCheckedUsername => _lastCheckedUsername;
   String? get lastCheckedEmail => _lastCheckedEmail;
   String? get lastCheckedPhone => _lastCheckedPhone;
+  bool get hasUsernameCheckError =>
+      usernameAvailabilityMessage == 'Could not check this username.';
+  bool get hasEmailCheckError =>
+      emailAvailabilityMessage == 'Could not check this email.';
+  bool get hasPhoneCheckError =>
+      phoneAvailabilityMessage == 'Could not check this phone number.';
 
   bool? isUsernameAvailable;
   bool? isEmailAvailable;
@@ -80,6 +97,14 @@ class SignupAvailabilityChecker {
   bool isCheckingUsername = false;
   bool isCheckingEmail = false;
   bool isCheckingPhone = false;
+
+  void _notifyStateChanged() {
+    if (_isNotifyingStateChange) return;
+
+    _isNotifyingStateChange = true;
+    onStateChanged();
+    _isNotifyingStateChange = false;
+  }
 
   // ── Lifecycle ────────────────────────────────────────────────────────────
 
@@ -97,19 +122,29 @@ class SignupAvailabilityChecker {
     final email = emailController.text.trim().toLowerCase();
     final validationMessage = Validators.email(email);
 
+    if (email == _lastRequestedEmail && !isCheckingEmail) return;
+
     _lastCheckedEmail = null;
+    _lastRequestedEmail = null;
+    _emailRequestGeneration++;
     isEmailAvailable = null;
     isCheckingEmail = false;
     emailAvailabilityMessage = null;
-    onStateChanged();
+    _notifyStateChanged();
 
     if (email.isEmpty || validationMessage != null || !canCheckEmail()) return;
 
+    _lastRequestedEmail = email;
+    final generation = _emailRequestGeneration;
     _emailLookupDebounce = Timer(const Duration(milliseconds: 450), () {
       final ctx = _context;
       if (ctx == null || !ctx.mounted) return;
       // ignore: discarded_futures
-      _checkEmailAvailability(context: ctx, showWarningOnError: false);
+      _checkEmailAvailability(
+        context: ctx,
+        showWarningOnError: false,
+        generation: generation,
+      );
     });
   }
 
@@ -117,21 +152,29 @@ class SignupAvailabilityChecker {
     final email = emailController.text.trim().toLowerCase();
 
     if (email.isEmpty || Validators.email(email) != null || !canCheckEmail()) {
-      formKey.currentState?.validate();
+      validateEmailField();
       return false;
     }
 
     if (_lastCheckedEmail == email && isEmailAvailable == true) {
       return true;
     }
+    if (_lastCheckedEmail == email && isEmailAvailable == false) {
+      validateEmailField();
+      return false;
+    }
+    if (_lastRequestedEmail == email && hasEmailCheckError) {
+      return true;
+    }
 
     final available = await _checkEmailAvailability(
       context: context,
       showWarningOnError: true,
+      generation: ++_emailRequestGeneration,
     );
 
     if (!available) {
-      formKey.currentState?.validate();
+      validateEmailField();
     }
 
     return available;
@@ -140,6 +183,7 @@ class SignupAvailabilityChecker {
   Future<bool> _checkEmailAvailability({
     required BuildContext context,
     required bool showWarningOnError,
+    required int generation,
   }) async {
     final email = emailController.text.trim().toLowerCase();
 
@@ -148,20 +192,22 @@ class SignupAvailabilityChecker {
       isEmailAvailable = null;
       _lastCheckedEmail = null;
       emailAvailabilityMessage = null;
-      onStateChanged();
+      _notifyStateChanged();
       return false;
     }
 
     isCheckingEmail = true;
+    _lastRequestedEmail = email;
     emailAvailabilityMessage = 'Checking email...';
-    onStateChanged();
+    _notifyStateChanged();
 
     try {
       final isAvailable = await context.read<AuthCubit>().isEmailAvailable(
         email,
       );
 
-      if (email != emailController.text.trim().toLowerCase()) {
+      if (generation != _emailRequestGeneration ||
+          email != emailController.text.trim().toLowerCase()) {
         return false;
       }
 
@@ -171,15 +217,23 @@ class SignupAvailabilityChecker {
       emailAvailabilityMessage = isAvailable
           ? 'Email is available.'
           : 'This email is already registered.';
-      onStateChanged();
+      validateEmailField();
+      _notifyStateChanged();
 
       return isAvailable;
     } catch (_) {
+      if (generation != _emailRequestGeneration ||
+          email != emailController.text.trim().toLowerCase()) {
+        return false;
+      }
+
       isCheckingEmail = false;
       isEmailAvailable = null;
       _lastCheckedEmail = null;
-      emailAvailabilityMessage = 'Could not check email right now.';
-      onStateChanged();
+      _lastRequestedEmail = email;
+      emailAvailabilityMessage = 'Could not check this email.';
+      validateEmailField();
+      _notifyStateChanged();
 
       if (showWarningOnError && context.mounted) {
         CustomSnackBar.showWarning(
@@ -199,20 +253,31 @@ class SignupAvailabilityChecker {
     _phoneLookupDebounce?.cancel();
 
     final validationMessage = validatePhoneFormat(phoneController.text);
+    final phone = phoneForLookup();
+
+    if (phone == _lastRequestedPhone && !isCheckingPhone) return;
 
     _lastCheckedPhone = null;
+    _lastRequestedPhone = null;
+    _phoneRequestGeneration++;
     isPhoneAvailable = null;
     isCheckingPhone = false;
     phoneAvailabilityMessage = null;
-    onStateChanged();
+    _notifyStateChanged();
 
     if (validationMessage != null || !canCheckPhone()) return;
 
+    _lastRequestedPhone = phone;
+    final generation = _phoneRequestGeneration;
     _phoneLookupDebounce = Timer(const Duration(milliseconds: 450), () {
       final ctx = _context;
       if (ctx == null || !ctx.mounted) return;
       // ignore: discarded_futures
-      _checkPhoneAvailability(context: ctx, showWarningOnError: false);
+      _checkPhoneAvailability(
+        context: ctx,
+        showWarningOnError: false,
+        generation: generation,
+      );
     });
   }
 
@@ -220,7 +285,7 @@ class SignupAvailabilityChecker {
     final validationMessage = validatePhoneFormat(phoneController.text);
 
     if (validationMessage != null || !canCheckPhone()) {
-      formKey.currentState?.validate();
+      validatePhoneField();
       return false;
     }
 
@@ -228,14 +293,22 @@ class SignupAvailabilityChecker {
     if (_lastCheckedPhone == phone && isPhoneAvailable == true) {
       return true;
     }
+    if (_lastCheckedPhone == phone && isPhoneAvailable == false) {
+      validatePhoneField();
+      return false;
+    }
+    if (_lastRequestedPhone == phone && hasPhoneCheckError) {
+      return true;
+    }
 
     final available = await _checkPhoneAvailability(
       context: context,
       showWarningOnError: true,
+      generation: ++_phoneRequestGeneration,
     );
 
     if (!available) {
-      formKey.currentState?.validate();
+      validatePhoneField();
     }
 
     return available;
@@ -244,6 +317,7 @@ class SignupAvailabilityChecker {
   Future<bool> _checkPhoneAvailability({
     required BuildContext context,
     required bool showWarningOnError,
+    required int generation,
   }) async {
     final validationMessage = validatePhoneFormat(phoneController.text);
 
@@ -252,22 +326,23 @@ class SignupAvailabilityChecker {
       isPhoneAvailable = null;
       _lastCheckedPhone = null;
       phoneAvailabilityMessage = null;
-      onStateChanged();
+      _notifyStateChanged();
       return false;
     }
 
     final phone = phoneForLookup();
 
     isCheckingPhone = true;
+    _lastRequestedPhone = phone;
     phoneAvailabilityMessage = 'Checking phone number...';
-    onStateChanged();
+    _notifyStateChanged();
 
     try {
       final isAvailable = await context.read<AuthCubit>().isPhoneAvailable(
         phone,
       );
 
-      if (phone != phoneForLookup()) {
+      if (generation != _phoneRequestGeneration || phone != phoneForLookup()) {
         return false;
       }
 
@@ -277,15 +352,22 @@ class SignupAvailabilityChecker {
       phoneAvailabilityMessage = isAvailable
           ? 'Phone number is available.'
           : 'This phone number is already registered.';
-      onStateChanged();
+      validatePhoneField();
+      _notifyStateChanged();
 
       return isAvailable;
     } catch (_) {
+      if (generation != _phoneRequestGeneration || phone != phoneForLookup()) {
+        return false;
+      }
+
       isCheckingPhone = false;
       isPhoneAvailable = null;
       _lastCheckedPhone = null;
-      phoneAvailabilityMessage = 'Could not check phone number right now.';
-      onStateChanged();
+      _lastRequestedPhone = phone;
+      phoneAvailabilityMessage = 'Could not check this phone number.';
+      validatePhoneField();
+      _notifyStateChanged();
 
       if (showWarningOnError && context.mounted) {
         CustomSnackBar.showWarning(
@@ -307,19 +389,29 @@ class SignupAvailabilityChecker {
     final username = usernameController.text.trim();
     final validationMessage = validateUsername(username);
 
+    if (username == _lastRequestedUsername && !isCheckingUsername) return;
+
     _lastCheckedUsername = null;
+    _lastRequestedUsername = null;
+    _usernameRequestGeneration++;
     isUsernameAvailable = null;
     isCheckingUsername = false;
     usernameAvailabilityMessage = validationMessage;
-    onStateChanged();
+    _notifyStateChanged();
 
     if (username.isEmpty || validationMessage != null) return;
 
+    _lastRequestedUsername = username;
+    final generation = _usernameRequestGeneration;
     _usernameLookupDebounce = Timer(const Duration(milliseconds: 450), () {
       final ctx = _context;
       if (ctx == null || !ctx.mounted) return;
       // ignore: discarded_futures
-      _checkUsernameAvailability(context: ctx, showWarningOnError: false);
+      _checkUsernameAvailability(
+        context: ctx,
+        showWarningOnError: false,
+        generation: generation,
+      );
     });
   }
 
@@ -331,14 +423,22 @@ class SignupAvailabilityChecker {
     if (_lastCheckedUsername == username && isUsernameAvailable == true) {
       return true;
     }
+    if (_lastCheckedUsername == username && isUsernameAvailable == false) {
+      validateUsernameField();
+      return false;
+    }
+    if (_lastRequestedUsername == username && hasUsernameCheckError) {
+      return true;
+    }
 
     final available = await _checkUsernameAvailability(
       context: context,
       showWarningOnError: true,
+      generation: ++_usernameRequestGeneration,
     );
 
     if (!available) {
-      formKey.currentState?.validate();
+      validateUsernameField();
     }
 
     return available;
@@ -347,6 +447,7 @@ class SignupAvailabilityChecker {
   Future<bool> _checkUsernameAvailability({
     required BuildContext context,
     required bool showWarningOnError,
+    required int generation,
   }) async {
     final username = usernameController.text.trim();
     final validationMessage = validateUsername(username);
@@ -356,7 +457,7 @@ class SignupAvailabilityChecker {
       isUsernameAvailable = null;
       _lastCheckedUsername = null;
       usernameAvailabilityMessage = null;
-      onStateChanged();
+      _notifyStateChanged();
       return true;
     }
 
@@ -365,20 +466,22 @@ class SignupAvailabilityChecker {
       isUsernameAvailable = null;
       _lastCheckedUsername = null;
       usernameAvailabilityMessage = validationMessage;
-      onStateChanged();
+      _notifyStateChanged();
       return false;
     }
 
     isCheckingUsername = true;
+    _lastRequestedUsername = username;
     usernameAvailabilityMessage = 'Checking username...';
-    onStateChanged();
+    _notifyStateChanged();
 
     try {
       final isAvailable = await context.read<AuthCubit>().isUsernameAvailable(
         username,
       );
 
-      if (username != usernameController.text.trim()) {
+      if (generation != _usernameRequestGeneration ||
+          username != usernameController.text.trim()) {
         return false;
       }
 
@@ -388,15 +491,23 @@ class SignupAvailabilityChecker {
       usernameAvailabilityMessage = isAvailable
           ? 'Username is available.'
           : 'This username is already taken.';
-      onStateChanged();
+      validateUsernameField();
+      _notifyStateChanged();
 
       return isAvailable;
     } catch (_) {
+      if (generation != _usernameRequestGeneration ||
+          username != usernameController.text.trim()) {
+        return false;
+      }
+
       isCheckingUsername = false;
       isUsernameAvailable = null;
       _lastCheckedUsername = null;
-      usernameAvailabilityMessage = 'Could not check username right now.';
-      onStateChanged();
+      _lastRequestedUsername = username;
+      usernameAvailabilityMessage = 'Could not check this username.';
+      validateUsernameField();
+      _notifyStateChanged();
 
       if (showWarningOnError && context.mounted) {
         CustomSnackBar.showWarning(

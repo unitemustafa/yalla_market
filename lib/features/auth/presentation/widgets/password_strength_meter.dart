@@ -22,20 +22,42 @@ class PasswordStrengthMeter extends StatelessWidget {
 
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (var index = 0; index < requirements.length; index++) ...[
-                if (index > 0) const SizedBox(width: 8),
-                Expanded(
-                  child: _PasswordRequirementRow(
-                    label: requirements[index].label,
-                    isMet: requirements[index].isMet,
-                    isDark: isDark,
-                  ),
-                ),
-              ],
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth >= 390) {
+                return Row(
+                  children: [
+                    for (final requirement in requirements)
+                      Expanded(
+                        child: Center(
+                          child: _PasswordRequirementRow(
+                            label: requirement.label,
+                            isMet: requirement.isMet,
+                            isDark: isDark,
+                            maxLabelWidth: 108,
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }
+
+              return Wrap(
+                alignment: WrapAlignment.center,
+                runAlignment: WrapAlignment.center,
+                spacing: 14,
+                runSpacing: 8,
+                children: [
+                  for (final requirement in requirements)
+                    _PasswordRequirementRow(
+                      label: requirement.label,
+                      isMet: requirement.isMet,
+                      isDark: isDark,
+                      maxLabelWidth: 128,
+                    ),
+                ],
+              );
+            },
           ),
         );
       },
@@ -46,21 +68,19 @@ class PasswordStrengthMeter extends StatelessWidget {
     BuildContext context,
     String password,
   ) {
-    final isArabic = context.isArabicLanguage;
-
     return [
       _PasswordRequirement(
-        label: isArabic ? '8 حروف على الأقل' : '8+ characters',
+        label: context.tr('8+ characters'),
         isMet: password.length >= 8,
       ),
       _PasswordRequirement(
-        label: isArabic ? 'حرف كبير وصغير' : 'Upper & lowercase',
+        label: context.tr('Upper & lowercase'),
         isMet:
             RegExp(r'[A-Z]').hasMatch(password) &&
             RegExp(r'[a-z]').hasMatch(password),
       ),
       _PasswordRequirement(
-        label: isArabic ? 'رقم ورمز خاص' : 'Number & symbol',
+        label: context.tr('Number & symbol'),
         isMet:
             RegExp(r'\d').hasMatch(password) &&
             RegExp(r'[^A-Za-z0-9]').hasMatch(password),
@@ -81,11 +101,13 @@ class _PasswordRequirementRow extends StatelessWidget {
     required this.label,
     required this.isMet,
     required this.isDark,
+    required this.maxLabelWidth,
   });
 
   final String label;
   final bool isMet;
   final bool isDark;
+  final double maxLabelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -96,23 +118,25 @@ class _PasswordRequirementRow extends StatelessWidget {
     final color = isMet ? AppColors.success : inactiveColor;
 
     return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 160),
           child: Icon(
             isMet ? AppIcons.tick_circle : AppIcons.record_circle,
-            key: ValueKey(isMet),
+            key: ValueKey('${label}_$isMet'),
             size: 15,
             color: color,
           ),
         ),
         const SizedBox(width: 5),
-        Expanded(
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxLabelWidth),
           child: Text(
             label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+            softWrap: true,
+            textAlign: TextAlign.center,
             style: theme.textTheme.bodySmall?.copyWith(
               color: color,
               fontSize: 10.5,

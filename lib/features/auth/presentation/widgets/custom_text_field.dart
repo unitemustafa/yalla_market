@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../../../core/localization/app_translations.dart';
 
 class CustomTextField extends StatelessWidget {
+  final Key? fieldKey;
   final String labelText;
   final IconData prefixIcon;
   final IconData? suffixIcon;
@@ -18,9 +19,11 @@ class CustomTextField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
+  final AutovalidateMode? autovalidateMode;
 
   const CustomTextField({
     super.key,
+    this.fieldKey,
     required this.labelText,
     required this.prefixIcon,
     this.suffixIcon,
@@ -35,6 +38,7 @@ class CustomTextField extends StatelessWidget {
     this.onChanged,
     this.inputFormatters,
     this.errorText,
+    this.autovalidateMode,
   });
 
   @override
@@ -55,10 +59,12 @@ class CustomTextField extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
+        key: fieldKey,
         controller: controller,
         focusNode: focusNode,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        autovalidateMode: autovalidateMode,
         validator: validator,
         onChanged: onChanged,
         inputFormatters: inputFormatters,

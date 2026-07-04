@@ -44,6 +44,7 @@ extension _SignupFormFields on _SignupViewState {
             controller: _firstNameController,
             labelText: AppStrings.firstName,
             prefixIcon: AppIcons.user,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
             inputFormatters: [_noWhitespaceInputFormatter],
           ),
@@ -51,6 +52,7 @@ extension _SignupFormFields on _SignupViewState {
             controller: _lastNameController,
             labelText: AppStrings.lastName,
             prefixIcon: AppIcons.user,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
             inputFormatters: [_noWhitespaceInputFormatter],
           ),
@@ -65,6 +67,7 @@ extension _SignupFormFields on _SignupViewState {
             controller: _firstNameController,
             labelText: AppStrings.firstName,
             prefixIcon: AppIcons.user,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
             inputFormatters: [_noWhitespaceInputFormatter],
           ),
@@ -75,6 +78,7 @@ extension _SignupFormFields on _SignupViewState {
             controller: _lastNameController,
             labelText: AppStrings.lastName,
             prefixIcon: AppIcons.user,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
             inputFormatters: [_noWhitespaceInputFormatter],
           ),
@@ -84,18 +88,23 @@ extension _SignupFormFields on _SignupViewState {
   }
 
   Widget _buildUsernameField(bool isDarkMode) {
-    final showAvailabilityState = _usernameFocusNode.hasFocus;
+    final username = _usernameController.text.trim();
+    final showAvailabilityState =
+        _usernameFocusNode.hasFocus ||
+        (username.isNotEmpty && _checker.lastCheckedUsername == username);
 
     return CustomTextField(
+      fieldKey: _usernameFieldKey,
       controller: _usernameController,
       focusNode: _usernameFocusNode,
       labelText: AppStrings.username,
       prefixIcon: AppIcons.user_edit,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       validator: _validateUsername,
       errorText: _activeUsernameAvailabilityError(),
       inputFormatters: [
         _noWhitespaceInputFormatter,
-        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z._]')),
+        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9._]')),
       ],
       suffix: _buildAvailabilityStatusSuffix(
         isDarkMode,
@@ -107,20 +116,26 @@ extension _SignupFormFields on _SignupViewState {
             showAvailabilityState &&
             _usernameController.text.trim().isNotEmpty &&
             _checker.usernameAvailabilityMessage != null &&
+            !_checker.hasUsernameCheckError &&
             !_checker.isCheckingUsername,
       ),
     );
   }
 
   Widget _buildEmailField(bool isDarkMode) {
-    final showAvailabilityState = _emailFocusNode.hasFocus;
+    final email = _emailController.text.trim().toLowerCase();
+    final showAvailabilityState =
+        _emailFocusNode.hasFocus ||
+        (email.isNotEmpty && _checker.lastCheckedEmail == email);
 
     return CustomTextField(
+      fieldKey: _emailFieldKey,
       controller: _emailController,
       focusNode: _emailFocusNode,
       labelText: AppStrings.email,
       prefixIcon: AppIcons.direct_right,
       keyboardType: TextInputType.emailAddress,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       validator: _validateEmail,
       errorText: _activeEmailAvailabilityError(),
       inputFormatters: [_noWhitespaceInputFormatter],
@@ -158,6 +173,7 @@ extension _SignupFormFields on _SignupViewState {
 
     if (isAvailable == true) {
       return const Icon(
+        key: ValueKey('availability_success_icon'),
         AppIcons.tick_circle,
         size: 23,
         color: AppColors.success,
@@ -165,13 +181,22 @@ extension _SignupFormFields on _SignupViewState {
     }
 
     if (isAvailable == false || showError) {
-      return const Icon(AppIcons.danger, size: 23, color: AppColors.error);
+      return const Icon(
+        key: ValueKey('availability_error_icon'),
+        AppIcons.danger,
+        size: 23,
+        color: AppColors.error,
+      );
     }
 
     return null;
   }
 
   Widget _buildPhoneField(ThemeData theme, bool isDarkMode) {
+    final phone = _phoneForLookup();
+    final showAvailabilityState =
+        _phoneFocusNode.hasFocus ||
+        (phone.isNotEmpty && _checker.lastCheckedPhone == phone);
     final fillColor = isDarkMode
         ? const Color(0xFF222326)
         : const Color(0xFFF5F6FA);
@@ -186,6 +211,7 @@ extension _SignupFormFields on _SignupViewState {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: TextFormField(
+        key: _phoneFieldKey,
         controller: _phoneController,
         focusNode: _phoneFocusNode,
         keyboardType: TextInputType.phone,
@@ -216,10 +242,15 @@ extension _SignupFormFields on _SignupViewState {
           ),
           prefixIcon: Icon(AppIcons.call, color: iconColor, size: 21),
           hintText: '01xxxxxxxxx',
+          hintStyle: TextStyle(
+            color: iconColor,
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+          ),
           suffixIcon: _buildAvailabilityStatusSuffix(
             isDarkMode,
-            isChecking: _phoneFocusNode.hasFocus && _checker.isCheckingPhone,
-            isAvailable: _phoneFocusNode.hasFocus
+            isChecking: showAvailabilityState && _checker.isCheckingPhone,
+            isAvailable: showAvailabilityState
                 ? _checker.isPhoneAvailable
                 : null,
           ),

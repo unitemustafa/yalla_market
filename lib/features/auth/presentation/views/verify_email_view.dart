@@ -73,9 +73,16 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     }
 
     setState(() => _isResending = true);
-    final sent = await authCubit.resendSignupVerificationCode();
+    late final bool sent;
+    try {
+      sent = await authCubit.resendSignupVerificationCode();
+    } catch (_) {
+      sent = false;
+    } finally {
+      if (mounted) setState(() => _isResending = false);
+    }
+
     if (!mounted) return;
-    setState(() => _isResending = false);
 
     if (!sent) {
       CustomSnackBar.showError(
@@ -402,65 +409,96 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: () => _codeFocusNode.requestFocus(),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Row(
-              children: List.generate(_codeLength, (index) {
-                final digit = index < code.length ? code[index] : '';
-                final isActive =
-                    _codeFocusNode.hasFocus &&
-                    (code.length == index ||
-                        (code.length == _codeLength &&
-                            index == _codeLength - 1));
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final spacing =
+                  ((constraints.maxWidth - (44 * _codeLength)) /
+                          (_codeLength - 1))
+                      .clamp(3.0, 8.0);
+              final digitWidth =
+                  ((constraints.maxWidth - (spacing * (_codeLength - 1))) /
+                          _codeLength)
+                      .clamp(44.0, 54.0);
+              final groupWidth =
+                  (digitWidth * _codeLength) + (spacing * (_codeLength - 1));
 
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsetsDirectional.only(
-                      start: index == 0 ? 0 : 4,
-                      end: index == _codeLength - 1 ? 0 : 4,
+              return SizedBox(
+                width: groupWidth,
+                height: 58,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(_codeLength, (index) {
+                          final digit = index < code.length ? code[index] : '';
+                          final isActive =
+                              _codeFocusNode.hasFocus &&
+                              (code.length == index ||
+                                  (code.length == _codeLength &&
+                                      index == _codeLength - 1));
+
+                          return Padding(
+                            padding: EdgeInsetsDirectional.only(
+                              start: index == 0 ? 0 : spacing / 2,
+                              end: index == _codeLength - 1 ? 0 : spacing / 2,
+                            ),
+                            child: SizedBox(
+                              width: digitWidth,
+                              child: _CodeDigitBox(
+                                key: ValueKey('otp_digit_$index'),
+                                digit: digit,
+                                isActive: isActive,
+                                isDarkMode: isDarkMode,
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
                     ),
-                    child: _CodeDigitBox(
-                      digit: digit,
-                      isActive: isActive,
-                      isDarkMode: isDarkMode,
+                    Positioned.fill(
+                      child: TextField(
+                        key: const ValueKey('otp_code_field'),
+                        controller: _codeController,
+                        focusNode: _codeFocusNode,
+                        autofocus: true,
+                        showCursor: false,
+                        enableInteractiveSelection: false,
+                        keyboardType: TextInputType.number,
+                        textInputAction: TextInputAction.done,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(_codeLength),
+                        ],
+                        style: const TextStyle(
+                          color: Colors.transparent,
+                          fontSize: 1,
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          counterText: '',
+                          contentPadding: EdgeInsets.zero,
+                          isCollapsed: true,
+                        ),
+                        onSubmitted: (_) => _onConfirm(),
+                      ),
                     ),
-                  ),
-                );
-              }),
-            ),
+                  ],
+                ),
+              );
+            },
           ),
-          Positioned.fill(
-            child: TextField(
-              controller: _codeController,
-              focusNode: _codeFocusNode,
-              autofocus: true,
-              showCursor: false,
-              enableInteractiveSelection: false,
-              keyboardType: TextInputType.number,
-              textInputAction: TextInputAction.done,
-              inputFormatters: [
-                FilteringTextInputFormatter.digitsOnly,
-                LengthLimitingTextInputFormatter(_codeLength),
-              ],
-              style: const TextStyle(color: Colors.transparent, fontSize: 1),
-              decoration: const InputDecoration(
-                border: InputBorder.none,
-                enabledBorder: InputBorder.none,
-                focusedBorder: InputBorder.none,
-                disabledBorder: InputBorder.none,
-                errorBorder: InputBorder.none,
-                focusedErrorBorder: InputBorder.none,
-                counterText: '',
-                contentPadding: EdgeInsets.zero,
-                isCollapsed: true,
-              ),
-              onSubmitted: (_) => _onConfirm(),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -495,12 +533,39 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         disabledForegroundColor: disabledColor,
       ),
-      child: Text(
-        label,
-        style: theme.textTheme.bodyMedium?.copyWith(
-          fontWeight: FontWeight.w800,
-          color: _isCoolingDown ? disabledColor : enabledColor,
-        ),
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 180),
+        child: _isResending
+            ? Row(
+                key: const ValueKey('resend_loading'),
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(disabledColor),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    context.tr('Sending...'),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: disabledColor,
+                    ),
+                  ),
+                ],
+              )
+            : Text(
+                label,
+                key: ValueKey(label),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: _isCoolingDown ? disabledColor : enabledColor,
+                ),
+              ),
       ),
     );
   }
@@ -520,6 +585,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
 
 class _CodeDigitBox extends StatelessWidget {
   const _CodeDigitBox({
+    super.key,
     required this.digit,
     required this.isActive,
     required this.isDarkMode,

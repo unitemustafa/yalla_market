@@ -126,20 +126,6 @@ class _SignupViewState extends State<SignupView> {
     final acceptedTerms = _ensurePrivacyAccepted();
     if (!isFormValid || !acceptedTerms) return;
 
-    if (Validators.passwordStrength(_passwordController.text) !=
-        PasswordStrength.strong) {
-      CustomSnackBar.showWarning(
-        context: context,
-        title: context.isArabicLanguage
-            ? 'كلمة السر غير مكتملة'
-            : 'Password incomplete',
-        message: context.isArabicLanguage
-            ? 'كمّل شروط كلمة السر الأول.'
-            : 'Complete the password requirements first.',
-      );
-      return;
-    }
-
     final emailAvailable = await _checker.ensureEmailAvailable(context);
     if (!mounted) return;
 
@@ -336,11 +322,7 @@ class _SignupViewState extends State<SignupView> {
     final whitespaceMessage = _validateNoWhitespace(password);
     if (whitespaceMessage != null) return whitespaceMessage;
 
-    if (password.length > 72) {
-      return AppTranslations.current.passwordTooLong;
-    }
-
-    return null;
+    return Validators.password(password);
   }
 
   String? _validatePhone(String? value) {

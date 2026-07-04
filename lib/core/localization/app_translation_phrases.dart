@@ -573,6 +573,17 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'I need help with a return.': 'محتاج مساعدة في إرجاع منتج.',
     'India': 'الهند',
     'Invalid email or password.': 'الإيميل أو كلمة السر مش صحيحين.',
+    'Invalid verification code': 'كود التحقق غلط أو انتهت صلاحيته.',
+    'Invalid verification code.': 'كود التحقق غلط أو انتهت صلاحيته.',
+    'Invalid or expired verification code': 'كود التحقق غلط أو انتهت صلاحيته.',
+    'Invalid or expired verification code.': 'كود التحقق غلط أو انتهت صلاحيته.',
+    'The verification code has expired.': 'كود التحقق غلط أو انتهت صلاحيته.',
+    'No active verification code was found.':
+        'كود التحقق غلط أو انتهت صلاحيته.',
+    'New password must be different from your current password':
+        'كلمة السر الجديدة لازم تكون مختلفة عن كلمة السر الحالية.',
+    'New password must be different from your current password.':
+        'كلمة السر الجديدة لازم تكون مختلفة عن كلمة السر الحالية.',
     'Invalid password': 'كلمة السر مش صحيحة.',
     'Invalid password.': 'كلمة السر مش صحيحة.',
     'Keep your account information accurate and protect your password.':

@@ -59,7 +59,7 @@ const Map<String, Map<String, String>> _translationValues = {
     'passwordTooShort': 'Password must be at least 8 characters',
     'passwordTooLong': 'Password must be 72 characters or fewer.',
     'passwordWeak':
-        'Weak password. Use uppercase, lowercase, a number, and a symbol.',
+        'Password is weak. Use uppercase, lowercase, a number, and a symbol.',
     'passwordMedium': 'Medium password. Add more variety to make it strong.',
     'invalidPhone': 'Please enter a valid phone number',
   },

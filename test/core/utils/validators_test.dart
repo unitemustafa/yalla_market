@@ -49,11 +49,11 @@ void main() {
       );
       expect(
         Validators.password('abcdefgh'),
-        'Weak password. Use uppercase, lowercase, a number, and a symbol.',
+        'Password is weak. Use uppercase, lowercase, a number, and a symbol.',
       );
       expect(
         Validators.password('Abcdefgh'),
-        'Medium password. Add more variety to make it strong.',
+        'Password is weak. Use uppercase, lowercase, a number, and a symbol.',
       );
       expect(Validators.password('Abcdef1!'), isNull);
     });

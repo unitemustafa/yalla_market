@@ -67,11 +67,9 @@ class Validators {
       return strings.passwordTooLong;
     }
     final strength = passwordStrength(password);
-    if (strength == PasswordStrength.weak) {
+    if (strength == PasswordStrength.weak ||
+        strength == PasswordStrength.medium) {
       return strings.passwordWeak;
-    }
-    if (strength == PasswordStrength.medium) {
-      return strings.passwordMedium;
     }
     return null;
   }

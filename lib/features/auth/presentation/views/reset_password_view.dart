@@ -12,6 +12,7 @@ import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../cubit/auth_cubit.dart';
+import '../cubit/auth_state.dart';
 import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/password_strength_meter.dart';
@@ -76,13 +77,19 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
     setState(() => _isSubmitting = false);
 
     if (!success) {
+      final authState = context.read<AuthCubit>().state;
+      final failureMessage = authState is AuthFailure
+          ? authState.message
+          : null;
       CustomSnackBar.showError(
         context: context,
         title: _copy(ar: 'تعذر تغيير كلمة السر', en: 'Password was not reset'),
-        message: _copy(
-          ar: 'راجع الكود وكلمة السر وحاول مرة تانية.',
-          en: 'Check the code and password, then try again.',
-        ),
+        message: failureMessage == null
+            ? _copy(
+                ar: 'راجع الكود وكلمة السر وحاول مرة تانية.',
+                en: 'Check the code and password, then try again.',
+              )
+            : context.tr(failureMessage),
       );
       return;
     }

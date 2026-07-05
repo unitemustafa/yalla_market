@@ -1,17 +1,20 @@
 part of 'notifications_view.dart';
 
 class _NotificationDetailSheet extends StatelessWidget {
-  const _NotificationDetailSheet({required this.data, required this.isDark});
+  const _NotificationDetailSheet({
+    required this.notification,
+    required this.isDark,
+  });
 
-  final _NotificationData data;
+  final AppNotification notification;
   final bool isDark;
-
-  String _label(BuildContext context, String english, String arabic) {
-    return context.isArabicLanguage ? arabic : english;
-  }
 
   @override
   Widget build(BuildContext context) {
+    final presentation = NotificationPresentationMapper.map(
+      context,
+      notification,
+    );
     final panelColor = isDark ? AppColors.darkCardColor : Colors.white;
     final mutedColor = isDark
         ? AppColors.darkTextSecondary
@@ -60,10 +63,16 @@ class _NotificationDetailSheet extends StatelessWidget {
                     width: 52,
                     height: 52,
                     decoration: BoxDecoration(
-                      color: data.color.withValues(alpha: isDark ? 0.18 : 0.10),
+                      color: presentation.color.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
-                    child: Icon(data.icon, color: data.color, size: 25),
+                    child: Icon(
+                      presentation.icon,
+                      color: presentation.color,
+                      size: 25,
+                    ),
                   ),
                   const SizedBox(width: 14),
                   Expanded(
@@ -71,11 +80,7 @@ class _NotificationDetailSheet extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          _label(
-                            context,
-                            'Notification details',
-                            '\u062a\u0641\u0627\u0635\u064a\u0644 \u0627\u0644\u0625\u0634\u0639\u0627\u0631',
-                          ),
+                          context.tr('Notification details'),
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: mutedColor,
@@ -84,7 +89,7 @@ class _NotificationDetailSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 5),
                         Text(
-                          context.tr(data.title),
+                          presentation.localizedTitle,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(
                                 color: textColor,
@@ -94,7 +99,10 @@ class _NotificationDetailSheet extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          context.tr(data.time),
+                          NotificationTimeFormatter.format(
+                            context,
+                            notification.createdAt,
+                          ),
                           style: Theme.of(context).textTheme.labelSmall
                               ?.copyWith(
                                 color: mutedColor,
@@ -108,7 +116,7 @@ class _NotificationDetailSheet extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               Text(
-                context.tr(data.message),
+                presentation.localizedMessage,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: textColor,
                   height: 1.55,
@@ -151,52 +159,10 @@ class _EmptyNotificationsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = context.isArabicLanguage
-        ? '\u0645\u0641\u064a\u0634 \u0625\u0634\u0639\u0627\u0631\u0627\u062a \u062d\u0627\u0644\u064a\u0627'
-        : 'No notifications yet';
-    final message = context.isArabicLanguage
-        ? '\u0623\u064a \u062a\u062d\u062f\u064a\u062b\u0627\u062a \u0639\u0646 \u0627\u0644\u0637\u0644\u0628\u0627\u062a \u0623\u0648 \u0627\u0644\u0639\u0631\u0648\u0636 \u0623\u0648 \u0627\u0644\u062d\u0633\u0627\u0628 \u0647\u062a\u0638\u0647\u0631 \u0647\u0646\u0627.'
-        : 'Order, offer, and account updates will appear here.';
-
-    return SizedBox(
-      height: 300,
-      child: AppEmptyState(
-        title: title,
-        message: message,
-        icon: AppIcons.notification_bing,
-      ),
-    );
-  }
-}
-
-class _NotificationData {
-  const _NotificationData({
-    required this.id,
-    required this.icon,
-    required this.title,
-    required this.message,
-    required this.time,
-    required this.color,
-    this.unread = false,
-  });
-
-  final String id;
-  final IconData icon;
-  final String title;
-  final String message;
-  final String time;
-  final Color color;
-  final bool unread;
-
-  _NotificationData copyWith({bool? unread}) {
-    return _NotificationData(
-      id: id,
-      icon: icon,
-      title: title,
-      message: message,
-      time: time,
-      color: color,
-      unread: unread ?? this.unread,
+    return AppEmptyState(
+      title: 'No notifications yet',
+      message: 'Order, offer, and account updates will appear here.',
+      icon: AppIcons.notification_bing,
     );
   }
 }

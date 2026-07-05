@@ -1,0 +1,312 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
+import 'package:yalla_market/features/home/presentation/cubit/notification_state.dart';
+import 'package:yalla_market/features/home/presentation/formatters/notification_time_formatter.dart';
+import 'package:yalla_market/features/home/presentation/views/notifications_view.dart';
+
+import '../../helpers/notification_test_helpers.dart';
+
+void main() {
+  group('NotificationsView', () {
+    testWidgets('shows initial loading without demo notifications', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(const NotificationState(isInitialLoading: true));
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      expect(find.text('Loading notifications...'), findsOneWidget);
+      expect(find.text('Order confirmed'), findsNothing);
+      expect(find.text('Popular categories updated'), findsNothing);
+      expect(find.text('Shipment update'), findsNothing);
+      expect(find.text('Account secured'), findsNothing);
+    });
+
+    testWidgets('shows initial error and retry calls load force refresh', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          const NotificationState(
+            errorMessage: 'Server error.',
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+      final callsAfterInitialPostFrame = cubit.loadCalls;
+
+      expect(find.text('Notifications could not load'), findsOneWidget);
+      expect(find.text('Server error.'), findsOneWidget);
+
+      await tester.tap(find.text('Try again'));
+      await tester.pump();
+
+      expect(cubit.loadCalls, callsAfterInitialPostFrame + 1);
+    });
+
+    testWidgets('shows empty state without summary', (tester) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(const NotificationState(hasLoaded: true));
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.textContaining('unread notifications'), findsNothing);
+    });
+
+    testWidgets('shows backend data and removes demo delete UI', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [
+              testNotification(id: 1, isRead: false),
+              testNotification(id: 2, isRead: true, orderId: 24),
+            ],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      expect(find.text('Order rejected'), findsNWidgets(2));
+      expect(find.text('Your order #12 was rejected.'), findsOneWidget);
+      expect(find.byWidgetPredicate(isUnreadDot), findsOneWidget);
+      expect(find.text('Delete selected'), findsNothing);
+      expect(find.text('Selected notifications'), findsNothing);
+      expect(find.byType(Dismissible), findsNothing);
+      expect(find.text('Order confirmed'), findsNothing);
+      expect(find.text('Popular categories updated'), findsNothing);
+      expect(find.text('Shipment update'), findsNothing);
+      expect(find.text('Account secured'), findsNothing);
+    });
+
+    testWidgets('mark all read calls cubit and loading state is disabled', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(isRead: false)],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      await tester.tap(find.text('Mark all as read'));
+      await tester.pump();
+
+      expect(cubit.markAllCalls, 1);
+      expect(find.text('0 unread notifications'), findsOneWidget);
+
+      cubit.seed(
+        NotificationState(
+          notifications: [testNotification(isRead: false)],
+          unreadCount: 1,
+          isMarkingAllRead: true,
+          hasLoaded: true,
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Mark all as read'));
+      await tester.pump();
+
+      expect(cubit.markAllCalls, 1);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+      cubit.seed(
+        NotificationState(
+          notifications: [testNotification(isRead: true)],
+          unreadCount: 0,
+          hasLoaded: true,
+        ),
+      );
+      await tester.pump();
+      await tester.tap(find.text('Mark all as read'));
+      await tester.pump();
+
+      expect(cubit.markAllCalls, 1);
+    });
+
+    testWidgets('opening unread notification marks it read once', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(id: 7, isRead: false)],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      await tester.tap(find.text('Your order #12 was rejected.'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Notification details'), findsOneWidget);
+      expect(cubit.markReadCalls, 1);
+      expect(cubit.lastMarkedReadId, 7);
+      expect(find.byWidgetPredicate(isUnreadDot), findsNothing);
+      expect(find.text('0 unread notifications'), findsOneWidget);
+    });
+
+    testWidgets('opening read notification does not mark it read again', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(id: 8, isRead: true)],
+            unreadCount: 0,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      await tester.tap(find.text('Your order #12 was rejected.'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Notification details'), findsOneWidget);
+      expect(cubit.markReadCalls, 0);
+    });
+
+    testWidgets('mark read failure keeps unread state and shows snackbar', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..markReadSucceeds = false
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(id: 9, isRead: false)],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      await tester.tap(find.text('Your order #12 was rejected.'));
+      await tester.pump();
+      await tester.pump();
+
+      expect(cubit.markReadCalls, 1);
+      expect(find.byWidgetPredicate(isUnreadDot), findsOneWidget);
+      expect(find.text('Could not mark notification as read.'), findsOneWidget);
+    });
+
+    testWidgets('pull to refresh calls cubit and keeps old data visible', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(isRead: false)],
+            unreadCount: 1,
+            isRefreshing: true,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      expect(find.text('Your order #12 was rejected.'), findsOneWidget);
+
+      final refreshIndicator = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      await refreshIndicator.onRefresh();
+      await tester.pump();
+
+      expect(cubit.refreshCalls, 1);
+      expect(find.text('Your order #12 was rejected.'), findsOneWidget);
+    });
+
+    testWidgets('unknown type renders raw title and message', (tester) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [
+              testNotification(
+                type: 'future_type',
+                title: 'Backend title',
+                message: 'Backend message',
+                orderId: null,
+              ),
+            ],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      expect(find.text('Backend title'), findsOneWidget);
+      expect(find.text('Backend message'), findsOneWidget);
+    });
+
+    testWidgets('relative time formatter is deterministic with injected now', (
+      tester,
+    ) async {
+      late String justNow;
+      late String yesterday;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) {
+              final now = DateTime(2026, 7, 5, 12);
+              justNow = NotificationTimeFormatter.format(
+                context,
+                now.subtract(const Duration(seconds: 10)),
+                now: now,
+              );
+              yesterday = NotificationTimeFormatter.format(
+                context,
+                now.subtract(const Duration(days: 1, minutes: 1)),
+                now: now,
+              );
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
+
+      expect(justNow, 'Just now');
+      expect(yesterday, 'Yesterday');
+    });
+  });
+}
+
+Future<void> _pumpNotificationsView(
+  WidgetTester tester,
+  NotificationCubit cubit,
+) async {
+  await tester.pumpWidget(
+    BlocProvider<NotificationCubit>.value(
+      value: cubit,
+      child: const MaterialApp(home: NotificationsView()),
+    ),
+  );
+  await tester.pump();
+}

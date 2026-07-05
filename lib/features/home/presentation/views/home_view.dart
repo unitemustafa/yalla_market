@@ -13,6 +13,8 @@ import '../../../../core/routing/app_routes.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
+import '../cubit/notification_cubit.dart';
+import '../cubit/notification_state.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../location/presentation/cubit/location_state.dart';
@@ -204,11 +206,17 @@ class _HomeTopBar extends StatelessWidget {
                 },
               ),
             ),
-            _TopActionButton(
-              isDark: isDark,
-              icon: AppIcons.notification,
-              onTap: () {
-                Navigator.pushNamed(context, AppRoutes.notifications);
+            BlocBuilder<NotificationCubit, NotificationState>(
+              builder: (context, state) {
+                return _TopActionButton(
+                  key: const ValueKey('notification_bell_button'),
+                  isDark: isDark,
+                  icon: AppIcons.notification,
+                  badgeCount: state.unreadCount,
+                  onTap: () {
+                    Navigator.pushNamed(context, AppRoutes.notifications);
+                  },
+                );
               },
             ),
             const SizedBox(width: 8),
@@ -398,35 +406,81 @@ class _TopProfileAvatar extends StatelessWidget {
 
 class _TopActionButton extends StatelessWidget {
   const _TopActionButton({
+    super.key,
     required this.isDark,
     required this.icon,
     required this.onTap,
+    this.badgeCount = 0,
   });
 
   final bool isDark;
   final IconData icon;
   final VoidCallback onTap;
+  final int badgeCount;
 
   @override
   Widget build(BuildContext context) {
+    final normalizedBadgeCount = badgeCount < 0 ? 0 : badgeCount;
     return Material(
       color: isDark ? AppColors.darkCardColor : Colors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
-        child: Container(
+        child: SizedBox(
           width: 42,
           height: 42,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-            ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Icon(icon, size: 21),
+              ),
+              if (normalizedBadgeCount > 0)
+                PositionedDirectional(
+                  key: const ValueKey('notification_unread_badge'),
+                  top: -6,
+                  end: -6,
+                  child: Container(
+                    constraints: const BoxConstraints(
+                      minWidth: 20,
+                      minHeight: 20,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    decoration: BoxDecoration(
+                      color: AppColors.error,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? AppColors.darkCardColor : Colors.white,
+                        width: 1.5,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      normalizedBadgeCount > 99
+                          ? '99+'
+                          : '$normalizedBadgeCount',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontSize: 10,
+                        height: 1,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
-          child: Icon(icon, size: 21),
         ),
       ),
     );

@@ -16,6 +16,7 @@ import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/cubit/auth_state.dart';
 import 'features/cart/presentation/cubit/cart_cubit.dart';
 import 'features/home/presentation/cubit/home_cubit.dart';
+import 'features/home/presentation/cubit/notification_cubit.dart';
 import 'features/location/presentation/cubit/location_cubit.dart';
 import 'features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'features/personalization/presentation/controllers/user_profile_controller.dart';
@@ -42,6 +43,7 @@ class YallaMarketApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<LocationCubit>()),
         BlocProvider(create: (_) => sl<SplashCubit>()),
         BlocProvider(create: (_) => sl<HomeCubit>()),
+        BlocProvider(create: (_) => sl<NotificationCubit>()),
         BlocProvider(create: (_) => sl<ProductCatalogCubit>()),
         BlocProvider(create: (_) => sl<ProductDiscoveryCubit>()),
         BlocProvider(create: (_) => sl<StoreCubit>()),
@@ -58,6 +60,7 @@ class YallaMarketApp extends StatelessWidget {
             UserProfileController.instance.updateFromAuthUser(
               state.session.user,
             );
+            context.read<NotificationCubit>().refreshUnreadCount();
             final userKey = _wishlistUserKey(
               id: state.session.user.id,
               email: state.session.user.email,
@@ -75,6 +78,7 @@ class YallaMarketApp extends StatelessWidget {
             context.read<WishlistCubit>().clearSession();
             context.read<CartCubit>().clearSession();
             context.read<OrderHistoryCubit>().clearSession();
+            context.read<NotificationCubit>().clear();
             AppNavigator.goToLogin();
           } else if (state is AuthSessionExpired) {
             UserProfileController.instance.reset();
@@ -82,6 +86,7 @@ class YallaMarketApp extends StatelessWidget {
             context.read<WishlistCubit>().clearSession();
             context.read<CartCubit>().clearSession();
             context.read<OrderHistoryCubit>().clearSession();
+            context.read<NotificationCubit>().clear();
             AppNavigator.goToLogin();
             _showSessionExpiredDialog(context);
           }

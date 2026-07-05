@@ -173,7 +173,13 @@ class AppRouter {
         return _buildRoute(const NotificationsView(), settings);
 
       case AppRoutes.addresses:
-        return _buildRoute(const AddressesView(), settings);
+        final args = settings.arguments as AddressesRouteArgs?;
+        return _buildRoute(
+          AddressesView(
+            returnAfterSelection: args?.returnAfterSelection ?? false,
+          ),
+          settings,
+        );
 
       case AppRoutes.orders:
         return _buildRoute(const OrdersView(), settings);

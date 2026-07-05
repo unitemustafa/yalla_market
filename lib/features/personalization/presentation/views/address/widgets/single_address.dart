@@ -14,6 +14,7 @@ class SingleAddress extends StatelessWidget {
     required this.city,
     required this.area,
     required this.deliveryPriceLabel,
+    this.isAvailable = true,
     this.onTap,
     this.onEdit,
     this.onDelete,
@@ -26,6 +27,7 @@ class SingleAddress extends StatelessWidget {
   final String city;
   final String area;
   final String deliveryPriceLabel;
+  final bool isAvailable;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -37,12 +39,22 @@ class SingleAddress extends StatelessWidget {
     final mutedColor = isDark
         ? Colors.white.withValues(alpha: 0.58)
         : Colors.black.withValues(alpha: 0.56);
-    final cardColor = selectedAddress
+    final effectiveSelected = selectedAddress && isAvailable;
+    final opacity = isAvailable ? 1.0 : 0.58;
+    final cardColor = !isAvailable
+        ? (isDark
+              ? Colors.white.withValues(alpha: 0.035)
+              : const Color(0xFFEDEFF3))
+        : effectiveSelected
         ? AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.11)
         : isDark
         ? AppColors.darkCardColor
         : Colors.white;
-    final borderColor = selectedAddress
+    final borderColor = !isAvailable
+        ? (isDark
+              ? Colors.white.withValues(alpha: 0.06)
+              : Colors.black.withValues(alpha: 0.04))
+        : effectiveSelected
         ? AppColors.primary.withValues(alpha: isDark ? 0.50 : 0.28)
         : isDark
         ? Colors.white.withValues(alpha: 0.08)
@@ -51,7 +63,7 @@ class SingleAddress extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isAvailable ? onTap : null,
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
@@ -72,110 +84,146 @@ class SingleAddress extends StatelessWidget {
                     ),
                   ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _AddressAvatar(name: name, isSelected: selectedAddress),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.titleMedium
-                                    ?.copyWith(
-                                      color: textColor,
-                                      fontWeight: FontWeight.w900,
-                                    ),
+          child: Opacity(
+            opacity: opacity,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _AddressAvatar(name: name, isSelected: effectiveSelected),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.titleMedium
+                                      ?.copyWith(
+                                        color: textColor,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                ),
                               ),
-                            ),
-                            AnimatedScale(
-                              duration: const Duration(milliseconds: 180),
-                              scale: selectedAddress ? 1 : 0.82,
-                              child: Icon(
-                                selectedAddress
-                                    ? AppIcons.tick_circle5
-                                    : AppIcons.tick_circle,
-                                color: selectedAddress
-                                    ? AppColors.primary
-                                    : mutedColor.withValues(alpha: 0.46),
-                                size: 20,
+                              AnimatedScale(
+                                duration: const Duration(milliseconds: 180),
+                                scale: effectiveSelected ? 1 : 0.82,
+                                child: Icon(
+                                  effectiveSelected
+                                      ? AppIcons.tick_circle5
+                                      : AppIcons.tick_circle,
+                                  color: effectiveSelected
+                                      ? AppColors.primary
+                                      : mutedColor.withValues(alpha: 0.46),
+                                  size: 20,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(AppIcons.call, size: 15, color: mutedColor),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                phoneNumber,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: Theme.of(context).textTheme.bodyMedium
-                                    ?.copyWith(
-                                      color: mutedColor,
-                                      fontWeight: FontWeight.w700,
-                                    ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(AppIcons.call, size: 15, color: mutedColor),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  phoneNumber,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: Theme.of(context).textTheme.bodyMedium
+                                      ?.copyWith(
+                                        color: mutedColor,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ],
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              _InfoLine(icon: AppIcons.building, text: city),
-              const SizedBox(height: 6),
-              _InfoLine(icon: AppIcons.location, text: area),
-              const SizedBox(height: 6),
-              Text(
-                address,
-                maxLines: 3,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: mutedColor,
-                  height: 1.35,
-                  fontWeight: FontWeight.w600,
+                  ],
                 ),
-              ),
-              const SizedBox(height: 8),
-              _InfoLine(icon: AppIcons.truck_fast, text: deliveryPriceLabel),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  _AddressActionButton(
-                    icon: AppIcons.edit_2,
-                    label: 'Edit',
-                    color: AppColors.primary,
-                    onTap: onEdit,
+                const SizedBox(height: 12),
+                _InfoLine(icon: AppIcons.building, text: city),
+                const SizedBox(height: 6),
+                _InfoLine(icon: AppIcons.location, text: area),
+                const SizedBox(height: 6),
+                Text(
+                  address,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: mutedColor,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
                   ),
-                  const SizedBox(width: 10),
-                  _AddressActionButton(
-                    icon: AppIcons.trash,
-                    label: 'Delete',
-                    color: AppColors.error,
-                    onTap: onDelete,
-                  ),
+                ),
+                const SizedBox(height: 8),
+                _InfoLine(icon: AppIcons.truck_fast, text: deliveryPriceLabel),
+                if (!isAvailable) ...[
+                  const SizedBox(height: 8),
+                  _UnavailableNotice(isDark: isDark),
                 ],
-              ),
-            ],
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    _AddressActionButton(
+                      icon: AppIcons.edit_2,
+                      label: 'Edit',
+                      color: AppColors.primary,
+                      onTap: onEdit,
+                    ),
+                    const SizedBox(width: 10),
+                    _AddressActionButton(
+                      icon: AppIcons.trash,
+                      label: 'Delete',
+                      color: AppColors.error,
+                      onTap: onDelete,
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UnavailableNotice extends StatelessWidget {
+  const _UnavailableNotice({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    return Row(
+      children: [
+        Icon(AppIcons.info_circle, color: color, size: 15),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            context.tr('Not available in the current region'),
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

@@ -14,6 +14,12 @@ class AllProductsRouteArgs {
   final String subtitle;
 }
 
+class AddressesRouteArgs {
+  const AddressesRouteArgs({this.returnAfterSelection = false});
+
+  final bool returnAfterSelection;
+}
+
 class BrandProductsRouteArgs {
   const BrandProductsRouteArgs({
     required this.brand,

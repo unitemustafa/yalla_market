@@ -92,7 +92,11 @@ class _SavedAddressCheckoutCard extends StatelessWidget {
       title: 'Shipping Address',
       icon: AppIcons.location,
       actionLabel: hasAddress ? 'Change' : 'Add',
-      onAction: () => Navigator.pushNamed(context, AppRoutes.addresses),
+      onAction: () => Navigator.pushNamed(
+        context,
+        AppRoutes.addresses,
+        arguments: const AddressesRouteArgs(returnAfterSelection: true),
+      ),
       child: Row(
         children: [
           Container(

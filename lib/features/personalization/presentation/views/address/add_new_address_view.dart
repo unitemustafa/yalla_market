@@ -76,7 +76,10 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
         (address?.manualArea?.trim().isNotEmpty ?? false);
     _getDeliveryAreas = widget.getDeliveryAreas;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadAreasIfNeeded());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncInitialRegionFields();
+      _loadAreasIfNeeded();
+    });
   }
 
   @override
@@ -91,18 +94,14 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
 
   _AddressRegion _region(BuildContext context) {
     final address = widget.address;
-    if (address?.serviceCityId != null) {
-      return _AddressRegion.serviceCity(
-        id: address!.serviceCityId!,
-        name: address.serviceCityName ?? address.cityLabel,
-      );
-    }
-
     CityData? city;
     try {
       city = context.read<LocationCubit>().state.selectedCity;
     } catch (_) {
       city = null;
+    }
+    if (city != null && city.isGeneral) {
+      return const _AddressRegion.general();
     }
     if (city != null && !city.isGeneral && city.serviceCityId != null) {
       return _AddressRegion.serviceCity(
@@ -111,7 +110,43 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       );
     }
 
+    if (address?.serviceCityId != null) {
+      return _AddressRegion.serviceCity(
+        id: address!.serviceCityId!,
+        name: address.serviceCityName ?? address.cityLabel,
+      );
+    }
+
     return const _AddressRegion.general();
+  }
+
+  void _syncInitialRegionFields() {
+    if (!mounted) return;
+
+    final region = _region(context);
+    final address = widget.address;
+    if (address == null) return;
+
+    if (!region.isServiceCity) {
+      if (_manualCityController.text.trim().isEmpty) {
+        _manualCityController.text = address.cityLabel;
+      }
+      if (_manualAreaController.text.trim().isEmpty) {
+        _manualAreaController.text = address.areaLabel;
+      }
+      setState(() {
+        _selectedDeliveryAreaId = null;
+        _usesManualArea = false;
+      });
+      return;
+    }
+
+    if (address.serviceCityId != region.serviceCityId) {
+      setState(() {
+        _selectedDeliveryAreaId = null;
+        _usesManualArea = false;
+      });
+    }
   }
 
   Future<void> _loadAreasIfNeeded() async {
@@ -131,8 +166,16 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
 
     result.when(
       success: (areas) {
+        final activeAreas = areas.where((area) => area.isActive).toList();
+        final selectedAreaExists =
+            _selectedDeliveryAreaId == null ||
+            activeAreas.any((area) => area.id == _selectedDeliveryAreaId);
         setState(() {
-          _deliveryAreas = areas.where((area) => area.isActive).toList();
+          _deliveryAreas = activeAreas;
+          if (!selectedAreaExists) {
+            _selectedDeliveryAreaId = null;
+            _usesManualArea = false;
+          }
           _isLoadingAreas = false;
         });
       },
@@ -155,7 +198,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       CustomSnackBar.showError(
         context: context,
         title: 'Address update failed',
-        message: 'Choose a delivery area.',
+        message: context.tr('Choose a delivery area.'),
       );
       return;
     }
@@ -173,7 +216,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
         title: 'Address update failed',
         message: state is AddressFailure
             ? state.message
-            : 'Could not update addresses.',
+            : context.tr('Could not update addresses.'),
       );
       return;
     }
@@ -247,14 +290,12 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
 
   String _priceLabel(double? price) {
     if (price == null) {
-      return context.isArabicLanguage
-          ? 'دليفيري - يحدد لاحقا'
-          : 'Delivery - confirmed later';
+      return context.tr('Delivery price will be confirmed later');
     }
     final value = price == price.roundToDouble()
         ? price.toStringAsFixed(0)
         : price.toStringAsFixed(2);
-    return context.isArabicLanguage ? '$value ج.م' : 'EGP $value';
+    return context.tr('EGP {price}').replaceAll('{price}', value);
   }
 
   @override
@@ -380,7 +421,7 @@ class _AddressRegion {
     : this._(isServiceCity: true, serviceCityId: id, name: name);
 
   const _AddressRegion.general()
-    : this._(isServiceCity: false, name: 'مدينة أخرى');
+    : this._(isServiceCity: false, name: 'Other city');
 
   final bool isServiceCity;
   final int? serviceCityId;
@@ -421,52 +462,108 @@ class _ServiceCityFields extends StatelessWidget {
     final selectedArea = areas
         .where((area) => area.id == selectedAreaId)
         .firstOrNull;
+    final dropdownValue = usesManualArea
+        ? _manualAreaOption
+        : selectedArea?.id.toString();
+    final cityLabel = context
+        .tr('City: {name}')
+        .replaceAll('{name}', regionName);
+    final fixedPriceLabel = selectedArea == null
+        ? null
+        : context
+              .tr('Fixed delivery price: {price}')
+              .replaceAll('{price}', priceLabel(selectedArea.deliveryPrice));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _ReadOnlyInfoTile(icon: AppIcons.building, label: 'City: $regionName'),
+        _ReadOnlyInfoTile(icon: AppIcons.building, label: cityLabel),
         const SizedBox(height: 14),
         if (isLoading)
           const Center(child: CircularProgressIndicator())
         else if (error != null)
           _RetryTile(message: error!, onRetry: onRetry)
         else
-          DropdownButtonFormField<String>(
-            initialValue: usesManualArea
-                ? _manualAreaOption
-                : selectedAreaId?.toString(),
+          FormField<String>(
+            initialValue: dropdownValue,
             validator: (value) {
               if (value == null || value.isEmpty) {
                 return context.tr('This field is required');
               }
               return null;
             },
-            decoration: _inputDecoration(
-              context: context,
-              icon: AppIcons.location,
-              label: 'Delivery area',
-            ),
-            items: [
-              for (final area in areas)
-                DropdownMenuItem(
-                  value: area.id.toString(),
-                  child: Text(
-                    '${area.name} - ${priceLabel(area.deliveryPrice)}',
+            builder: (field) {
+              final selectedText = usesManualArea
+                  ? context.tr('My area is not listed')
+                  : selectedArea?.name ?? context.tr('Choose a delivery area');
+              final selectedPriceText = usesManualArea
+                  ? context.tr('Delivery price will be confirmed later')
+                  : selectedArea == null
+                  ? context.tr('Choose a delivery area to see the price')
+                  : priceLabel(selectedArea.deliveryPrice);
+
+              return InkWell(
+                onTap: () async {
+                  final picked = await _openDeliveryAreaPicker(
+                    context: context,
+                    areas: areas,
+                    selectedValue: field.value,
+                    priceLabel: priceLabel,
+                  );
+                  if (picked == null) return;
+                  field.didChange(picked);
+                  if (picked == _manualAreaOption) {
+                    onManualSelected();
+                    return;
+                  }
+                  final id = int.tryParse(picked);
+                  if (id != null) onAreaChanged(id);
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: InputDecorator(
+                  decoration: _inputDecoration(
+                    context: context,
+                    icon: AppIcons.location,
+                    label: 'Delivery area',
+                    errorText: field.errorText,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              selectedText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w900),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              selectedPriceText,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: _secondaryTextColor(context),
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        AppIcons.arrow_down_1,
+                        color: _secondaryTextColor(context),
+                        size: 18,
+                      ),
+                    ],
                   ),
                 ),
-              const DropdownMenuItem(
-                value: _manualAreaOption,
-                child: Text('منطقتي غير موجودة'),
-              ),
-            ],
-            onChanged: (value) {
-              if (value == _manualAreaOption) {
-                onManualSelected();
-                return;
-              }
-              final id = int.tryParse(value ?? '');
-              if (id != null) onAreaChanged(id);
+              );
             },
           ),
         if (usesManualArea) ...[
@@ -474,7 +571,7 @@ class _ServiceCityFields extends StatelessWidget {
           _AddressTextField(
             controller: manualAreaController,
             icon: AppIcons.edit_2,
-            label: 'اكتب اسم منطقتك',
+            label: 'Enter your area name',
             validator: requiredField,
             textInputAction: TextInputAction.done,
           ),
@@ -482,10 +579,10 @@ class _ServiceCityFields extends StatelessWidget {
         const SizedBox(height: 10),
         _DeliveryNote(
           text: usesManualArea
-              ? 'سعر التوصيل: دليفيري - يحدد لاحقا'
+              ? context.tr('Delivery price will be confirmed later')
               : selectedArea == null
-              ? 'اختر منطقة التوصيل لعرض السعر'
-              : 'توصيل بسعر محدد: ${priceLabel(selectedArea.deliveryPrice)}',
+              ? context.tr('Choose a delivery area to see the price')
+              : fixedPriceLabel!,
         ),
       ],
     );
@@ -507,15 +604,16 @@ class _GeneralRegionFields extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _DeliveryNote(
-          text:
-              'مدينتك غير موجودة ضمن مدن الخدمة الحالية. اكتب بيانات مدينتك ومنطقتك يدويا.',
+        _DeliveryNote(
+          text: context.tr(
+            'Your city is outside the current service cities. Enter your city and area manually.',
+          ),
         ),
         const SizedBox(height: 14),
         _AddressTextField(
           controller: manualCityController,
           icon: AppIcons.building,
-          label: 'المدينة',
+          label: 'City',
           validator: requiredField,
           textInputAction: TextInputAction.next,
         ),
@@ -523,18 +621,232 @@ class _GeneralRegionFields extends StatelessWidget {
         _AddressTextField(
           controller: manualAreaController,
           icon: AppIcons.location,
-          label: 'المنطقة',
+          label: 'Area',
           validator: requiredField,
           textInputAction: TextInputAction.done,
         ),
         const SizedBox(height: 10),
-        const _DeliveryNote(text: 'سعر التوصيل: دليفيري - يحدد لاحقا'),
+        _DeliveryNote(
+          text: context.tr('Delivery price will be confirmed later'),
+        ),
       ],
     );
   }
 }
 
 const _manualAreaOption = '__manual_area__';
+
+Future<String?> _openDeliveryAreaPicker({
+  required BuildContext context,
+  required List<DeliveryArea> areas,
+  required String? selectedValue,
+  required String Function(double? price) priceLabel,
+}) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return showModalBottomSheet<String>(
+    context: context,
+    isScrollControlled: true,
+    backgroundColor: isDark ? AppColors.darkCardColor : Colors.white,
+    shape: const RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+    ),
+    builder: (context) {
+      return _DeliveryAreaPickerSheet(
+        areas: areas,
+        selectedValue: selectedValue,
+        priceLabel: priceLabel,
+        isDark: isDark,
+      );
+    },
+  );
+}
+
+class _DeliveryAreaPickerSheet extends StatelessWidget {
+  const _DeliveryAreaPickerSheet({
+    required this.areas,
+    required this.selectedValue,
+    required this.priceLabel,
+    required this.isDark,
+  });
+
+  final List<DeliveryArea> areas;
+  final String? selectedValue;
+  final String Function(double? price) priceLabel;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          16,
+          12,
+          16,
+          16 + MediaQuery.of(context).viewInsets.bottom,
+        ),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.62,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : Colors.black.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                context.tr('Choose a delivery area'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+              ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: ListView.separated(
+                  itemCount: areas.length + 1,
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    if (index == areas.length) {
+                      return _DeliveryAreaOptionTile(
+                        icon: AppIcons.edit_2,
+                        title: context.tr('My area is not listed'),
+                        subtitle: context.tr(
+                          'Delivery price will be confirmed later',
+                        ),
+                        isDark: isDark,
+                        isSelected: selectedValue == _manualAreaOption,
+                        onTap: () => Navigator.pop(context, _manualAreaOption),
+                      );
+                    }
+
+                    final area = areas[index];
+                    final value = area.id.toString();
+                    return _DeliveryAreaOptionTile(
+                      icon: AppIcons.location,
+                      title: area.name,
+                      subtitle: priceLabel(area.deliveryPrice),
+                      isDark: isDark,
+                      isSelected: selectedValue == value,
+                      onTap: () => Navigator.pop(context, value),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeliveryAreaOptionTile extends StatelessWidget {
+  const _DeliveryAreaOptionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.isDark,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final bool isDark;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final mutedColor = _secondaryTextColor(context);
+    return Material(
+      color: isSelected
+          ? AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.08)
+          : (isDark
+                ? Colors.white.withValues(alpha: 0.04)
+                : const Color(0xFFF7F8FB)),
+      borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.42)
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06)),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(
+                    alpha: isDark ? 0.18 : 0.10,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: AppColors.primary, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: mutedColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(width: 8),
+                const Icon(
+                  AppIcons.tick_circle,
+                  color: AppColors.primary,
+                  size: 20,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _AddressFormCard extends StatelessWidget {
   const _AddressFormCard({required this.isDark, required this.children});
@@ -699,12 +1011,18 @@ InputDecoration _inputDecoration({
   required IconData icon,
   required String label,
   String? hintText,
+  String? errorText,
 }) {
   final isDark = Theme.of(context).brightness == Brightness.dark;
   return InputDecoration(
     prefixIcon: Icon(icon),
     labelText: context.tr(label),
     hintText: hintText == null ? null : context.tr(hintText),
+    hintStyle: TextStyle(
+      color: _secondaryTextColor(context),
+      fontWeight: FontWeight.w600,
+    ),
+    errorText: errorText,
     filled: true,
     fillColor: isDark
         ? Colors.white.withValues(alpha: 0.04)
@@ -719,4 +1037,9 @@ InputDecoration _inputDecoration({
       ),
     ),
   );
+}
+
+Color _secondaryTextColor(BuildContext context) {
+  final isDark = Theme.of(context).brightness == Brightness.dark;
+  return isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
 }

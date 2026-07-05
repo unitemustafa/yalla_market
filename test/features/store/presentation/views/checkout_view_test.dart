@@ -7,6 +7,10 @@ import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
+import 'package:yalla_market/features/location/domain/entities/city_data.dart';
+import 'package:yalla_market/features/location/domain/repositories/location_repository.dart';
+import 'package:yalla_market/features/location/domain/usecases/location_usecases.dart';
+import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 import 'package:yalla_market/features/personalization/presentation/cubit/address_cubit.dart';
 import 'package:yalla_market/features/store/data/repositories/order_repository_impl.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
@@ -41,22 +45,12 @@ void main() {
     addTearDown(checkoutCubit.close);
     addTearDown(orderHistoryCubit.close);
 
-    await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider<CartCubit>.value(value: cartCubit),
-          BlocProvider<AddressCubit>.value(value: addressCubit),
-          BlocProvider<CheckoutCubit>.value(value: checkoutCubit),
-          BlocProvider<OrderHistoryCubit>.value(value: orderHistoryCubit),
-        ],
-        child: MaterialApp(
-          routes: {
-            AppRoutes.processingOrder: (_) =>
-                const Scaffold(body: Text('processing order')),
-          },
-          home: const CheckoutView(),
-        ),
-      ),
+    await _pumpCheckoutView(
+      tester,
+      cartCubit: cartCubit,
+      addressCubit: addressCubit,
+      checkoutCubit: checkoutCubit,
+      orderHistoryCubit: orderHistoryCubit,
     );
     await tester.pumpAndSettle();
 
@@ -93,22 +87,12 @@ void main() {
     addTearDown(checkoutCubit.close);
     addTearDown(orderHistoryCubit.close);
 
-    await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider<CartCubit>.value(value: cartCubit),
-          BlocProvider<AddressCubit>.value(value: addressCubit),
-          BlocProvider<CheckoutCubit>.value(value: checkoutCubit),
-          BlocProvider<OrderHistoryCubit>.value(value: orderHistoryCubit),
-        ],
-        child: MaterialApp(
-          routes: {
-            AppRoutes.processingOrder: (_) =>
-                const Scaffold(body: Text('processing order')),
-          },
-          home: const CheckoutView(),
-        ),
-      ),
+    await _pumpCheckoutView(
+      tester,
+      cartCubit: cartCubit,
+      addressCubit: addressCubit,
+      checkoutCubit: checkoutCubit,
+      orderHistoryCubit: orderHistoryCubit,
     );
     await tester.pumpAndSettle();
 
@@ -146,22 +130,13 @@ void main() {
     addTearDown(checkoutCubit.close);
     addTearDown(orderHistoryCubit.close);
 
-    await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider<CartCubit>.value(value: cartCubit),
-          BlocProvider<AddressCubit>.value(value: addressCubit),
-          BlocProvider<CheckoutCubit>.value(value: checkoutCubit),
-          BlocProvider<OrderHistoryCubit>.value(value: orderHistoryCubit),
-        ],
-        child: MaterialApp(
-          routes: {
-            AppRoutes.processingOrder: (_) =>
-                const Scaffold(body: Text('processing order')),
-          },
-          home: const CheckoutView(useDemoRepositories: false),
-        ),
-      ),
+    await _pumpCheckoutView(
+      tester,
+      cartCubit: cartCubit,
+      addressCubit: addressCubit,
+      checkoutCubit: checkoutCubit,
+      orderHistoryCubit: orderHistoryCubit,
+      checkoutView: const CheckoutView(useDemoRepositories: false),
     );
     await tester.pumpAndSettle();
 
@@ -196,22 +171,13 @@ void main() {
     addTearDown(checkoutCubit.close);
     addTearDown(orderHistoryCubit.close);
 
-    await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider<CartCubit>.value(value: cartCubit),
-          BlocProvider<AddressCubit>.value(value: addressCubit),
-          BlocProvider<CheckoutCubit>.value(value: checkoutCubit),
-          BlocProvider<OrderHistoryCubit>.value(value: orderHistoryCubit),
-        ],
-        child: MaterialApp(
-          routes: {
-            AppRoutes.processingOrder: (_) =>
-                const Scaffold(body: Text('processing order')),
-          },
-          home: const CheckoutView(useDemoRepositories: false),
-        ),
-      ),
+    await _pumpCheckoutView(
+      tester,
+      cartCubit: cartCubit,
+      addressCubit: addressCubit,
+      checkoutCubit: checkoutCubit,
+      orderHistoryCubit: orderHistoryCubit,
+      checkoutView: const CheckoutView(useDemoRepositories: false),
     );
     await tester.pumpAndSettle();
 
@@ -224,6 +190,132 @@ void main() {
     expect(find.text('processing order'), findsNothing);
     expect(cartCubit.state, isNotEmpty);
   });
+}
+
+Future<void> _pumpCheckoutView(
+  WidgetTester tester, {
+  required CartCubit cartCubit,
+  required AddressCubit addressCubit,
+  required CheckoutCubit checkoutCubit,
+  required OrderHistoryCubit orderHistoryCubit,
+  CityData selectedCity = CityData.general,
+  CheckoutView checkoutView = const CheckoutView(),
+}) async {
+  final locationCubit = LocationCubit(
+    _locationUseCases(_FakeLocationRepository(selectedCity: selectedCity)),
+  );
+  await locationCubit.loadSelectedCity();
+  addTearDown(locationCubit.close);
+
+  await tester.pumpWidget(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<CartCubit>.value(value: cartCubit),
+        BlocProvider<AddressCubit>.value(value: addressCubit),
+        BlocProvider<LocationCubit>.value(value: locationCubit),
+        BlocProvider<CheckoutCubit>.value(value: checkoutCubit),
+        BlocProvider<OrderHistoryCubit>.value(value: orderHistoryCubit),
+      ],
+      child: MaterialApp(
+        routes: {
+          AppRoutes.processingOrder: (_) =>
+              const Scaffold(body: Text('processing order')),
+        },
+        home: checkoutView,
+      ),
+    ),
+  );
+}
+
+LocationUseCases _locationUseCases(_FakeLocationRepository repository) {
+  return LocationUseCases(
+    activateUser: ActivateLocationUserUseCase(repository),
+    getAvailableCities: GetAvailableCitiesUseCase(repository),
+    getSelectedCity: GetSelectedCityUseCase(repository),
+    hasSeenCitySelection: HasSeenCitySelectionUseCase(repository),
+    markCitySelectionSeen: MarkCitySelectionSeenUseCase(repository),
+    clearSelectedCity: ClearSelectedCityUseCase(repository),
+    saveSelectedCity: SaveSelectedCityUseCase(repository),
+    detectCurrentLocation: DetectCurrentLocationUseCase(repository),
+    detectMarketRegion: DetectMarketRegionUseCase(repository),
+    useCurrentLocation: UseCurrentLocationUseCase(repository),
+    openAppSettings: OpenLocationAppSettingsUseCase(repository),
+    openLocationSettings: OpenDeviceLocationSettingsUseCase(repository),
+  );
+}
+
+class _FakeLocationRepository implements LocationRepository, LocationUserScope {
+  const _FakeLocationRepository({required this.selectedCity});
+
+  final CityData selectedCity;
+
+  @override
+  Future<ApiResult<void>> activateUser(String userId) async {
+    return const ApiResult.success(null);
+  }
+
+  @override
+  Future<ApiResult<void>> clearSelectedCity() async {
+    return const ApiResult.success(null);
+  }
+
+  @override
+  Future<ApiResult<CityData>> detectCurrentLocation({
+    bool requestPermission = true,
+  }) async {
+    return ApiResult.success(selectedCity);
+  }
+
+  Future<ApiResult<GpsRegionDetection>> detectMarketRegion() async {
+    return const ApiResult.success(
+      GpsRegionDetection(
+        action: GpsRegionAction.sameRegion,
+        currentSelection: null,
+        detectedRegion: null,
+        message: '',
+      ),
+    );
+  }
+
+  @override
+  Future<ApiResult<List<CityData>>> getAvailableCities() async {
+    return ApiResult.success([selectedCity]);
+  }
+
+  @override
+  Future<ApiResult<CityData?>> getSelectedCity() async {
+    return ApiResult.success(selectedCity);
+  }
+
+  @override
+  Future<ApiResult<bool>> hasSeenCitySelection() async {
+    return const ApiResult.success(false);
+  }
+
+  @override
+  Future<ApiResult<void>> markCitySelectionSeen() async {
+    return const ApiResult.success(null);
+  }
+
+  @override
+  Future<ApiResult<void>> openAppSettings() async {
+    return const ApiResult.success(null);
+  }
+
+  @override
+  Future<ApiResult<void>> openLocationSettings() async {
+    return const ApiResult.success(null);
+  }
+
+  @override
+  Future<ApiResult<CityData>> saveSelectedCity(CityData city) async {
+    return ApiResult.success(city);
+  }
+
+  @override
+  Future<ApiResult<CityData>> useCurrentLocation() async {
+    return ApiResult.success(selectedCity);
+  }
 }
 
 class _CreateOrderRepository implements OrderRepository {

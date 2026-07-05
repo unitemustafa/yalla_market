@@ -13,11 +13,15 @@ import '../../../domain/usecases/delivery_area_usecases.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_display_text.dart';
+import 'address_region_matcher.dart';
 import 'add_new_address_view.dart';
 import 'widgets/single_address.dart';
+import '../../../../location/presentation/cubit/location_cubit.dart';
 
 class AddressesView extends StatelessWidget {
-  const AddressesView({super.key});
+  const AddressesView({super.key, this.returnAfterSelection = false});
+
+  final bool returnAfterSelection;
 
   Future<void> _openAddressForm(
     BuildContext context, {
@@ -46,9 +50,9 @@ class AddressesView extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           content: Text(
-            context.tr(
-              'Remove ${address.name} from your saved delivery locations?',
-            ),
+            context
+                .tr('Remove {name} from your saved delivery locations?')
+                .replaceAll('{name}', address.name),
             textAlign: TextAlign.center,
           ),
           actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -95,6 +99,16 @@ class AddressesView extends StatelessWidget {
     );
   }
 
+  Future<void> _selectAddress(BuildContext context, AddressData address) async {
+    final selected = await context.read<AddressCubit>().selectAddress(
+      address.id,
+    );
+    if (!selected || !context.mounted) return;
+    if (returnAfterSelection) {
+      Navigator.pop(context, address);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -119,6 +133,25 @@ class AddressesView extends StatelessWidget {
         final addresses = state.addresses;
         final selectedAddressId = state.selectedAddressId;
         final isInitialLoading = state is AddressLoading && addresses.isEmpty;
+        final selectedCity = context.watch<LocationCubit>().state.selectedCity;
+        final availableAddresses = <AddressData>[];
+        final unavailableAddresses = <AddressData>[];
+        for (final address in addresses) {
+          if (isAddressAvailableForCity(address, selectedCity)) {
+            availableAddresses.add(address);
+          } else {
+            unavailableAddresses.add(address);
+          }
+        }
+        final orderedAddresses = [
+          ...availableAddresses,
+          ...unavailableAddresses,
+        ];
+        final selectedAvailableAddress = selectedAvailableAddressForCity(
+          addresses: addresses,
+          selectedAddressId: selectedAddressId,
+          selectedCity: selectedCity,
+        );
 
         return Scaffold(
           backgroundColor: backgroundColor,
@@ -139,7 +172,7 @@ class AddressesView extends StatelessWidget {
                 ? const Center(child: CircularProgressIndicator())
                 : ListView.separated(
                     padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 90.0),
-                    itemCount: addresses.length + 2,
+                    itemCount: orderedAddresses.length + 2,
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
@@ -154,14 +187,20 @@ class AddressesView extends StatelessWidget {
                         return _AddressSummaryCard(
                           isDark: isDark,
                           totalCount: addresses.length,
-                          selectedName: state.selectedAddress?.name,
+                          selectedName: selectedAvailableAddress?.name,
                         );
                       }
 
-                      final address = addresses[index - 2];
+                      final address = orderedAddresses[index - 2];
+                      final isAvailable = isAddressAvailableForCity(
+                        address,
+                        selectedCity,
+                      );
 
                       return SingleAddress(
-                        selectedAddress: selectedAddressId == address.id,
+                        selectedAddress:
+                            selectedAvailableAddress?.id == address.id,
+                        isAvailable: isAvailable,
                         name: address.name,
                         phoneNumber: address.phoneNumber,
                         address: localizedAddressText(context, address),
@@ -171,9 +210,9 @@ class AddressesView extends StatelessWidget {
                           context,
                           address.deliveryAreaPrice,
                         ),
-                        onTap: () => context.read<AddressCubit>().selectAddress(
-                          address.id,
-                        ),
+                        onTap: isAvailable
+                            ? () => _selectAddress(context, address)
+                            : null,
                         onEdit: () =>
                             _openAddressForm(context, address: address),
                         onDelete: () => _deleteAddress(context, address),
@@ -189,16 +228,12 @@ class AddressesView extends StatelessWidget {
 
 String _deliveryPriceLabel(BuildContext context, double? price) {
   if (price == null) {
-    return context.isArabicLanguage
-        ? 'التوصيل: دليفيري - يحدد لاحقا'
-        : 'Delivery: Delivery - confirmed later';
+    return context.tr('Delivery: confirmed later');
   }
   final value = price == price.roundToDouble()
       ? price.toStringAsFixed(0)
       : price.toStringAsFixed(2);
-  return context.isArabicLanguage
-      ? 'التوصيل: $value ج.م'
-      : 'Delivery: EGP $value';
+  return context.tr('Delivery: EGP {price}').replaceAll('{price}', value);
 }
 
 class _AddressSummaryCard extends StatelessWidget {
@@ -245,11 +280,11 @@ class _AddressSummaryCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  context.tr(
-                    selectedName == null
-                        ? 'Add an address to start checkout faster.'
-                        : '$selectedName is selected for checkout.',
-                  ),
+                  selectedName == null
+                      ? context.tr('Add an address to start checkout faster.')
+                      : context
+                            .tr('{name} is selected for checkout.')
+                            .replaceAll('{name}', selectedName!),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(

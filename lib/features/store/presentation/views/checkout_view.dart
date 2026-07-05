@@ -12,6 +12,7 @@ import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/texts/app_currency_text.dart';
+import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
@@ -20,6 +21,7 @@ import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../personalization/domain/entities/address.dart';
 import '../../../personalization/presentation/cubit/address_cubit.dart';
 import '../../../personalization/presentation/cubit/address_state.dart';
+import '../../../personalization/presentation/views/address/address_region_matcher.dart';
 import '../../domain/entities/order.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
@@ -110,7 +112,15 @@ class _CheckoutViewState extends State<CheckoutView> {
             _loadPreviewIfNeeded(context, cartItems);
             return BlocBuilder<AddressCubit, AddressState>(
               builder: (context, addressState) {
-                final selectedAddress = addressState.selectedAddress;
+                final selectedCity = context
+                    .watch<LocationCubit>()
+                    .state
+                    .selectedCity;
+                final selectedAddress = selectedAvailableAddressForCity(
+                  addresses: addressState.addresses,
+                  selectedAddressId: addressState.selectedAddressId,
+                  selectedCity: selectedCity,
+                );
                 final hasSavedAddress = selectedAddress != null;
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 final backgroundColor = isDark

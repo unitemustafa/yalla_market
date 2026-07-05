@@ -69,7 +69,7 @@ class _OrderSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _SummaryRow(
-            label: 'Discount',
+            label: context.tr('Discount'),
             value: _formatMoney(discount),
             textColor: textColor,
             mutedColor: mutedColor,

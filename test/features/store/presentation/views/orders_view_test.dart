@@ -40,7 +40,7 @@ void main() {
 
 class _EmptyOrderRepository implements OrderRepository {
   @override
-  Future<ApiResult<OrderData>> createOrder({
+  Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems = const [],
@@ -67,6 +67,7 @@ class _EmptyOrderRepository implements OrderRepository {
   @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
+    required String addressId,
   }) async {
     return const ApiResult.failure(
       ValidationFailure('Order preview is not used in this test.'),

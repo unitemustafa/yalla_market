@@ -45,11 +45,13 @@ void main() {
       );
 
       result.when(
-        success: (order) => expect(order.paymentMethod, 'cash_on_delivery'),
+        success: (orders) =>
+            expect(orders.single.paymentMethod, 'cash_on_delivery'),
         failure: (failure) => fail(failure.message),
       );
       expect(capturedRequest.method, 'POST');
       expect(capturedRequest.path, '/orders/create/');
+      expect(capturedRequest.data, containsPair('address_id', 12));
       expect(
         capturedRequest.data,
         containsPair('payment_method', 'cash_on_delivery'),
@@ -110,7 +112,8 @@ void main() {
       );
 
       result.when(
-        success: (order) {
+        success: (orders) {
+          final order = orders.single;
           expect(order.id, '9');
           expect(order.total, 1520);
           expect(order.items, hasLength(2));
@@ -130,7 +133,7 @@ void main() {
       );
 
       result.when(
-        success: (order) => expect(order.id, '9'),
+        success: (orders) => expect(orders.single.id, '9'),
         failure: (failure) => fail(failure.message),
       );
     });
@@ -146,7 +149,7 @@ void main() {
       );
 
       result.when(
-        success: (order) => expect(order.status, OrderStatus.pending),
+        success: (orders) => expect(orders.single.status, OrderStatus.pending),
         failure: (failure) => fail(failure.message),
       );
     });
@@ -171,7 +174,7 @@ void main() {
         );
 
         result.when(
-          success: (order) => expect(order.id, '9'),
+          success: (orders) => expect(orders.single.id, '9'),
           failure: (failure) => fail(failure.message),
         );
       }
@@ -363,6 +366,7 @@ void main() {
       final repository = OrderRemoteRepositoryImpl(apiClient);
 
       final result = await repository.previewOrder(
+        addressId: '12',
         cartItems: const [
           CartItemData(
             id: 'cart-1',
@@ -380,6 +384,7 @@ void main() {
       result.when(success: (_) {}, failure: (failure) => fail(failure.message));
       expect(capturedRequest.method, 'POST');
       expect(capturedRequest.path, '/orders/preview/');
+      expect(capturedRequest.data, containsPair('address_id', 12));
       expect((capturedRequest.data as Map<String, dynamic>)['items'], [
         {'variant_id': 23, 'quantity': 2},
       ]);
@@ -395,6 +400,7 @@ void main() {
       final repository = OrderRemoteRepositoryImpl(apiClient);
 
       final result = await repository.previewOrder(
+        addressId: '12',
         cartItems: const [
           CartItemData(
             id: 'cart-1',
@@ -439,6 +445,7 @@ void main() {
       final repository = OrderRemoteRepositoryImpl(apiClient);
 
       final result = await repository.previewOrder(
+        addressId: '12',
         cartItems: const [
           CartItemData(
             id: '5',
@@ -466,6 +473,7 @@ void main() {
       final repository = OrderRemoteRepositoryImpl(apiClient);
 
       final result = await repository.previewOrder(
+        addressId: '12',
         cartItems: const [
           CartItemData(
             id: 'offer-five',
@@ -529,6 +537,7 @@ void main() {
       final repository = OrderRemoteRepositoryImpl(apiClient);
 
       final result = await repository.previewOrder(
+        addressId: '12',
         cartItems: const [
           CartItemData(
             id: 'cart-1',

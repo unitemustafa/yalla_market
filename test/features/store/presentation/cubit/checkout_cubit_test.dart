@@ -35,7 +35,7 @@ void main() {
 
       expect(repository.lastPaymentMethod, 'cash_on_delivery');
       expect(repository.lastCartItems, const [sampleCartItemWithVariant]);
-      expect((cubit.state as CheckoutSuccess).order.id, sampleOrder.id);
+      expect((cubit.state as CheckoutSuccess).orders.single.id, sampleOrder.id);
       await expectedStates;
       await cubit.close();
     });
@@ -109,6 +109,7 @@ void main() {
       await cubit.loadPreview(
         cartItems: const [sampleCartItemWithVariant],
         useRemotePreview: true,
+        addressId: '12',
       );
 
       expect(cubit.state.preview?.summary.grandTotal, 3057);
@@ -128,6 +129,7 @@ void main() {
       await cubit.loadPreview(
         cartItems: const [sampleCartItemWithVariant],
         useRemotePreview: true,
+        addressId: '12',
       );
 
       expect(cubit.state, isA<CheckoutInitial>());
@@ -154,7 +156,7 @@ class _FakeOrderRepository implements OrderRepository {
   List<CartItemData> lastCartItems = const [];
 
   @override
-  Future<ApiResult<OrderData>> createOrder({
+  Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems = const [],
@@ -175,7 +177,7 @@ class _FakeOrderRepository implements OrderRepository {
       return ApiResult.failure(failure);
     }
 
-    return ApiResult.success(createResult ?? sampleOrder);
+    return ApiResult.success([createResult ?? sampleOrder]);
   }
 
   @override
@@ -186,6 +188,7 @@ class _FakeOrderRepository implements OrderRepository {
   @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
+    required String addressId,
   }) async {
     if (previewFailure case final failure?) {
       return ApiResult.failure(failure);

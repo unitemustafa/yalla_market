@@ -18,8 +18,6 @@ class _PaymentMethodCard extends StatelessWidget {
       isDark: isDark,
       title: 'Payment Method',
       icon: AppIcons.money_3,
-      actionLabel: 'Change',
-      onAction: () => showPaymentMethodSheet(context, isDark),
       child: Row(
         children: [
           Container(

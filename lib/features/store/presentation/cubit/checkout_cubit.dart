@@ -12,39 +12,41 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
   final CreateOrderUseCase _createOrderUseCase;
   final PreviewOrderUseCase? _previewOrderUseCase;
+  int _previewGeneration = 0;
 
   Future<void> loadPreview({
     required List<CartItemData> cartItems,
     required bool useRemotePreview,
+    required String addressId,
   }) async {
+    final trimmedAddressId = addressId.trim();
     final previewUseCase = _previewOrderUseCase;
-    if (!useRemotePreview || previewUseCase == null || cartItems.isEmpty) {
+    if (!useRemotePreview ||
+        previewUseCase == null ||
+        cartItems.isEmpty ||
+        trimmedAddressId.isEmpty) {
+      _previewGeneration++;
       if (state.preview != null || state.previewErrorMessage != null) {
         emit(const CheckoutInitial());
       }
       return;
     }
 
-    emit(
-      CheckoutInitial(
-        preview: state.preview,
-        previewErrorMessage: state.previewErrorMessage,
-        isPreviewLoading: true,
-      ),
-    );
+    final generation = ++_previewGeneration;
+    emit(CheckoutInitial(isPreviewLoading: true));
 
-    final result = await previewUseCase(cartItems: cartItems);
+    final result = await previewUseCase(
+      cartItems: cartItems,
+      addressId: trimmedAddressId,
+    );
+    if (generation != _previewGeneration) return;
+
     result.when(
       success: (preview) {
         emit(CheckoutInitial(preview: preview));
       },
       failure: (failure) {
-        emit(
-          CheckoutInitial(
-            preview: state.preview,
-            previewErrorMessage: failure.message,
-          ),
-        );
+        emit(CheckoutInitial(previewErrorMessage: failure.message));
       },
     );
   }
@@ -109,6 +111,12 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   }
 
   void reset() {
+    _previewGeneration++;
+    emit(const CheckoutInitial());
+  }
+
+  void clearPreview() {
+    _previewGeneration++;
     emit(const CheckoutInitial());
   }
 }

@@ -327,7 +327,7 @@ class _CreateOrderRepository implements OrderRepository {
   List<CartItemData> lastCartItems = const [];
 
   @override
-  Future<ApiResult<OrderData>> createOrder({
+  Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems = const [],
@@ -346,7 +346,7 @@ class _CreateOrderRepository implements OrderRepository {
     if (failure case final failure?) {
       return ApiResult.failure(failure);
     }
-    return ApiResult.success(sampleOrder);
+    return ApiResult.success([sampleOrder]);
   }
 
   @override
@@ -358,6 +358,7 @@ class _CreateOrderRepository implements OrderRepository {
   @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
+    required String addressId,
   }) async {
     return const ApiResult.success(
       OrderPreviewData(

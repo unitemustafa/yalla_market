@@ -30,9 +30,14 @@ final class CheckoutLoading extends CheckoutState {
 }
 
 final class CheckoutSuccess extends CheckoutState {
-  const CheckoutSuccess(this.order, {super.preview, super.previewErrorMessage});
+  const CheckoutSuccess(
+    this.orders, {
+    super.preview,
+    super.previewErrorMessage,
+  });
 
-  final OrderData order;
+  final List<OrderData> orders;
+  OrderData? get order => orders.isEmpty ? null : orders.first;
 }
 
 final class CheckoutFailure extends CheckoutState {

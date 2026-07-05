@@ -26,7 +26,6 @@ import '../../domain/entities/order.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import '../cubit/order_history_cubit.dart';
-import 'checkout/checkout_bottom_sheets.dart';
 
 part 'checkout_review_items.dart';
 part 'checkout_order_summary.dart';
@@ -43,7 +42,6 @@ class CheckoutView extends StatefulWidget {
 }
 
 class _CheckoutViewState extends State<CheckoutView> {
-  static const double _shippingFee = 5;
   String? _lastPreviewKey;
 
   bool get _useDemoRepositories =>
@@ -60,15 +58,34 @@ class _CheckoutViewState extends State<CheckoutView> {
   void _loadPreviewIfNeeded(
     BuildContext context,
     List<CartItemData> cartItems,
+    AddressData? selectedAddress,
   ) {
-    if (_useDemoRepositories || cartItems.isEmpty) return;
+    if (_useDemoRepositories) return;
+    if (cartItems.isEmpty) {
+      _clearPreviewIfNeeded(context);
+      return;
+    }
+    if (selectedAddress == null || selectedAddress.id.trim().isEmpty) {
+      _clearPreviewIfNeeded(context);
+      return;
+    }
 
-    final previewKey = cartItems
+    final cartFingerprint = cartItems
         .map(
           (item) =>
-              '${item.id}:${item.variantId}:${item.productId}:${item.quantity}:${item.itemType}',
+              '${item.id}:${item.variantId}:${item.productId}:${item.quantity}:${item.price}:${item.itemType}',
         )
         .join('|');
+    final previewKey = [
+      cartFingerprint,
+      selectedAddress.id,
+      selectedAddress.serviceCityId,
+      selectedAddress.deliveryAreaId,
+      selectedAddress.manualCity,
+      selectedAddress.manualArea,
+      selectedAddress.deliveryType,
+      selectedAddress.deliveryAreaPrice,
+    ].join('|');
     if (previewKey == _lastPreviewKey) return;
     _lastPreviewKey = previewKey;
 
@@ -77,7 +94,23 @@ class _CheckoutViewState extends State<CheckoutView> {
       context.read<CheckoutCubit>().loadPreview(
         cartItems: cartItems,
         useRemotePreview: true,
+        addressId: selectedAddress.id,
       );
+    });
+  }
+
+  void _clearPreviewIfNeeded(BuildContext context) {
+    final checkoutState = context.read<CheckoutCubit>().state;
+    if (_lastPreviewKey == null &&
+        checkoutState.preview == null &&
+        checkoutState.previewErrorMessage == null &&
+        !checkoutState.isPreviewLoading) {
+      return;
+    }
+    _lastPreviewKey = null;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<CheckoutCubit>().clearPreview();
     });
   }
 
@@ -109,7 +142,6 @@ class _CheckoutViewState extends State<CheckoutView> {
       builder: (context, checkoutState) {
         return BlocBuilder<CartCubit, List<CartItemData>>(
           builder: (context, cartItems) {
-            _loadPreviewIfNeeded(context, cartItems);
             return BlocBuilder<AddressCubit, AddressState>(
               builder: (context, addressState) {
                 final selectedCity = context
@@ -121,27 +153,41 @@ class _CheckoutViewState extends State<CheckoutView> {
                   selectedAddressId: addressState.selectedAddressId,
                   selectedCity: selectedCity,
                 );
+                _loadPreviewIfNeeded(context, cartItems, selectedAddress);
                 final hasSavedAddress = selectedAddress != null;
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 final backgroundColor = isDark
                     ? AppColors.darkBackground
                     : const Color(0xFFF7F8FB);
                 final localSubtotal = _subtotal(cartItems);
-                final localShippingFee = cartItems.isEmpty || !hasSavedAddress
-                    ? 0.0
-                    : _shippingFee;
                 final preview = checkoutState.preview;
                 final previewSummary = preview?.summary;
+                final isRemotePreviewLoading = checkoutState.isPreviewLoading;
+                final hasPreviewTotals =
+                    _useDemoRepositories ||
+                    (hasSavedAddress &&
+                        !isRemotePreviewLoading &&
+                        previewSummary != null);
                 final subtotal = previewSummary?.subtotal ?? localSubtotal;
-                final discount = previewSummary?.discountTotal ?? 0.0;
-                final shippingFee =
-                    previewSummary?.deliveryTotal ?? localShippingFee;
-                final total =
-                    previewSummary?.grandTotal ??
-                    (localSubtotal + localShippingFee - discount);
-                final hasPreviewTotals = previewSummary != null;
+                final discount = hasPreviewTotals
+                    ? previewSummary?.discountTotal ?? 0.0
+                    : 0.0;
+                final shippingFee = hasPreviewTotals
+                    ? previewSummary?.deliveryTotal ?? 0.0
+                    : 0.0;
+                final total = hasPreviewTotals
+                    ? previewSummary?.grandTotal ?? localSubtotal
+                    : localSubtotal;
+                final totalLabel = hasPreviewTotals
+                    ? _formatMoney(total)
+                    : _notSpecifiedLabel(context);
                 final hasUnavailableDelivery =
                     preview?.hasUnavailableDelivery ?? false;
+                final canConfirmRemoteOrder =
+                    _useDemoRepositories ||
+                    (hasPreviewTotals &&
+                        !isRemotePreviewLoading &&
+                        !hasUnavailableDelivery);
 
                 return Scaffold(
                   backgroundColor: backgroundColor,
@@ -181,10 +227,13 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   subtotal: subtotal,
                                   discount: discount,
                                   shippingFeeLabel: hasSavedAddress
-                                      ? _formatMoney(shippingFee)
+                                      ? (hasPreviewTotals
+                                            ? _formatMoney(shippingFee)
+                                            : _notSpecifiedLabel(context))
                                       : _notSpecifiedLabel(context),
-                                  isShippingFeeFixed: hasSavedAddress,
-                                  total: total,
+                                  isShippingFeeFixed:
+                                      hasSavedAddress && hasPreviewTotals,
+                                  totalLabel: totalLabel,
                                   isDark: isDark,
                                 ),
                                 if (checkoutState.previewErrorMessage !=
@@ -192,7 +241,15 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   const SizedBox(height: 10),
                                   _CheckoutNotice(
                                     message:
-                                        'Could not refresh backend totals. Showing local estimate.',
+                                        'Could not refresh order totals. Try again.',
+                                    isDark: isDark,
+                                    isBlocking: true,
+                                  ),
+                                ],
+                                if (isRemotePreviewLoading) ...[
+                                  const SizedBox(height: 10),
+                                  _CheckoutNotice(
+                                    message: 'Order totals are still loading.',
                                     isDark: isDark,
                                   ),
                                 ],
@@ -219,7 +276,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                   bottomNavigationBar: cartItems.isEmpty
                       ? null
                       : _CheckoutActionBar(
-                          total: total,
+                          totalLabel: totalLabel,
                           isDark: isDark,
                           isLoading: checkoutState is CheckoutLoading,
                           onCheckout: () {
@@ -253,6 +310,22 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 title: 'Cannot complete order',
                                 message:
                                     'Delivery is not available for one or more market groups.',
+                              );
+                              return;
+                            }
+
+                            if (!canConfirmRemoteOrder) {
+                              CustomSnackBar.showError(
+                                context: context,
+                                title: 'Order confirmation failed',
+                                message: checkoutState.isPreviewLoading
+                                    ? 'Order totals are still loading.'
+                                    : 'Could not refresh order totals. Try again.',
+                              );
+                              context.read<CheckoutCubit>().loadPreview(
+                                cartItems: cartItems,
+                                useRemotePreview: !_useDemoRepositories,
+                                addressId: selectedAddress.id,
                               );
                               return;
                             }
@@ -295,8 +368,6 @@ class _CheckoutViewState extends State<CheckoutView> {
                               paymentMethod: 'cash_on_delivery',
                               description: '',
                               deliveryNote: '',
-                              shippingFee: shippingFee,
-                              discountTotal: discount,
                             );
                           },
                         ),
@@ -311,7 +382,7 @@ class _CheckoutViewState extends State<CheckoutView> {
 }
 
 String _notSpecifiedLabel(BuildContext context) {
-  return context.isArabicLanguage ? 'غير محدد' : 'Not specified';
+  return context.tr('Not specified');
 }
 
 List<String> _checkoutRegionProblems({

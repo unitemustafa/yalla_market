@@ -4,7 +4,7 @@ import '../entities/order.dart';
 import '../entities/order_preview.dart';
 
 abstract class OrderRepository {
-  Future<ApiResult<OrderData>> createOrder({
+  Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems,
@@ -23,5 +23,6 @@ abstract class OrderRepository {
 
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
+    required String addressId,
   });
 }

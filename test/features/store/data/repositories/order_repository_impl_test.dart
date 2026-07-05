@@ -30,7 +30,8 @@ void main() {
       );
 
       result.when(
-        success: (order) {
+        success: (orders) {
+          final order = orders.single;
           expect(order.subtotal, 20);
           expect(order.total, 24);
           expect(order.itemCount, 2);

@@ -6,7 +6,7 @@ class _OrderSummaryCard extends StatelessWidget {
     required this.discount,
     required this.shippingFeeLabel,
     required this.isShippingFeeFixed,
-    required this.total,
+    required this.totalLabel,
     required this.isDark,
   });
 
@@ -14,7 +14,7 @@ class _OrderSummaryCard extends StatelessWidget {
   final double discount;
   final String shippingFeeLabel;
   final bool isShippingFeeFixed;
-  final double total;
+  final String totalLabel;
   final bool isDark;
 
   @override
@@ -101,7 +101,7 @@ class _OrderSummaryCard extends StatelessWidget {
                   ),
                 ),
                 AppCurrencyText(
-                  text: _formatMoney(total),
+                  text: totalLabel,
                   style: const TextStyle(
                     color: AppColors.primary,
                     fontSize: 20,

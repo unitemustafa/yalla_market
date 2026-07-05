@@ -15,7 +15,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   final ApiClient _apiClient;
 
   @override
-  Future<ApiResult<OrderData>> createOrder({
+  Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems = const [],
@@ -29,6 +29,15 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
     double taxTotal = 0,
     double discountTotal = 0,
   }) {
+    final addressId = shippingAddress.id?.trim();
+    if (addressId == null || addressId.isEmpty) {
+      return Future.value(
+        const ApiResult.failure(
+          ValidationFailure('Shipping address id is required.'),
+        ),
+      );
+    }
+
     final invalidProductItem = cartItems.isNotEmpty
         ? cartItems
               .where((item) => !item.isOffer)
@@ -55,11 +64,19 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         data: _createOrderPayload(
           cartItems: cartItems,
           orderItems: items,
+          addressId: addressId,
+          paymentMethod: paymentMethod,
           description: description,
           deliveryNote: deliveryNote,
         ),
       );
-      return _orderFromCreatePayload(payload);
+      final orders = _ordersFromCreatePayload(payload);
+      if (orders.isEmpty) {
+        throw const FormatException(
+          'Create order response did not contain orders.',
+        );
+      }
+      return orders;
     }, fallbackMessage: 'Could not create order');
   }
 
@@ -74,7 +91,19 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
+    required String addressId,
   }) {
+    final trimmedAddressId = addressId.trim();
+    if (trimmedAddressId.isEmpty) {
+      return Future.value(
+        const ApiResult.failure(
+          ValidationFailure(
+            'Choose a delivery address before refreshing totals.',
+          ),
+        ),
+      );
+    }
+
     final invalidProductItem = cartItems.any(
       (item) => !item.isOffer && (item.variantId?.trim().isEmpty ?? true),
     );
@@ -97,6 +126,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/orders/preview/',
         data: {
+          'address_id': _idFromString(trimmedAddressId),
           'items': cartItems
               .where((item) => !item.isOffer)
               .map(
@@ -127,38 +157,41 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         .toList(growable: false);
   }
 
-  OrderData _orderFromCreatePayload(Object? payload) {
-    final order = _orderMapFromCreatePayload(payload);
-    if (order != null) return OrderData.fromJson(order);
-
-    throw const FormatException('Create order response did not contain order.');
+  List<OrderData> _ordersFromCreatePayload(Object? payload) {
+    final rawOrders = _orderListFromCreatePayload(payload);
+    return rawOrders.map(OrderData.fromJson).toList(growable: false);
   }
 
-  Map<String, dynamic>? _orderMapFromCreatePayload(Object? payload) {
-    final directOrder = _mapFromPayload(payload);
-    if (directOrder != null) return directOrder;
-
+  List<Map<String, dynamic>> _orderListFromCreatePayload(Object? payload) {
     if (payload is List) {
+      final orders = <Map<String, dynamic>>[];
       for (final item in payload) {
-        final order = _orderMapFromCreatePayload(item);
-        if (order != null) return order;
+        if (item is! Map<String, dynamic> || !item.containsKey('id')) {
+          return const [];
+        }
+        orders.add(Map<String, dynamic>.from(item));
       }
+      return orders;
     }
 
     if (payload is Map) {
-      for (final key in const ['order', 'data', 'result']) {
-        final order = _orderMapFromCreatePayload(payload[key]);
-        if (order != null) return order;
+      final map = Map<String, dynamic>.from(payload);
+      if (map.containsKey('id')) return [map];
+
+      for (final key in const [
+        'order',
+        'orders',
+        'results',
+        'items',
+        'data',
+        'result',
+      ]) {
+        final orders = _orderListFromCreatePayload(payload[key]);
+        if (orders.isNotEmpty) return orders;
       }
     }
 
-    return null;
-  }
-
-  Map<String, dynamic>? _mapFromPayload(Object? payload) {
-    if (payload is! Map) return null;
-    final map = Map<String, dynamic>.from(payload);
-    return map.containsKey('id') ? map : null;
+    return const [];
   }
 
   Future<ApiResult<T>> _guard<T>(
@@ -177,12 +210,19 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   Map<String, Object?> _createOrderPayload({
     required List<CartItemData> cartItems,
     required List<OrderItemData> orderItems,
+    required String addressId,
+    String? paymentMethod,
     String? description,
     String? deliveryNote,
   }) {
     final hasCartItems = cartItems.isNotEmpty;
+    final normalizedPaymentMethod = paymentMethod?.trim();
     return {
-      'payment_method': 'cash_on_delivery',
+      'address_id': _idFromString(addressId),
+      'payment_method':
+          normalizedPaymentMethod == null || normalizedPaymentMethod.isEmpty
+          ? 'cash_on_delivery'
+          : normalizedPaymentMethod,
       'description': description?.trim() ?? '',
       'delivery_note': deliveryNote?.trim() ?? '',
       'items': hasCartItems

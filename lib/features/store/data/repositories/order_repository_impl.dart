@@ -12,7 +12,7 @@ class OrderRepositoryImpl implements OrderRepository {
   final Random _random = Random.secure();
 
   @override
-  Future<ApiResult<OrderData>> createOrder({
+  Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems = const [],
@@ -45,6 +45,7 @@ class OrderRepositoryImpl implements OrderRepository {
         (sum, item) => sum + item.lineTotal,
       );
       final total = subtotal + shippingFee + taxTotal - discountTotal;
+      final normalizedPaymentMethod = paymentMethod?.trim();
       final order = OrderData(
         id: 'local-order-${now.microsecondsSinceEpoch}',
         orderNumber: _randomOrderNumber(now),
@@ -52,7 +53,10 @@ class OrderRepositoryImpl implements OrderRepository {
         placedAt: now,
         estimatedDeliveryAt: now.add(const Duration(days: 5)),
         shippingAddress: shippingAddress,
-        paymentMethod: paymentMethod ?? 'cash_on_delivery',
+        paymentMethod:
+            normalizedPaymentMethod == null || normalizedPaymentMethod.isEmpty
+            ? 'cash_on_delivery'
+            : normalizedPaymentMethod,
         items: List.unmodifiable(items),
         subtotal: subtotal,
         shippingFee: shippingFee,
@@ -70,7 +74,7 @@ class OrderRepositoryImpl implements OrderRepository {
       );
 
       _orders.insert(0, order);
-      return ApiResult.success(order);
+      return ApiResult.success([order]);
     } catch (_) {
       return const ApiResult.failure(
         UnknownFailure('Could not create your order.'),
@@ -92,6 +96,7 @@ class OrderRepositoryImpl implements OrderRepository {
   @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
+    required String addressId,
   }) async {
     final subtotal = cartItems.fold<double>(
       0,

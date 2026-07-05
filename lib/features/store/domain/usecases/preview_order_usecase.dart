@@ -10,7 +10,8 @@ class PreviewOrderUseCase {
 
   Future<ApiResult<OrderPreviewData>> call({
     required List<CartItemData> cartItems,
+    required String addressId,
   }) {
-    return _repository.previewOrder(cartItems: cartItems);
+    return _repository.previewOrder(cartItems: cartItems, addressId: addressId);
   }
 }

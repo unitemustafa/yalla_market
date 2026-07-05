@@ -8,7 +8,7 @@ class CreateOrderUseCase {
 
   final OrderRepository _repository;
 
-  Future<ApiResult<OrderData>> call({
+  Future<ApiResult<List<OrderData>>> call({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,
     List<CartItemData> cartItems = const [],

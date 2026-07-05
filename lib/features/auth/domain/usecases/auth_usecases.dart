@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../../core/network/api_result.dart';
 import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
@@ -18,6 +20,7 @@ class AuthUseCases {
     required this.resetPassword,
     required this.refreshProfile,
     required this.updateProfile,
+    required this.updateProfileAvatar,
     required this.logout,
     required this.deleteAccountWithPassword,
   });
@@ -35,6 +38,7 @@ class AuthUseCases {
   final ResetPasswordUseCase resetPassword;
   final RefreshProfileUseCase refreshProfile;
   final UpdateProfileUseCase updateProfile;
+  final UpdateProfileAvatarUseCase updateProfileAvatar;
   final LogoutUseCase logout;
   final DeleteAccountWithPasswordUseCase deleteAccountWithPassword;
 }
@@ -217,6 +221,19 @@ class UpdateProfileUseCase {
       gender: gender,
       birthDate: birthDate,
     );
+  }
+}
+
+class UpdateProfileAvatarUseCase {
+  const UpdateProfileAvatarUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<AuthUser>> call({
+    required Uint8List bytes,
+    required String fileName,
+  }) {
+    return _repository.updateProfileAvatar(bytes: bytes, fileName: fileName);
   }
 }
 

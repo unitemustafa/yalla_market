@@ -23,6 +23,7 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   bool _isRefreshingProfile = false;
+  bool _isUploadingProfilePhoto = false;
   String? _refreshProfileError;
 
   @override
@@ -52,27 +53,48 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   Future<void> _pickProfileImage(BuildContext context) async {
+    if (_isUploadingProfilePhoto) return;
+
     final profileImageCubit = context.read<ProfileImageCubit>();
-    final bytes = await profileImageCubit.pickProfileImage();
+    final pickedImage = await profileImageCubit.pickProfileImage();
     if (!context.mounted) return;
 
-    if (bytes == null) {
+    if (pickedImage == null) {
       final state = profileImageCubit.state;
       if (state is ProfileImageFailure) {
         CustomSnackBar.showError(
           context: context,
-          title: 'Could not open gallery',
-          message: state.message,
+          title: context.tr('Could not open gallery'),
+          message: context.tr(state.message),
         );
       }
       return;
     }
 
-    UserProfileController.instance.updateAvatar(bytes);
+    setState(() => _isUploadingProfilePhoto = true);
+    final authCubit = context.read<AuthCubit>();
+    final updatedUser = await authCubit.updateProfileAvatar(
+      bytes: pickedImage.bytes,
+      fileName: pickedImage.fileName,
+    );
+    if (!context.mounted) return;
 
+    setState(() => _isUploadingProfilePhoto = false);
+    if (updatedUser == null) {
+      CustomSnackBar.showError(
+        context: context,
+        title: context.tr('Could not update profile photo'),
+        message: context.tr(
+          authCubit.lastProfileUpdateError ?? 'Could not update profile photo',
+        ),
+      );
+      return;
+    }
+
+    UserProfileController.instance.updateFromAuthUser(updatedUser);
     CustomSnackBar.showSuccess(
       context: context,
-      title: 'Profile photo updated',
+      title: context.tr('Profile photo updated'),
     );
   }
 
@@ -109,6 +131,7 @@ class _ProfileViewState extends State<ProfileView> {
                   _ProfileHeaderCard(
                     isDark: isDark,
                     profile: profile,
+                    isUploadingAvatar: _isUploadingProfilePhoto,
                     onAvatarTap: () => _pickProfileImage(context),
                     onMembershipTap: () {
                       Navigator.push(
@@ -190,17 +213,12 @@ class _ProfileViewState extends State<ProfileView> {
 
   void _openEditor(BuildContext context, EditableProfileField field) {
     if (field == EditableProfileField.email) {
-      final useArabicCopy =
-          context.isArabicLanguage ||
-          Directionality.of(context) == TextDirection.rtl;
       CustomSnackBar.showWarning(
         context: context,
-        title: useArabicCopy
-            ? 'تغيير الإيميل مقفول'
-            : 'Email cannot be changed',
-        message: useArabicCopy
-            ? 'لو محتاج مساعدة في إيميل الحساب تواصل مع الدعم.'
-            : 'Contact support if you need help with your account email.',
+        title: context.tr('Email cannot be changed'),
+        message: context.tr(
+          'Contact support if you need help with your account email.',
+        ),
       );
       return;
     }
@@ -215,9 +233,9 @@ class _ProfileViewState extends State<ProfileView> {
     if (!profile.canChangeUsername) {
       CustomSnackBar.showWarning(
         context: context,
-        title: 'Username locked',
+        title: context.tr('Username locked'),
         message:
-            'You can change your username again on ${_formatDate(profile.nextUsernameChangeAt)}.',
+            '${context.tr('You can change your username again on')} ${_formatDate(profile.nextUsernameChangeAt)}.',
       );
       return;
     }
@@ -322,12 +340,14 @@ class _ProfileHeaderCard extends StatelessWidget {
   const _ProfileHeaderCard({
     required this.isDark,
     required this.profile,
+    required this.isUploadingAvatar,
     required this.onAvatarTap,
     required this.onMembershipTap,
   });
 
   final bool isDark;
   final UserProfileController profile;
+  final bool isUploadingAvatar;
   final VoidCallback onAvatarTap;
   final VoidCallback onMembershipTap;
 
@@ -363,15 +383,43 @@ class _ProfileHeaderCard extends StatelessWidget {
             clipBehavior: Clip.none,
             children: [
               Tooltip(
-                message: 'Upload profile photo',
+                message: context.tr(
+                  isUploadingAvatar
+                      ? 'Uploading profile photo...'
+                      : 'Upload profile photo',
+                ),
                 child: GestureDetector(
-                  onTap: onAvatarTap,
-                  child: AppAvatar(
-                    size: 88,
-                    initials: profile.initials,
-                    imageBytes: profile.avatarBytes,
-                    imageUrl: profile.avatarUrl,
-                    textScale: 0.32,
+                  onTap: isUploadingAvatar ? null : onAvatarTap,
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      AppAvatar(
+                        size: 88,
+                        initials: profile.initials,
+                        imageBytes: profile.avatarBytes,
+                        imageUrl: profile.avatarUrl,
+                        textScale: 0.32,
+                      ),
+                      if (isUploadingAvatar)
+                        Container(
+                          width: 88,
+                          height: 88,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.42),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -379,9 +427,13 @@ class _ProfileHeaderCard extends StatelessWidget {
                 right: -4,
                 bottom: -4,
                 child: Tooltip(
-                  message: 'Upload profile photo',
+                  message: context.tr(
+                    isUploadingAvatar
+                        ? 'Uploading profile photo...'
+                        : 'Upload profile photo',
+                  ),
                   child: GestureDetector(
-                    onTap: onAvatarTap,
+                    onTap: isUploadingAvatar ? null : onAvatarTap,
                     child: Container(
                       width: 32,
                       height: 32,

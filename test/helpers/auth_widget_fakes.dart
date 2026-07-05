@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -27,6 +28,7 @@ AuthUseCases authUseCases(AuthRepository repository) {
     resetPassword: ResetPasswordUseCase(repository),
     refreshProfile: RefreshProfileUseCase(repository),
     updateProfile: UpdateProfileUseCase(repository),
+    updateProfileAvatar: UpdateProfileAvatarUseCase(repository),
     logout: LogoutUseCase(repository),
     deleteAccountWithPassword: DeleteAccountWithPasswordUseCase(repository),
   );
@@ -202,6 +204,14 @@ class FakeAuthRepository implements AuthRepository {
     String? phone,
     String? gender,
     DateTime? birthDate,
+  }) async {
+    return ApiResult.success(sampleUser);
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
   }) async {
     return ApiResult.success(sampleUser);
   }

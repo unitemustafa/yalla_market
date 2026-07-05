@@ -1,9 +1,8 @@
-import 'dart:typed_data';
-
 import 'package:image_picker/image_picker.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_result.dart';
+import '../../domain/entities/picked_profile_image.dart';
 import '../../domain/repositories/profile_image_repository.dart';
 
 class ProfileImageRepositoryImpl implements ProfileImageRepository {
@@ -13,7 +12,7 @@ class ProfileImageRepositoryImpl implements ProfileImageRepository {
   final ImagePicker _imagePicker;
 
   @override
-  Future<ApiResult<Uint8List?>> pickProfileImage() async {
+  Future<ApiResult<PickedProfileImage?>> pickProfileImage() async {
     try {
       final pickedImage = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -25,7 +24,13 @@ class ProfileImageRepositoryImpl implements ProfileImageRepository {
         return const ApiResult.success(null);
       }
 
-      return ApiResult.success(await pickedImage.readAsBytes());
+      return ApiResult.success(
+        PickedProfileImage(
+          bytes: await pickedImage.readAsBytes(),
+          fileName: pickedImage.name,
+          mimeType: pickedImage.mimeType,
+        ),
+      );
     } catch (_) {
       return const ApiResult.failure(UnknownFailure('Could not open gallery.'));
     }

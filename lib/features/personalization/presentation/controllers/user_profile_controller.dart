@@ -8,10 +8,10 @@ class UserProfileController extends ChangeNotifier
 
   static final UserProfileController instance = UserProfileController._();
 
-  String _displayName = 'عميل زائر';
+  String _displayName = 'Guest User';
   String _id = '';
-  String _firstName = 'زائر';
-  String _lastName = 'عميل';
+  String _firstName = 'Guest';
+  String _lastName = 'User';
   String _username = 'guest';
   String _email = 'guest@yallamarket.local';
   String _phone = '';
@@ -98,10 +98,10 @@ class UserProfileController extends ChangeNotifier
   }
 
   void reset() {
-    _displayName = 'عميل زائر';
+    _displayName = 'Guest User';
     _id = '';
-    _firstName = 'زائر';
-    _lastName = 'عميل';
+    _firstName = 'Guest';
+    _lastName = 'User';
     _username = 'guest';
     _email = 'guest@yallamarket.local';
     _phone = '';

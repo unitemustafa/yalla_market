@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import '../../../../core/network/api_result.dart';
 import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
@@ -54,6 +56,11 @@ abstract class AuthRepository {
     String? phone,
     String? gender,
     DateTime? birthDate,
+  });
+
+  Future<ApiResult<AuthUser>> updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
   });
 
   Future<ApiResult<bool>> logout();

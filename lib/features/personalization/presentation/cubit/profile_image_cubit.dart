@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../domain/entities/picked_profile_image.dart';
 import '../../domain/usecases/pick_profile_image_usecase.dart';
 
 sealed class ProfileImageState {
@@ -17,9 +16,9 @@ final class ProfileImageLoading extends ProfileImageState {
 }
 
 final class ProfileImageSuccess extends ProfileImageState {
-  const ProfileImageSuccess(this.bytes);
+  const ProfileImageSuccess(this.image);
 
-  final Uint8List bytes;
+  final PickedProfileImage image;
 }
 
 final class ProfileImageFailure extends ProfileImageState {
@@ -34,19 +33,19 @@ class ProfileImageCubit extends Cubit<ProfileImageState> {
 
   final PickProfileImageUseCase _pickProfileImageUseCase;
 
-  Future<Uint8List?> pickProfileImage() async {
+  Future<PickedProfileImage?> pickProfileImage() async {
     emit(const ProfileImageLoading());
 
     final result = await _pickProfileImageUseCase();
     return result.when(
-      success: (bytes) {
-        if (bytes == null) {
+      success: (image) {
+        if (image == null) {
           emit(const ProfileImageInitial());
           return null;
         }
 
-        emit(ProfileImageSuccess(bytes));
-        return bytes;
+        emit(ProfileImageSuccess(image));
+        return image;
       },
       failure: (failure) {
         emit(ProfileImageFailure(failure.message));

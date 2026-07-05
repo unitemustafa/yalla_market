@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -169,6 +171,21 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
               'birth_date': ?_dateOnly(birthDate),
             },
           )
+          .then(_userFromPayload);
+    });
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
+  }) {
+    return _guard(() {
+      final formData = FormData.fromMap({
+        'avatar': MultipartFile.fromBytes(bytes, filename: fileName),
+      });
+      return _apiClient
+          .patch<Map<String, dynamic>>('/auth/client/profile/', data: formData)
           .then(_userFromPayload);
     });
   }

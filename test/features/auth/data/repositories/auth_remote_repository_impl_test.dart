@@ -1,3 +1,6 @@
+import 'dart:typed_data';
+
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
@@ -319,6 +322,34 @@ void main() {
           expect(user.birthDate, DateTime(1995, 4, 12));
           expect(user.usernameChangedAt, isNotNull);
         },
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('updateProfileAvatar sends multipart avatar with filename', () async {
+      final tokenStore = InMemoryTokenStore();
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'PATCH');
+        expect(request.path, '/auth/client/profile/');
+        final formData = request.data as FormData;
+        expect(formData.files, hasLength(1));
+        expect(formData.files.single.key, 'avatar');
+        expect(formData.files.single.value.filename, 'avatar.png');
+        return {
+          ..._userPayload,
+          'avatar_url': 'https://example.com/avatar.png',
+        };
+      });
+      final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
+
+      final result = await repository.updateProfileAvatar(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        fileName: 'avatar.png',
+      );
+
+      result.when(
+        success: (user) =>
+            expect(user.avatarUrl, 'https://example.com/avatar.png'),
         failure: (failure) => fail(failure.message),
       );
     });

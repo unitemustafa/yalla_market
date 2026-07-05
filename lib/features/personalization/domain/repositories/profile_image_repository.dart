@@ -1,7 +1,6 @@
-import 'dart:typed_data';
-
 import '../../../../core/network/api_result.dart';
+import '../entities/picked_profile_image.dart';
 
 abstract class ProfileImageRepository {
-  Future<ApiResult<Uint8List?>> pickProfileImage();
+  Future<ApiResult<PickedProfileImage?>> pickProfileImage();
 }

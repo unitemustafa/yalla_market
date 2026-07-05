@@ -235,10 +235,13 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Could not delete your account.': 'مش قادرين نحذف الحساب.',
     'Could not load your profile.': 'مش قادرين نحمّل البروفايل.',
     'Could not open gallery': 'مش قادرين نفتح المعرض',
+    'Could not refresh profile': 'مش قادرين نحدّث بيانات الحساب.',
     'Could not restore your session.': 'مش قادرين نرجّع الجلسة.',
     'Could not sign you in.': 'مش قادرين نسجل دخولك.',
     'Could not sign you out.': 'مش قادرين نسجل خروجك.',
     'Could not update profile': 'مش قادرين نحدّث البروفايل',
+    'Could not update profile photo': 'مش قادرين نحدّث صورة الحساب.',
+    'Could not update profile photo.': 'مش قادرين نحدّث صورة الحساب.',
     'Could not use your current location.': 'مش قادرين نستخدم موقعك الحالي.',
     'Could not find your current location. Choose one manually.':
         'مش قادرين نحدد موقعك الحالي. اختار المنطقة يدويًا.',
@@ -519,6 +522,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'جرّب أسماء المنتجات أو البراندات أو الأقسام أو كلمات العروض.',
     'Two-step verification': 'التحقق بخطوتين',
     'Upload profile photo': 'ارفع صورة البروفايل',
+    'Uploading profile photo...': 'جاري رفع صورة الحساب...',
     'Use shopping activity for better deals.':
         'استخدم نشاط التسوق عشان عروض أفضل.',
     'Use your device theme setting.': 'استخدم إعداد الثيم من الجهاز.',
@@ -526,6 +530,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Username': 'اسم المستخدم',
     'Username check skipped': 'تخطينا فحص اسم المستخدم',
     'Username locked': 'اسم المستخدم مقفول مؤقتًا',
+    'Username can only be changed once every 7 days.':
+        'تقدر تغيّر اسم المستخدم مرة كل 7 أيام بس.',
+    'You can change your username again on': 'تقدر تغيّر اسم المستخدم تاني يوم',
     'Verified': 'موثق',
     'View all': 'عرض الكل',
     'Visa ending 4721': 'فيزا آخرها 4721',
@@ -601,6 +608,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Email check skipped': 'تخطينا فحص الإيميل',
     'Email and password are required.': 'اكتب الإيميل وكلمة السر.',
     'Email check failed': 'فحص الإيميل ما تمش',
+    'Email cannot be changed': 'تغيير الإيميل مقفول',
+    'Contact support if you need help with your account email.':
+        'لو محتاج مساعدة في إيميل الحساب تواصل مع الدعم.',
     'Email is already registered.': 'الإيميل ده مستخدم بالفعل.',
     'Email is available.': 'الإيميل متاح.',
     'Email unavailable': 'الإيميل غير متاح',

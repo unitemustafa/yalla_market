@@ -8,7 +8,6 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../../auth/presentation/cubit/auth_state.dart';
 import '../../controllers/user_profile_controller.dart';
 
 part 'edit_profile_field_form.dart';
@@ -386,10 +385,9 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
     setState(() => _isSaving = false);
 
     if (updatedUser == null) {
-      final authState = context.read<AuthCubit>().state;
-      final errMsg = authState is AuthFailure
-          ? authState.message
-          : 'Could not save changes. Please try again.';
+      final errMsg =
+          context.read<AuthCubit>().lastProfileUpdateError ??
+          'Could not save changes. Please try again.';
       CustomSnackBar.showError(
         context: context,
         title: 'Could not update profile',

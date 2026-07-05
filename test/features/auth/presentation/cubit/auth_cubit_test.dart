@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -247,7 +249,7 @@ void main() {
       await cubit.close();
     });
 
-    test('keeps auth guard active when profile update fails', () async {
+    test('keeps authenticated state when profile update fails', () async {
       final repository = _FakeAuthRepository(
         loginResult: sampleSession,
         updateProfileFailure: const ValidationFailure('Email is already used.'),
@@ -258,8 +260,55 @@ void main() {
       final user = await cubit.updateProfile(email: 'taken@example.com');
 
       expect(user, isNull);
-      expect(cubit.state, isA<AuthFailure>());
+      expect(cubit.state, isA<AuthAuthenticated>());
+      expect(cubit.lastProfileUpdateError, 'Email is already used.');
       expect(AuthGuard.isAuthenticated, isTrue);
+      await cubit.close();
+    });
+
+    test(
+      'avatar update success refreshes authenticated user avatarUrl',
+      () async {
+        final updatedUser = sampleUser.copyWith(
+          avatarUrl: 'https://example.com/media/avatars/avatar.png',
+        );
+        final repository = _FakeAuthRepository(
+          loginResult: sampleSession,
+          updateProfileAvatarResult: updatedUser,
+        );
+        final cubit = AuthCubit(_authUseCases(repository));
+        await cubit.login(email: sampleUser.email, password: 'password');
+
+        final user = await cubit.updateProfileAvatar(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          fileName: 'avatar.png',
+        );
+
+        expect(user?.avatarUrl, updatedUser.avatarUrl);
+        expect(
+          (cubit.state as AuthAuthenticated).session.user.avatarUrl,
+          updatedUser.avatarUrl,
+        );
+        await cubit.close();
+      },
+    );
+
+    test('avatar update failure keeps authenticated session', () async {
+      final repository = _FakeAuthRepository(
+        loginResult: sampleSession,
+        updateProfileAvatarFailure: const ValidationFailure('Bad photo.'),
+      );
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final user = await cubit.updateProfileAvatar(
+        bytes: Uint8List.fromList([1, 2, 3]),
+        fileName: 'avatar.png',
+      );
+
+      expect(user, isNull);
+      expect(cubit.state, isA<AuthAuthenticated>());
+      expect(cubit.lastProfileUpdateError, 'Bad photo.');
       await cubit.close();
     });
 
@@ -303,6 +352,7 @@ AuthUseCases _authUseCases(AuthRepository repository) {
     resetPassword: ResetPasswordUseCase(repository),
     refreshProfile: RefreshProfileUseCase(repository),
     updateProfile: UpdateProfileUseCase(repository),
+    updateProfileAvatar: UpdateProfileAvatarUseCase(repository),
     logout: LogoutUseCase(repository),
     deleteAccountWithPassword: DeleteAccountWithPasswordUseCase(repository),
   );
@@ -317,6 +367,8 @@ class _FakeAuthRepository implements AuthRepository {
     this.meResult,
     this.updateProfileResult,
     this.updateProfileFailure,
+    this.updateProfileAvatarResult,
+    this.updateProfileAvatarFailure,
   });
 
   final AuthSession? restoreResult;
@@ -326,6 +378,8 @@ class _FakeAuthRepository implements AuthRepository {
   final AuthUser? meResult;
   final AuthUser? updateProfileResult;
   final Failure? updateProfileFailure;
+  final AuthUser? updateProfileAvatarResult;
+  final Failure? updateProfileAvatarFailure;
   String? lastLoginEmail;
   bool? lastRememberMe;
   String? lastVerificationCode;
@@ -432,6 +486,18 @@ class _FakeAuthRepository implements AuthRepository {
     }
 
     return ApiResult.success(updateProfileResult ?? sampleUser);
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    if (updateProfileAvatarFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
+
+    return ApiResult.success(updateProfileAvatarResult ?? sampleUser);
   }
 
   @override

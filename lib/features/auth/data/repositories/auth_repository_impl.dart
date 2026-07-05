@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -170,6 +171,17 @@ class AuthRepositoryImpl implements AuthRepository {
         birthDate: birthDate,
       ),
       'Could not update your profile.',
+    );
+  }
+
+  @override
+  Future<ApiResult<AuthUser>> updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
+  }) {
+    return _guard(
+      () => _updateProfileAvatar(bytes: bytes, fileName: fileName),
+      'Could not update profile photo.',
     );
   }
 
@@ -550,6 +562,42 @@ class AuthRepositoryImpl implements AuthRepository {
               newEmail: normalizedEmail,
               digest: accounts[currentIndex].passwordDigest,
             ),
+    );
+    await _saveAccounts(updatedAccounts);
+
+    final updatedSession = AuthSession(user: updatedUser);
+    _session = updatedSession;
+    await _saveSession(updatedSession);
+    return updatedUser;
+  }
+
+  Future<AuthUser> _updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    if (bytes.isEmpty || fileName.trim().isEmpty) {
+      throw const _AuthRepositoryException(
+        ValidationFailure('Could not update profile photo.'),
+      );
+    }
+
+    final currentUser = await _me();
+    final accounts = await _loadAccounts();
+    final currentIndex = accounts.indexWhere(
+      (account) => account.user.id == currentUser.id,
+    );
+    if (currentIndex < 0) {
+      throw const _AuthRepositoryException(
+        UnauthorizedFailure('No local user session.'),
+      );
+    }
+
+    final updatedUser = currentUser.copyWith(
+      avatarUrl: 'local-avatar://${Uri.encodeComponent(fileName.trim())}',
+    );
+    final updatedAccounts = [...accounts];
+    updatedAccounts[currentIndex] = accounts[currentIndex].copyWith(
+      user: updatedUser,
     );
     await _saveAccounts(updatedAccounts);
 

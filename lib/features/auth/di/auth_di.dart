@@ -70,6 +70,11 @@ void registerAuthDependencies(GetIt sl) {
   if (!sl.isRegistered<UpdateProfileUseCase>()) {
     sl.registerLazySingleton(() => UpdateProfileUseCase(sl<AuthRepository>()));
   }
+  if (!sl.isRegistered<UpdateProfileAvatarUseCase>()) {
+    sl.registerLazySingleton(
+      () => UpdateProfileAvatarUseCase(sl<AuthRepository>()),
+    );
+  }
   if (!sl.isRegistered<LogoutUseCase>()) {
     sl.registerLazySingleton(() => LogoutUseCase(sl<AuthRepository>()));
   }
@@ -94,6 +99,7 @@ void registerAuthDependencies(GetIt sl) {
         resetPassword: sl<ResetPasswordUseCase>(),
         refreshProfile: sl<RefreshProfileUseCase>(),
         updateProfile: sl<UpdateProfileUseCase>(),
+        updateProfileAvatar: sl<UpdateProfileAvatarUseCase>(),
         logout: sl<LogoutUseCase>(),
         deleteAccountWithPassword: sl<DeleteAccountWithPasswordUseCase>(),
       ),

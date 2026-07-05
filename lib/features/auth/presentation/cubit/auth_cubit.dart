@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_result.dart';
@@ -21,6 +23,7 @@ class AuthCubit extends Cubit<AuthState> {
   final AuthUseCases _authUseCases;
   final SessionExpiredNotifier _sessionExpiredNotifier;
   AuthSession? _pendingSignupSession;
+  String? _lastProfileUpdateError;
 
   @override
   void onChange(Change<AuthState> change) {
@@ -35,6 +38,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   bool get hasPendingSignup => _pendingSignupSession != null;
+  String? get lastProfileUpdateError => _lastProfileUpdateError;
 
   @override
   Future<void> close() {
@@ -279,7 +283,7 @@ class AuthCubit extends Cubit<AuthState> {
     result.when(
       success: (_) => emit(const AuthInitial()),
       failure: (_) {
-        // Cannot show the old session without emitting — go to initial so
+        // Cannot show the old session without emitting; go to initial so
         // the UI is consistent. A snackbar is shown at the call site.
         emit(const AuthInitial());
       },
@@ -299,6 +303,7 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _authUseCases.refreshProfile();
     return result.when(
       success: (user) {
+        _lastProfileUpdateError = null;
         emit(AuthAuthenticated(_sessionWithUser(currentState.session, user)));
         return user;
       },
@@ -315,6 +320,7 @@ class AuthCubit extends Cubit<AuthState> {
     String? gender,
     DateTime? birthDate,
   }) async {
+    final currentState = state;
     final result = await _authUseCases.updateProfile(
       firstName: firstName,
       lastName: lastName,
@@ -326,7 +332,7 @@ class AuthCubit extends Cubit<AuthState> {
     );
     return result.when(
       success: (user) {
-        final currentState = state;
+        _lastProfileUpdateError = null;
         final nextSession = currentState is AuthAuthenticated
             ? _sessionWithUser(currentState.session, user)
             : AuthSession(user: user);
@@ -334,7 +340,37 @@ class AuthCubit extends Cubit<AuthState> {
         return user;
       },
       failure: (failure) {
-        emit(AuthFailure(failure.message));
+        _lastProfileUpdateError = failure.message;
+        if (currentState is AuthAuthenticated) {
+          emit(currentState);
+        } else {
+          emit(AuthFailure(failure.message));
+        }
+        return null;
+      },
+    );
+  }
+
+  Future<AuthUser?> updateProfileAvatar({
+    required Uint8List bytes,
+    required String fileName,
+  }) async {
+    final currentState = state;
+    if (currentState is! AuthAuthenticated) return null;
+
+    final result = await _authUseCases.updateProfileAvatar(
+      bytes: bytes,
+      fileName: fileName,
+    );
+    return result.when(
+      success: (user) {
+        _lastProfileUpdateError = null;
+        emit(AuthAuthenticated(_sessionWithUser(currentState.session, user)));
+        return user;
+      },
+      failure: (failure) {
+        _lastProfileUpdateError = failure.message;
+        emit(currentState);
         return null;
       },
     );

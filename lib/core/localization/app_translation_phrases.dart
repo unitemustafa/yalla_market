@@ -720,6 +720,17 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'تابع الطلبات والعروض ونشاط الحساب.',
     'Submit': 'إرسال',
     'Send': 'إرسال',
+    'Enter': 'دخول',
+    'Please wait before requesting another code.':
+        'استنى شوية قبل ما تطلب كود جديد.',
+    'Code already sent': 'الكود اتبعت قبل كده',
+    'Check the email and try again.': 'راجع الإيميل وحاول مرة تانية.',
+    'You can use the code already sent to your email.':
+        'تقدر تستخدم الكود اللي اتبعت على بريدك.',
+    'You can use the code already sent to your email. You can request another code when the timer ends.':
+        'تقدر تستخدم الكود اللي اتبعت على بريدك، وتطلب كود جديد لما العداد يخلص.',
+    'Resend available in': 'تقدر تعيد الإرسال بعد',
+    'Could not send code': 'ما قدرناش نبعت الكود',
     'Sure. Your order is being prepared and should ship today.':
         'أكيد. طلبك بيتجهز ومن المفترض يتشحن النهارده.',
     'Service unavailable': 'الخدمة غير متوفرة',

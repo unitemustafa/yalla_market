@@ -20,9 +20,12 @@ class OtpCooldownSnapshot {
 }
 
 class OtpCooldownStore {
-  const OtpCooldownStore();
+  const OtpCooldownStore({DateTime Function()? now}) : _now = now;
+
+  static const instance = OtpCooldownStore();
 
   static const List<int> fallbackDurations = [30, 60, 120, 300];
+  final DateTime Function()? _now;
 
   Future<OtpCooldownSnapshot?> read({
     required String purpose,
@@ -36,7 +39,7 @@ class OtpCooldownStore {
     final nextAllowedMillis = preferences.getInt('${prefix}_next_allowed_at');
     if (nextAllowedMillis == null) return null;
 
-    final nowMillis = DateTime.now().millisecondsSinceEpoch;
+    final nowMillis = _currentTime().millisecondsSinceEpoch;
     final remainingMillis = nextAllowedMillis - nowMillis;
     if (remainingMillis <= 0) {
       await clear(purpose: purpose, identifier: normalized);
@@ -61,7 +64,7 @@ class OtpCooldownStore {
     final preferences = await SharedPreferences.getInstance();
     final prefix = _keyPrefix(purpose, normalized);
     final level = resendLevel ?? _nextLevel(preferences, prefix);
-    final nextAllowedAt = DateTime.now().add(Duration(seconds: safeSeconds));
+    final nextAllowedAt = _currentTime().add(Duration(seconds: safeSeconds));
 
     await preferences.setInt(
       '${prefix}_next_allowed_at',
@@ -107,5 +110,9 @@ class OtpCooldownStore {
   int _nextLevel(SharedPreferences preferences, String prefix) {
     final currentLevel = preferences.getInt('${prefix}_resend_level') ?? 0;
     return (currentLevel + 1).clamp(0, fallbackDurations.length - 1).toInt();
+  }
+
+  DateTime _currentTime() {
+    return (_now ?? DateTime.now)();
   }
 }

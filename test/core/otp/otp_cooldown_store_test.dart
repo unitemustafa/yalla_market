@@ -98,4 +98,34 @@ void main() {
       isNull,
     );
   });
+
+  test('uses injected clock when deciding an entry has expired', () async {
+    var currentTime = DateTime(2026, 7, 5, 12);
+    DateTime fakeNow() => currentTime;
+    final clockedStore = OtpCooldownStore(now: fakeNow);
+
+    await clockedStore.save(
+      purpose: OtpPurpose.passwordReset,
+      identifier: 'm@example.com',
+      seconds: 2,
+    );
+
+    expect(
+      await clockedStore.read(
+        purpose: OtpPurpose.passwordReset,
+        identifier: 'm@example.com',
+      ),
+      isNotNull,
+    );
+
+    currentTime = currentTime.add(const Duration(seconds: 3));
+
+    expect(
+      await clockedStore.read(
+        purpose: OtpPurpose.passwordReset,
+        identifier: 'm@example.com',
+      ),
+      isNull,
+    );
+  });
 }

@@ -745,6 +745,8 @@ class _OfferDescriptionTicker extends StatefulWidget {
 
 class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
   final ScrollController _controller = ScrollController();
+  Timer? _delayTimer;
+  Completer<bool>? _delayCompleter;
   int _runId = 0;
 
   @override
@@ -764,6 +766,7 @@ class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
   @override
   void dispose() {
     _runId++;
+    _cancelDelay();
     _controller.dispose();
     super.dispose();
   }
@@ -771,6 +774,7 @@ class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
   void _restartTicker() {
     if (!mounted) return;
     _runId++;
+    _cancelDelay();
     if (_controller.hasClients) {
       _controller.jumpTo(0);
     }
@@ -778,7 +782,7 @@ class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
   }
 
   Future<void> _runTicker(int runId) async {
-    await Future<void>.delayed(const Duration(milliseconds: 800));
+    if (!await _wait(const Duration(milliseconds: 800))) return;
     while (mounted && _controller.hasClients && runId == _runId) {
       final maxExtent = _controller.position.maxScrollExtent;
       if (maxExtent <= 1) return;
@@ -789,7 +793,7 @@ class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
         duration: Duration(milliseconds: forwardMs),
         curve: Curves.linear,
       );
-      await Future<void>.delayed(const Duration(milliseconds: 650));
+      if (!await _wait(const Duration(milliseconds: 650))) return;
       if (!mounted || !_controller.hasClients || runId != _runId) return;
 
       await _controller.animateTo(
@@ -797,7 +801,34 @@ class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
         duration: const Duration(milliseconds: 850),
         curve: Curves.easeOut,
       );
-      await Future<void>.delayed(const Duration(milliseconds: 900));
+      if (!await _wait(const Duration(milliseconds: 900))) return;
+    }
+  }
+
+  Future<bool> _wait(Duration duration) {
+    _cancelDelay();
+    final completer = Completer<bool>();
+    _delayCompleter = completer;
+    _delayTimer = Timer(duration, () {
+      _delayTimer = null;
+      if (identical(_delayCompleter, completer)) {
+        _delayCompleter = null;
+      }
+      if (!completer.isCompleted) {
+        completer.complete(true);
+      }
+    });
+    return completer.future;
+  }
+
+  void _cancelDelay() {
+    _delayTimer?.cancel();
+    _delayTimer = null;
+
+    final completer = _delayCompleter;
+    _delayCompleter = null;
+    if (completer != null && !completer.isCompleted) {
+      completer.complete(false);
     }
   }
 

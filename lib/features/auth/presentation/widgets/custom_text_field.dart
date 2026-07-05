@@ -20,6 +20,7 @@ class CustomTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
   final AutovalidateMode? autovalidateMode;
+  final bool enabled;
 
   const CustomTextField({
     super.key,
@@ -39,6 +40,7 @@ class CustomTextField extends StatelessWidget {
     this.inputFormatters,
     this.errorText,
     this.autovalidateMode,
+    this.enabled = true,
   });
 
   @override
@@ -66,6 +68,7 @@ class CustomTextField extends StatelessWidget {
         keyboardType: keyboardType,
         autovalidateMode: autovalidateMode,
         validator: validator,
+        enabled: enabled,
         onChanged: onChanged,
         inputFormatters: inputFormatters,
         cursorColor: theme.colorScheme.primary,

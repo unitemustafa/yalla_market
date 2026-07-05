@@ -187,7 +187,7 @@ class _ProfileViewState extends State<ProfileView> {
                         title: context.tr('Gender'),
                         value: profile.gender.isEmpty
                             ? context.tr('Not set')
-                            : context.tr(profile.gender),
+                            : context.tr(_genderLabel(profile.gender)),
                         onTap: () =>
                             _openEditor(context, EditableProfileField.gender),
                       ),
@@ -212,21 +212,18 @@ class _ProfileViewState extends State<ProfileView> {
   }
 
   void _openEditor(BuildContext context, EditableProfileField field) {
-    if (field == EditableProfileField.email) {
-      CustomSnackBar.showWarning(
-        context: context,
-        title: context.tr('Email cannot be changed'),
-        message: context.tr(
-          'Contact support if you need help with your account email.',
-        ),
-      );
-      return;
-    }
-
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => EditProfileFieldView(field: field)),
     );
+  }
+
+  String _genderLabel(String value) {
+    return switch (value.trim().toLowerCase()) {
+      'male' => 'Male',
+      'female' => 'Female',
+      _ => value,
+    };
   }
 
   void _handleUsernameTap(BuildContext context, UserProfileController profile) {

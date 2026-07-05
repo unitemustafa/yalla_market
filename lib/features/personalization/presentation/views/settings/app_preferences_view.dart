@@ -7,6 +7,7 @@ import '../../../../../core/localization/app_language_controller.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/preferences/app_preferences_controller.dart';
+import '../../../../../core/routing/app_routes.dart';
 import '../profile/close_account_view.dart';
 
 part 'app_preferences_tiles.dart';
@@ -27,7 +28,7 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
     final currentLanguage = AppLanguageController.instance.value;
-    final languageLabel = currentLanguage.isArabic ? 'العربية' : 'English';
+    final languageLabel = currentLanguage.isArabic ? 'Arabic' : 'English';
 
     return ValueListenableBuilder<AppPreferences>(
       valueListenable: AppPreferencesController.instance,
@@ -86,7 +87,7 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                               _PreferenceInfoTile(
                                 icon: AppIcons.receipt_text,
                                 title: 'Currency',
-                                subtitle: 'Egyptian Pound',
+                                subtitle: 'EGP',
                                 accentColor: AppColors.success,
                               ),
                             ],
@@ -98,25 +99,42 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                             children: [
                               _PreferenceSwitchTile(
                                 icon: AppIcons.notification,
-                                title: 'Push notifications',
+                                title: 'Mobile Notifications',
                                 subtitle:
-                                    'Deals, order updates and account alerts.',
-                                value: preferences.pushNotifications,
+                                    'Offers, order updates, and account alerts',
+                                value: preferences.mobileNotificationsEnabled,
                                 accentColor: AppColors.primary,
                                 onChanged: AppPreferencesController
                                     .instance
-                                    .setPushNotifications,
+                                    .setMobileNotificationsEnabled,
                               ),
                               _PreferenceSwitchTile(
                                 icon: AppIcons.security_user,
-                                title: 'Safe mode',
-                                subtitle:
-                                    'Keep search results family friendly.',
-                                value: preferences.safeMode,
+                                title: 'Safe Mode',
+                                subtitle: 'Do not save my search history',
+                                value: preferences.safeModeEnabled,
                                 accentColor: AppColors.warning,
                                 onChanged: AppPreferencesController
                                     .instance
-                                    .setSafeMode,
+                                    .setSafeModeEnabled,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          _PreferencesSection(
+                            title: 'Account Security',
+                            isDark: isDark,
+                            children: [
+                              _PreferenceInfoTile(
+                                icon: AppIcons.lock_1,
+                                title: 'Change Password',
+                                subtitle:
+                                    'Verify your email to set a new password',
+                                accentColor: AppColors.error,
+                                onTap: () => Navigator.pushNamed(
+                                  context,
+                                  AppRoutes.changePassword,
+                                ),
                               ),
                             ],
                           ),
@@ -217,8 +235,8 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
           title: 'Language',
           children: [
             _PreferenceOptionTile(
-              title: 'العربية',
-              subtitle: 'واجهة عربية بالكامل',
+              title: 'Arabic',
+              subtitle: 'Arabic interface',
               icon: AppIcons.global,
               accentColor: AppColors.primary,
               isSelected: currentLanguage == AppLanguage.arabic,

@@ -8,6 +8,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -27,14 +28,13 @@ class VerifyEmailView extends StatefulWidget {
 }
 
 class _VerifyEmailViewState extends State<VerifyEmailView> {
-  static const int _baseCooldownSeconds = 30;
+  static const _cooldownStore = OtpCooldownStore();
   static const int _codeLength = 6;
 
   final TextEditingController _codeController = TextEditingController();
   final FocusNode _codeFocusNode = FocusNode();
 
   Timer? _resendTimer;
-  int _nextCooldownSeconds = _baseCooldownSeconds;
   int _remainingSeconds = 0;
   bool _isConfirming = false;
   bool _isResending = false;
@@ -47,6 +47,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     super.initState();
     _codeController.addListener(_refreshCodeState);
     _codeFocusNode.addListener(_refreshCodeState);
+    _restoreSavedCooldown();
   }
 
   @override
@@ -85,6 +86,11 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     if (!mounted) return;
 
     if (!sent) {
+      final retryAfter = authCubit.lastOtpRetryAfterSeconds;
+      if (retryAfter != null && retryAfter > 0) {
+        await _saveAndStartCooldown(retryAfter);
+        if (!mounted) return;
+      }
       CustomSnackBar.showError(
         context: context,
         title: _copy(context, ar: 'تعذر إرسال الكود', en: 'Code was not sent'),
@@ -107,28 +113,10 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       ),
     );
 
-    final cooldownSeconds = _nextCooldownSeconds;
-
-    setState(() {
-      _nextCooldownSeconds *= 2;
-      _remainingSeconds = cooldownSeconds;
-    });
-
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-        return;
-      }
-
-      setState(() => _remainingSeconds--);
-    });
+    final resendAfter =
+        authCubit.lastOtpResendAfterSeconds ??
+        OtpCooldownStore.fallbackDurations.first;
+    await _saveAndStartCooldown(resendAfter);
   }
 
   Future<void> _onConfirm() async {
@@ -201,12 +189,58 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
         en: 'Welcome to Yalla Market. Choose your delivery city to get started.',
       ),
     );
+    _resendTimer?.cancel();
+    await _cooldownStore.clear(
+      purpose: OtpPurpose.registration,
+      identifier: widget.email,
+    );
+    if (!mounted) return;
 
     Navigator.pushNamedAndRemoveUntil(
       context,
       AppRoutes.selectCity,
       (route) => false,
     );
+  }
+
+  Future<void> _restoreSavedCooldown() async {
+    final snapshot = await _cooldownStore.read(
+      purpose: OtpPurpose.registration,
+      identifier: widget.email,
+    );
+    if (!mounted || snapshot == null) return;
+    setState(() => _remainingSeconds = snapshot.remainingSeconds);
+    _startResendTimer(snapshot.remainingSeconds);
+  }
+
+  Future<void> _saveAndStartCooldown(int seconds) async {
+    final snapshot = await _cooldownStore.save(
+      purpose: OtpPurpose.registration,
+      identifier: widget.email,
+      seconds: seconds,
+    );
+    if (!mounted) return;
+    setState(() => _remainingSeconds = snapshot.remainingSeconds);
+    _startResendTimer(snapshot.remainingSeconds);
+  }
+
+  void _startResendTimer(int seconds) {
+    _resendTimer?.cancel();
+    _remainingSeconds = seconds;
+    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_remainingSeconds <= 1) {
+        timer.cancel();
+        setState(() => _remainingSeconds = 0);
+        return;
+      }
+
+      setState(() => _remainingSeconds--);
+    });
   }
 
   void _showExpiredSessionMessage() {
@@ -571,11 +605,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   }
 
   String _formatCooldown(int seconds) {
-    if (seconds < 60) return '${seconds}s';
-
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes}m ${remainingSeconds.toString().padLeft(2, '0')}s';
+    return _cooldownStore.formatCountdown(seconds);
   }
 
   String _copy(BuildContext context, {required String ar, required String en}) {

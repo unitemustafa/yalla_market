@@ -9,7 +9,6 @@ import '../../../../../core/presentation/widgets/buttons/app_action_button.dart'
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/routing/app_routes.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../../auth/presentation/cubit/auth_state.dart';
 import '../../controllers/user_profile_controller.dart';
 
 class CloseAccountView extends StatefulWidget {
@@ -39,7 +38,7 @@ class _CloseAccountViewState extends State<CloseAccountView> {
             children: [
               const PageTopBar(
                 title: 'Delete Account',
-                subtitle: 'Permanently remove your يلا ماركت profile',
+                subtitle: 'Permanently remove your Yalla Market profile',
               ),
               const SizedBox(height: 18),
               _WarningCard(isDark: isDark),
@@ -194,9 +193,9 @@ class _CloseAccountViewState extends State<CloseAccountView> {
     if (!mounted || !context.mounted) return;
 
     if (!success) {
-      final errorMessage = authCubit.state is AuthFailure
-          ? (authCubit.state as AuthFailure).message
-          : 'An error occurred. Please try again.';
+      final errorMessage =
+          authCubit.lastAccountActionError ??
+          'An error occurred. Please try again.';
       setState(() => _isDeleting = false);
       CustomSnackBar.showError(
         context: context,

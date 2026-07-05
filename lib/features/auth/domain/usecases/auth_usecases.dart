@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../../../core/network/api_result.dart';
 import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
+import '../entities/otp_delivery_result.dart';
 import '../repositories/auth_repository.dart';
 
 class AuthUseCases {
@@ -143,7 +144,7 @@ class ResendVerificationCodeUseCase {
 
   final AuthRepository _repository;
 
-  Future<ApiResult<bool>> call(String email) {
+  Future<ApiResult<OtpDeliveryResult>> call(String email) {
     return _repository.resendVerificationCode(email);
   }
 }
@@ -153,7 +154,7 @@ class RequestPasswordResetUseCase {
 
   final AuthRepository _repository;
 
-  Future<ApiResult<bool>> call(String email) {
+  Future<ApiResult<OtpDeliveryResult>> call(String email) {
     return _repository.requestPasswordReset(email);
   }
 }
@@ -163,7 +164,7 @@ class ResendPasswordResetCodeUseCase {
 
   final AuthRepository _repository;
 
-  Future<ApiResult<bool>> call(String email) {
+  Future<ApiResult<OtpDeliveryResult>> call(String email) {
     return _repository.resendPasswordResetCode(email);
   }
 }

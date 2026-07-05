@@ -10,6 +10,7 @@ import '../../../../core/network/api_result.dart';
 import '../../../../core/storage/token_store.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
+import '../../domain/entities/otp_delivery_result.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class AuthRemoteRepositoryImpl implements AuthRepository {
@@ -282,6 +283,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       accessToken: tokens?.accessToken,
       refreshToken: tokens?.refreshToken,
       expiresAt: tokens?.expiresAt,
+      otpResendAfterSeconds: _intFromPayload(payload, 'resend_after_seconds'),
     );
   }
 
@@ -301,31 +303,31 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> resendVerificationCode(String email) {
+  Future<ApiResult<OtpDeliveryResult>> resendVerificationCode(String email) {
     return _guard(() async {
       final payload = await _apiClient.post<Object?>(
         '/auth/resend-verification',
         data: {'email': email},
         options: _skipAuthOptions,
       );
-      return payload is bool ? payload : true;
+      return _otpDeliveryResult(payload);
     });
   }
 
   @override
-  Future<ApiResult<bool>> requestPasswordReset(String email) {
+  Future<ApiResult<OtpDeliveryResult>> requestPasswordReset(String email) {
     return _guard(() async {
-      await _apiClient.post<Object?>(
+      final payload = await _apiClient.post<Object?>(
         '/auth/forgot-password',
         data: {'email': email},
         options: _skipAuthOptions,
       );
-      return true;
+      return _otpDeliveryResult(payload);
     });
   }
 
   @override
-  Future<ApiResult<bool>> resendPasswordResetCode(String email) {
+  Future<ApiResult<OtpDeliveryResult>> resendPasswordResetCode(String email) {
     return requestPasswordReset(email);
   }
 
@@ -385,6 +387,17 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     );
   }
 
+  OtpDeliveryResult _otpDeliveryResult(Object? payload) {
+    if (payload is Map<String, dynamic>) {
+      final seconds = _intFromPayload(payload, 'resend_after_seconds');
+      return OtpDeliveryResult(
+        resendAfterSeconds: seconds,
+        resendAvailableAt: _dateFromString(payload['resend_available_at']),
+      );
+    }
+    return const OtpDeliveryResult();
+  }
+
   AuthUser _userFromPayload(Map<String, dynamic> payload) {
     final rawUser = payload['user'] ?? payload;
     return AuthUser.fromJson(_asJsonMap(rawUser) ?? const <String, dynamic>{});
@@ -418,6 +431,19 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     final value = payload[key];
     if (value is String && value.trim().isNotEmpty) return value.trim();
     return null;
+  }
+
+  int? _intFromPayload(Map<String, dynamic> payload, String key) {
+    final value = payload[key];
+    if (value is int) return value;
+    if (value is num) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
+  }
+
+  DateTime? _dateFromString(Object? value) {
+    if (value is! String || value.trim().isEmpty) return null;
+    return DateTime.tryParse(value);
   }
 
   String _signupFallbackId(String email) {

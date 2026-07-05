@@ -29,6 +29,7 @@ abstract final class ApiErrorHandler {
       DioExceptionType.badResponse => _failureFromStatusCode(
         statusCode,
         message,
+        error.response,
       ),
       DioExceptionType.unknown => UnknownFailure(
         message,
@@ -37,9 +38,21 @@ abstract final class ApiErrorHandler {
     };
   }
 
-  static Failure _failureFromStatusCode(int? statusCode, String message) {
+  static Failure _failureFromStatusCode(
+    int? statusCode,
+    String message,
+    Response<dynamic>? response,
+  ) {
     if (statusCode == null) {
       return ServerFailure(message);
+    }
+
+    if (statusCode == 429) {
+      return OtpCooldownFailure(
+        message,
+        retryAfterSeconds:
+            _intFromResponse(response, 'retry_after_seconds') ?? 0,
+      );
     }
 
     return switch (statusCode) {
@@ -78,6 +91,17 @@ abstract final class ApiErrorHandler {
       }
     }
 
+    return null;
+  }
+
+  static int? _intFromResponse(Response<dynamic>? response, String key) {
+    final data = response?.data;
+    if (data is Map<String, dynamic>) {
+      final value = data[key];
+      if (value is int) return value;
+      if (value is num) return value.toInt();
+      if (value is String) return int.tryParse(value);
+    }
     return null;
   }
 

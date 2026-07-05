@@ -4,10 +4,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/views/verify_email_view.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
@@ -16,6 +18,7 @@ import '../../../../helpers/auth_widget_fakes.dart';
 
 void main() {
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     AppLanguageController.instance.value = AppLanguage.english;
   });
 
@@ -69,7 +72,7 @@ void main() {
   testWidgets('resend shows loading and disables repeated taps', (
     tester,
   ) async {
-    final completer = Completer<ApiResult<bool>>();
+    final completer = Completer<ApiResult<OtpDeliveryResult>>();
     final repository = FakeAuthRepository(resendCompleter: completer);
     await _pumpVerifyEmail(tester, repository: repository);
 
@@ -87,7 +90,9 @@ void main() {
     await tester.pump();
     expect(repository.resendCalls, 1);
 
-    completer.complete(const ApiResult.success(true));
+    completer.complete(
+      const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30)),
+    );
     await tester.pump();
   });
 
@@ -121,7 +126,7 @@ void main() {
     await tester.pump();
 
     expect(repository.resendCalls, 1);
-    expect(find.text('Resend in 30s'), findsOneWidget);
+    expect(find.text('Resend in 00:30'), findsOneWidget);
     expect(
       tester.widget<TextButton>(find.byType(TextButton)).onPressed,
       isNull,

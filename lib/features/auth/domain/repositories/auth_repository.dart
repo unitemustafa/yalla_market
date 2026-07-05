@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import '../../../../core/network/api_result.dart';
 import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
+import '../entities/otp_delivery_result.dart';
 
 abstract class AuthRepository {
   Future<ApiResult<AuthSession?>> restoreSavedSession();
@@ -33,11 +34,11 @@ abstract class AuthRepository {
     required String code,
   });
 
-  Future<ApiResult<bool>> resendVerificationCode(String email);
+  Future<ApiResult<OtpDeliveryResult>> resendVerificationCode(String email);
 
-  Future<ApiResult<bool>> requestPasswordReset(String email);
+  Future<ApiResult<OtpDeliveryResult>> requestPasswordReset(String email);
 
-  Future<ApiResult<bool>> resendPasswordResetCode(String email);
+  Future<ApiResult<OtpDeliveryResult>> resendPasswordResetCode(String email);
 
   Future<ApiResult<bool>> resetPassword({
     required String email,

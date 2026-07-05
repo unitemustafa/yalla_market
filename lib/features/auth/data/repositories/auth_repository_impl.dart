@@ -7,6 +7,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_result.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
+import '../../domain/entities/otp_delivery_result.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
@@ -104,7 +105,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> resendVerificationCode(String email) {
+  Future<ApiResult<OtpDeliveryResult>> resendVerificationCode(String email) {
     return _guard(
       () => _resendVerificationCode(email),
       'Could not send a new verification code.',
@@ -112,7 +113,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> requestPasswordReset(String email) {
+  Future<ApiResult<OtpDeliveryResult>> requestPasswordReset(String email) {
     return _guard(
       () => _requestPasswordReset(email),
       'Could not send a password reset code.',
@@ -120,7 +121,7 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> resendPasswordResetCode(String email) {
+  Future<ApiResult<OtpDeliveryResult>> resendPasswordResetCode(String email) {
     return _guard(
       () => _requestPasswordReset(email),
       'Could not send a password reset code.',
@@ -380,7 +381,14 @@ class AuthRepositoryImpl implements AuthRepository {
         passwordDigest: _passwordDigest(normalizedEmail, password),
       ),
     ]);
-    return _startSession(user, rememberSession: false);
+    final session = await _startSession(user, rememberSession: false);
+    return AuthSession(
+      user: session.user,
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      expiresAt: session.expiresAt,
+      otpResendAfterSeconds: 30,
+    );
   }
 
   Future<AuthSession> _verifyEmail({
@@ -412,22 +420,22 @@ class AuthRepositoryImpl implements AuthRepository {
     return _startSession(account.user, rememberSession: false);
   }
 
-  Future<bool> _resendVerificationCode(String email) async {
+  Future<OtpDeliveryResult> _resendVerificationCode(String email) async {
     if (_normalizeEmail(email).isEmpty) {
       throw const _AuthRepositoryException(
         ValidationFailure('Email is required.'),
       );
     }
-    return true;
+    return const OtpDeliveryResult(resendAfterSeconds: 30);
   }
 
-  Future<bool> _requestPasswordReset(String email) async {
+  Future<OtpDeliveryResult> _requestPasswordReset(String email) async {
     if (_normalizeEmail(email).isEmpty) {
       throw const _AuthRepositoryException(
         ValidationFailure('Email is required.'),
       );
     }
-    return true;
+    return const OtpDeliveryResult(resendAfterSeconds: 30);
   }
 
   Future<bool> _resetPassword({

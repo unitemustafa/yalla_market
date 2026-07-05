@@ -6,6 +6,7 @@ import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
+import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/domain/repositories/auth_repository.dart';
 import 'package:yalla_market/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
@@ -259,18 +260,24 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> resendVerificationCode(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> resendVerificationCode(
+    String email,
+  ) async {
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
-  Future<ApiResult<bool>> requestPasswordReset(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> requestPasswordReset(
+    String email,
+  ) async {
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
-  Future<ApiResult<bool>> resendPasswordResetCode(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> resendPasswordResetCode(
+    String email,
+  ) async {
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override

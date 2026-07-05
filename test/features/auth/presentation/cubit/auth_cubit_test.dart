@@ -7,6 +7,7 @@ import 'package:yalla_market/core/routing/auth_guard.dart';
 import 'package:yalla_market/core/session/session_expired_notifier.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
+import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/domain/repositories/auth_repository.dart';
 import 'package:yalla_market/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
@@ -266,6 +267,70 @@ void main() {
       await cubit.close();
     });
 
+    test('resetPassword failure keeps authenticated session', () async {
+      final repository = _FakeAuthRepository(
+        loginResult: sampleSession,
+        resetPasswordFailure: const ValidationFailure('Invalid code.'),
+      );
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final success = await cubit.resetPassword(
+        email: sampleUser.email,
+        code: '000000',
+        password: 'NewStrongPassword123!',
+        passwordConfirm: 'NewStrongPassword123!',
+      );
+
+      expect(success, isFalse);
+      expect(cubit.state, isA<AuthAuthenticated>());
+      expect(cubit.lastPasswordResetError, 'Invalid code.');
+      expect(AuthGuard.isAuthenticated, isTrue);
+      await cubit.close();
+    });
+
+    test('requestPasswordReset failure keeps authenticated session', () async {
+      final repository = _FakeAuthRepository(
+        loginResult: sampleSession,
+        requestPasswordResetFailure: const ValidationFailure(
+          'Please wait before requesting another code.',
+        ),
+      );
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final success = await cubit.requestPasswordReset(sampleUser.email);
+
+      expect(success, isFalse);
+      expect(cubit.state, isA<AuthAuthenticated>());
+      expect(
+        cubit.lastPasswordResetError,
+        'Please wait before requesting another code.',
+      );
+      expect(AuthGuard.isAuthenticated, isTrue);
+      await cubit.close();
+    });
+
+    test(
+      'deleteAccountWithPassword failure keeps authenticated session',
+      () async {
+        final repository = _FakeAuthRepository(
+          loginResult: sampleSession,
+          deleteAccountFailure: const UnauthorizedFailure('Invalid password.'),
+        );
+        final cubit = AuthCubit(_authUseCases(repository));
+        await cubit.login(email: sampleUser.email, password: 'password');
+
+        final success = await cubit.deleteAccountWithPassword('wrong-password');
+
+        expect(success, isFalse);
+        expect(cubit.state, isA<AuthAuthenticated>());
+        expect(cubit.lastAccountActionError, 'Invalid password.');
+        expect(AuthGuard.isAuthenticated, isTrue);
+        await cubit.close();
+      },
+    );
+
     test(
       'avatar update success refreshes authenticated user avatarUrl',
       () async {
@@ -369,6 +434,9 @@ class _FakeAuthRepository implements AuthRepository {
     this.updateProfileFailure,
     this.updateProfileAvatarResult,
     this.updateProfileAvatarFailure,
+    this.requestPasswordResetFailure,
+    this.resetPasswordFailure,
+    this.deleteAccountFailure,
   });
 
   final AuthSession? restoreResult;
@@ -380,6 +448,9 @@ class _FakeAuthRepository implements AuthRepository {
   final Failure? updateProfileFailure;
   final AuthUser? updateProfileAvatarResult;
   final Failure? updateProfileAvatarFailure;
+  final Failure? requestPasswordResetFailure;
+  final Failure? resetPasswordFailure;
+  final Failure? deleteAccountFailure;
   String? lastLoginEmail;
   bool? lastRememberMe;
   String? lastVerificationCode;
@@ -442,18 +513,27 @@ class _FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> resendVerificationCode(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> resendVerificationCode(
+    String email,
+  ) async {
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
-  Future<ApiResult<bool>> requestPasswordReset(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> requestPasswordReset(
+    String email,
+  ) async {
+    if (requestPasswordResetFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
-  Future<ApiResult<bool>> resendPasswordResetCode(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> resendPasswordResetCode(
+    String email,
+  ) async {
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
@@ -463,6 +543,9 @@ class _FakeAuthRepository implements AuthRepository {
     required String password,
     required String passwordConfirm,
   }) async {
+    if (resetPasswordFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
     return const ApiResult.success(true);
   }
 
@@ -507,6 +590,9 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<bool>> deleteAccountWithPassword(String password) async {
+    if (deleteAccountFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
     return const ApiResult.success(true);
   }
 }

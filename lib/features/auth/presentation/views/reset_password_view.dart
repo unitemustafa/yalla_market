@@ -7,6 +7,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -27,7 +28,7 @@ class ResetPasswordView extends StatefulWidget {
 }
 
 class _ResetPasswordViewState extends State<ResetPasswordView> {
-  static const int _baseCooldownSeconds = 30;
+  static const _cooldownStore = OtpCooldownStore();
 
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _codeController;
@@ -37,7 +38,6 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
       FilteringTextInputFormatter.deny(RegExp(r'\s'));
 
   Timer? _resendTimer;
-  int _nextCooldownSeconds = _baseCooldownSeconds;
   int _remainingSeconds = 0;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
@@ -52,6 +52,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
     _codeController = TextEditingController();
     _passwordController = TextEditingController();
     _confirmPasswordController = TextEditingController();
+    _restoreSavedCooldown();
   }
 
   @override
@@ -66,8 +67,9 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   Future<void> _onSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false) || _isSubmitting) return;
 
+    final authCubit = context.read<AuthCubit>();
     setState(() => _isSubmitting = true);
-    final success = await context.read<AuthCubit>().resetPassword(
+    final success = await authCubit.resetPassword(
       email: widget.email,
       code: _codeController.text.trim(),
       password: _passwordController.text,
@@ -77,7 +79,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
     setState(() => _isSubmitting = false);
 
     if (!success) {
-      final authState = context.read<AuthCubit>().state;
+      final authState = authCubit.state;
       final failureMessage = authState is AuthFailure
           ? authState.message
           : null;
@@ -102,6 +104,12 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         en: 'Use your new password to sign in.',
       ),
     );
+    _resendTimer?.cancel();
+    await _cooldownStore.clear(
+      purpose: OtpPurpose.passwordReset,
+      identifier: widget.email,
+    );
+    if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(
       context,
       AppRoutes.login,
@@ -112,14 +120,18 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   Future<void> _onResend() async {
     if (_isCoolingDown || _isResending) return;
 
+    final authCubit = context.read<AuthCubit>();
     setState(() => _isResending = true);
-    final sent = await context.read<AuthCubit>().resendPasswordResetCode(
-      widget.email,
-    );
+    final sent = await authCubit.resendPasswordResetCode(widget.email);
     if (!mounted) return;
     setState(() => _isResending = false);
 
     if (!sent) {
+      final retryAfter = authCubit.lastOtpRetryAfterSeconds;
+      if (retryAfter != null && retryAfter > 0) {
+        await _saveAndStartCooldown(retryAfter);
+        if (!mounted) return;
+      }
       CustomSnackBar.showError(
         context: context,
         title: _copy(ar: 'تعذر إرسال الكود', en: 'Code was not sent'),
@@ -139,17 +151,36 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         en: 'We sent a new code to your email.',
       ),
     );
-    _startCooldown();
+    final resendAfter =
+        authCubit.lastOtpResendAfterSeconds ??
+        OtpCooldownStore.fallbackDurations.first;
+    await _saveAndStartCooldown(resendAfter);
   }
 
-  void _startCooldown() {
-    final cooldownSeconds = _nextCooldownSeconds;
-    setState(() {
-      _nextCooldownSeconds *= 2;
-      _remainingSeconds = cooldownSeconds;
-    });
+  Future<void> _restoreSavedCooldown() async {
+    final snapshot = await _cooldownStore.read(
+      purpose: OtpPurpose.passwordReset,
+      identifier: widget.email,
+    );
+    if (!mounted || snapshot == null) return;
+    setState(() => _remainingSeconds = snapshot.remainingSeconds);
+    _startCooldown(snapshot.remainingSeconds);
+  }
 
+  Future<void> _saveAndStartCooldown(int seconds) async {
+    final snapshot = await _cooldownStore.save(
+      purpose: OtpPurpose.passwordReset,
+      identifier: widget.email,
+      seconds: seconds,
+    );
+    if (!mounted) return;
+    setState(() => _remainingSeconds = snapshot.remainingSeconds);
+    _startCooldown(snapshot.remainingSeconds);
+  }
+
+  void _startCooldown(int seconds) {
     _resendTimer?.cancel();
+    _remainingSeconds = seconds;
     _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
@@ -408,10 +439,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   }
 
   String _formatCooldown(int seconds) {
-    if (seconds < 60) return '${seconds}s';
-    final minutes = seconds ~/ 60;
-    final remainingSeconds = seconds % 60;
-    return '${minutes}m ${remainingSeconds.toString().padLeft(2, '0')}s';
+    return _cooldownStore.formatCountdown(seconds);
   }
 
   String _copy({required String ar, required String en}) {

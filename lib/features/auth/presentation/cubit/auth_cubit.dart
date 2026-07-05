@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/network/api_result.dart';
+import '../../../../core/errors/failure.dart';
 import '../../../../core/routing/auth_guard.dart';
 import '../../../../core/session/session_expired_notifier.dart';
 import '../../domain/entities/auth_session.dart';
@@ -24,6 +25,10 @@ class AuthCubit extends Cubit<AuthState> {
   final SessionExpiredNotifier _sessionExpiredNotifier;
   AuthSession? _pendingSignupSession;
   String? _lastProfileUpdateError;
+  String? _lastPasswordResetError;
+  String? _lastAccountActionError;
+  int? _lastOtpResendAfterSeconds;
+  int? _lastOtpRetryAfterSeconds;
 
   @override
   void onChange(Change<AuthState> change) {
@@ -39,6 +44,10 @@ class AuthCubit extends Cubit<AuthState> {
 
   bool get hasPendingSignup => _pendingSignupSession != null;
   String? get lastProfileUpdateError => _lastProfileUpdateError;
+  String? get lastPasswordResetError => _lastPasswordResetError;
+  String? get lastAccountActionError => _lastAccountActionError;
+  int? get lastOtpResendAfterSeconds => _lastOtpResendAfterSeconds;
+  int? get lastOtpRetryAfterSeconds => _lastOtpRetryAfterSeconds;
 
   @override
   Future<void> close() {
@@ -171,6 +180,8 @@ class AuthCubit extends Cubit<AuthState> {
     result.when(
       success: (session) {
         _pendingSignupSession = session;
+        _lastOtpResendAfterSeconds = session.otpResendAfterSeconds;
+        _lastOtpRetryAfterSeconds = null;
         final createdEmail = session.user.email.trim();
         emit(
           AuthSignupSucceeded(
@@ -220,8 +231,13 @@ class AuthCubit extends Cubit<AuthState> {
       session.user.email,
     );
     return result.when(
-      success: (sent) => sent,
+      success: (delivery) {
+        _lastOtpResendAfterSeconds = delivery.resendAfterSeconds;
+        _lastOtpRetryAfterSeconds = null;
+        return delivery.sent;
+      },
       failure: (failure) {
+        _storeOtpFailure(failure);
         emit(AuthFailure(failure.message));
         return false;
       },
@@ -229,22 +245,46 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<bool> requestPasswordReset(String email) async {
+    final currentState = state;
     final result = await _authUseCases.requestPasswordReset(email.trim());
     return result.when(
-      success: (sent) => sent,
+      success: (sent) {
+        _lastOtpResendAfterSeconds = sent.resendAfterSeconds;
+        _lastOtpRetryAfterSeconds = null;
+        _lastPasswordResetError = null;
+        return sent.sent;
+      },
       failure: (failure) {
-        emit(AuthFailure(failure.message));
+        _storeOtpFailure(failure);
+        _lastPasswordResetError = failure.message;
+        if (currentState is AuthAuthenticated) {
+          emit(currentState);
+        } else {
+          emit(AuthFailure(failure.message));
+        }
         return false;
       },
     );
   }
 
   Future<bool> resendPasswordResetCode(String email) async {
+    final currentState = state;
     final result = await _authUseCases.resendPasswordResetCode(email.trim());
     return result.when(
-      success: (sent) => sent,
+      success: (sent) {
+        _lastOtpResendAfterSeconds = sent.resendAfterSeconds;
+        _lastOtpRetryAfterSeconds = null;
+        _lastPasswordResetError = null;
+        return sent.sent;
+      },
       failure: (failure) {
-        emit(AuthFailure(failure.message));
+        _storeOtpFailure(failure);
+        _lastPasswordResetError = failure.message;
+        if (currentState is AuthAuthenticated) {
+          emit(currentState);
+        } else {
+          emit(AuthFailure(failure.message));
+        }
         return false;
       },
     );
@@ -258,6 +298,7 @@ class AuthCubit extends Cubit<AuthState> {
   }) async {
     if (state is AuthLoading) return false;
 
+    final currentState = state;
     emit(const AuthLoading());
     final result = await _authUseCases.resetPassword(
       email: email.trim(),
@@ -267,11 +308,17 @@ class AuthCubit extends Cubit<AuthState> {
     );
     return result.when(
       success: (_) {
+        _lastPasswordResetError = null;
         emit(const AuthInitial());
         return true;
       },
       failure: (failure) {
-        emit(AuthFailure(failure.message));
+        _lastPasswordResetError = failure.message;
+        if (currentState is AuthAuthenticated) {
+          emit(currentState);
+        } else {
+          emit(AuthFailure(failure.message));
+        }
         return false;
       },
     );
@@ -390,18 +437,33 @@ class AuthCubit extends Cubit<AuthState> {
   ) async {
     if (state is AuthLoading) return false;
 
+    final currentState = state;
     emit(const AuthLoading());
 
     final result = await deleteAccount();
     return result.when(
       success: (_) {
+        _lastAccountActionError = null;
         emit(const AuthInitial());
         return true;
       },
       failure: (failure) {
-        emit(AuthFailure(failure.message));
+        _lastAccountActionError = failure.message;
+        if (currentState is AuthAuthenticated) {
+          emit(currentState);
+        } else {
+          emit(AuthFailure(failure.message));
+        }
         return false;
       },
     );
+  }
+
+  void _storeOtpFailure(Failure failure) {
+    if (failure is OtpCooldownFailure) {
+      _lastOtpRetryAfterSeconds = failure.retryAfterSeconds;
+    } else {
+      _lastOtpRetryAfterSeconds = null;
+    }
   }
 }

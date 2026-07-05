@@ -8,26 +8,11 @@ import '../../../../../core/connectivity/internet_status_controller.dart';
 import '../../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../../core/routing/app_routes.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
-import '../../../../store/presentation/cubit/order_history_cubit.dart';
-import '../../../../store/presentation/cubit/order_history_state.dart';
 import '../../controllers/user_profile_controller.dart';
 import '../../widgets/settings_menu_tile.dart';
 
-class SettingsView extends StatefulWidget {
+class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
-
-  @override
-  State<SettingsView> createState() => _SettingsViewState();
-}
-
-class _SettingsViewState extends State<SettingsView> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<OrderHistoryCubit>().loadOrders();
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,31 +45,6 @@ class _SettingsViewState extends State<SettingsView> {
                     onEdit: () {
                       Navigator.pushNamed(context, AppRoutes.profile);
                     },
-                  );
-                },
-              ),
-              const SizedBox(height: 14),
-              BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
-                builder: (context, state) {
-                  final value = switch (state) {
-                    OrderHistoryReady(:final orders) => '${orders.length}',
-                    OrderHistoryFailure(:final orders) => '${orders.length}',
-                    OrderHistoryLoading(:final orders) when orders.isNotEmpty =>
-                      '${orders.length}',
-                    _ => '-',
-                  };
-
-                  return Row(
-                    children: [
-                      Expanded(
-                        child: _ProfileStat(
-                          icon: AppIcons.bag_tick,
-                          label: 'Orders',
-                          value: value,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ],
                   );
                 },
               ),
@@ -464,64 +424,6 @@ class _ConnectionStatusBadgeContent extends StatelessWidget {
               fontSize: 12,
               fontWeight: FontWeight.w900,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProfileStat extends StatelessWidget {
-  const _ProfileStat({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCardColor : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.05),
-        ),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 2),
-          Text(
-            context.tr(label),
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-              fontWeight: FontWeight.w700,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),

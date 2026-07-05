@@ -3,23 +3,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class AppPreferences {
   const AppPreferences({
-    this.pushNotifications = true,
-    this.safeMode = false,
+    this.mobileNotificationsEnabled = true,
+    this.safeModeEnabled = false,
     this.themeMode = ThemeMode.system,
   });
 
-  final bool pushNotifications;
-  final bool safeMode;
+  final bool mobileNotificationsEnabled;
+
+  // Safe Mode prevents future search queries from being persisted in search
+  // history. Search integration will be implemented in the Search phase.
+  final bool safeModeEnabled;
   final ThemeMode themeMode;
 
+  bool get pushNotifications => mobileNotificationsEnabled;
+  bool get safeMode => safeModeEnabled;
+
   AppPreferences copyWith({
-    bool? pushNotifications,
-    bool? safeMode,
+    bool? mobileNotificationsEnabled,
+    bool? safeModeEnabled,
     ThemeMode? themeMode,
   }) {
     return AppPreferences(
-      pushNotifications: pushNotifications ?? this.pushNotifications,
-      safeMode: safeMode ?? this.safeMode,
+      mobileNotificationsEnabled:
+          mobileNotificationsEnabled ?? this.mobileNotificationsEnabled,
+      safeModeEnabled: safeModeEnabled ?? this.safeModeEnabled,
       themeMode: themeMode ?? this.themeMode,
     );
   }
@@ -27,13 +34,14 @@ class AppPreferences {
   @override
   bool operator ==(Object other) {
     return other is AppPreferences &&
-        other.pushNotifications == pushNotifications &&
-        other.safeMode == safeMode &&
+        other.mobileNotificationsEnabled == mobileNotificationsEnabled &&
+        other.safeModeEnabled == safeModeEnabled &&
         other.themeMode == themeMode;
   }
 
   @override
-  int get hashCode => Object.hash(pushNotifications, safeMode, themeMode);
+  int get hashCode =>
+      Object.hash(mobileNotificationsEnabled, safeModeEnabled, themeMode);
 }
 
 class AppPreferencesController extends ValueNotifier<AppPreferences> {
@@ -41,34 +49,57 @@ class AppPreferencesController extends ValueNotifier<AppPreferences> {
 
   static final AppPreferencesController instance = AppPreferencesController._();
 
-  static const String _pushNotificationsKey =
-      'app.preferences.push_notifications';
-  static const String _safeModeKey = 'app.preferences.safe_mode';
+  static const String mobileNotificationsStorageKey =
+      'mobile_notifications_enabled';
+  static const String safeModeStorageKey = 'safe_search_history_mode_enabled';
   static const String _themeModeKey = 'app.preferences.theme_mode';
+  static const String _legacyPushNotificationsKey =
+      'app.preferences.push_notifications';
+  static const String _legacySafeModeKey = 'app.preferences.safe_mode';
+
+  bool get mobileNotificationsEnabled => value.mobileNotificationsEnabled;
+
+  bool get safeModeEnabled => value.safeModeEnabled;
 
   Future<void> loadSavedPreferences() async {
     final preferences = await SharedPreferences.getInstance();
     value = AppPreferences(
-      pushNotifications: preferences.getBool(_pushNotificationsKey) ?? true,
-      safeMode: preferences.getBool(_safeModeKey) ?? false,
+      mobileNotificationsEnabled:
+          preferences.getBool(mobileNotificationsStorageKey) ??
+          preferences.getBool(_legacyPushNotificationsKey) ??
+          true,
+      safeModeEnabled:
+          preferences.getBool(safeModeStorageKey) ??
+          preferences.getBool(_legacySafeModeKey) ??
+          false,
       themeMode: _themeModeFromStorage(preferences.getString(_themeModeKey)),
     );
   }
 
-  Future<void> setPushNotifications(bool enabled) {
+  Future<void> setMobileNotificationsEnabled(bool enabled) {
+    // TODO: Wire this preference to real notification permissions, device
+    // tokens, and backend sync during the Notifications phase.
     return _setPreference(
-      key: _pushNotificationsKey,
+      key: mobileNotificationsStorageKey,
       value: enabled,
-      nextPreferences: value.copyWith(pushNotifications: enabled),
+      nextPreferences: value.copyWith(mobileNotificationsEnabled: enabled),
+    );
+  }
+
+  Future<void> setPushNotifications(bool enabled) {
+    return setMobileNotificationsEnabled(enabled);
+  }
+
+  Future<void> setSafeModeEnabled(bool enabled) {
+    return _setPreference(
+      key: safeModeStorageKey,
+      value: enabled,
+      nextPreferences: value.copyWith(safeModeEnabled: enabled),
     );
   }
 
   Future<void> setSafeMode(bool enabled) {
-    return _setPreference(
-      key: _safeModeKey,
-      value: enabled,
-      nextPreferences: value.copyWith(safeMode: enabled),
-    );
+    return setSafeModeEnabled(enabled);
   }
 
   Future<void> setThemeMode(ThemeMode themeMode) async {

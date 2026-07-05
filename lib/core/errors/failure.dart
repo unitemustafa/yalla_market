@@ -17,6 +17,16 @@ final class ValidationFailure extends Failure {
   const ValidationFailure(super.message, {super.statusCode});
 }
 
+final class OtpCooldownFailure extends Failure {
+  const OtpCooldownFailure(
+    super.message, {
+    required this.retryAfterSeconds,
+    super.statusCode = 429,
+  });
+
+  final int retryAfterSeconds;
+}
+
 final class UnauthorizedFailure extends Failure {
   const UnauthorizedFailure(super.message, {super.statusCode});
 }

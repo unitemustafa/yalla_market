@@ -378,6 +378,7 @@ void main() {
         return {
           'detail':
               'If an active account exists, a password reset OTP has been sent.',
+          'resend_after_seconds': 30,
         };
       });
       final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
@@ -385,7 +386,10 @@ void main() {
       final result = await repository.requestPasswordReset('m@example.com');
 
       result.when(
-        success: (sent) => expect(sent, isTrue),
+        success: (sent) {
+          expect(sent.sent, isTrue);
+          expect(sent.resendAfterSeconds, 30);
+        },
         failure: (failure) => fail(failure.message),
       );
     });

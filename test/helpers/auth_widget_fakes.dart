@@ -5,6 +5,7 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
+import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/domain/repositories/auth_repository.dart';
 import 'package:yalla_market/features/auth/domain/usecases/auth_usecases.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
@@ -64,6 +65,10 @@ class FakeAuthRepository implements AuthRepository {
     this.phoneCheckFailure,
     this.resendCompleter,
     this.resendFailure,
+    this.passwordResetResults = const [],
+    this.passwordResetCompleters = const [],
+    this.passwordResetFailure,
+    this.resetPasswordFailure,
   });
 
   final Set<String> registeredEmails;
@@ -75,12 +80,18 @@ class FakeAuthRepository implements AuthRepository {
   final Failure? usernameCheckFailure;
   final Failure? emailCheckFailure;
   final Failure? phoneCheckFailure;
-  final Completer<ApiResult<bool>>? resendCompleter;
+  final Completer<ApiResult<OtpDeliveryResult>>? resendCompleter;
   final Failure? resendFailure;
+  final List<OtpDeliveryResult> passwordResetResults;
+  final List<Completer<ApiResult<OtpDeliveryResult>>> passwordResetCompleters;
+  final Failure? passwordResetFailure;
+  final Failure? resetPasswordFailure;
   int emailChecks = 0;
   int usernameChecks = 0;
   int phoneChecks = 0;
   int resendCalls = 0;
+  int passwordResetRequests = 0;
+  int resetPasswordCalls = 0;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() async {
@@ -163,21 +174,40 @@ class FakeAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<ApiResult<bool>> resendVerificationCode(String email) async {
+  Future<ApiResult<OtpDeliveryResult>> resendVerificationCode(
+    String email,
+  ) async {
     resendCalls++;
     if (resendCompleter != null) return resendCompleter!.future;
     if (resendFailure != null) return ApiResult.failure(resendFailure!);
-    return const ApiResult.success(true);
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
-  Future<ApiResult<bool>> requestPasswordReset(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> requestPasswordReset(
+    String email,
+  ) async {
+    passwordResetRequests++;
+    if (passwordResetCompleters.isNotEmpty) {
+      return passwordResetCompleters.removeAt(0).future;
+    }
+    if (passwordResetFailure != null) {
+      return ApiResult.failure(passwordResetFailure!);
+    }
+    if (passwordResetResults.isNotEmpty) {
+      final resultIndex = passwordResetRequests <= passwordResetResults.length
+          ? passwordResetRequests - 1
+          : passwordResetResults.length - 1;
+      return ApiResult.success(passwordResetResults[resultIndex]);
+    }
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
-  Future<ApiResult<bool>> resendPasswordResetCode(String email) async {
-    return const ApiResult.success(true);
+  Future<ApiResult<OtpDeliveryResult>> resendPasswordResetCode(
+    String email,
+  ) async {
+    return const ApiResult.success(OtpDeliveryResult(resendAfterSeconds: 30));
   }
 
   @override
@@ -187,6 +217,10 @@ class FakeAuthRepository implements AuthRepository {
     required String password,
     required String passwordConfirm,
   }) async {
+    resetPasswordCalls++;
+    if (resetPasswordFailure != null) {
+      return ApiResult.failure(resetPasswordFailure!);
+    }
     return const ApiResult.success(true);
   }
 

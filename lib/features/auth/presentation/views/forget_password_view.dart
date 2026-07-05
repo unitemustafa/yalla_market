@@ -7,6 +7,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -23,6 +24,8 @@ class ForgetPasswordView extends StatefulWidget {
 }
 
 class _ForgetPasswordViewState extends State<ForgetPasswordView> {
+  static const _cooldownStore = OtpCooldownStore();
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   final TextInputFormatter _noWhitespaceInputFormatter =
@@ -71,6 +74,16 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
         return;
       }
 
+      final resendAfter =
+          authCubit.lastOtpResendAfterSeconds ??
+          OtpCooldownStore.fallbackDurations.first;
+      await _cooldownStore.save(
+        purpose: OtpPurpose.passwordReset,
+        identifier: email,
+        seconds: resendAfter,
+      );
+      if (!mounted) return;
+
       Navigator.pushNamed(context, AppRoutes.resetPassword, arguments: email);
     }
   }
@@ -118,11 +131,10 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     final email = _emailController.text.trim().toLowerCase();
     if (Validators.email(email) != null) return false;
 
+    final authCubit = context.read<AuthCubit>();
     setState(() => _isCheckingEmail = true);
     try {
-      final isRegistered = await context.read<AuthCubit>().isEmailRegistered(
-        email,
-      );
+      final isRegistered = await authCubit.isEmailRegistered(email);
       if (!mounted || email != _emailController.text.trim().toLowerCase()) {
         return false;
       }

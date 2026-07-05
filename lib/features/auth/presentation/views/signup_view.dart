@@ -5,6 +5,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -196,6 +197,14 @@ class _SignupViewState extends State<SignupView> {
               ? _emailController.text.trim()
               : state.email.trim();
           final strings = AppTranslations.of(context);
+          // ignore: discarded_futures
+          const OtpCooldownStore().save(
+            purpose: OtpPurpose.registration,
+            identifier: email,
+            seconds:
+                context.read<AuthCubit>().lastOtpResendAfterSeconds ??
+                OtpCooldownStore.fallbackDurations.first,
+          );
 
           CustomSnackBar.showSuccess(
             context: context,

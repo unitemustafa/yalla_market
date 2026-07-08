@@ -9,7 +9,7 @@ The app expects a REST backend under `/api/v1`. Pass the API origin at build or
 run time:
 
 ```bash
-flutter run --dart-define=API_BASE_URL=https://dev-api.yallamarket.com
+flutter run --dart-define=API_BASE_URL=https://yalla-backend-ecjct.ondigitalocean.app
 flutter build web --dart-define-from-file=env/production.json
 flutter build appbundle --dart-define-from-file=env/production.json
 ```

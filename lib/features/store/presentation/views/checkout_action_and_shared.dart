@@ -195,7 +195,6 @@ class _SummaryRow extends StatelessWidget {
     required this.mutedColor,
     this.value,
     this.valueWidget,
-    this.valueColor,
   });
 
   final String label;
@@ -203,7 +202,6 @@ class _SummaryRow extends StatelessWidget {
   final Widget? valueWidget;
   final Color textColor;
   final Color mutedColor;
-  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
@@ -225,7 +223,7 @@ class _SummaryRow extends StatelessWidget {
                 text: value ?? '',
                 textAlign: TextAlign.end,
                 style: TextStyle(
-                  color: valueColor ?? textColor,
+                  color: textColor,
                   fontSize: 14,
                   fontWeight: FontWeight.w900,
                 ),

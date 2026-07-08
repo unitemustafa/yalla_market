@@ -68,7 +68,11 @@ class HomeOfferData {
     required this.discount,
     required this.startsAt,
     required this.endsAt,
+    this.marketId = '',
     required this.marketName,
+    this.showInGeneral = true,
+    this.serviceCityIds = const [],
+    this.serviceCityNames = const [],
     required this.products,
   });
 
@@ -80,7 +84,11 @@ class HomeOfferData {
   final String discount;
   final DateTime? startsAt;
   final DateTime? endsAt;
+  final String marketId;
   final String marketName;
+  final bool showInGeneral;
+  final List<int> serviceCityIds;
+  final List<String> serviceCityNames;
   final List<ProductData> products;
 
   factory HomeOfferData.fromJson(Map<String, dynamic> json) {
@@ -97,7 +105,12 @@ class HomeOfferData {
       discount: json['discount']?.toString() ?? '',
       startsAt: DateTime.tryParse(json['start_time']?.toString() ?? ''),
       endsAt: DateTime.tryParse(json['end_time']?.toString() ?? ''),
+      marketId:
+          json['market_id']?.toString() ?? market?['id']?.toString() ?? '',
       marketName: market?['name']?.toString() ?? '',
+      showInGeneral: _boolFromJson(json['show_in_general']) ?? true,
+      serviceCityIds: _serviceCityIdsFromJson(json),
+      serviceCityNames: _serviceCityNamesFromJson(json),
       products: _listFromJson(json['products'])
           .map(ProductData.fromJson)
           .map(_productWithResolvedImage)
@@ -190,6 +203,46 @@ int? _intFromJson(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
   return null;
+}
+
+bool? _boolFromJson(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+  }
+  return null;
+}
+
+List<int> _serviceCityIdsFromJson(Map<String, dynamic> json) {
+  final ids = <int>{};
+  final direct = json['service_city_ids'];
+  if (direct is List) {
+    for (final item in direct) {
+      final id = _intFromJson(item);
+      if (id != null && id > 0) ids.add(id);
+    }
+  }
+
+  for (final city in _listFromJson(json['service_cities'])) {
+    final id = _intFromJson(city['id']);
+    if (id != null && id > 0) ids.add(id);
+  }
+
+  return ids.toList(growable: false);
+}
+
+List<String> _serviceCityNamesFromJson(Map<String, dynamic> json) {
+  return _listFromJson(json['service_cities'])
+      .map((city) => city['name']?.toString().trim() ?? '')
+      .where((name) => name.isNotEmpty)
+      .toList(growable: false);
 }
 
 int _accentColorFor(String seed) {

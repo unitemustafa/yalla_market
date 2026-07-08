@@ -95,7 +95,11 @@ class AppRouter {
         return _buildRoute(const SuccessAccountView(), settings);
 
       case AppRoutes.selectCity:
-        return _buildRoute(const SelectCityView(), settings);
+        final args = settings.arguments as SelectCityRouteArgs?;
+        return _buildRoute(
+          SelectCityView(returnToCheckout: args?.returnToCheckout ?? false),
+          settings,
+        );
 
       case AppRoutes.navigationMenu:
         final args = settings.arguments as NavigationMenuRouteArgs?;
@@ -114,7 +118,8 @@ class AppRouter {
         return _buildRoute(const ProcessingOrderView(), settings);
 
       case AppRoutes.paymentSuccess:
-        return _buildRoute(const PaymentSuccessView(), settings);
+        final args = settings.arguments as PaymentSuccessRouteArgs?;
+        return _buildRoute(PaymentSuccessView(args: args), settings);
 
       case AppRoutes.search:
         return _buildRoute(const SearchView(), settings);

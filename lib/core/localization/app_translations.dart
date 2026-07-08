@@ -49,6 +49,20 @@ class AppTranslations {
       if (int.tryParse(count) != null) return '$count منتج';
     }
 
+    if (value.endsWith(' markets') || value.endsWith(' market')) {
+      final count = value
+          .replaceFirst(' markets', '')
+          .replaceFirst(' market', '');
+      if (int.tryParse(count) != null) return '$count سوق';
+    }
+
+    if (value.endsWith(' offers') || value.endsWith(' offer')) {
+      final count = value
+          .replaceFirst(' offers', '')
+          .replaceFirst(' offer', '');
+      if (int.tryParse(count) != null) return '$count عرض';
+    }
+
     if (value.startsWith('Page ')) {
       return value.replaceFirst('Page ', 'صفحة ').replaceFirst(' of ', ' من ');
     }

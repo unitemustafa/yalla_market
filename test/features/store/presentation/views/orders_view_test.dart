@@ -68,6 +68,9 @@ class _EmptyOrderRepository implements OrderRepository {
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,
+    String? paymentMethod,
+    String? description,
+    String? deliveryNote,
   }) async {
     return const ApiResult.failure(
       ValidationFailure('Order preview is not used in this test.'),

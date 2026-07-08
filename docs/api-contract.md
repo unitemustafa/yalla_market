@@ -517,62 +517,170 @@ Response: updated address list.
 
 ## Orders
 
-Yalla Market v1 supports cash on delivery only. Reject any other payment method
-with HTTP 422 and code `UNSUPPORTED_PAYMENT_METHOD`.
+Client checkout uses the dedicated preview/create endpoints. The Flutter client
+must not post customer checkout requests to `/orders/`; that endpoint is for
+admin order management.
 
-### POST `/orders`
+The selected market browsing region is required before preview or create. The
+app reads and saves it through:
+
+- GET `/market-region/me/`
+- PATCH `/market-region/me/`
+- GET `/market-region/options/`
+
+If no region is selected, preview/create may return:
+
+```json
+{
+  "requires_region_selection": ["True"],
+  "message": ["Select a market browsing region before checkout."],
+  "current_selection": ["None"]
+}
+```
+
+The app maps that to `اختر منطقة التصفح قبل إتمام الطلب` and routes the user to
+region selection.
+
+Yalla Market client checkout currently supports cash payment only. Send
+`"payment_method": "cash"`.
+
+### POST `/orders/preview/`
 
 Request:
 
 ```json
 {
-  "shippingAddress": {
-    "fullName": "Mustafa Ali",
-    "phone": "+201000000000",
-    "line1": "12 Tahrir St",
-    "city": "Cairo",
-    "state": "Cairo",
-    "country": "Egypt",
-    "postalCode": "11511"
-  },
+  "address_id": 12,
+  "payment_method": "cash",
+  "description": "",
+  "delivery_note": "",
   "items": [
-    {
-      "id": "cart_item_1",
-      "productId": "product_1",
-      "variantId": "variant_1",
-      "image": "https://cdn.example.com/products/product_1.png",
-      "brand": "Brand",
-      "title": "Running Shoe",
-      "unitPrice": 1200,
-      "quantity": 2,
-      "attributes": []
-    }
+    {"variant_id": 23, "quantity": 2}
   ],
-  "paymentMethod": "cash_on_delivery",
-  "shippingFee": 50,
-  "taxTotal": 0,
-  "discountTotal": 0
+  "offers": [
+    {"offer_id": 5}
+  ]
 }
 ```
+
+Do not send prices, market ids, delivery fields, user/admin fields, statuses,
+review fields, `market_sections`, or client-calculated totals. The backend
+infers markets from variants/offers and calculates totals.
 
 Response:
 
 ```json
 {
-  "data": {
-    "id": "order_1",
-    "orderNumber": "YM-10001",
+  "addresses": [],
+  "selected_address": {"id": 12, "name": "Home"},
+  "service_city": {"id": 1, "name": "API City"},
+  "order_scope": "service_city",
+  "is_multi_market": false,
+  "market_count": 1,
+  "market_names_summary": "API Service Market",
+  "market_groups": [
+    {
+      "market": {"id": 2, "name": "API Service Market"},
+      "delivery_type": "fixed_area",
+      "delivery_price": "120.00",
+      "delivery_available": true,
+      "selected_products": [],
+      "selected_offers": [],
+      "pricing": {
+        "products_subtotal": "600.00",
+        "total_offer_discounts": "60.00",
+        "delivery_price": "120.00",
+        "market_total": "660.00"
+      }
+    }
+  ],
+  "summary": {
+    "subtotal": "600.00",
+    "discount_total": "60.00",
+    "delivery_total": "120.00",
+    "grand_total": "660.00"
+  }
+}
+```
+
+### POST `/orders/create/`
+
+Request: same body as preview.
+
+Response is a one-item list. The app uses `response[0]` as the created order.
+
+```json
+[
+  {
+    "id": 6,
+    "market_id": 2,
+    "order_scope": "service_city",
+    "delivery_type": "fixed_area",
+    "payment_method": "cash",
+    "review_status": "pending_review",
     "status": "pending",
-    "placedAt": "2026-05-16T15:00:00.000Z",
-    "estimatedDeliveryAt": "2026-05-20T15:00:00.000Z",
-    "shippingAddress": {
-      "fullName": "Mustafa Ali",
-      "phone": "+201000000000",
-      "line1": "12 Tahrir St",
-      "city": "Cairo",
-      "state": "Cairo",
-      "country": "Egypt",
-      "postalCode": "11511"
+    "discount": "60.00",
+    "subtotal_price": "600.00",
+    "delivery_price": "120.00",
+    "total_price": "660.00",
+    "is_multi_market": false,
+    "market_count": 1,
+    "market_names_summary": "API Service Market",
+    "market_sections": [
+      {
+        "market_id": 2,
+        "subtotal_price": "600.00",
+        "items": [
+          {"variant_id": 23, "quantity": 2, "unit_price": "600.00"}
+        ]
+      }
+    ],
+    "pickup_stops": [
+      {"market_id": 2, "pickup_status": "pending", "sort_order": 0}
+    ]
+  }
+]
+```
+
+### GET `/orders/my/`
+
+Response: current customer orders as a list, or a paginated object with
+`results`. Orders may include both flat `items`/`offers` and grouped
+`market_sections`; display `market_sections` first when present.
+
+```json
+[
+  {
+    "id": 6,
+    "status": "pending",
+    "review_status": "pending_review",
+    "payment_method": "cash",
+    "subtotal_price": "600.00",
+    "delivery_price": "120.00",
+    "total_price": "660.00",
+    "is_multi_market": false,
+    "market_count": 1,
+    "market_sections": [
+      {
+        "market_id": 2,
+        "market_name": "API Service Market",
+        "pickup_status": "pending",
+        "items": [
+          {"variant_id": 23, "quantity": 2, "unit_price": "600.00"}
+        ]
+      }
+    ],
+    "items": [],
+    "offers": [],
+    "created_at": "2026-07-08T10:37:43.096314Z"
+  }
+]
+```
+
+Common checkout validation errors use DRF field arrays. The app maps address,
+payment, items, offers, non-field, and missing-region errors to Arabic checkout
+messages and suppresses raw values such as `True`, `None`,
+`current_selection`, and `This field is required.`
     },
     "paymentMethod": "cash_on_delivery",
     "items": [],

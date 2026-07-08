@@ -16,6 +16,9 @@ class OrderListItem extends StatelessWidget {
     required this.total,
     required this.statusColor,
     this.products = const [],
+    this.isMultiMarket = false,
+    this.marketCount = 1,
+    this.marketSummary = '',
     this.onTap,
   });
 
@@ -27,6 +30,9 @@ class OrderListItem extends StatelessWidget {
   final String total;
   final Color statusColor;
   final List<OrderListItemProduct> products;
+  final bool isMultiMarket;
+  final int marketCount;
+  final String marketSummary;
   final VoidCallback? onTap;
 
   @override
@@ -95,6 +101,12 @@ class OrderListItem extends StatelessWidget {
                               statusColor: statusColor,
                               isDark: isDark,
                             ),
+                            if (isMultiMarket || marketCount > 1)
+                              _StatusChip(
+                                status: '$marketCount markets',
+                                statusColor: AppColors.primary,
+                                isDark: isDark,
+                              ),
                             Text(
                               orderId,
                               style: Theme.of(context).textTheme.bodySmall
@@ -155,6 +167,7 @@ class OrderListItem extends StatelessWidget {
                 const SizedBox(height: 12),
                 _ProductsPreview(
                   products: products,
+                  marketSummary: marketSummary,
                   textColor: textColor,
                   mutedColor: mutedColor,
                   isDark: isDark,
@@ -183,12 +196,14 @@ class OrderListItemProduct {
 class _ProductsPreview extends StatefulWidget {
   const _ProductsPreview({
     required this.products,
+    required this.marketSummary,
     required this.textColor,
     required this.mutedColor,
     required this.isDark,
   });
 
   final List<OrderListItemProduct> products;
+  final String marketSummary;
   final Color textColor;
   final Color mutedColor;
   final bool isDark;
@@ -243,7 +258,9 @@ class _ProductsPreviewState extends State<_ProductsPreview> {
                   const SizedBox(width: 6),
                   Expanded(
                     child: Text(
-                      context.tr('Products'),
+                      widget.marketSummary.trim().isEmpty
+                          ? context.tr('Products')
+                          : widget.marketSummary,
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: widget.mutedColor,
                         fontWeight: FontWeight.w800,

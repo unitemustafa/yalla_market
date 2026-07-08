@@ -55,7 +55,7 @@ class OrderRepositoryImpl implements OrderRepository {
         shippingAddress: shippingAddress,
         paymentMethod:
             normalizedPaymentMethod == null || normalizedPaymentMethod.isEmpty
-            ? 'cash_on_delivery'
+            ? 'cash'
             : normalizedPaymentMethod,
         items: List.unmodifiable(items),
         subtotal: subtotal,
@@ -97,6 +97,9 @@ class OrderRepositoryImpl implements OrderRepository {
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,
+    String? paymentMethod,
+    String? description,
+    String? deliveryNote,
   }) async {
     final subtotal = cartItems.fold<double>(
       0,

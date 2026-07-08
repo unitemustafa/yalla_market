@@ -41,13 +41,21 @@ class CartRepositoryImpl implements CartRepository {
 
     final preferences = await SharedPreferences.getInstance();
     final items = await _readItems(preferences, normalizedUserKey);
-    final index = items.indexWhere((existing) => existing.id == item.id);
+    final normalizedItem = item.isOffer
+        ? item.copyWith(itemType: 'offer', quantity: 1)
+        : item;
+    final normalizedQuantity = item.isOffer ? 1 : quantityToAdd;
+    final index = items.indexWhere(
+      (existing) => existing.id == normalizedItem.id,
+    );
     if (index >= 0) {
-      items[index] = items[index].copyWith(
-        quantity: items[index].quantity + quantityToAdd,
-      );
+      items[index] = normalizedItem.isOffer
+          ? normalizedItem
+          : items[index].copyWith(
+              quantity: items[index].quantity + normalizedQuantity,
+            );
     } else {
-      items.add(item.copyWith(quantity: quantityToAdd));
+      items.add(normalizedItem.copyWith(quantity: normalizedQuantity));
     }
 
     await _saveItems(preferences, normalizedUserKey, items);

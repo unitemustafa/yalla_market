@@ -133,6 +133,9 @@ class _OrdersViewState extends State<OrdersView> {
                               ),
                             )
                             .toList(growable: false),
+                        isMultiMarket: order.isMultiMarket,
+                        marketCount: order.marketCount,
+                        marketSummary: order.marketSummary,
                         onTap: () => _showOrderDetails(context, order),
                       );
                     },
@@ -152,17 +155,32 @@ class _OrdersViewState extends State<OrdersView> {
       shippingDate: _formatDate(order.estimatedDeliveryAt),
       itemCount: order.itemCount,
       total: _formatMoney(order.total),
-      products: order.items
-          .map(
-            (item) => _OrderProductData(
-              title: item.title.trim().isEmpty ? 'Item' : item.title,
-              brand: item.brand,
-              quantity: item.quantity,
-              total: _formatMoney(item.lineTotal),
-            ),
-          )
-          .toList(growable: false),
+      products: _productsFromOrder(order),
+      reviewStatus: order.reviewStatusLabel,
+      paymentMethod: order.paymentMethodLabel,
+      deliveryType: order.deliveryTypeLabel,
+      isMultiMarket: order.isMultiMarket,
+      marketCount: order.marketCount,
+      marketSummary: order.marketNamesSummary,
+      marketSections: order.marketSections,
     );
+  }
+
+  List<_OrderProductData> _productsFromOrder(OrderData order) {
+    final sectionItems = order.marketSections
+        .expand((section) => section.items)
+        .toList(growable: false);
+    final source = sectionItems.isEmpty ? order.items : sectionItems;
+    return source
+        .map(
+          (item) => _OrderProductData(
+            title: item.title.trim().isEmpty ? 'Item' : item.title,
+            brand: item.brand,
+            quantity: item.quantity,
+            total: _formatMoney(item.lineTotal),
+          ),
+        )
+        .toList(growable: false);
   }
 
   String _formatDate(DateTime? value) {
@@ -358,14 +376,54 @@ class _OrdersViewState extends State<OrdersView> {
                   ),
                   if (order.products.isNotEmpty) ...[
                     const SizedBox(height: 18),
-                    _OrderProductsSection(
-                      products: order.products,
-                      itemCount: order.itemCount,
-                      mutedColor: mutedColor,
-                      isDark: isDark,
-                    ),
+                    order.marketSections.isNotEmpty
+                        ? _OrderMarketSectionsSection(
+                            sections: order.marketSections,
+                            mutedColor: mutedColor,
+                            isDark: isDark,
+                          )
+                        : _OrderProductsSection(
+                            products: order.products,
+                            itemCount: order.itemCount,
+                            mutedColor: mutedColor,
+                            isDark: isDark,
+                          ),
                   ],
                   const SizedBox(height: 18),
+                  if (order.isMultiMarket || order.marketCount > 1) ...[
+                    _DetailRow(
+                      icon: AppIcons.shop,
+                      label: 'Markets',
+                      value: order.marketSummary.trim().isNotEmpty
+                          ? order.marketSummary
+                          : '${order.marketCount} markets',
+                      mutedColor: mutedColor,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  if (order.reviewStatus.trim().isNotEmpty) ...[
+                    _DetailRow(
+                      icon: AppIcons.clipboard_tick,
+                      label: 'Review',
+                      value: order.reviewStatus,
+                      mutedColor: mutedColor,
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  _DetailRow(
+                    icon: AppIcons.money_3,
+                    label: 'Payment Method',
+                    value: order.paymentMethod,
+                    mutedColor: mutedColor,
+                  ),
+                  const SizedBox(height: 12),
+                  _DetailRow(
+                    icon: AppIcons.truck_fast,
+                    label: 'Delivery type',
+                    value: order.deliveryType,
+                    mutedColor: mutedColor,
+                  ),
+                  const SizedBox(height: 12),
                   _DetailRow(
                     icon: AppIcons.calendar,
                     label: 'Order date',
@@ -716,6 +774,135 @@ class _DetailRow extends StatelessWidget {
   }
 }
 
+class _OrderMarketSectionsSection extends StatelessWidget {
+  const _OrderMarketSectionsSection({
+    required this.sections,
+    required this.mutedColor,
+    required this.isDark,
+  });
+
+  final List<OrderMarketSectionData> sections;
+  final Color mutedColor;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.07)
+        : Colors.black.withValues(alpha: 0.06);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(AppIcons.shop, size: 18, color: mutedColor),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                context.tr('Market sections'),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        for (final section in sections) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.04)
+                  : AppColors.primary.withValues(alpha: 0.04),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        section.marketName.trim().isEmpty
+                            ? context.tr('Market')
+                            : section.marketName,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    if (section.subtotal > 0)
+                      AppCurrencyText(
+                        text: AppCurrency.format(
+                          section.subtotal,
+                          fractionDigits: 2,
+                          trimTrailingZero: false,
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                  ],
+                ),
+                if (section.pickupStatus.trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    context.tr(section.pickupStatus),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: mutedColor,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+                if (section.items.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  for (final item in section.items) ...[
+                    _OrderProductRow(
+                      product: _OrderProductData(
+                        title: item.title.trim().isEmpty ? 'Item' : item.title,
+                        brand: item.brand,
+                        quantity: item.quantity,
+                        total: AppCurrency.format(
+                          item.lineTotal,
+                          fractionDigits: 2,
+                          trimTrailingZero: false,
+                        ),
+                      ),
+                      mutedColor: mutedColor,
+                    ),
+                    if (item != section.items.last)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Divider(height: 1, color: borderColor),
+                      ),
+                  ],
+                ],
+                if (section.offers.isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  Text(
+                    context.tr('${section.offers.length} offers'),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: mutedColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (section != sections.last) const SizedBox(height: 10),
+        ],
+      ],
+    );
+  }
+}
+
 class _OrderProductsSection extends StatelessWidget {
   const _OrderProductsSection({
     required this.products,
@@ -864,6 +1051,13 @@ class _OrderData {
     required this.itemCount,
     required this.total,
     required this.products,
+    this.reviewStatus = '',
+    this.paymentMethod = '',
+    this.deliveryType = '',
+    this.isMultiMarket = false,
+    this.marketCount = 1,
+    this.marketSummary = '',
+    this.marketSections = const [],
   });
 
   final String status;
@@ -874,6 +1068,13 @@ class _OrderData {
   final int itemCount;
   final String total;
   final List<_OrderProductData> products;
+  final String reviewStatus;
+  final String paymentMethod;
+  final String deliveryType;
+  final bool isMultiMarket;
+  final int marketCount;
+  final String marketSummary;
+  final List<OrderMarketSectionData> marketSections;
 
   factory _OrderData.fromDemo(DemoOrderData order) {
     final status = order.status == 'Delivered'
@@ -898,6 +1099,8 @@ class _OrderData {
             ),
           )
           .toList(growable: false),
+      paymentMethod: 'Cash on Delivery',
+      deliveryType: 'Delivery',
     );
   }
 

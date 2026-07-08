@@ -116,7 +116,7 @@ final sampleOrder = OrderData(
   status: OrderStatus.pending,
   placedAt: DateTime.utc(2026, 5, 16, 15),
   shippingAddress: sampleShippingAddress,
-  paymentMethod: 'cash_on_delivery',
+  paymentMethod: 'cash',
   items: const [sampleOrderItem],
   subtotal: 1200,
   shippingFee: 50,

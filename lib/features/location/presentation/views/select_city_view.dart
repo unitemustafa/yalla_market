@@ -15,7 +15,9 @@ import '../cubit/location_state.dart';
 import '../widgets/city_selection_panel.dart';
 
 class SelectCityView extends StatefulWidget {
-  const SelectCityView({super.key});
+  const SelectCityView({super.key, this.returnToCheckout = false});
+
+  final bool returnToCheckout;
 
   @override
   State<SelectCityView> createState() => _SelectCityViewState();
@@ -314,6 +316,10 @@ class _SelectCityViewState extends State<SelectCityView>
           ? context.tr('You will see general products and offers.')
           : context.tr('Products and offers will refresh for your region.'),
     );
+    if (widget.returnToCheckout) {
+      Navigator.pop(context, true);
+      return;
+    }
     Navigator.pushNamedAndRemoveUntil(
       context,
       AppRoutes.navigationMenu,

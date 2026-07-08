@@ -425,8 +425,10 @@ class _PromoSliderState extends State<PromoSlider> {
 
     return source
         .where((offer) {
-          if (offer.isGeneralVisibility) return true;
-          if (normalized.isEmpty || normalized == 'general') return false;
+          if (normalized.isEmpty || normalized == 'general') {
+            return offer.showInGeneral || offer.isGeneralVisibility;
+          }
+          if (offer.regionSlugs.isEmpty) return false;
           return offer.regionSlugs.contains(normalized);
         })
         .toList(growable: false);
@@ -491,6 +493,12 @@ class _PromoSliderState extends State<PromoSlider> {
               ),
             ]
           : products,
+      visibilityMode: offer.serviceCityIds.isEmpty ? 'general' : 'regions',
+      showInGeneral: offer.showInGeneral,
+      regionSlugs: offer.serviceCityIds
+          .map((id) => id.toString())
+          .toList(growable: false),
+      regionNames: offer.serviceCityNames,
     );
   }
 
@@ -1125,9 +1133,8 @@ class _PromoOfferSheet extends StatelessWidget {
       return;
     }
 
-    for (final product in offer.products) {
-      await cartCubit.addItem(product.toCartItem(offer, context, offerId), 1);
-    }
+    final product = offer.products.first;
+    await cartCubit.addItem(product.toCartItem(offer, context, offerId), 1);
 
     if (!context.mounted) return;
 
@@ -2087,6 +2094,7 @@ class _PromoOfferData {
     required this.actionAr,
     required this.products,
     this.visibilityMode = 'general',
+    this.showInGeneral = true,
     this.regionSlugs = const [],
     this.regionNames = const [],
     this.linkUrl,
@@ -2122,6 +2130,7 @@ class _PromoOfferData {
   final String actionAr;
   final List<_OfferProduct> products;
   final String visibilityMode;
+  final bool showInGeneral;
   final List<String> regionSlugs;
   final List<String> regionNames;
   final String? linkUrl;
@@ -2129,7 +2138,7 @@ class _PromoOfferData {
   final String? linkLabelAr;
 
   bool get isGeneralVisibility =>
-      visibilityMode.trim().toLowerCase() == 'general' || regionSlugs.isEmpty;
+      visibilityMode.trim().toLowerCase() == 'general' && regionSlugs.isEmpty;
 
   String? get validOfferId {
     final value = offerId?.trim();

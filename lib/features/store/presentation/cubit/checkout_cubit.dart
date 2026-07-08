@@ -18,6 +18,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     required List<CartItemData> cartItems,
     required bool useRemotePreview,
     required String addressId,
+    String? paymentMethod,
+    String? description,
+    String? deliveryNote,
   }) async {
     final trimmedAddressId = addressId.trim();
     final previewUseCase = _previewOrderUseCase;
@@ -38,6 +41,9 @@ class CheckoutCubit extends Cubit<CheckoutState> {
     final result = await previewUseCase(
       cartItems: cartItems,
       addressId: trimmedAddressId,
+      paymentMethod: paymentMethod,
+      description: description,
+      deliveryNote: deliveryNote,
     );
     if (generation != _previewGeneration) return;
 

@@ -1,4 +1,6 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/errors/checkout_error_messages.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/data/repositories/order_remote_repository_impl.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
@@ -45,28 +47,23 @@ void main() {
       );
 
       result.when(
-        success: (orders) =>
-            expect(orders.single.paymentMethod, 'cash_on_delivery'),
+        success: (orders) => expect(orders.single.paymentMethod, 'cash'),
         failure: (failure) => fail(failure.message),
       );
       expect(capturedRequest.method, 'POST');
       expect(capturedRequest.path, '/orders/create/');
-      expect(capturedRequest.data, containsPair('address_id', 12));
-      expect(
-        capturedRequest.data,
-        containsPair('payment_method', 'cash_on_delivery'),
-      );
-      expect(
-        capturedRequest.data,
-        containsPair('description', 'Leave at door'),
-      );
-      expect(capturedRequest.data, containsPair('delivery_note', ''));
-      expect((capturedRequest.data as Map<String, dynamic>)['items'], [
-        {'variant_id': 2, 'quantity': 2},
-      ]);
-      expect((capturedRequest.data as Map<String, dynamic>)['offers'], [
-        {'offer_id': 4},
-      ]);
+      expect(capturedRequest.data, {
+        'address_id': 12,
+        'payment_method': 'cash',
+        'description': 'Leave at door',
+        'delivery_note': '',
+        'items': [
+          {'variant_id': 2, 'quantity': 2},
+        ],
+        'offers': [
+          {'offer_id': 4},
+        ],
+      });
     });
 
     test('createOrder sends offers as integer offer_id', () async {
@@ -137,6 +134,33 @@ void main() {
         failure: (failure) => fail(failure.message),
       );
     });
+
+    test(
+      'createOrder uses the first order from create response list',
+      () async {
+        final apiClient = FakeApiClient(
+          (request) => [
+            _createdOrderPayload,
+            {..._createdOrderPayload, 'id': 10},
+          ],
+        );
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: const [_cartItem],
+        );
+
+        result.when(
+          success: (orders) {
+            expect(orders, hasLength(1));
+            expect(orders.single.id, '9');
+          },
+          failure: (failure) => fail(failure.message),
+        );
+      },
+    );
 
     test(
       'createOrder parses parent order list response with extra market fields',
@@ -417,11 +441,16 @@ void main() {
       result.when(success: (_) {}, failure: (failure) => fail(failure.message));
       expect(capturedRequest.method, 'POST');
       expect(capturedRequest.path, '/orders/preview/');
-      expect(capturedRequest.data, containsPair('address_id', 12));
-      expect((capturedRequest.data as Map<String, dynamic>)['items'], [
-        {'variant_id': 23, 'quantity': 2},
-      ]);
-      expect((capturedRequest.data as Map<String, dynamic>)['offers'], isEmpty);
+      expect(capturedRequest.data, {
+        'address_id': 12,
+        'payment_method': 'cash',
+        'description': '',
+        'delivery_note': '',
+        'items': [
+          {'variant_id': 23, 'quantity': 2},
+        ],
+        'offers': [],
+      });
     });
 
     test('previewOrder sends offers as integer offer_id', () async {
@@ -564,6 +593,128 @@ void main() {
         expect(apiClient.requests, isEmpty);
       },
     );
+
+    test(
+      'previewOrder empty cart returns failure and does not call API',
+      () async {
+        final apiClient = FakeApiClient((request) {
+          fail('API should not be called for an empty checkout payload.');
+        });
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.previewOrder(
+          addressId: '12',
+          cartItems: const [],
+        );
+
+        result.when(
+          success: (_) => fail('Expected validation failure.'),
+          failure: (failure) => expect(
+            failure.message,
+            'Add at least one product or offer before checkout.',
+          ),
+        );
+        expect(apiClient.requests, isEmpty);
+      },
+    );
+
+    test('previewOrder invalid quantity returns failure before API', () async {
+      final apiClient = FakeApiClient((request) {
+        fail('API should not be called for invalid quantities.');
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        addressId: '12',
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            variantId: '23',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 700,
+            quantity: 0,
+          ),
+        ],
+      );
+
+      result.when(
+        success: (_) => fail('Expected validation failure.'),
+        failure: (failure) => expect(
+          failure.message,
+          'Cart items must have a quantity greater than zero.',
+        ),
+      );
+      expect(apiClient.requests, isEmpty);
+    });
+
+    test('maps checkout validation errors to Arabic safe messages', () async {
+      final cases = [
+        (
+          name: 'region',
+          data: {
+            'requires_region_selection': ['True'],
+            'message': ['Select a market browsing region before checkout.'],
+            'current_selection': ['None'],
+          },
+          message: checkoutRegionRequiredMessage,
+        ),
+        (
+          name: 'address',
+          data: {
+            'requires_address_selection': ['True'],
+            'address_id': ['Choose an address.'],
+          },
+          message: checkoutAddressRequiredMessage,
+        ),
+        (
+          name: 'payment',
+          data: {
+            'payment_method': ['This field is required.'],
+          },
+          message: checkoutPaymentRequiredMessage,
+        ),
+        (
+          name: 'items',
+          data: {
+            'items': ['Invalid pk "999999" - object does not exist.'],
+          },
+          message: checkoutItemsInvalidMessage,
+        ),
+        (
+          name: 'offers',
+          data: {
+            'offers': ['لا يمكن استخدام عرض مدينة داخل طلب عام'],
+          },
+          message: 'لا يمكن استخدام عرض مدينة داخل طلب عام',
+        ),
+        (
+          name: 'non field',
+          data: {
+            'non_field_errors': ['This field is required.'],
+          },
+          message: checkoutOrderInvalidMessage,
+        ),
+      ];
+
+      for (final entry in cases) {
+        final apiClient = FakeApiClient((request) {
+          throw _dioValidationError(request.path, entry.data);
+        });
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.previewOrder(
+          addressId: '12',
+          cartItems: const [_cartItem],
+        );
+
+        result.when(
+          success: (_) => fail('Expected ${entry.name} failure.'),
+          failure: (failure) => expect(failure.message, entry.message),
+        );
+      }
+    });
 
     test('parses preview summary', () async {
       final apiClient = FakeApiClient((request) => _previewPayload);
@@ -868,7 +1019,7 @@ const _createdOrderPayload = {
   'user_id': 2,
   'delivery_address_id': 1,
   'market_id': 2,
-  'payment_method': 'cash_on_delivery',
+  'payment_method': 'cash',
   'discount': '0.00',
   'description': '',
   'status': 'pending',
@@ -915,3 +1066,16 @@ const _cartItem = CartItemData(
   price: 420,
   quantity: 1,
 );
+
+DioException _dioValidationError(String path, Object? data) {
+  final requestOptions = RequestOptions(path: path);
+  return DioException(
+    requestOptions: requestOptions,
+    type: DioExceptionType.badResponse,
+    response: Response<Object?>(
+      requestOptions: requestOptions,
+      statusCode: 400,
+      data: data,
+    ),
+  );
+}

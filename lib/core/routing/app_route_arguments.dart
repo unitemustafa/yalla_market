@@ -20,6 +20,34 @@ class AddressesRouteArgs {
   final bool returnAfterSelection;
 }
 
+class SelectCityRouteArgs {
+  const SelectCityRouteArgs({this.returnToCheckout = false});
+
+  final bool returnToCheckout;
+}
+
+class PaymentSuccessRouteArgs {
+  const PaymentSuccessRouteArgs({
+    required this.orderId,
+    required this.status,
+    required this.reviewStatus,
+    required this.total,
+    required this.marketCount,
+    required this.marketSummary,
+    required this.isMultiMarket,
+    required this.marketSections,
+  });
+
+  final String orderId;
+  final String status;
+  final String reviewStatus;
+  final String total;
+  final int marketCount;
+  final String marketSummary;
+  final bool isMultiMarket;
+  final List<Map<String, Object?>> marketSections;
+}
+
 class BrandProductsRouteArgs {
   const BrandProductsRouteArgs({
     required this.brand,

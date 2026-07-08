@@ -3,7 +3,13 @@ import '../../../domain/entities/address.dart';
 
 bool isAddressAvailableForCity(AddressData address, CityData? selectedCity) {
   if (selectedCity == null) return false;
-  if (selectedCity.isGeneral) return address.serviceCityId == null;
+  if (selectedCity.isGeneral) {
+    final deliveryType = address.deliveryType?.trim().toLowerCase();
+    return address.serviceCityId == null &&
+        (deliveryType == null ||
+            deliveryType.isEmpty ||
+            deliveryType == 'delivery');
+  }
 
   final serviceCityId = selectedCity.serviceCityId;
   if (serviceCityId == null) return false;
@@ -26,7 +32,20 @@ AddressData? selectedAvailableAddressForCity({
       }
     }
   }
-  selected ??= addresses.first;
 
-  return isAddressAvailableForCity(selected, selectedCity) ? selected : null;
+  if (selected != null && isAddressAvailableForCity(selected, selectedCity)) {
+    return selected;
+  }
+
+  for (final address in addresses) {
+    if (address.isDefault && isAddressAvailableForCity(address, selectedCity)) {
+      return address;
+    }
+  }
+
+  for (final address in addresses) {
+    if (isAddressAvailableForCity(address, selectedCity)) return address;
+  }
+
+  return null;
 }

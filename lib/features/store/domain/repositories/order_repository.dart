@@ -24,5 +24,8 @@ abstract class OrderRepository {
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,
+    String? paymentMethod,
+    String? description,
+    String? deliveryNote,
   });
 }

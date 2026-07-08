@@ -7,6 +7,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/config/app_environment.dart';
+import '../../../../core/errors/checkout_error_messages.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -44,6 +45,9 @@ class CheckoutView extends StatefulWidget {
 
 class _CheckoutViewState extends State<CheckoutView> {
   String? _lastPreviewKey;
+  bool _isSelectingRegion = false;
+
+  static const _checkoutPaymentMethod = 'cash';
 
   bool get _useDemoRepositories =>
       widget.useDemoRepositories ?? AppEnvironment.useDemoRepositories;
@@ -60,9 +64,14 @@ class _CheckoutViewState extends State<CheckoutView> {
     BuildContext context,
     List<CartItemData> cartItems,
     AddressData? selectedAddress,
+    CityData? selectedCity,
   ) {
     if (_useDemoRepositories) return;
     if (cartItems.isEmpty) {
+      _clearPreviewIfNeeded(context);
+      return;
+    }
+    if (selectedCity == null) {
       _clearPreviewIfNeeded(context);
       return;
     }
@@ -86,6 +95,8 @@ class _CheckoutViewState extends State<CheckoutView> {
       selectedAddress.manualArea,
       selectedAddress.deliveryType,
       selectedAddress.deliveryAreaPrice,
+      selectedCity.slug,
+      selectedCity.serviceCityId,
     ].join('|');
     if (previewKey == _lastPreviewKey) return;
     _lastPreviewKey = previewKey;
@@ -96,6 +107,9 @@ class _CheckoutViewState extends State<CheckoutView> {
         cartItems: cartItems,
         useRemotePreview: true,
         addressId: selectedAddress.id,
+        paymentMethod: _checkoutPaymentMethod,
+        description: '',
+        deliveryNote: '',
       );
     });
   }
@@ -119,25 +133,41 @@ class _CheckoutViewState extends State<CheckoutView> {
   Widget build(BuildContext context) {
     return BlocConsumer<CheckoutCubit, CheckoutState>(
       listenWhen: (previous, current) =>
-          previous.runtimeType != current.runtimeType,
+          previous.runtimeType != current.runtimeType ||
+          previous.previewErrorMessage != current.previewErrorMessage,
       listener: (context, state) {
         if (state is CheckoutSuccess) {
+          final createdOrder = state.order;
+          if (createdOrder == null) return;
           CustomSnackBar.showSuccess(
             context: context,
             title: 'Order confirmed',
             message: 'Your order has been created successfully.',
           );
-          context.read<CartCubit>().clearLocalCart();
+          unawaited(context.read<CartCubit>().clearLocalCart());
+          context.read<CheckoutCubit>().reset();
           unawaited(context.read<OrderHistoryCubit>().loadOrders(force: true));
-          Navigator.pushNamed(context, AppRoutes.processingOrder);
+          Navigator.pushReplacementNamed(
+            context,
+            AppRoutes.paymentSuccess,
+            arguments: _paymentSuccessArgs(createdOrder),
+          );
         }
 
         if (state is CheckoutFailure) {
+          if (isCheckoutRegionRequiredMessage(state.message)) {
+            unawaited(_selectRegionForCheckoutAndRetry(context));
+            return;
+          }
           CustomSnackBar.showError(
             context: context,
             title: 'Order confirmation failed',
             message: state.message,
           );
+        }
+
+        if (isCheckoutRegionRequiredMessage(state.previewErrorMessage)) {
+          unawaited(_selectRegionForCheckoutAndRetry(context));
         }
       },
       builder: (context, checkoutState) {
@@ -154,7 +184,12 @@ class _CheckoutViewState extends State<CheckoutView> {
                   selectedAddressId: addressState.selectedAddressId,
                   selectedCity: selectedCity,
                 );
-                _loadPreviewIfNeeded(context, cartItems, selectedAddress);
+                _loadPreviewIfNeeded(
+                  context,
+                  cartItems,
+                  selectedAddress,
+                  selectedCity,
+                );
                 final hasSavedAddress = selectedAddress != null;
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 final backgroundColor = isDark
@@ -253,7 +288,11 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   const SizedBox(height: 10),
                                   _CheckoutNotice(
                                     message:
-                                        'Could not refresh order totals. Try again.',
+                                        isCheckoutRegionRequiredMessage(
+                                          checkoutState.previewErrorMessage,
+                                        )
+                                        ? checkoutRegionRequiredMessage
+                                        : 'Could not refresh order totals. Try again.',
                                     isDark: isDark,
                                     isBlocking: true,
                                   ),
@@ -294,12 +333,18 @@ class _CheckoutViewState extends State<CheckoutView> {
                           isDark: isDark,
                           isLoading: checkoutState is CheckoutLoading,
                           onCheckout: () {
+                            if (selectedCity == null) {
+                              unawaited(
+                                _selectRegionForCheckoutAndRetry(context),
+                              );
+                              return;
+                            }
+
                             if (selectedAddress == null) {
                               CustomSnackBar.showError(
                                 context: context,
                                 title: 'Shipping address required',
-                                message:
-                                    'Choose a saved address before confirming the order.',
+                                message: checkoutAddressRequiredMessage,
                               );
                               return;
                             }
@@ -307,6 +352,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                             final checkoutProblems = _checkoutRegionProblems(
                               address: selectedAddress,
                               items: cartItems,
+                              selectedCity: selectedCity,
                             );
                             if (checkoutProblems.isNotEmpty) {
                               CustomSnackBar.showError(
@@ -340,6 +386,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 cartItems: cartItems,
                                 useRemotePreview: !_useDemoRepositories,
                                 addressId: selectedAddress.id,
+                                paymentMethod: _checkoutPaymentMethod,
+                                description: '',
+                                deliveryNote: '',
                               );
                               return;
                             }
@@ -379,7 +428,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   .map(OrderItemData.fromCartItem)
                                   .toList(growable: false),
                               cartItems: cartItems,
-                              paymentMethod: 'cash_on_delivery',
+                              paymentMethod: _checkoutPaymentMethod,
                               description: '',
                               deliveryNote: '',
                             );
@@ -391,6 +440,62 @@ class _CheckoutViewState extends State<CheckoutView> {
           },
         );
       },
+    );
+  }
+
+  Future<void> _selectRegionForCheckoutAndRetry(BuildContext context) async {
+    if (_isSelectingRegion) return;
+    _isSelectingRegion = true;
+
+    CustomSnackBar.showError(
+      context: context,
+      title: 'Cannot complete order',
+      message: checkoutRegionRequiredMessage,
+    );
+
+    final result = await Navigator.pushNamed(
+      context,
+      AppRoutes.selectCity,
+      arguments: const SelectCityRouteArgs(returnToCheckout: true),
+    );
+    if (!context.mounted) return;
+    _isSelectingRegion = false;
+
+    if (result != true) return;
+
+    _lastPreviewKey = null;
+    final cartItems = context.read<CartCubit>().state;
+    final selectedCity = context.read<LocationCubit>().state.selectedCity;
+    final addressState = context.read<AddressCubit>().state;
+    final selectedAddress = selectedAvailableAddressForCity(
+      addresses: addressState.addresses,
+      selectedAddressId: addressState.selectedAddressId,
+      selectedCity: selectedCity,
+    );
+    if (selectedAddress == null || cartItems.isEmpty) return;
+
+    context.read<CheckoutCubit>().loadPreview(
+      cartItems: cartItems,
+      useRemotePreview: !_useDemoRepositories,
+      addressId: selectedAddress.id,
+      paymentMethod: _checkoutPaymentMethod,
+      description: '',
+      deliveryNote: '',
+    );
+  }
+
+  PaymentSuccessRouteArgs _paymentSuccessArgs(OrderData order) {
+    return PaymentSuccessRouteArgs(
+      orderId: order.orderNumber.isNotEmpty ? order.orderNumber : order.id,
+      status: order.statusLabel,
+      reviewStatus: order.reviewStatusLabel,
+      total: _formatMoney(order.total),
+      marketCount: order.marketCount,
+      marketSummary: order.marketNamesSummary,
+      isMultiMarket: order.isMultiMarket,
+      marketSections: order.marketSections
+          .map((section) => section.toJson())
+          .toList(growable: false),
     );
   }
 }
@@ -414,12 +519,12 @@ String _deliveryTypeLabel(BuildContext context, OrderPreviewData? preview) {
 List<String> _checkoutRegionProblems({
   required AddressData address,
   required List<CartItemData> items,
+  required CityData selectedCity,
   bool allowCustomDeliveryCity = false,
 }) {
   if (allowCustomDeliveryCity) return const [];
 
-  final deliveryRegion = _regionFromAddress(address);
-  final deliverySlug = deliveryRegion.slug;
+  final deliverySlug = selectedCity.slug;
   final problems = <String>[];
 
   for (final item in items) {
@@ -446,18 +551,6 @@ List<String> _checkoutRegionProblems({
   }
 
   return problems;
-}
-
-CityData _regionFromAddress(AddressData address) {
-  final parts = [
-    address.district,
-    address.city,
-    address.state,
-    address.street,
-    address.country,
-  ].where((part) => part.trim().isNotEmpty).join(' ');
-
-  return CityData.fromName(parts) ?? CityData.general;
 }
 
 ShippingAddressData _shippingAddressFromAddress(AddressData address) {

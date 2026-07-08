@@ -68,7 +68,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Order preview ready'), findsOneWidget);
-    expect(find.text('processing order'), findsNothing);
+    expect(find.text('payment success'), findsNothing);
     expect(cartCubit.state, isNotEmpty);
   });
 
@@ -108,11 +108,11 @@ void main() {
       ),
       findsOneWidget,
     );
-    expect(find.text('processing order'), findsNothing);
+    expect(find.text('payment success'), findsNothing);
     expect(cartCubit.state, isNotEmpty);
   });
 
-  testWidgets('confirm success clears cart and opens processing order', (
+  testWidgets('confirm success clears cart and opens payment success', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -150,7 +150,46 @@ void main() {
     expect(orderRepository.getMyOrdersCalls, 1);
     expect(orderRepository.lastCartItems, hasLength(1));
     expect(cartCubit.state, isEmpty);
-    expect(find.text('processing order'), findsOneWidget);
+    expect(find.text('payment success'), findsOneWidget);
+  });
+
+  testWidgets('missing region opens selection and does not create order', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final orderRepository = _CreateOrderRepository();
+    final cartCubit = makeCartCubit();
+    final addressCubit = makeAddressCubit();
+    final checkoutCubit = makeCheckoutCubit(repository: orderRepository);
+    final orderHistoryCubit = makeOrderHistoryCubit(
+      repository: orderRepository,
+    );
+    await cartCubit.loadCartForUser('user-a');
+    await cartCubit.addItem(
+      sampleCartItem.copyWith(variantId: '23'),
+      sampleCartItem.quantity,
+    );
+    addTearDown(cartCubit.close);
+    addTearDown(addressCubit.close);
+    addTearDown(checkoutCubit.close);
+    addTearDown(orderHistoryCubit.close);
+
+    await _pumpCheckoutView(
+      tester,
+      cartCubit: cartCubit,
+      addressCubit: addressCubit,
+      checkoutCubit: checkoutCubit,
+      orderHistoryCubit: orderHistoryCubit,
+      selectedCity: null,
+      checkoutView: const CheckoutView(useDemoRepositories: false),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Confirm Order'));
+    await tester.pumpAndSettle();
+
+    expect(orderRepository.createCalls, 0);
+    expect(find.text('select city'), findsOneWidget);
   });
 
   testWidgets('confirm failure keeps cart and shows error', (tester) async {
@@ -190,7 +229,7 @@ void main() {
     expect(orderRepository.createCalls, 1);
     expect(orderRepository.getMyOrdersCalls, 0);
     expect(find.text('Create order failed.'), findsOneWidget);
-    expect(find.text('processing order'), findsNothing);
+    expect(find.text('payment success'), findsNothing);
     expect(cartCubit.state, isNotEmpty);
   });
 
@@ -363,7 +402,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(orderRepository.createCalls, 1);
-    expect(find.text('processing order'), findsOneWidget);
+    expect(find.text('payment success'), findsOneWidget);
   });
 
   testWidgets('bottom bar renders pending and fixed totals without ellipsis', (
@@ -490,7 +529,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(orderRepository.createCalls, 1);
-    expect(find.text('processing order'), findsOneWidget);
+    expect(find.text('payment success'), findsOneWidget);
   });
 
   testWidgets('pending delivery plus sign stays leading in Arabic', (
@@ -653,7 +692,7 @@ void main() {
       findsWidgets,
     );
     expect(cartCubit.state, isNotEmpty);
-    expect(find.text('processing order'), findsNothing);
+    expect(find.text('payment success'), findsNothing);
   });
 }
 
@@ -663,7 +702,7 @@ Future<void> _pumpCheckoutView(
   required AddressCubit addressCubit,
   required CheckoutCubit checkoutCubit,
   required OrderHistoryCubit orderHistoryCubit,
-  CityData selectedCity = CityData.general,
+  CityData? selectedCity = CityData.general,
   CheckoutView checkoutView = const CheckoutView(),
   Locale locale = const Locale('en'),
 }) async {
@@ -693,6 +732,10 @@ Future<void> _pumpCheckoutView(
         routes: {
           AppRoutes.processingOrder: (_) =>
               const Scaffold(body: Text('processing order')),
+          AppRoutes.paymentSuccess: (_) =>
+              const Scaffold(body: Text('payment success')),
+          AppRoutes.selectCity: (_) =>
+              const Scaffold(body: Text('select city')),
         },
         home: checkoutView,
       ),
@@ -781,7 +824,7 @@ Size _badgeSize(WidgetTester tester, String label) {
 class _FakeLocationRepository implements LocationRepository, LocationUserScope {
   const _FakeLocationRepository({required this.selectedCity});
 
-  final CityData selectedCity;
+  final CityData? selectedCity;
 
   @override
   Future<ApiResult<void>> activateUser(String userId) async {
@@ -797,7 +840,7 @@ class _FakeLocationRepository implements LocationRepository, LocationUserScope {
   Future<ApiResult<CityData>> detectCurrentLocation({
     bool requestPermission = true,
   }) async {
-    return ApiResult.success(selectedCity);
+    return ApiResult.success(selectedCity ?? CityData.general);
   }
 
   Future<ApiResult<GpsRegionDetection>> detectMarketRegion() async {
@@ -813,7 +856,8 @@ class _FakeLocationRepository implements LocationRepository, LocationUserScope {
 
   @override
   Future<ApiResult<List<CityData>>> getAvailableCities() async {
-    return ApiResult.success([selectedCity]);
+    final city = selectedCity;
+    return ApiResult.success(city == null ? [CityData.general] : [city]);
   }
 
   @override
@@ -848,7 +892,7 @@ class _FakeLocationRepository implements LocationRepository, LocationUserScope {
 
   @override
   Future<ApiResult<CityData>> useCurrentLocation() async {
-    return ApiResult.success(selectedCity);
+    return ApiResult.success(selectedCity ?? CityData.general);
   }
 }
 
@@ -895,6 +939,9 @@ class _CreateOrderRepository implements OrderRepository {
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,
+    String? paymentMethod,
+    String? description,
+    String? deliveryNote,
   }) async {
     if (previewFailure case final failure?) {
       return ApiResult.failure(failure);

@@ -112,7 +112,13 @@ class OrderItemData {
         ? variant['product'] as Map<String, dynamic>
         : const <String, dynamic>{};
     return OrderItemData(
-      id: json['id'].toString(),
+      id:
+          (json['id'] ??
+                  json['variant_id'] ??
+                  variant['id'] ??
+                  product['id'] ??
+                  '')
+              .toString(),
       productId:
           json['productId']?.toString() ??
           json['product_id']?.toString() ??
@@ -133,6 +139,7 @@ class OrderItemData {
       title:
           json['title']?.toString() ??
           json['name']?.toString() ??
+          json['product_name']?.toString() ??
           product['name']?.toString() ??
           '',
       unitPrice: _doubleFromJson(
@@ -167,6 +174,59 @@ class OrderItemData {
   }
 }
 
+class OrderMarketSectionData {
+  const OrderMarketSectionData({
+    required this.marketId,
+    required this.marketName,
+    this.pickupStatus = '',
+    this.subtotal = 0,
+    this.items = const [],
+    this.offers = const [],
+  });
+
+  final String marketId;
+  final String marketName;
+  final String pickupStatus;
+  final double subtotal;
+  final List<OrderItemData> items;
+  final List<Map<String, dynamic>> offers;
+
+  int get itemCount {
+    return items.fold(0, (sum, item) => sum + item.quantity) + offers.length;
+  }
+
+  factory OrderMarketSectionData.fromJson(Map<String, dynamic> json) {
+    final market = _mapFromJson(json['market']);
+    return OrderMarketSectionData(
+      marketId:
+          json['market_id']?.toString() ??
+          market['id']?.toString() ??
+          json['id']?.toString() ??
+          '',
+      marketName:
+          json['market_name']?.toString() ??
+          market['name']?.toString() ??
+          json['name']?.toString() ??
+          '',
+      pickupStatus: json['pickup_status']?.toString() ?? '',
+      subtotal: _doubleFromJson(json['subtotal'] ?? json['subtotal_price']),
+      items: _itemsFromJson(json['items']),
+      offers: _mapListFromJson(json['offers']),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'market_id': marketId,
+      'market_name': marketName,
+      'pickup_status': pickupStatus,
+      'subtotal_price': subtotal,
+      'items': items.map((item) => item.toJson()).toList(),
+      'offers': offers,
+    };
+  }
+}
+
 class OrderData {
   const OrderData({
     required this.id,
@@ -182,6 +242,12 @@ class OrderData {
     this.deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
     this.customDeliveryArea = '',
     this.deliveryLabel = '',
+    this.reviewStatus = '',
+    this.marketCount = 1,
+    this.isMultiMarket = false,
+    this.marketNamesSummary = '',
+    this.marketSections = const [],
+    this.offers = const [],
     required this.taxTotal,
     required this.discountTotal,
     required this.total,
@@ -201,6 +267,12 @@ class OrderData {
   final OrderDeliveryPriceStatus deliveryPriceStatus;
   final String customDeliveryArea;
   final String deliveryLabel;
+  final String reviewStatus;
+  final int marketCount;
+  final bool isMultiMarket;
+  final String marketNamesSummary;
+  final List<OrderMarketSectionData> marketSections;
+  final List<Map<String, dynamic>> offers;
   final double taxTotal;
   final double discountTotal;
   final double total;
@@ -210,6 +282,7 @@ class OrderData {
     final deliveryType = _deliveryTypeFromJson(json['delivery_type']);
     final rawDeliveryPrice =
         json['shippingFee'] ?? json['shipping_fee'] ?? json['delivery_price'];
+    final marketSections = _marketSectionsFromJson(json['market_sections']);
     return OrderData(
       id: json['id'].toString(),
       orderNumber:
@@ -237,7 +310,7 @@ class OrderData {
       paymentMethod:
           json['paymentMethod']?.toString() ??
           json['payment_method']?.toString() ??
-          'cash_on_delivery',
+          'cash',
       items: _itemsFromJson(json['items']),
       subtotal: _doubleFromJson(json['subtotal'] ?? json['subtotal_price']),
       shippingFee: _doubleFromJson(rawDeliveryPrice),
@@ -248,6 +321,14 @@ class OrderData {
       ),
       customDeliveryArea: json['custom_delivery_area']?.toString() ?? '',
       deliveryLabel: json['delivery_label']?.toString() ?? '',
+      reviewStatus: json['review_status']?.toString() ?? '',
+      marketCount:
+          _intFromJson(json['market_count']) ??
+          (marketSections.isEmpty ? 1 : marketSections.length),
+      isMultiMarket: _boolFromJson(json['is_multi_market']) ?? false,
+      marketNamesSummary: json['market_names_summary']?.toString() ?? '',
+      marketSections: marketSections,
+      offers: _mapListFromJson(json['offers']),
       taxTotal: _doubleFromJson(json['taxTotal'] ?? json['tax_total']),
       discountTotal: _doubleFromJson(
         json['discountTotal'] ?? json['discount_total'] ?? json['discount'],
@@ -264,9 +345,44 @@ class OrderData {
   }
 
   String get statusLabel {
-    return status == OrderStatus.delivered
-        ? 'Delivered'
-        : 'Shipment on the way';
+    return switch (status) {
+      OrderStatus.pending => 'Pending',
+      OrderStatus.processing => 'Preparing',
+      OrderStatus.shipped => 'Ready',
+      OrderStatus.delivered => 'Delivered',
+      OrderStatus.cancelled => 'Cancelled',
+    };
+  }
+
+  String get reviewStatusLabel {
+    final normalized = reviewStatus.trim().toLowerCase();
+    return switch (normalized) {
+      '' => '',
+      'pending_review' || 'pending' => 'Pending review',
+      'approved' => 'Approved',
+      'rejected' => 'Rejected',
+      _ =>
+        normalized
+            .split('_')
+            .where((part) => part.isNotEmpty)
+            .map((part) => '${part[0].toUpperCase()}${part.substring(1)}')
+            .join(' '),
+    };
+  }
+
+  String get paymentMethodLabel {
+    final normalized = paymentMethod.trim().toLowerCase();
+    return switch (normalized) {
+      'cash' || 'cash_on_delivery' => 'Cash on Delivery',
+      _ => paymentMethod,
+    };
+  }
+
+  String get deliveryTypeLabel {
+    return switch (deliveryType) {
+      OrderDeliveryType.fixedArea => 'Delivery',
+      OrderDeliveryType.delivery || OrderDeliveryType.manualQuote => 'Courier',
+    };
   }
 
   Map<String, Object?> toJson() {
@@ -284,6 +400,14 @@ class OrderData {
       'deliveryPriceStatus': deliveryPriceStatus.name,
       'customDeliveryArea': customDeliveryArea,
       'deliveryLabel': deliveryLabel,
+      'reviewStatus': reviewStatus,
+      'marketCount': marketCount,
+      'isMultiMarket': isMultiMarket,
+      'marketNamesSummary': marketNamesSummary,
+      'marketSections': marketSections
+          .map((section) => section.toJson())
+          .toList(),
+      'offers': offers,
       'taxTotal': taxTotal,
       'discountTotal': discountTotal,
       'total': total,
@@ -340,6 +464,25 @@ List<OrderItemData> _itemsFromJson(Object? value) {
       .toList(growable: false);
 }
 
+List<OrderMarketSectionData> _marketSectionsFromJson(Object? value) {
+  return _mapListFromJson(
+    value,
+  ).map(OrderMarketSectionData.fromJson).toList(growable: false);
+}
+
+List<Map<String, dynamic>> _mapListFromJson(Object? value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map(
+        (item) => {
+          for (final entry in item.entries)
+            if (entry.key is String) entry.key as String: entry.value,
+        },
+      )
+      .toList(growable: false);
+}
+
 Map<String, dynamic> _mapFromJson(Object? value) {
   if (value is Map<String, dynamic>) return value;
   return const {};
@@ -363,5 +506,20 @@ int? _intFromJson(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
+  return null;
+}
+
+bool? _boolFromJson(Object? value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
+      return true;
+    }
+    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
+      return false;
+    }
+  }
   return null;
 }

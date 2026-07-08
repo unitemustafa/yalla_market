@@ -14,7 +14,7 @@ import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
   group('CheckoutCubit', () {
-    test('creates a cash on delivery order successfully', () async {
+    test('creates a cash order successfully', () async {
       final repository = _FakeOrderRepository(createResult: sampleOrder);
       final cubit = CheckoutCubit(
         CreateOrderUseCase(repository),
@@ -29,11 +29,11 @@ void main() {
         shippingAddress: sampleShippingAddress,
         items: const [sampleOrderItem],
         cartItems: const [sampleCartItemWithVariant],
-        paymentMethod: 'cash_on_delivery',
+        paymentMethod: 'cash',
         shippingFee: 50,
       );
 
-      expect(repository.lastPaymentMethod, 'cash_on_delivery');
+      expect(repository.lastPaymentMethod, 'cash');
       expect(repository.lastCartItems, const [sampleCartItemWithVariant]);
       expect((cubit.state as CheckoutSuccess).orders.single.id, sampleOrder.id);
       await expectedStates;
@@ -189,6 +189,9 @@ class _FakeOrderRepository implements OrderRepository {
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,
+    String? paymentMethod,
+    String? description,
+    String? deliveryNote,
   }) async {
     if (previewFailure case final failure?) {
       return ApiResult.failure(failure);

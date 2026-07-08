@@ -396,15 +396,20 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
     final selectedVariant = _selectedVariant;
     final selectedVariantId = selectedVariant?.id.trim();
+    if (selectedVariantId == null || selectedVariantId.isEmpty) {
+      CustomSnackBar.showWarning(
+        context: context,
+        title: 'This product cannot be added to cart right now.',
+      );
+      return;
+    }
     final selectedPrice = selectedVariant?.price ?? _selectedPrice;
 
     context.read<CartCubit>().addItem(
       CartItemData(
         id: _resolvedCartItemId,
         productId: _resolvedProductId,
-        variantId: selectedVariantId == null || selectedVariantId.isEmpty
-            ? null
-            : selectedVariantId,
+        variantId: selectedVariantId,
         marketId: _marketId,
         marketName: _productBrand,
         image: currentImage,

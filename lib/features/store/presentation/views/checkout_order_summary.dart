@@ -3,18 +3,20 @@ part of 'checkout_view.dart';
 class _OrderSummaryCard extends StatelessWidget {
   const _OrderSummaryCard({
     required this.subtotal,
+    required this.deliveryTypeLabel,
     required this.discount,
     required this.shippingFeeLabel,
-    required this.isShippingFeeFixed,
     required this.totalLabel,
+    this.pendingTotalDeliveryTypeLabel,
     required this.isDark,
   });
 
   final double subtotal;
+  final String deliveryTypeLabel;
   final double discount;
   final String shippingFeeLabel;
-  final bool isShippingFeeFixed;
   final String totalLabel;
+  final String? pendingTotalDeliveryTypeLabel;
   final bool isDark;
 
   @override
@@ -54,7 +56,7 @@ class _OrderSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 18),
           _SummaryRow(
-            label: 'Subtotal',
+            label: 'Products subtotal',
             value: _formatMoney(subtotal),
             textColor: textColor,
             mutedColor: mutedColor,
@@ -62,10 +64,16 @@ class _OrderSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           _SummaryRow(
             label: 'Shipping Fee',
-            value: shippingFeeLabel,
+            valueWidget: _StackedSummaryValue(
+              primaryText: shippingFeeLabel,
+              secondaryText: deliveryTypeLabel == _notSpecifiedLabel(context)
+                  ? null
+                  : deliveryTypeLabel,
+              primaryColor: textColor,
+              secondaryColor: AppColors.error,
+            ),
             textColor: textColor,
             mutedColor: mutedColor,
-            valueColor: isShippingFeeFixed ? null : AppColors.primary,
           ),
           const SizedBox(height: 12),
           _SummaryRow(
@@ -100,12 +108,37 @@ class _OrderSummaryCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                AppCurrencyText(
-                  text: totalLabel,
-                  style: const TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
+                Flexible(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      AppCurrencyText(
+                        text: totalLabel,
+                        textAlign: TextAlign.end,
+                        style: const TextStyle(
+                          color: AppColors.primary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w900,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
+                      ),
+                      if (pendingTotalDeliveryTypeLabel case final label?) ...[
+                        const SizedBox(height: 3),
+                        Padding(
+                          padding: const EdgeInsetsDirectional.only(end: 8),
+                          child: _PendingDeliveryLine(
+                            deliveryTypeLabel: label,
+                            style: const TextStyle(
+                              color: AppColors.error,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ],

@@ -3,12 +3,14 @@ part of 'checkout_view.dart';
 class _CheckoutActionBar extends StatelessWidget {
   const _CheckoutActionBar({
     required this.totalLabel,
+    this.pendingDeliveryTypeLabel,
     required this.isDark,
     required this.isLoading,
     required this.onCheckout,
   });
 
   final String totalLabel;
+  final String? pendingDeliveryTypeLabel;
   final bool isDark;
   final bool isLoading;
   final VoidCallback onCheckout;
@@ -42,64 +44,146 @@ class _CheckoutActionBar extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.tr('Total'),
-                    style: TextStyle(
-                      color: mutedColor,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                    ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 390;
+            final gap = isNarrow ? 10.0 : 12.0;
+            final buttonWidth = (constraints.maxWidth * 0.42).clamp(
+              132.0,
+              176.0,
+            );
+            final amountFontSize = isNarrow ? 20.0 : 22.0;
+            final buttonHorizontalPadding = isNarrow ? 10.0 : 12.0;
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _ActionBarTotal(
+                    totalLabel: totalLabel,
+                    pendingDeliveryTypeLabel: pendingDeliveryTypeLabel,
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                    amountFontSize: amountFontSize,
                   ),
-                  const SizedBox(height: 3),
-                  AppCurrencyText(
-                    text: totalLabel,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: isLoading ? null : onCheckout,
-                icon: const Icon(AppIcons.clipboard_tick, size: 19),
-                label: isLoading
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
+                ),
+                SizedBox(width: gap),
+                ConstrainedBox(
+                  constraints: BoxConstraints.tightFor(width: buttonWidth),
+                  child: ElevatedButton.icon(
+                    onPressed: isLoading ? null : onCheckout,
+                    icon: const Icon(AppIcons.clipboard_tick, size: 18),
+                    label: isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            ),
+                          )
+                        : Text(
+                            context.tr('Confirm Order'),
+                            maxLines: 1,
+                            softWrap: false,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
-                        ),
-                      )
-                    : Text(context.tr('Confirm Order')),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: buttonHorizontalPadding,
+                        vertical: 15,
+                      ),
+                      minimumSize: const Size(0, 48),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
                   ),
-                  elevation: 0,
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionBarTotal extends StatelessWidget {
+  const _ActionBarTotal({
+    required this.totalLabel,
+    required this.pendingDeliveryTypeLabel,
+    required this.textColor,
+    required this.mutedColor,
+    required this.amountFontSize,
+  });
+
+  final String totalLabel;
+  final String? pendingDeliveryTypeLabel;
+  final Color textColor;
+  final Color mutedColor;
+  final double amountFontSize;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.tr('Total'),
+          style: TextStyle(
+            color: mutedColor,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: AlignmentDirectional.centerStart,
+            child: AppCurrencyText(
+              text: totalLabel,
+              style: TextStyle(
+                color: textColor,
+                fontSize: amountFontSize,
+                fontWeight: FontWeight.w900,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+            ),
+          ),
+        ),
+        if (pendingDeliveryTypeLabel case final label?) ...[
+          const SizedBox(height: 3),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: _PendingDeliveryLine(
+                deliveryTypeLabel: label,
+                style: const TextStyle(
+                  color: AppColors.error,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w900,
                 ),
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        ],
+      ],
     );
   }
 }
@@ -107,14 +191,16 @@ class _CheckoutActionBar extends StatelessWidget {
 class _SummaryRow extends StatelessWidget {
   const _SummaryRow({
     required this.label,
-    required this.value,
     required this.textColor,
     required this.mutedColor,
+    this.value,
+    this.valueWidget,
     this.valueColor,
   });
 
   final String label;
-  final String value;
+  final String? value;
+  final Widget? valueWidget;
   final Color textColor;
   final Color mutedColor;
   final Color? valueColor;
@@ -132,15 +218,100 @@ class _SummaryRow extends StatelessWidget {
           ),
         ),
         const Spacer(),
+        Flexible(
+          child:
+              valueWidget ??
+              AppCurrencyText(
+                text: value ?? '',
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: valueColor ?? textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.clip,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _StackedSummaryValue extends StatelessWidget {
+  const _StackedSummaryValue({
+    required this.primaryText,
+    required this.primaryColor,
+    required this.secondaryColor,
+    this.secondaryText,
+  });
+
+  final String primaryText;
+  final String? secondaryText;
+  final Color primaryColor;
+  final Color secondaryColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: ValueKey('summary-value-${secondaryText ?? primaryText}'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
         AppCurrencyText(
-          text: value,
+          text: primaryText,
+          textAlign: TextAlign.end,
           style: TextStyle(
-            color: valueColor ?? textColor,
+            color: primaryColor,
             fontSize: 14,
             fontWeight: FontWeight.w900,
           ),
+          maxLines: 1,
+          overflow: TextOverflow.clip,
         ),
+        if (secondaryText case final text?) ...[
+          const SizedBox(height: 4),
+          Padding(
+            padding: const EdgeInsetsDirectional.only(end: 8),
+            child: Text(
+              text,
+              textAlign: TextAlign.end,
+              style: TextStyle(
+                color: secondaryColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.clip,
+            ),
+          ),
+        ],
       ],
+    );
+  }
+}
+
+class _PendingDeliveryLine extends StatelessWidget {
+  const _PendingDeliveryLine({
+    required this.deliveryTypeLabel,
+    required this.style,
+  });
+
+  final String deliveryTypeLabel;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    return Directionality(
+      textDirection: TextDirection.ltr,
+      child: Text(
+        '+ $deliveryTypeLabel',
+        style: style,
+        textDirection: TextDirection.ltr,
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.clip,
+      ),
     );
   }
 }
@@ -214,14 +385,15 @@ class _SoftBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 30,
-      padding: const EdgeInsets.symmetric(horizontal: 10),
+      constraints: const BoxConstraints(minWidth: 104, minHeight: 30),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: isDark ? 0.16 : 0.08),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(icon, color: AppColors.primary, size: 14),
           const SizedBox(width: 5),
@@ -326,4 +498,4 @@ class _EmptyCheckoutState extends StatelessWidget {
 }
 
 String _formatMoney(double value) =>
-    AppCurrency.format(value, fractionDigits: 2, trimTrailingZero: false);
+    AppCurrency.format(value, fractionDigits: 2, trimTrailingZero: true);

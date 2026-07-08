@@ -138,6 +138,39 @@ void main() {
       );
     });
 
+    test(
+      'createOrder parses parent order list response with extra market fields',
+      () async {
+        final apiClient = FakeApiClient(
+          (request) => [
+            {
+              ..._createdOrderPayload,
+              'is_multi_market': true,
+              'market_count': 2,
+              'market_sections': [
+                {'market': 'Fresh Market'},
+              ],
+            },
+          ],
+        );
+        final repository = OrderRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: const [_cartItem],
+        );
+
+        result.when(
+          success: (orders) {
+            expect(orders, hasLength(1));
+            expect(orders.single.id, '9');
+          },
+          failure: (failure) => fail(failure.message),
+        );
+      },
+    );
+
     test('createOrder 201 list response returns success', () async {
       final apiClient = FakeApiClient((request) => [_createdOrderPayload]);
       final repository = OrderRemoteRepositoryImpl(apiClient);
@@ -562,6 +595,127 @@ void main() {
         failure: (failure) => fail(failure.message),
       );
     });
+
+    test('parses fixed-area two-market preview response', () async {
+      final apiClient = FakeApiClient(
+        (request) => _twoMarketFixedAreaPreviewPayload,
+      );
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        addressId: '12',
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            variantId: '23',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 700,
+            quantity: 2,
+          ),
+        ],
+      );
+
+      result.when(
+        success: (preview) {
+          expect(preview.isMultiMarket, isTrue);
+          expect(preview.marketCount, 2);
+          expect(preview.serviceCity?['name'], 'Cairo');
+          expect(preview.orderScope, 'service_city');
+          expect(preview.marketNamesSummary, 'Fresh Market, Daily Market');
+          expect(preview.marketGroups, hasLength(2));
+          expect(preview.marketGroups.first.marketName, 'Fresh Market');
+          expect(preview.marketGroups.first.isFixedAreaDelivery, isTrue);
+          expect(preview.marketGroups.first.deliveryPrice, 120);
+          expect(preview.marketGroups.first.pricing.deliveryPrice, 120);
+          expect(preview.marketGroups.first.selectedProducts, hasLength(1));
+          expect(preview.marketGroups.first.selectedOffers, hasLength(1));
+          expect(preview.marketGroups.last.marketName, 'Daily Market');
+          expect(preview.marketGroups.last.deliveryType, 'fixed_area');
+          expect(preview.marketGroups.last.deliveryPrice, isNull);
+          expect(preview.marketGroups.last.pricing.deliveryPrice, isNull);
+          expect(preview.marketGroups.last.isPendingDeliveryQuote, isFalse);
+          expect(preview.hasPendingDeliveryQuote, isFalse);
+          expect(preview.summary.grandTotal, 1580);
+          expect(preview.hasUnavailableDelivery, isFalse);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('parses pending-delivery two-market preview response', () async {
+      final apiClient = FakeApiClient(
+        (request) => _twoMarketPendingDeliveryPreviewPayload,
+      );
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.previewOrder(
+        addressId: '12',
+        cartItems: const [
+          CartItemData(
+            id: 'cart-1',
+            variantId: '23',
+            image: 'image.png',
+            brand: 'Yalla',
+            title: 'Fresh product',
+            price: 700,
+            quantity: 2,
+          ),
+        ],
+      );
+
+      result.when(
+        success: (preview) {
+          expect(preview.isMultiMarket, isTrue);
+          expect(preview.marketCount, 2);
+          expect(preview.marketGroups, hasLength(2));
+          expect(
+            preview.marketGroups.every(
+              (group) =>
+                  group.deliveryType == 'delivery' &&
+                  group.deliveryPrice == null &&
+                  group.isPendingDeliveryQuote,
+            ),
+            isTrue,
+          );
+          expect(preview.hasPendingDeliveryQuote, isTrue);
+          expect(preview.hasUnavailableDelivery, isFalse);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('order delivery status follows delivery type', () {
+      final fixedAreaOrder = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'delivery_type': 'fixed_area',
+        'delivery_price': null,
+      });
+      final deliveryOrder = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'delivery_type': 'delivery',
+        'delivery_price': null,
+      });
+      final manualQuoteOrder = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'delivery_type': 'manual_quote',
+        'delivery_price': null,
+      });
+
+      expect(
+        fixedAreaOrder.deliveryPriceStatus,
+        OrderDeliveryPriceStatus.fixed,
+      );
+      expect(
+        deliveryOrder.deliveryPriceStatus,
+        OrderDeliveryPriceStatus.pendingQuote,
+      );
+      expect(
+        manualQuoteOrder.deliveryPriceStatus,
+        OrderDeliveryPriceStatus.pendingQuote,
+      );
+    });
   });
 }
 
@@ -590,6 +744,122 @@ const _previewPayload = {
     'discount_total': '168.00',
     'delivery_total': '250.00',
     'grand_total': '3057.00',
+  },
+};
+
+const _twoMarketFixedAreaPreviewPayload = {
+  'addresses': [
+    {'id': 1, 'name': 'Home'},
+  ],
+  'selected_address': {'id': 1, 'name': 'Home'},
+  'service_city': {'id': 10, 'name': 'Cairo'},
+  'order_scope': 'service_city',
+  'is_multi_market': true,
+  'market_count': 2,
+  'market_names_summary': 'Fresh Market, Daily Market',
+  'market_groups': [
+    {
+      'market': {'id': 5, 'name': 'Fresh Market'},
+      'service_city': {'id': 10, 'name': 'Cairo'},
+      'delivery_area': {'id': 2, 'name': 'Downtown'},
+      'delivery_type': 'fixed_area',
+      'delivery_price': '120.00',
+      'delivery_message': '',
+      'delivery_available': true,
+      'selected_products': [
+        {'id': 1, 'name': 'Tomatoes'},
+      ],
+      'selected_offers': [
+        {'id': 3, 'name': 'Bundle'},
+      ],
+      'pricing': {
+        'products_subtotal': '1000.00',
+        'total_offer_discounts': '100.00',
+        'delivery_price': '120.00',
+        'market_total': '1020.00',
+      },
+    },
+    {
+      'market': {'id': 8, 'name': 'Daily Market'},
+      'service_city': {'id': 10, 'name': 'Cairo'},
+      'delivery_area': {'id': 2, 'name': 'Downtown'},
+      'delivery_type': 'fixed_area',
+      'delivery_price': null,
+      'delivery_message': '',
+      'delivery_available': true,
+      'selected_products': [],
+      'selected_offers': [],
+      'pricing': {
+        'products_subtotal': '700.00',
+        'total_offer_discounts': '140.00',
+        'delivery_price': null,
+        'market_total': '560.00',
+      },
+    },
+  ],
+  'summary': {
+    'subtotal': '1700.00',
+    'discount_total': '240.00',
+    'delivery_total': '120.00',
+    'grand_total': '1580.00',
+  },
+};
+
+const _twoMarketPendingDeliveryPreviewPayload = {
+  'addresses': [
+    {'id': 1, 'name': 'Home'},
+  ],
+  'selected_address': {'id': 1, 'name': 'Home'},
+  'service_city': {'id': 10, 'name': 'Cairo'},
+  'order_scope': 'service_city',
+  'is_multi_market': true,
+  'market_count': 2,
+  'market_names_summary': 'Fresh Market, Daily Market',
+  'market_groups': [
+    {
+      'market': {'id': 5, 'name': 'Fresh Market'},
+      'service_city': {'id': 10, 'name': 'Cairo'},
+      'delivery_area': {'id': 2, 'name': 'Downtown'},
+      'delivery_type': 'delivery',
+      'delivery_price': null,
+      'delivery_message': 'Delivery price will be determined later.',
+      'delivery_available': true,
+      'selected_products': [
+        {'id': 1, 'name': 'Tomatoes'},
+      ],
+      'selected_offers': [
+        {'id': 3, 'name': 'Bundle'},
+      ],
+      'pricing': {
+        'products_subtotal': '1000.00',
+        'total_offer_discounts': '100.00',
+        'delivery_price': null,
+        'market_total': '900.00',
+      },
+    },
+    {
+      'market': {'id': 8, 'name': 'Daily Market'},
+      'service_city': {'id': 10, 'name': 'Cairo'},
+      'delivery_area': {'id': 2, 'name': 'Downtown'},
+      'delivery_type': 'delivery',
+      'delivery_price': null,
+      'delivery_message': 'Delivery price will be determined later.',
+      'delivery_available': true,
+      'selected_products': [],
+      'selected_offers': [],
+      'pricing': {
+        'products_subtotal': '700.00',
+        'total_offer_discounts': '140.00',
+        'delivery_price': null,
+        'market_total': '560.00',
+      },
+    },
+  ],
+  'summary': {
+    'subtotal': '1700.00',
+    'discount_total': '240.00',
+    'delivery_total': null,
+    'grand_total': '1460.00',
   },
 };
 

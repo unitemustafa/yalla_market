@@ -23,6 +23,7 @@ import '../../../personalization/presentation/cubit/address_cubit.dart';
 import '../../../personalization/presentation/cubit/address_state.dart';
 import '../../../personalization/presentation/views/address/address_region_matcher.dart';
 import '../../domain/entities/order.dart';
+import '../../domain/entities/order_preview.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import '../cubit/order_history_cubit.dart';
@@ -178,9 +179,23 @@ class _CheckoutViewState extends State<CheckoutView> {
                 final total = hasPreviewTotals
                     ? previewSummary?.grandTotal ?? localSubtotal
                     : localSubtotal;
+                final hasPendingDeliveryQuote =
+                    preview?.hasPendingDeliveryQuote ?? false;
                 final totalLabel = hasPreviewTotals
                     ? _formatMoney(total)
                     : _notSpecifiedLabel(context);
+                final pendingTotalDeliveryTypeLabel =
+                    hasPreviewTotals && hasPendingDeliveryQuote
+                    ? _deliveryTypeLabel(context, preview)
+                    : null;
+                final shippingFeeLabel = hasSavedAddress
+                    ? (hasPreviewTotals
+                          ? (hasPendingDeliveryQuote
+                                ? context.tr('Later')
+                                : _formatMoney(shippingFee))
+                          : _notSpecifiedLabel(context))
+                    : _notSpecifiedLabel(context);
+                final deliveryTypeLabel = _deliveryTypeLabel(context, preview);
                 final hasUnavailableDelivery =
                     preview?.hasUnavailableDelivery ?? false;
                 final canConfirmRemoteOrder =
@@ -225,15 +240,12 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 const SizedBox(height: 14),
                                 _OrderSummaryCard(
                                   subtotal: subtotal,
+                                  deliveryTypeLabel: deliveryTypeLabel,
                                   discount: discount,
-                                  shippingFeeLabel: hasSavedAddress
-                                      ? (hasPreviewTotals
-                                            ? _formatMoney(shippingFee)
-                                            : _notSpecifiedLabel(context))
-                                      : _notSpecifiedLabel(context),
-                                  isShippingFeeFixed:
-                                      hasSavedAddress && hasPreviewTotals,
+                                  shippingFeeLabel: shippingFeeLabel,
                                   totalLabel: totalLabel,
+                                  pendingTotalDeliveryTypeLabel:
+                                      pendingTotalDeliveryTypeLabel,
                                   isDark: isDark,
                                 ),
                                 if (checkoutState.previewErrorMessage !=
@@ -277,6 +289,8 @@ class _CheckoutViewState extends State<CheckoutView> {
                       ? null
                       : _CheckoutActionBar(
                           totalLabel: totalLabel,
+                          pendingDeliveryTypeLabel:
+                              pendingTotalDeliveryTypeLabel,
                           isDark: isDark,
                           isLoading: checkoutState is CheckoutLoading,
                           onCheckout: () {
@@ -383,6 +397,18 @@ class _CheckoutViewState extends State<CheckoutView> {
 
 String _notSpecifiedLabel(BuildContext context) {
   return context.tr('Not specified');
+}
+
+String _deliveryTypeLabel(BuildContext context, OrderPreviewData? preview) {
+  final deliveryType = preview?.marketGroups.isEmpty ?? true
+      ? ''
+      : preview!.marketGroups.first.deliveryType;
+
+  return switch (deliveryType) {
+    'fixed_area' => context.tr('Delivery'),
+    'delivery' || 'manual_quote' => context.tr('Courier'),
+    _ => _notSpecifiedLabel(context),
+  };
 }
 
 List<String> _checkoutRegionProblems({

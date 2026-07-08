@@ -2,7 +2,7 @@ import '../../../cart/domain/entities/cart_item.dart';
 
 enum OrderStatus { pending, processing, shipped, delivered, cancelled }
 
-enum OrderDeliveryType { fixedArea, manualQuote }
+enum OrderDeliveryType { fixedArea, delivery, manualQuote }
 
 enum OrderDeliveryPriceStatus { fixed, pendingQuote }
 
@@ -207,6 +207,9 @@ class OrderData {
   final DateTime? estimatedDeliveryAt;
 
   factory OrderData.fromJson(Map<String, dynamic> json) {
+    final deliveryType = _deliveryTypeFromJson(json['delivery_type']);
+    final rawDeliveryPrice =
+        json['shippingFee'] ?? json['shipping_fee'] ?? json['delivery_price'];
     return OrderData(
       id: json['id'].toString(),
       orderNumber:
@@ -237,12 +240,11 @@ class OrderData {
           'cash_on_delivery',
       items: _itemsFromJson(json['items']),
       subtotal: _doubleFromJson(json['subtotal'] ?? json['subtotal_price']),
-      shippingFee: _doubleFromJson(
-        json['shippingFee'] ?? json['shipping_fee'] ?? json['delivery_price'],
-      ),
-      deliveryType: _deliveryTypeFromJson(json['delivery_type']),
+      shippingFee: _doubleFromJson(rawDeliveryPrice),
+      deliveryType: deliveryType,
       deliveryPriceStatus: _deliveryPriceStatusFromJson(
         json['delivery_price_status'],
+        deliveryType: deliveryType,
       ),
       customDeliveryArea: json['custom_delivery_area']?.toString() ?? '',
       deliveryLabel: json['delivery_label']?.toString() ?? '',
@@ -291,14 +293,25 @@ class OrderData {
 }
 
 OrderDeliveryType _deliveryTypeFromJson(Object? value) {
-  final name = value?.toString();
+  final name = value?.toString().trim().toLowerCase();
+  if (name == 'delivery') return OrderDeliveryType.delivery;
   if (name == 'manual_quote') return OrderDeliveryType.manualQuote;
   return OrderDeliveryType.fixedArea;
 }
 
-OrderDeliveryPriceStatus _deliveryPriceStatusFromJson(Object? value) {
-  final name = value?.toString();
-  if (name == 'pending_quote') return OrderDeliveryPriceStatus.pendingQuote;
+OrderDeliveryPriceStatus _deliveryPriceStatusFromJson(
+  Object? value, {
+  required OrderDeliveryType deliveryType,
+}) {
+  final name = value?.toString().trim().toLowerCase();
+  if (name == 'pending_quote' || name == 'pending') {
+    return OrderDeliveryPriceStatus.pendingQuote;
+  }
+  if (deliveryType == OrderDeliveryType.delivery ||
+      deliveryType == OrderDeliveryType.manualQuote) {
+    return OrderDeliveryPriceStatus.pendingQuote;
+  }
+  if (name == 'fixed') return OrderDeliveryPriceStatus.fixed;
   return OrderDeliveryPriceStatus.fixed;
 }
 

@@ -2,14 +2,28 @@ class OrderPreviewData {
   const OrderPreviewData({
     this.addresses = const [],
     this.selectedAddress,
+    this.serviceCity,
+    this.orderScope = '',
+    this.isMultiMarket = false,
+    this.marketCount = 0,
+    this.marketNamesSummary = '',
     this.marketGroups = const [],
     required this.summary,
   });
 
   final List<Map<String, dynamic>> addresses;
   final Map<String, dynamic>? selectedAddress;
+  final Map<String, dynamic>? serviceCity;
+  final String orderScope;
+  final bool isMultiMarket;
+  final int marketCount;
+  final String marketNamesSummary;
   final List<OrderPreviewMarketGroupData> marketGroups;
   final OrderPreviewSummaryData summary;
+
+  bool get hasPendingDeliveryQuote {
+    return marketGroups.any((group) => group.isPendingDeliveryQuote);
+  }
 
   bool get hasUnavailableDelivery {
     return marketGroups.any((group) => !group.deliveryAvailable);
@@ -19,6 +33,13 @@ class OrderPreviewData {
     return OrderPreviewData(
       addresses: _mapListFromJson(json['addresses']),
       selectedAddress: _nullableMapFromJson(json['selected_address']),
+      serviceCity: _nullableMapFromJson(json['service_city']),
+      orderScope: json['order_scope']?.toString() ?? '',
+      isMultiMarket: _boolFromJson(json['is_multi_market']) ?? false,
+      marketCount:
+          _intFromJson(json['market_count']) ??
+          _mapListFromJson(json['market_groups']).length,
+      marketNamesSummary: json['market_names_summary']?.toString() ?? '',
       marketGroups: _mapListFromJson(
         json['market_groups'],
       ).map(OrderPreviewMarketGroupData.fromJson).toList(growable: false),
@@ -30,21 +51,50 @@ class OrderPreviewData {
 class OrderPreviewMarketGroupData {
   const OrderPreviewMarketGroupData({
     this.market = const {},
+    this.serviceCity = const {},
     this.deliveryArea = const {},
+    this.deliveryType = '',
+    this.deliveryPrice,
+    this.deliveryMessage = '',
     required this.deliveryAvailable,
+    this.selectedProducts = const [],
+    this.selectedOffers = const [],
     required this.pricing,
   });
 
   final Map<String, dynamic> market;
+  final Map<String, dynamic> serviceCity;
   final Map<String, dynamic> deliveryArea;
+  final String deliveryType;
+  final double? deliveryPrice;
+  final String deliveryMessage;
   final bool deliveryAvailable;
+  final List<Map<String, dynamic>> selectedProducts;
+  final List<Map<String, dynamic>> selectedOffers;
   final OrderPreviewPricingData pricing;
+
+  bool get isFixedAreaDelivery => deliveryType == 'fixed_area';
+
+  bool get isPendingDeliveryQuote {
+    return deliveryType == 'delivery' || deliveryType == 'manual_quote';
+  }
+
+  String get marketName {
+    return market['name']?.toString() ?? '';
+  }
 
   factory OrderPreviewMarketGroupData.fromJson(Map<String, dynamic> json) {
     return OrderPreviewMarketGroupData(
       market: _mapFromJson(json['market']),
+      serviceCity: _mapFromJson(json['service_city']),
       deliveryArea: _mapFromJson(json['delivery_area']),
-      deliveryAvailable: json['delivery_available'] == true,
+      deliveryType:
+          json['delivery_type']?.toString().trim().toLowerCase() ?? '',
+      deliveryPrice: _nullableDoubleFromJson(json['delivery_price']),
+      deliveryMessage: json['delivery_message']?.toString() ?? '',
+      deliveryAvailable: _boolFromJson(json['delivery_available']) ?? false,
+      selectedProducts: _mapListFromJson(json['selected_products']),
+      selectedOffers: _mapListFromJson(json['selected_offers']),
       pricing: OrderPreviewPricingData.fromJson(_mapFromJson(json['pricing'])),
     );
   }
@@ -60,14 +110,14 @@ class OrderPreviewPricingData {
 
   final double productsSubtotal;
   final double totalOfferDiscounts;
-  final double deliveryPrice;
+  final double? deliveryPrice;
   final double marketTotal;
 
   factory OrderPreviewPricingData.fromJson(Map<String, dynamic> json) {
     return OrderPreviewPricingData(
       productsSubtotal: _doubleFromJson(json['products_subtotal']),
       totalOfferDiscounts: _doubleFromJson(json['total_offer_discounts']),
-      deliveryPrice: _doubleFromJson(json['delivery_price']),
+      deliveryPrice: _nullableDoubleFromJson(json['delivery_price']),
       marketTotal: _doubleFromJson(json['market_total']),
     );
   }
@@ -98,21 +148,48 @@ class OrderPreviewSummaryData {
 
 List<Map<String, dynamic>> _mapListFromJson(Object? value) {
   if (value is! List) return const [];
-  return value.whereType<Map<String, dynamic>>().toList(growable: false);
+  return value
+      .whereType<Map>()
+      .map(_stringKeyMapFromJson)
+      .toList(growable: false);
 }
 
 Map<String, dynamic>? _nullableMapFromJson(Object? value) {
-  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return _stringKeyMapFromJson(value);
   return null;
 }
 
 Map<String, dynamic> _mapFromJson(Object? value) {
-  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return _stringKeyMapFromJson(value);
   return const {};
 }
 
+Map<String, dynamic> _stringKeyMapFromJson(Map value) {
+  return {
+    for (final entry in value.entries)
+      if (entry.key is String) entry.key as String: entry.value,
+  };
+}
+
+bool? _boolFromJson(Object? value) {
+  if (value is bool) return value;
+  if (value is String) return bool.tryParse(value.toLowerCase());
+  return null;
+}
+
 double _doubleFromJson(Object? value) {
+  return _nullableDoubleFromJson(value) ?? 0;
+}
+
+double? _nullableDoubleFromJson(Object? value) {
   if (value is num) return value.toDouble();
-  if (value is String) return double.tryParse(value) ?? 0;
-  return 0;
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+int? _intFromJson(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
 }

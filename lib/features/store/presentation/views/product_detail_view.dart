@@ -11,6 +11,7 @@ import '../../data/demo/demo_shops.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
+import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/texts/app_currency_text.dart';
 import '../../../../core/presentation/widgets/texts/green_currency_price.dart';
@@ -79,6 +80,7 @@ class ProductDetailView extends StatefulWidget {
 class _ProductDetailViewState extends State<ProductDetailView> {
   int quantity = 0;
   String? selectedVariantId;
+  final Set<String> selectedAdditionIds = <String>{};
   late String currentImage;
   ProductData? _loadedProduct;
   bool _isLoadingProductDetails = false;
@@ -109,6 +111,11 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   bool get _isProductAvailable => _loadedProduct?.isAvailable ?? true;
   List<ProductVariantData> get _variants =>
       _loadedProduct?.variants ?? const [];
+  List<ProductAdditionData> get _productAdditions =>
+      _loadedProduct?.additions ?? const [];
+  List<ProductAdditionData> get _selectedAdditions => _productAdditions
+      .where((addition) => selectedAdditionIds.contains(addition.id))
+      .toList(growable: false);
   ProductVariantData? get _selectedVariant {
     final id = selectedVariantId?.trim();
     if (id == null || id.isEmpty) return null;
@@ -133,8 +140,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
   String get _resolvedCartItemId {
     final variantId = _selectedVariant?.id.trim();
-    if (variantId != null && variantId.isNotEmpty) return variantId;
-    return _resolvedProductId;
+    final baseId = variantId != null && variantId.isNotEmpty
+        ? variantId
+        : _resolvedProductId;
+    if (selectedAdditionIds.isEmpty) return baseId;
+    final additionsKey = selectedAdditionIds.toList()..sort();
+    return '$baseId:additions:${additionsKey.join(',')}';
   }
 
   Future<void> _loadProductDetails() async {
@@ -162,6 +173,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   void _syncSelectedVariant(ProductData product) {
+    selectedAdditionIds.removeWhere(
+      (id) => !product.additions.any((addition) => addition.id == id),
+    );
     final variants = product.variants;
     if (variants.isEmpty) {
       selectedVariantId = null;
@@ -181,16 +195,214 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   String _formatSinglePrice(String? price) {
-    return AppCurrency.formatPriceText(price?.split('-').first.trim());
+    return AppCurrency.formatPriceText(price?.split(RegExp(r'[-~]')).first.trim());
   }
 
   double _parsePrice(String? price) {
     if (price == null) return 0;
-    final singlePrice = price.split('-').first.trim();
+    final singlePrice = price.split(RegExp(r'[-~]')).first.trim();
     return double.tryParse(
           singlePrice.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', ''),
         ) ??
         0;
+  }
+
+  double get _selectedAdditionsTotal => _selectedAdditions.fold<double>(
+    0,
+    (total, addition) => total + _parsePrice(addition.price),
+  );
+
+  void _showAdditionsSheet() {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final sheetColor = isDark ? const Color(0xFF222326) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final mutedColor = isDark
+        ? Colors.white.withValues(alpha: 0.64)
+        : Colors.black.withValues(alpha: 0.58);
+    final draftSelected = Set<String>.from(selectedAdditionIds);
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        return StatefulBuilder(
+          builder: (context, setSheetState) {
+            return SafeArea(
+              top: false,
+              child: Container(
+                height: MediaQuery.sizeOf(context).height * 0.56,
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                decoration: BoxDecoration(
+                  color: sheetColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 44,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: mutedColor.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 22),
+                    Row(
+                      children: [
+                        Container(
+                          width: 46,
+                          height: 46,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(
+                              alpha: isDark ? 0.18 : 0.10,
+                            ),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            AppIcons.add,
+                            color: AppColors.primary,
+                            size: 23,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            context.tr('Additions'),
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: textColor,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Expanded(
+                      child: ListView.separated(
+                        padding: EdgeInsets.zero,
+                        itemCount: _productAdditions.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (context, index) {
+                          final addition = _productAdditions[index];
+                          final selected = draftSelected.contains(addition.id);
+                          return Material(
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.05)
+                                : const Color(0xFFF3F5FA),
+                            borderRadius: BorderRadius.circular(8),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(8),
+                              onTap: () {
+                                setSheetState(() {
+                                  if (selected) {
+                                    draftSelected.remove(addition.id);
+                                  } else {
+                                    draftSelected.add(addition.id);
+                                  }
+                                });
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 10,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            context.tr(addition.name),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: theme.textTheme.bodyMedium
+                                                ?.copyWith(
+                                                  color: textColor,
+                                                  fontWeight: FontWeight.w800,
+                                                ),
+                                          ),
+                                          if (addition.classification
+                                              .trim()
+                                              .isNotEmpty)
+                                            Text(
+                                              context.tr(
+                                                addition.classification,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: theme.textTheme.bodySmall
+                                                  ?.copyWith(
+                                                    color: mutedColor,
+                                                    fontWeight:
+                                                        FontWeight.w600,
+                                                  ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                    AppCurrencyText(
+                                      text: AppCurrency.format(
+                                        _parsePrice(addition.price),
+                                      ),
+                                      currencyColor: AppColors.primary,
+                                      style: theme.textTheme.bodySmall
+                                          ?.copyWith(
+                                            color: AppColors.primary,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Icon(
+                                      selected
+                                          ? Icons.check_circle
+                                          : Icons.radio_button_unchecked,
+                                      color: selected
+                                          ? AppColors.primary
+                                          : mutedColor,
+                                      size: 22,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    AppActionButton(
+                      label: 'OK',
+                      onPressed: () {
+                        setState(() {
+                          selectedAdditionIds
+                            ..clear()
+                            ..addAll(draftSelected);
+                        });
+                        Navigator.pop(sheetContext);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showImageDialog(BuildContext context, String imagePath) {
@@ -342,8 +554,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   String _variantFallbackLabel(ProductVariantData variant, int index) {
-    final sku = variant.sku?.trim();
-    final label = sku != null && sku.isNotEmpty ? sku : 'Option ${index + 1}';
+    final label = 'Option ${index + 1}';
     final price = _formatSinglePrice(variant.price);
     return price.isEmpty ? label : '$label - $price';
   }
@@ -404,6 +615,23 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       return;
     }
     final selectedPrice = selectedVariant?.price ?? _selectedPrice;
+    final variantAttributes =
+        selectedVariant?.attributeValues.entries
+            .map(
+              (entry) =>
+                  CartItemAttribute(label: entry.key, value: entry.value),
+            )
+            .toList(growable: false) ??
+        const <CartItemAttribute>[];
+    final additionAttributes = _selectedAdditions
+        .map(
+          (addition) => CartItemAttribute(
+            label: context.isArabicLanguage ? 'إضافة' : 'Addition',
+            value: addition.name,
+          ),
+        )
+        .toList(growable: false);
+    final cartAttributes = [...variantAttributes, ...additionAttributes];
 
     context.read<CartCubit>().addItem(
       CartItemData(
@@ -415,16 +643,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         image: currentImage,
         brand: _productBrand,
         title: _productTitle,
-        price: _parsePrice(selectedPrice),
+        price: _parsePrice(selectedPrice) + _selectedAdditionsTotal,
         quantity: quantity,
-        attributes:
-            selectedVariant?.attributeValues.entries
-                .map(
-                  (entry) =>
-                      CartItemAttribute(label: entry.key, value: entry.value),
-                )
-                .toList(growable: false) ??
-            const [],
+        attributes: cartAttributes.toList(growable: false),
       ),
       quantity,
     );
@@ -492,10 +713,109 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     );
   }
 
+  Widget _buildAdditionsButton({
+    required bool isDark,
+    required Color mutedColor,
+  }) {
+    final selectedAdditions = _selectedAdditions;
+    final label = selectedAdditions.isEmpty
+        ? context.tr('Choose additions')
+        : context.isArabicLanguage
+        ? '${selectedAdditions.length} إضافات محددة'
+        : '${selectedAdditions.length} additions selected';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Material(
+          color: isDark ? AppColors.darkCardColor : Colors.white,
+          borderRadius: BorderRadius.circular(8),
+          child: InkWell(
+            onTap: _showAdditionsSheet,
+            borderRadius: BorderRadius.circular(8),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : Colors.black.withValues(alpha: 0.07),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(
+                        alpha: isDark ? 0.18 : 0.10,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(
+                      AppIcons.add,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const Icon(AppIcons.arrow_right_3, size: 18),
+                ],
+              ),
+            ),
+          ),
+        ),
+        if (selectedAdditions.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final addition in selectedAdditions)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.06)
+                        : const Color(0xFFF1F3F8),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    context.tr(addition.name),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: mutedColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedPrice = _selectedPrice;
+    final selectedUnitPrice = _parsePrice(selectedPrice) + _selectedAdditionsTotal;
     final isOutOfStock = !_isProductAvailable;
     final stock = isOutOfStock ? 'Out of Stock' : 'Available';
     final stockColor = isOutOfStock ? AppColors.error : AppColors.success;
@@ -579,6 +899,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   ),
                   const SizedBox(height: 20),
                   _buildVariantSelectors(isDark: isDark),
+                  if (_productAdditions.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    _buildAdditionsButton(isDark: isDark, mutedColor: mutedColor),
+                  ],
                   const SizedBox(height: 20),
                   _InfoCard(
                     isDark: isDark,
@@ -601,7 +925,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       bottomNavigationBar: _BottomAddToCartBar(
         isDark: isDark,
         quantity: quantity,
-        price: _parsePrice(selectedPrice),
+        price: selectedUnitPrice,
         isOutOfStock: isOutOfStock,
         onDecrease: () {
           if (quantity > 0) setState(() => quantity--);

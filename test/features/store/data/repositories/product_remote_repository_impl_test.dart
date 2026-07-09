@@ -123,7 +123,7 @@ void main() {
       );
     });
 
-    test('maps backend product category, market, and variant price', () async {
+    test('maps backend product market and variant price range', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.path, '/home/products/');
         return {
@@ -140,9 +140,9 @@ void main() {
           expect(product.id, '42');
           expect(product.title, 'Red Apple');
           expect(product.brand, 'Fresh Market');
-          expect(product.price, '120.00 - 180.00');
-          expect(product.code, 'SKU-1');
-          expect(product.tags, contains('Fruit'));
+          expect(product.price, '120.00 ~ 180.00');
+          expect(product.code, isNull);
+          expect(product.tags, isNot(contains('Fruit')));
         },
         failure: (failure) => fail(failure.message),
       );
@@ -220,7 +220,6 @@ Map<String, Object?> _backendProduct() {
     'description': 'Fresh fruit',
     'image': '',
     'discount': '10.00',
-    'category': {'id': 3, 'name': 'Fruit'},
     'market': {'id': 9, 'name': 'Fresh Market'},
     'variants': [
       {'id': 1, 'price': '120.00', 'sku': 'SKU-1'},

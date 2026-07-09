@@ -38,6 +38,100 @@ class ProductVariantData {
   }
 }
 
+class ProductAttributeOptionData {
+  const ProductAttributeOptionData({
+    required this.id,
+    required this.value,
+  });
+
+  final String id;
+  final String value;
+
+  factory ProductAttributeOptionData.fromJson(Map<String, dynamic> json) {
+    return ProductAttributeOptionData(
+      id: json['id']?.toString() ?? '',
+      value: json['value']?.toString() ?? '',
+    );
+  }
+
+  Map<String, Object?> toJson() => {'id': id, 'value': value};
+}
+
+class ProductAttributeData {
+  const ProductAttributeData({
+    required this.id,
+    required this.name,
+    this.options = const [],
+  });
+
+  final String id;
+  final String name;
+  final List<ProductAttributeOptionData> options;
+
+  factory ProductAttributeData.fromJson(Map<String, dynamic> json) {
+    final rawOptions = json['options'];
+    return ProductAttributeData(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      options: rawOptions is List
+          ? rawOptions
+                .whereType<Map<String, dynamic>>()
+                .map(ProductAttributeOptionData.fromJson)
+                .where((option) => option.value.trim().isNotEmpty)
+                .toList(growable: false)
+          : const [],
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'options': options.map((option) => option.toJson()).toList(),
+    };
+  }
+}
+
+class ProductAdditionData {
+  const ProductAdditionData({
+    required this.id,
+    required this.name,
+    required this.price,
+    this.classification = '',
+  });
+
+  final String id;
+  final String name;
+  final String price;
+  final String classification;
+
+  factory ProductAdditionData.fromJson(Map<String, dynamic> json) {
+    final classification = _mapFromJson(json['classification']);
+    return ProductAdditionData(
+      id: json['id']?.toString() ?? '',
+      name:
+          json['name_ar']?.toString() ??
+          json['name']?.toString() ??
+          json['name_en']?.toString() ??
+          '',
+      price: json['price']?.toString() ?? '',
+      classification:
+          json['classification_name']?.toString() ??
+          classification?['name']?.toString() ??
+          '',
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'price': price,
+      'classification': classification,
+    };
+  }
+}
+
 class ProductData {
   const ProductData({
     this.id,
@@ -62,6 +156,10 @@ class ProductData {
     this.marketId,
     this.marketClassificationId,
     this.variants = const [],
+    this.attributes = const [],
+    this.additions = const [],
+    this.theme = 'other',
+    this.isPopular = false,
   });
 
   final String? id;
@@ -86,6 +184,10 @@ class ProductData {
   final String? marketId;
   final String? marketClassificationId;
   final List<ProductVariantData> variants;
+  final List<ProductAttributeData> attributes;
+  final List<ProductAdditionData> additions;
+  final String theme;
+  final bool isPopular;
 
   ProductVariantData? get defaultVariant =>
       variants.isEmpty ? null : variants.first;
@@ -128,36 +230,32 @@ class ProductData {
         .map(ProductVariantData.fromJson)
         .where((variant) => variant.id.isNotEmpty || variant.price.isNotEmpty)
         .toList(growable: false);
-    final firstVariant = parsedVariants.firstOrNull;
     final variantPrices = parsedVariants
         .map((variant) => variant.price)
         .where((price) => price.trim().isNotEmpty)
         .toList(growable: false);
     final price =
         json['price']?.toString() ??
-        (variantPrices.isEmpty ? '' : variantPrices.join(' - '));
+        (variantPrices.isEmpty ? '' : variantPrices.join(' ~ '));
 
     return ProductData(
       id: json['id']?.toString(),
       code:
           json['code']?.toString() ??
           json['productCode']?.toString() ??
-          json['product_code']?.toString() ??
-          firstVariant?.sku,
+          json['product_code']?.toString(),
       slug: json['slug']?.toString(),
       image: _resolveImage(json['image'] ?? json['imageUrl']),
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
       brand:
           json['brand']?.toString() ??
           market?['name']?.toString() ??
-          category?['name']?.toString() ??
           '',
       price: price,
       oldPrice: json['oldPrice']?.toString() ?? json['old_price']?.toString(),
       discount: json['discount']?.toString() ?? '',
       tags: [
         ...tags,
-        if (category?['name'] != null) category!['name'].toString(),
         if (market?['name'] != null) market!['name'].toString(),
       ],
       description: json['description']?.toString() ?? '',
@@ -186,6 +284,17 @@ class ProductData {
           json['market_classification_id']?.toString() ??
           market?['classification_id']?.toString(),
       variants: parsedVariants,
+      attributes: json['attributes'] is List
+          ? (json['attributes'] as List)
+                .whereType<Map<String, dynamic>>()
+                .map(ProductAttributeData.fromJson)
+                .where((attribute) => attribute.name.trim().isNotEmpty)
+                .toList(growable: false)
+          : const [],
+      additions: _additionsFromJson(json['additions']),
+      theme: json['theme']?.toString() ?? 'other',
+      isPopular:
+          _boolFromJson(json['isPopular'] ?? json['is_popular']) ?? false,
     );
   }
 
@@ -213,11 +322,15 @@ class ProductData {
       'marketId': marketId,
       'marketClassificationId': marketClassificationId,
       'variants': variants.map((variant) => variant.toJson()).toList(),
+      'attributes': attributes.map((attribute) => attribute.toJson()).toList(),
+      'additions': additions.map((addition) => addition.toJson()).toList(),
+      'theme': theme,
+      'isPopular': isPopular,
     };
   }
 
   double get priceValue {
-    final firstPrice = price.split('-').first.trim();
+    final firstPrice = price.split(RegExp(r'[-~]')).first.trim();
     return double.tryParse(
           firstPrice.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', ''),
         ) ??
@@ -257,6 +370,27 @@ Map<String, String> _attributeValuesFromJson(Object? value) {
     return attributes;
   }
   return const {};
+}
+
+List<ProductAdditionData> _additionsFromJson(Object? value) {
+  if (value is! List) return const [];
+  return value
+      .map((item) {
+        if (item is Map<String, dynamic>) {
+          return ProductAdditionData.fromJson(item);
+        }
+        if (item is Map) {
+          return ProductAdditionData.fromJson(
+            item.map((key, value) => MapEntry(key.toString(), value)),
+          );
+        }
+        final id = item?.toString().trim() ?? '';
+        if (id.isEmpty) return null;
+        return ProductAdditionData(id: id, name: '#$id', price: '');
+      })
+      .whereType<ProductAdditionData>()
+      .where((addition) => addition.name.trim().isNotEmpty)
+      .toList(growable: false);
 }
 
 Map<String, String> _attributeValuesFromList(List<Object?> values) {

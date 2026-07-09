@@ -53,13 +53,36 @@ void main() {
         ],
       });
 
-      expect(product.price, '980.00 - 1100.00');
+      expect(product.price, '980.00 ~ 1100.00');
       expect(product.variants, hasLength(2));
       expect(product.defaultVariantId, '23');
       expect(product.defaultVariantPrice, '980.00');
-      expect(product.code, 'SEED-08-1');
+      expect(product.code, isNull);
       expect(product.variants.first.attributeValues['size'], 'Medium');
       expect(product.toJson()['variants'], isA<List>());
+    });
+
+    test('parses theme, popularity, and product-owned attributes', () {
+      final product = ProductData.fromJson({
+        'id': 7,
+        'name': 'Shoe',
+        'theme': 'clothing',
+        'is_popular': true,
+        'attributes': [
+          {
+            'id': 1,
+            'name': 'النوع',
+            'options': [
+              {'id': 2, 'value': 'رجالي'},
+            ],
+          },
+        ],
+      });
+
+      expect(product.theme, 'clothing');
+      expect(product.isPopular, isTrue);
+      expect(product.attributes.single.name, 'النوع');
+      expect(product.attributes.single.options.single.value, 'رجالي');
     });
 
     test('parses flat Django product detail variant attributes', () {

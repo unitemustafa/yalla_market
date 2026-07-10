@@ -34,13 +34,16 @@ String homeRegionLabel(BuildContext context, CityData? city) {
 }
 
 class HomeView extends StatefulWidget {
-  const HomeView({super.key});
+  const HomeView({super.key, this.focusOfferId});
+
+  final String? focusOfferId;
 
   @override
   State<HomeView> createState() => _HomeViewState();
 }
 
 class _HomeViewState extends State<HomeView> {
+  bool _reportedMissingOffer = false;
   @override
   void initState() {
     super.initState();
@@ -61,6 +64,17 @@ class _HomeViewState extends State<HomeView> {
     }
     if (homeState is HomeFailure && homeState.data == null) {
       return;
+    }
+    final focusOfferId = widget.focusOfferId;
+    final offers = homeState.data?.offers ?? const [];
+    if (focusOfferId != null &&
+        focusOfferId.isNotEmpty &&
+        offers.every((offer) => offer.id != focusOfferId) &&
+        !_reportedMissingOffer) {
+      _reportedMissingOffer = true;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('هذا العرض لم يعد متاحًا')));
     }
     await context.read<ProductCatalogCubit>().loadProducts(force: force);
     if (!mounted) return;
@@ -133,7 +147,10 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 22),
                       ],
-                      PromoSlider(offers: home?.offers),
+                      PromoSlider(
+                        offers: home?.offers,
+                        focusOfferId: widget.focusOfferId,
+                      ),
                       const SizedBox(height: 24),
                       const SectionHeading(
                         title: 'Popular Categories',

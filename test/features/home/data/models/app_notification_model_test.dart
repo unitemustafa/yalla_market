@@ -40,5 +40,23 @@ void main() {
         expect(notification.createdAt.millisecondsSinceEpoch, 0);
       },
     );
+
+    test('parses structured offer and order routing fields', () {
+      final notification = AppNotificationModel.fromJson({
+        'id': 3,
+        'audience': 'client',
+        'type': 'offer_created',
+        'title': 'عرض جديد',
+        'message': 'افتح العرض',
+        'offer_id': '15',
+        'order_id': '123',
+        'data': {'action': 'open_offer', 'event': 'offer_created'},
+        'created_at': '2026-07-10T10:30:00Z',
+      });
+
+      expect(notification.offerId, 15);
+      expect(notification.orderId, 123);
+      expect(notification.data['action'], 'open_offer');
+    });
   });
 }

@@ -28,6 +28,10 @@ final class AuthSessionExpired extends AuthState {
   const AuthSessionExpired();
 }
 
+final class AuthAccountDisabled extends AuthState {
+  const AuthAccountDisabled();
+}
+
 final class AuthFailure extends AuthState {
   const AuthFailure(this.message);
 

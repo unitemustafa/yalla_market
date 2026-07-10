@@ -44,6 +44,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
 
     return _guard(
       () async {
+        await _apiClient.get<Object?>('/auth/me');
         final payload = await _apiClient.post<Object?>(
           '/orders/create/',
           data: payloadResult.payload,
@@ -90,6 +91,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
     }
 
     return _guard(() async {
+      await _apiClient.get<Object?>('/auth/me');
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/orders/preview/',
         data: payloadResult.payload,

@@ -4,6 +4,7 @@ import 'package:get_it/get_it.dart';
 import '../network/api_client.dart';
 import '../network/dio_factory.dart';
 import '../storage/token_store.dart';
+import '../notifications/push_notification_service.dart';
 
 void registerCoreDependencies(GetIt sl) {
   // [Dio singleton] — shared across all regular API calls.
@@ -19,6 +20,11 @@ void registerCoreDependencies(GetIt sl) {
   if (!sl.isRegistered<ApiClient>()) {
     sl.registerLazySingleton(
       () => ApiClient(dio: sl<Dio>(), tokenStore: sl<TokenStore>()),
+    );
+  }
+  if (!sl.isRegistered<PushNotificationService>()) {
+    sl.registerLazySingleton(
+      () => PushNotificationService(sl<ApiClient>(), sl<TokenStore>()),
     );
   }
 }

@@ -1,7 +1,14 @@
 class NavigationMenuRouteArgs {
-  const NavigationMenuRouteArgs({this.initialIndex = 0});
+  const NavigationMenuRouteArgs({this.initialIndex = 0, this.focusOfferId});
 
   final int initialIndex;
+  final String? focusOfferId;
+}
+
+class OrderFocusRouteArgs {
+  const OrderFocusRouteArgs({required this.orderId});
+
+  final int orderId;
 }
 
 class AllProductsRouteArgs {

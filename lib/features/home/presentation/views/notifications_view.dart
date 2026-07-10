@@ -7,6 +7,8 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
+import '../../../../core/routing/app_route_arguments.dart';
+import '../../../../core/routing/app_routes.dart';
 import '../../domain/entities/app_notification.dart';
 import '../cubit/notification_cubit.dart';
 import '../cubit/notification_state.dart';
@@ -49,19 +51,39 @@ class _NotificationsViewState extends State<NotificationsView> {
 
   Future<void> _openNotification(AppNotification notification) async {
     final wasUnread = !notification.isRead;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
-        return _NotificationDetailSheet(
-          notification: notification,
-          isDark: isDark,
-        );
-      },
-    );
+    final action = notification.data['action']?.toString();
+    if (action == 'open_order' && notification.orderId != null) {
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.orders,
+        arguments: OrderFocusRouteArgs(orderId: notification.orderId!),
+      );
+    } else if (action == 'open_offer' && notification.offerId != null) {
+      await Navigator.pushNamedAndRemoveUntil(
+        context,
+        AppRoutes.navigationMenu,
+        (route) => false,
+        arguments: NavigationMenuRouteArgs(
+          initialIndex: 0,
+          focusOfferId: notification.offerId.toString(),
+        ),
+      );
+    } else {
+      showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.transparent,
+        builder: (context) {
+          final isDark = Theme.of(context).brightness == Brightness.dark;
+          return _NotificationDetailSheet(
+            notification: notification,
+            isDark: isDark,
+          );
+        },
+      );
+    }
 
+    if (!mounted) return;
     if (!wasUnread) return;
     final success = await context
         .read<NotificationCubit>()

@@ -9,6 +9,8 @@ class AppNotificationModel extends AppNotification {
     required super.message,
     required super.createdAt,
     super.orderId,
+    super.offerId,
+    super.data,
     super.isRead,
     super.isBlocking,
     super.isResolved,
@@ -22,6 +24,10 @@ class AppNotificationModel extends AppNotification {
       title: _stringFromJson(json['title']),
       message: _stringFromJson(json['message']),
       orderId: _intFromJson(json['order_id']),
+      offerId: _intFromJson(json['offer_id']),
+      data: json['data'] is Map
+          ? Map<String, dynamic>.from(json['data'] as Map)
+          : const {},
       isRead: _boolFromJson(json['is_read']),
       isBlocking: _boolFromJson(json['is_blocking']),
       isResolved: _boolFromJson(json['is_resolved']),
@@ -37,6 +43,7 @@ bool _boolFromJson(Object? value) => value is bool ? value : false;
 int? _intFromJson(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
   return null;
 }
 

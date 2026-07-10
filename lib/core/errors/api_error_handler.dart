@@ -12,6 +12,9 @@ abstract final class ApiErrorHandler {
   }
 
   static Failure _handleDioException(DioException error) {
+    if (_isAccountInactive(error.response?.data)) {
+      return const AccountInactiveFailure();
+    }
     final statusCode = error.response?.statusCode;
     final message =
         _messageFromResponse(error.response) ?? _fallbackMessage(error);
@@ -36,6 +39,10 @@ abstract final class ApiErrorHandler {
         statusCode: statusCode,
       ),
     };
+  }
+
+  static bool _isAccountInactive(Object? data) {
+    return data is Map && data['code']?.toString() == 'account_inactive';
   }
 
   static Failure _failureFromStatusCode(

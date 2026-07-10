@@ -12,6 +12,7 @@ class AuthUser {
     this.gender,
     this.birthDate,
     this.usernameChangedAt,
+    this.isActive = true,
   });
 
   final String id;
@@ -26,6 +27,7 @@ class AuthUser {
   final String? gender;
   final DateTime? birthDate;
   final DateTime? usernameChangedAt;
+  final bool isActive;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
@@ -52,6 +54,7 @@ class AuthUser {
       usernameChangedAt: _dateFromString(
         json['usernameChangedAt'] ?? json['username_changed_at'],
       ),
+      isActive: json['is_active'] as bool? ?? json['isActive'] as bool? ?? true,
     );
   }
 
@@ -69,6 +72,7 @@ class AuthUser {
       'gender': gender,
       'birthDate': birthDate?.toIso8601String(),
       'usernameChangedAt': usernameChangedAt?.toIso8601String(),
+      'isActive': isActive,
     };
   }
 
@@ -85,6 +89,7 @@ class AuthUser {
     String? gender,
     DateTime? birthDate,
     DateTime? usernameChangedAt,
+    bool? isActive,
   }) {
     return AuthUser(
       id: id ?? this.id,
@@ -99,6 +104,7 @@ class AuthUser {
       gender: gender ?? this.gender,
       birthDate: birthDate ?? this.birthDate,
       usernameChangedAt: usernameChangedAt ?? this.usernameChangedAt,
+      isActive: isActive ?? this.isActive,
     );
   }
 }

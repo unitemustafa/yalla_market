@@ -20,9 +20,14 @@ import '../../../wishlist/presentation/views/wishlist_view.dart';
 import '../../../personalization/presentation/views/settings/settings_view.dart';
 
 class NavigationMenuView extends StatefulWidget {
-  const NavigationMenuView({super.key, this.initialIndex = 0});
+  const NavigationMenuView({
+    super.key,
+    this.initialIndex = 0,
+    this.focusOfferId,
+  });
 
   final int initialIndex;
+  final String? focusOfferId;
 
   @override
   State<NavigationMenuView> createState() => _NavigationMenuViewState();
@@ -54,16 +59,17 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
     ),
   ];
 
-  final screens = [
-    const HomeView(),
-    const StoreView(), // Store
-    const WishlistView(), // Wishlist
-    const SettingsView(), // Profile
-  ];
+  late final List<Widget> screens;
 
   @override
   void initState() {
     super.initState();
+    screens = [
+      HomeView(focusOfferId: widget.focusOfferId),
+      const StoreView(),
+      const WishlistView(),
+      const SettingsView(),
+    ];
     selectedIndex = widget.initialIndex.clamp(0, screens.length - 1).toInt();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _runOneTimeGpsSuggestion();

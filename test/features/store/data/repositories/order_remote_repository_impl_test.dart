@@ -9,6 +9,32 @@ import '../../../../helpers/fake_api_client.dart';
 
 void main() {
   group('OrderRemoteRepositoryImpl', () {
+    test('preflights auth/me immediately before preview and create', () async {
+      final apiClient = FakeApiClient((request) {
+        if (request.path == '/orders/preview/') return _previewPayload;
+        if (request.path == '/orders/create/') return _createdOrderPayload;
+        return <String, dynamic>{'is_active': true};
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      await repository.previewOrder(
+        cartItems: const [_cartItem],
+        addressId: _address.id!,
+      );
+      await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+        cartItems: const [_cartItem],
+      );
+
+      expect(apiClient.requests.map((request) => request.path), [
+        '/auth/me',
+        '/orders/preview/',
+        '/auth/me',
+        '/orders/create/',
+      ]);
+    });
+
     test('sends POST orders create with cart products and offers', () async {
       late FakeApiRequest capturedRequest;
       final apiClient = FakeApiClient((request) {

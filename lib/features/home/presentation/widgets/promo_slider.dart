@@ -22,15 +22,17 @@ import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../store/domain/entities/product_data.dart';
 
 class PromoSlider extends StatefulWidget {
-  const PromoSlider({super.key, this.offers});
+  const PromoSlider({super.key, this.offers, this.focusOfferId});
 
   final List<HomeOfferData>? offers;
+  final String? focusOfferId;
 
   @override
   State<PromoSlider> createState() => _PromoSliderState();
 }
 
 class _PromoSliderState extends State<PromoSlider> {
+  bool _handledFocusedOffer = false;
   static const _offers = [
     _PromoOfferData(
       icon: AppIcons.box,
@@ -360,6 +362,22 @@ class _PromoSliderState extends State<PromoSlider> {
       _currentIndex = 0;
     }
     if (offers.isEmpty) return const SizedBox.shrink();
+    final focusOfferId = widget.focusOfferId;
+    if (!_handledFocusedOffer &&
+        focusOfferId != null &&
+        focusOfferId.isNotEmpty) {
+      final focusedIndex = offers.indexWhere(
+        (offer) => offer.offerId == focusOfferId,
+      );
+      if (focusedIndex >= 0) {
+        _handledFocusedOffer = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _pageController.jumpToPage(focusedIndex);
+          _showOfferSheet(context, offers[focusedIndex]);
+        });
+      }
+    }
 
     return Column(
       children: [

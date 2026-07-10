@@ -31,6 +31,11 @@ final class UnauthorizedFailure extends Failure {
   const UnauthorizedFailure(super.message, {super.statusCode});
 }
 
+final class AccountInactiveFailure extends Failure {
+  const AccountInactiveFailure()
+    : super('تم إيقاف حسابك. تواصل مع الدعم.', statusCode: 403);
+}
+
 final class UnknownFailure extends Failure {
   const UnknownFailure(super.message, {super.statusCode});
 }

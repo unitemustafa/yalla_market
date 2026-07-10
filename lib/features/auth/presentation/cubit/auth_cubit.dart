@@ -6,6 +6,8 @@ import '../../../../core/network/api_result.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routing/auth_guard.dart';
 import '../../../../core/session/session_expired_notifier.dart';
+import '../../../../core/session/account_inactive_notifier.dart';
+import '../../../../core/notifications/push_notification_service.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/auth_usecases.dart';
@@ -15,14 +17,27 @@ class AuthCubit extends Cubit<AuthState> {
   AuthCubit(
     this._authUseCases, {
     SessionExpiredNotifier? sessionExpiredNotifier,
+    AccountInactiveNotifier? accountInactiveNotifier,
+    PushNotificationService? pushNotificationService,
   }) : _sessionExpiredNotifier =
            sessionExpiredNotifier ?? SessionExpiredNotifier.instance,
-       super(const AuthInitial()) {
+       _accountInactiveNotifier =
+           accountInactiveNotifier ?? AccountInactiveNotifier.instance,
+       _pushNotificationService = pushNotificationService,
+       super(
+         (accountInactiveNotifier ?? AccountInactiveNotifier.instance)
+                 .isInactive
+             ? const AuthAccountDisabled()
+             : const AuthInitial(),
+       ) {
     _sessionExpiredNotifier.addListener(_handleSessionExpired);
+    _accountInactiveNotifier.addListener(_handleInactiveAccount);
   }
 
   final AuthUseCases _authUseCases;
   final SessionExpiredNotifier _sessionExpiredNotifier;
+  final AccountInactiveNotifier _accountInactiveNotifier;
+  final PushNotificationService? _pushNotificationService;
   AuthSession? _pendingSignupSession;
   String? _lastProfileUpdateError;
   String? _lastPasswordResetError;
@@ -39,6 +54,8 @@ class AuthCubit extends Cubit<AuthState> {
         change.nextState is AuthSignupSucceeded ||
         change.nextState is AuthSessionExpired) {
       AuthGuard.clearAuthentication();
+    } else if (change.nextState is AuthAccountDisabled) {
+      AuthGuard.clearAuthentication();
     }
   }
 
@@ -52,7 +69,19 @@ class AuthCubit extends Cubit<AuthState> {
   @override
   Future<void> close() {
     _sessionExpiredNotifier.removeListener(_handleSessionExpired);
+    _accountInactiveNotifier.removeListener(_handleInactiveAccount);
     return super.close();
+  }
+
+  void _handleInactiveAccount() {
+    _pendingSignupSession = null;
+    AuthGuard.clearAuthentication();
+    if (!isClosed) emit(const AuthAccountDisabled());
+  }
+
+  Future<bool> validateSession() async {
+    if (state is! AuthAuthenticated) return false;
+    return await refreshProfile() != null;
   }
 
   void _handleSessionExpired() {
@@ -87,10 +116,15 @@ class AuthCubit extends Cubit<AuthState> {
           return false;
         }
 
+        if (!session.user.isActive) {
+          _accountInactiveNotifier.notifyInactive();
+          return false;
+        }
         emit(AuthAuthenticated(session));
         return true;
       },
       failure: (_) {
+        if (_accountInactiveNotifier.isInactive) return false;
         emit(const AuthInitial());
         return false;
       },
@@ -114,9 +148,11 @@ class AuthCubit extends Cubit<AuthState> {
     );
     result.when(
       success: (session) {
+        _accountInactiveNotifier.reset();
         emit(AuthAuthenticated(session));
       },
       failure: (failure) {
+        if (_accountInactiveNotifier.isInactive) return;
         emit(AuthFailure(failure.message));
       },
     );
@@ -326,6 +362,7 @@ class AuthCubit extends Cubit<AuthState> {
 
   Future<void> logout() async {
     _pendingSignupSession = null;
+    await _pushNotificationService?.unregisterCurrentDevice();
     final result = await _authUseCases.logout();
     result.when(
       success: (_) => emit(const AuthInitial()),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import '../../features/auth/presentation/views/forget_password_view.dart';
 import '../../features/auth/presentation/views/login_view.dart';
+import '../../features/auth/presentation/views/account_disabled_view.dart';
 import '../../features/auth/presentation/views/password_reset_sent_view.dart';
 import '../../features/auth/presentation/views/reset_password_view.dart';
 import '../../features/auth/presentation/views/signup_view.dart';
@@ -73,6 +74,9 @@ class AppRouter {
       case AppRoutes.login:
         return _buildRoute(const LoginView(), settings);
 
+      case AppRoutes.accountDisabled:
+        return _buildRoute(const AccountDisabledView(), settings);
+
       case AppRoutes.signup:
         return _buildRoute(const SignupView(), settings);
 
@@ -104,7 +108,10 @@ class AppRouter {
       case AppRoutes.navigationMenu:
         final args = settings.arguments as NavigationMenuRouteArgs?;
         return _buildRoute(
-          NavigationMenuView(initialIndex: args?.initialIndex ?? 0),
+          NavigationMenuView(
+            initialIndex: args?.initialIndex ?? 0,
+            focusOfferId: args?.focusOfferId,
+          ),
           settings,
         );
 
@@ -189,7 +196,8 @@ class AppRouter {
         );
 
       case AppRoutes.orders:
-        return _buildRoute(const OrdersView(), settings);
+        final args = settings.arguments as OrderFocusRouteArgs?;
+        return _buildRoute(OrdersView(focusOrderId: args?.orderId), settings);
 
       case AppRoutes.appPreferences:
         return _buildRoute(const AppPreferencesView(), settings);

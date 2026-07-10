@@ -17,9 +17,10 @@ import 'widgets/custom_date_range_sheet.dart';
 import 'widgets/order_list_item.dart';
 
 class OrdersView extends StatefulWidget {
-  const OrdersView({super.key, this.useDemoOrders});
+  const OrdersView({super.key, this.useDemoOrders, this.focusOrderId});
 
   final bool? useDemoOrders;
+  final int? focusOrderId;
 
   @override
   State<OrdersView> createState() => _OrdersViewState();
@@ -39,8 +40,32 @@ class _OrdersViewState extends State<OrdersView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<OrderHistoryCubit>().loadOrders();
+      if (mounted) _loadAndFocusOrder();
     });
+  }
+
+  Future<void> _loadAndFocusOrder() async {
+    await context.read<OrderHistoryCubit>().loadOrders(
+      force: widget.focusOrderId != null,
+    );
+    if (!mounted || widget.focusOrderId == null) return;
+    final state = context.read<OrderHistoryCubit>().state;
+    final orders = switch (state) {
+      OrderHistoryReady(:final orders) => orders,
+      OrderHistoryFailure(:final orders) => orders,
+      OrderHistoryLoading(:final orders) => orders,
+      _ => const <OrderData>[],
+    };
+    final match = orders.where(
+      (order) => int.tryParse(order.id) == widget.focusOrderId,
+    );
+    if (match.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تعذر العثور على الطلب')));
+      return;
+    }
+    _showOrderDetails(context, _mapStoredOrder(match.first));
   }
 
   @override
@@ -148,6 +173,7 @@ class _OrdersViewState extends State<OrdersView> {
 
   _OrderData _mapStoredOrder(OrderData order) {
     return _OrderData(
+      apiId: order.id,
       status: order.statusLabel,
       placedAt: order.placedAt,
       date: _formatDate(order.placedAt),
@@ -284,7 +310,7 @@ class _OrdersViewState extends State<OrdersView> {
     return names[(month - 1).clamp(0, names.length - 1)];
   }
 
-  void _showOrderDetails(BuildContext context, _OrderData order) {
+  void _showOrderDetails(BuildContext context, _OrderData initialOrder) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final sheetColor = isDark ? const Color(0xFF222326) : Colors.white;
     final mutedColor = isDark
@@ -296,190 +322,206 @@ class _OrdersViewState extends State<OrdersView> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return SafeArea(
-          top: false,
-          child: Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-            decoration: BoxDecoration(
-              color: sheetColor,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(16),
-              ),
-              border: Border.all(
-                color: isDark
-                    ? Colors.white.withValues(alpha: 0.08)
-                    : Colors.black.withValues(alpha: 0.06),
-              ),
-            ),
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.sizeOf(context).height * 0.86,
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: mutedColor.withValues(alpha: 0.45),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
+        return BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
+          builder: (context, state) {
+            final source = switch (state) {
+              OrderHistoryReady(:final orders) => orders,
+              OrderHistoryFailure(:final orders) => orders,
+              OrderHistoryLoading(:final orders) => orders,
+              _ => const <OrderData>[],
+            };
+            final matches = source.where(
+              (item) => item.id == initialOrder.apiId,
+            );
+            final order = matches.isEmpty
+                ? initialOrder
+                : _mapStoredOrder(matches.first);
+            return SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                decoration: BoxDecoration(
+                  color: sheetColor,
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
                   ),
-                  const SizedBox(height: 18),
-                  Row(
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
+                  ),
+                ),
+                constraints: BoxConstraints(
+                  maxHeight: MediaQuery.sizeOf(context).height * 0.86,
+                ),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: order.statusColor.withValues(
-                            alpha: isDark ? 0.18 : 0.10,
+                      Center(
+                        child: Container(
+                          width: 44,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: mutedColor.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          AppIcons.box,
-                          color: order.statusColor,
-                          size: 24,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              context.tr(order.status),
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    color: order.statusColor,
-                                    fontWeight: FontWeight.w900,
-                                  ),
+                      const SizedBox(height: 18),
+                      Row(
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: order.statusColor.withValues(
+                                alpha: isDark ? 0.18 : 0.10,
+                              ),
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              order.orderId,
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: mutedColor,
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                            child: Icon(
+                              AppIcons.box,
+                              color: order.statusColor,
+                              size: 24,
                             ),
-                          ],
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.tr(order.status),
+                                  style: Theme.of(context).textTheme.titleLarge
+                                      ?.copyWith(
+                                        color: order.statusColor,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  order.orderId,
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: mutedColor,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (order.products.isNotEmpty) ...[
+                        const SizedBox(height: 18),
+                        order.marketSections.isNotEmpty
+                            ? _OrderMarketSectionsSection(
+                                sections: order.marketSections,
+                                mutedColor: mutedColor,
+                                isDark: isDark,
+                              )
+                            : _OrderProductsSection(
+                                products: order.products,
+                                itemCount: order.itemCount,
+                                mutedColor: mutedColor,
+                                isDark: isDark,
+                              ),
+                      ],
+                      const SizedBox(height: 18),
+                      if (order.isMultiMarket || order.marketCount > 1) ...[
+                        _DetailRow(
+                          icon: AppIcons.shop,
+                          label: 'Markets',
+                          value: order.marketSummary.trim().isNotEmpty
+                              ? order.marketSummary
+                              : '${order.marketCount} markets',
+                          mutedColor: mutedColor,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      if (order.reviewStatus.trim().isNotEmpty) ...[
+                        _DetailRow(
+                          icon: AppIcons.clipboard_tick,
+                          label: 'Review',
+                          value: order.reviewStatus,
+                          mutedColor: mutedColor,
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      _DetailRow(
+                        icon: AppIcons.money_3,
+                        label: 'Payment Method',
+                        value: order.paymentMethod,
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 12),
+                      _DetailRow(
+                        icon: AppIcons.truck_fast,
+                        label: 'Delivery type',
+                        value: order.deliveryType,
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 12),
+                      _DetailRow(
+                        icon: AppIcons.calendar,
+                        label: 'Order date',
+                        value: order.date,
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 12),
+                      _DetailRow(
+                        icon: AppIcons.calendar_1,
+                        label: 'Shipping date',
+                        value: order.shippingDate,
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 12),
+                      _DetailRow(
+                        icon: AppIcons.shopping_bag,
+                        label: 'Items',
+                        value: context.productCount(order.itemCount),
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 12),
+                      _DetailRow(
+                        icon: AppIcons.receipt_text,
+                        label: 'Total',
+                        value: order.total,
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 18),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            AppIcons.tick_circle,
+                            color: Colors.white,
+                          ),
+                          label: Text(
+                            context.tr('Done'),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  if (order.products.isNotEmpty) ...[
-                    const SizedBox(height: 18),
-                    order.marketSections.isNotEmpty
-                        ? _OrderMarketSectionsSection(
-                            sections: order.marketSections,
-                            mutedColor: mutedColor,
-                            isDark: isDark,
-                          )
-                        : _OrderProductsSection(
-                            products: order.products,
-                            itemCount: order.itemCount,
-                            mutedColor: mutedColor,
-                            isDark: isDark,
-                          ),
-                  ],
-                  const SizedBox(height: 18),
-                  if (order.isMultiMarket || order.marketCount > 1) ...[
-                    _DetailRow(
-                      icon: AppIcons.shop,
-                      label: 'Markets',
-                      value: order.marketSummary.trim().isNotEmpty
-                          ? order.marketSummary
-                          : '${order.marketCount} markets',
-                      mutedColor: mutedColor,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  if (order.reviewStatus.trim().isNotEmpty) ...[
-                    _DetailRow(
-                      icon: AppIcons.clipboard_tick,
-                      label: 'Review',
-                      value: order.reviewStatus,
-                      mutedColor: mutedColor,
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  _DetailRow(
-                    icon: AppIcons.money_3,
-                    label: 'Payment Method',
-                    value: order.paymentMethod,
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 12),
-                  _DetailRow(
-                    icon: AppIcons.truck_fast,
-                    label: 'Delivery type',
-                    value: order.deliveryType,
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 12),
-                  _DetailRow(
-                    icon: AppIcons.calendar,
-                    label: 'Order date',
-                    value: order.date,
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 12),
-                  _DetailRow(
-                    icon: AppIcons.calendar_1,
-                    label: 'Shipping date',
-                    value: order.shippingDate,
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 12),
-                  _DetailRow(
-                    icon: AppIcons.shopping_bag,
-                    label: 'Items',
-                    value: context.productCount(order.itemCount),
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 12),
-                  _DetailRow(
-                    icon: AppIcons.receipt_text,
-                    label: 'Total',
-                    value: order.total,
-                    mutedColor: mutedColor,
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      icon: const Icon(
-                        AppIcons.tick_circle,
-                        color: Colors.white,
-                      ),
-                      label: Text(
-                        context.tr('Done'),
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ),
+            );
+          },
         );
       },
     );
@@ -1043,6 +1085,7 @@ class _OrderProductRow extends StatelessWidget {
 
 class _OrderData {
   const _OrderData({
+    required this.apiId,
     required this.status,
     required this.placedAt,
     required this.date,
@@ -1060,6 +1103,7 @@ class _OrderData {
     this.marketSections = const [],
   });
 
+  final String apiId;
   final String status;
   final DateTime placedAt;
   final String date;
@@ -1082,6 +1126,7 @@ class _OrderData {
         : 'Shipment on the way';
 
     return _OrderData(
+      apiId: order.orderId,
       status: status,
       placedAt: _parseDemoOrderDate(order.date),
       date: order.date,

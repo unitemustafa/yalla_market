@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 
 import '../storage/token_store.dart';
 import '../session/session_expired_notifier.dart';
+import '../session/account_inactive_notifier.dart';
 import 'api_endpoints.dart';
 import 'dio_factory.dart';
 
@@ -10,11 +11,14 @@ class ApiClient {
     Dio? dio,
     Dio? refreshDio,
     SessionExpiredNotifier? sessionExpiredNotifier,
+    AccountInactiveNotifier? accountInactiveNotifier,
     required TokenStore tokenStore,
   }) : _dio = dio ?? DioFactory.create(),
        _tokenStore = tokenStore,
        _sessionExpiredNotifier =
            sessionExpiredNotifier ?? SessionExpiredNotifier.instance,
+       _accountInactiveNotifier =
+           accountInactiveNotifier ?? AccountInactiveNotifier.instance,
        _refreshDio = refreshDio ?? Dio(DioFactory.baseOptions()) {
     _dio.interceptors.add(
       QueuedInterceptorsWrapper(onRequest: _onRequest, onError: _onError),
@@ -25,6 +29,7 @@ class ApiClient {
   final Dio _refreshDio;
   final TokenStore _tokenStore;
   final SessionExpiredNotifier _sessionExpiredNotifier;
+  final AccountInactiveNotifier _accountInactiveNotifier;
 
   Future<T> get<T>(
     String path, {
@@ -83,6 +88,17 @@ class ApiClient {
       handler.next(options);
       return;
     }
+    if (_accountInactiveNotifier.isInactive &&
+        options.extra['allowAfterInactive'] != true) {
+      handler.reject(
+        DioException(
+          requestOptions: options,
+          type: DioExceptionType.cancel,
+          error: 'account_inactive',
+        ),
+      );
+      return;
+    }
 
     try {
       final tokens = await _tokenStore.read();
@@ -101,7 +117,7 @@ class ApiClient {
         options.headers['Authorization'] = 'Bearer ${refreshed.accessToken}';
       }
     } catch (error) {
-      await _expireSession();
+      if (!_accountInactiveNotifier.isInactive) await _expireSession();
       handler.reject(
         error is DioException
             ? error
@@ -121,6 +137,11 @@ class ApiClient {
     DioException error,
     ErrorInterceptorHandler handler,
   ) async {
+    if (_isAccountInactiveResponse(error.response?.data)) {
+      await _disableAccount();
+      handler.next(error);
+      return;
+    }
     final alreadyRetried = error.requestOptions.extra['authRetried'] == true;
     if (error.response?.statusCode != 401 ||
         alreadyRetried ||
@@ -143,17 +164,25 @@ class ApiClient {
       final retryResponse = await _dio.fetch<Object?>(request);
       handler.resolve(retryResponse);
     } catch (_) {
-      await _expireSession();
+      if (!_accountInactiveNotifier.isInactive) await _expireSession();
       handler.next(error);
     }
   }
 
   Future<StoredAuthTokens> _refreshTokens(StoredAuthTokens current) async {
-    final response = await _refreshDio.post<Object?>(
-      ApiEndpoints.refreshToken,
-      data: {'refreshToken': current.refreshToken},
-      options: Options(extra: const {'skipAuth': true}),
-    );
+    late final Response<Object?> response;
+    try {
+      response = await _refreshDio.post<Object?>(
+        ApiEndpoints.refreshToken,
+        data: {'refreshToken': current.refreshToken},
+        options: Options(extra: const {'skipAuth': true}),
+      );
+    } on DioException catch (error) {
+      if (_isAccountInactiveResponse(error.response?.data)) {
+        await _disableAccount();
+      }
+      rethrow;
+    }
     final payload = _unwrap<Map<String, dynamic>>(response.data);
     final next =
         _tokensFromJson(
@@ -175,6 +204,16 @@ class ApiClient {
   Future<void> _expireSession() async {
     await _tokenStore.clear();
     _sessionExpiredNotifier.notifyExpired();
+  }
+
+  Future<void> _disableAccount() async {
+    await _tokenStore.clear();
+    _accountInactiveNotifier.notifyInactive();
+  }
+
+  bool _isAccountInactiveResponse(Object? data) {
+    if (data is! Map) return false;
+    return data['code']?.toString() == 'account_inactive';
   }
 
   T _unwrap<T>(Object? data) {

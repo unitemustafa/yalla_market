@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_store.dart';
+import '../../../core/notifications/push_notification_service.dart';
 import '../../../features/auth/data/repositories/auth_remote_repository_impl.dart';
 import '../../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../../features/auth/domain/repositories/auth_repository.dart';
@@ -106,6 +107,11 @@ void registerAuthDependencies(GetIt sl) {
     );
   }
   if (!sl.isRegistered<AuthCubit>()) {
-    sl.registerFactory(() => AuthCubit(sl<AuthUseCases>()));
+    sl.registerFactory(
+      () => AuthCubit(
+        sl<AuthUseCases>(),
+        pushNotificationService: sl<PushNotificationService>(),
+      ),
+    );
   }
 }

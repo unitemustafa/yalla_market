@@ -3,9 +3,22 @@ class AppAssets {
 
   static const String _imagesPath = 'assets/images';
   static const String _logosPath = 'assets/logos';
+  static const String _placeholdersPath = '$_imagesPath/placeholders';
 
   static const String temporaryMarketPlaceholder =
       '$_imagesPath/temporary_market_placeholder.png';
+
+  // Frontend-only fallbacks for API images. These paths are never persisted
+  // or sent to the backend.
+  static const String defaultUserAvatar =
+      '$_placeholdersPath/default_user_avatar.png';
+  static const String defaultStore = '$_placeholdersPath/default_store.png';
+  static const String defaultCategory =
+      '$_placeholdersPath/default_category.png';
+  static const String defaultProduct = '$_placeholdersPath/default_product.png';
+  static const String defaultAddon = '$_placeholdersPath/default_addon.png';
+  static const String defaultOffer = '$_placeholdersPath/default_offer.png';
+  static const String defaultCourier = '$_placeholdersPath/default_courier.png';
 
   // Logos
   static const String appIconLogo = '$_logosPath/yallamarket_blacklogo.png';

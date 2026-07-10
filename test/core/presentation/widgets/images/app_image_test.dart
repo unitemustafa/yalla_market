@@ -130,11 +130,19 @@ void main() {
       expect(find.text('MA'), findsNothing);
     });
 
-    testWidgets('shows initials when no image is available', (tester) async {
+    testWidgets('shows the user placeholder when no image is available', (
+      tester,
+    ) async {
       await tester.pumpWidget(_wrap(const AppAvatar(initials: 'MA')));
 
-      expect(find.text('MA'), findsOneWidget);
-      expect(find.byType(Image), findsNothing);
+      final image = tester.widget<Image>(find.byType(Image));
+
+      expect(image.image, isA<AssetImage>());
+      expect(
+        (image.image as AssetImage).assetName,
+        AppAssets.defaultUserAvatar,
+      );
+      expect(find.text('MA'), findsNothing);
     });
   });
 }

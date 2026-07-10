@@ -348,6 +348,7 @@ class _ProductPeek extends StatelessWidget {
         ),
         child: AppImage(
           source: image,
+          fallbackType: AppImagePlaceholderType.product,
           fit: BoxFit.contain,
           cacheWidth: 116,
           cacheHeight: 156,

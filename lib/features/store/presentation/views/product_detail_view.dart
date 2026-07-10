@@ -195,7 +195,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   String _formatSinglePrice(String? price) {
-    return AppCurrency.formatPriceText(price?.split(RegExp(r'[-~]')).first.trim());
+    return AppCurrency.formatPriceText(
+      price?.split(RegExp(r'[-~]')).first.trim(),
+    );
   }
 
   double _parsePrice(String? price) {
@@ -348,8 +350,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                                               style: theme.textTheme.bodySmall
                                                   ?.copyWith(
                                                     color: mutedColor,
-                                                    fontWeight:
-                                                        FontWeight.w600,
+                                                    fontWeight: FontWeight.w600,
                                                   ),
                                             ),
                                         ],
@@ -438,8 +439,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                     padding: const EdgeInsets.all(12),
                     child: AppImage(
                       source: imagePath,
+                      fallbackType: AppImagePlaceholderType.product,
                       fit: BoxFit.contain,
-                      fallback: const Icon(AppIcons.image),
                     ),
                   ),
                 ),
@@ -815,7 +816,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final selectedPrice = _selectedPrice;
-    final selectedUnitPrice = _parsePrice(selectedPrice) + _selectedAdditionsTotal;
+    final selectedUnitPrice =
+        _parsePrice(selectedPrice) + _selectedAdditionsTotal;
     final isOutOfStock = !_isProductAvailable;
     final stock = isOutOfStock ? 'Out of Stock' : 'Available';
     final stockColor = isOutOfStock ? AppColors.error : AppColors.success;
@@ -901,7 +903,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   _buildVariantSelectors(isDark: isDark),
                   if (_productAdditions.isNotEmpty) ...[
                     const SizedBox(height: 4),
-                    _buildAdditionsButton(isDark: isDark, mutedColor: mutedColor),
+                    _buildAdditionsButton(
+                      isDark: isDark,
+                      mutedColor: mutedColor,
+                    ),
                   ],
                   const SizedBox(height: 20),
                   _InfoCard(

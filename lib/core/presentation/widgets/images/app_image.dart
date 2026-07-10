@@ -3,7 +3,18 @@ import 'dart:typed_data';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 
+import '../../../constants/app_assets.dart';
 import '../../../icons/app_icons.dart';
+
+enum AppImagePlaceholderType {
+  user,
+  store,
+  category,
+  product,
+  addon,
+  offer,
+  courier,
+}
 
 class AppImage extends StatelessWidget {
   const AppImage({
@@ -19,6 +30,7 @@ class AppImage extends StatelessWidget {
     this.cacheHeight,
     this.placeholder,
     this.fallback,
+    this.fallbackType,
     this.backgroundColor,
     this.semanticLabel,
     this.filterQuality = FilterQuality.medium,
@@ -35,6 +47,7 @@ class AppImage extends StatelessWidget {
   final int? cacheHeight;
   final Widget? placeholder;
   final Widget? fallback;
+  final AppImagePlaceholderType? fallbackType;
   final Color? backgroundColor;
   final String? semanticLabel;
   final FilterQuality filterQuality;
@@ -149,10 +162,34 @@ class AppImage extends StatelessWidget {
   }
 
   Widget _buildFallback(BuildContext context) {
-    final effectiveFallback = fallback ?? _DefaultImageFallback(size: height);
+    final effectiveFallback =
+        fallback ?? _placeholderAsset() ?? _DefaultImageFallback(size: height);
     if (width == null && height == null) return effectiveFallback;
 
     return SizedBox(width: width, height: height, child: effectiveFallback);
+  }
+
+  Widget? _placeholderAsset() {
+    final asset = switch (fallbackType) {
+      AppImagePlaceholderType.user => AppAssets.defaultUserAvatar,
+      AppImagePlaceholderType.store => AppAssets.defaultStore,
+      AppImagePlaceholderType.category => AppAssets.defaultCategory,
+      AppImagePlaceholderType.product => AppAssets.defaultProduct,
+      AppImagePlaceholderType.addon => AppAssets.defaultAddon,
+      AppImagePlaceholderType.offer => AppAssets.defaultOffer,
+      AppImagePlaceholderType.courier => AppAssets.defaultCourier,
+      null => null,
+    };
+    if (asset == null) return null;
+
+    return Image.asset(
+      asset,
+      fit: fit,
+      alignment: alignment,
+      semanticLabel: semanticLabel,
+      filterQuality: filterQuality,
+      errorBuilder: (_, _, _) => _DefaultImageFallback(size: height),
+    );
   }
 
   bool _isNetworkSource(String value) {

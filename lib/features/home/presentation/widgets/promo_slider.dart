@@ -592,6 +592,7 @@ class _PromoOfferCard extends StatelessWidget {
             Positioned.fill(
               child: AppImage(
                 source: offer.image,
+                fallbackType: AppImagePlaceholderType.offer,
                 fit: BoxFit.cover,
                 cacheWidth: 720,
                 cacheHeight: 316,
@@ -1599,6 +1600,7 @@ class _OfferProductRow extends StatelessWidget {
               ),
               child: AppImage(
                 source: product.image,
+                fallbackType: AppImagePlaceholderType.product,
                 fit: BoxFit.contain,
                 cacheWidth: 88,
                 cacheHeight: 88,

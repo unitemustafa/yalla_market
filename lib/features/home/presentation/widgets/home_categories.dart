@@ -123,11 +123,11 @@ class _HomeCategoryChip extends StatelessWidget {
             child: RepaintBoundary(
               child: AppImage(
                 source: data.image,
+                fallbackType: AppImagePlaceholderType.category,
                 fit: BoxFit.contain,
                 cacheWidth: 72,
                 cacheHeight: 72,
                 filterQuality: FilterQuality.low,
-                fallback: Icon(Icons.category_outlined, color: data.color),
               ),
             ),
           ),

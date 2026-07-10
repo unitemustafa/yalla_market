@@ -77,6 +77,7 @@ flutter:
     - assets/logos/
     - assets/fonts/
     - assets/images/temporary_market_placeholder.png
+    - assets/images/placeholders/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

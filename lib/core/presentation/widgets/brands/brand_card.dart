@@ -58,14 +58,10 @@ class BrandCard extends StatelessWidget {
                 ),
                 child: AppImage(
                   source: logo,
+                  fallbackType: AppImagePlaceholderType.store,
                   fit: BoxFit.contain,
                   cacheWidth: 80,
                   cacheHeight: 80,
-                  fallback: Icon(
-                    AppIcons.shop,
-                    color: isDark ? Colors.white : Colors.black,
-                    size: 20,
-                  ),
                 ),
               ),
               const SizedBox(width: 8),

@@ -109,6 +109,7 @@ class _CheckoutItemCard extends StatelessWidget {
             ),
             child: AppImage(
               source: item.image,
+              fallbackType: AppImagePlaceholderType.product,
               fit: BoxFit.contain,
               cacheWidth: 156,
               cacheHeight: 172,

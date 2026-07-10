@@ -197,6 +197,7 @@ class _CartViewState extends State<CartView> {
             ),
             child: AppImage(
               source: item.image,
+              fallbackType: AppImagePlaceholderType.product,
               fit: BoxFit.contain,
               cacheWidth: 172,
               cacheHeight: 184,

@@ -65,7 +65,7 @@ class AppAvatar extends StatelessWidget {
         ),
         cacheWidth: cacheSize,
         cacheHeight: cacheSize,
-        fallback: fallback,
+        fallbackType: AppImagePlaceholderType.user,
         placeholder: fallback,
       ),
     );

@@ -64,8 +64,8 @@ class _ProductGallery extends StatelessWidget {
                   width: double.infinity,
                   child: AppImage(
                     source: currentImage,
+                    fallbackType: AppImagePlaceholderType.product,
                     fit: BoxFit.cover,
-                    fallback: const Icon(AppIcons.image),
                   ),
                 ),
               ),
@@ -165,10 +165,10 @@ class _ThumbnailButton extends StatelessWidget {
         ),
         child: AppImage(
           source: asset,
+          fallbackType: AppImagePlaceholderType.product,
           fit: BoxFit.contain,
           cacheWidth: 128,
           cacheHeight: 128,
-          fallback: const Icon(AppIcons.image),
         ),
       ),
     );

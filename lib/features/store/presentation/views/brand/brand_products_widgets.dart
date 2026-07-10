@@ -43,10 +43,10 @@ class _LocalCategoryHeader extends StatelessWidget {
             ),
             child: AppImage(
               source: logo,
+              fallbackType: AppImagePlaceholderType.store,
               fit: BoxFit.contain,
               cacheWidth: 108,
               cacheHeight: 108,
-              fallback: const Icon(AppIcons.shop, color: AppColors.primary),
             ),
           ),
           const SizedBox(width: 12),
@@ -239,6 +239,7 @@ class _ShopPreviewTile extends StatelessWidget {
         ),
         child: AppImage(
           source: image,
+          fallbackType: AppImagePlaceholderType.product,
           fit: BoxFit.contain,
           cacheWidth: 164,
           cacheHeight: 164,
@@ -336,10 +337,10 @@ class _ShopLogo extends StatelessWidget {
       ),
       child: AppImage(
         source: shop.logo,
+        fallbackType: AppImagePlaceholderType.store,
         fit: BoxFit.contain,
         cacheWidth: (size * 2).round(),
         cacheHeight: (size * 2).round(),
-        fallback: Icon(AppIcons.shop, color: accentColor),
       ),
     );
   }

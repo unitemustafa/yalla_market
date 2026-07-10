@@ -200,6 +200,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         child: RepaintBoundary(
                           child: AppImage(
                             source: widget.image,
+                            fallbackType: AppImagePlaceholderType.product,
                             fit: BoxFit.contain,
                             cacheWidth: 260,
                             cacheHeight: 240,

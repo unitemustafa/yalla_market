@@ -76,14 +76,10 @@ class BrandShowcase extends StatelessWidget {
                       ),
                       child: AppImage(
                         source: logo,
+                        fallbackType: AppImagePlaceholderType.store,
                         fit: BoxFit.contain,
                         cacheWidth: 88,
                         cacheHeight: 88,
-                        fallback: Icon(
-                          AppIcons.shop,
-                          color: isDark ? Colors.white : Colors.black,
-                          size: 22,
-                        ),
                       ),
                     ),
                     const SizedBox(width: 10),
@@ -199,6 +195,7 @@ class _BrandTopProductImage extends StatelessWidget {
       ),
       child: AppImage(
         source: image,
+        fallbackType: AppImagePlaceholderType.product,
         fit: BoxFit.contain,
         cacheWidth: 220,
         cacheHeight: 208,

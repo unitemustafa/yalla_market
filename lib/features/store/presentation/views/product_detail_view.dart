@@ -56,6 +56,19 @@ String? _validDiscountLabel(String? discount) {
   return value;
 }
 
+String? _displayDiscountLabel(BuildContext context, String? discount) {
+  final value = _validDiscountLabel(discount);
+  if (value == null || !context.isArabicLanguage) return value;
+
+  final normalized = value.toLowerCase();
+  if (!normalized.contains('discount') && !normalized.contains('off')) {
+    return value;
+  }
+
+  final percentage = RegExp(r'(\d+(?:[.,]\d+)?\s*%)').firstMatch(value);
+  return percentage == null ? 'خصم' : 'خصم ${percentage.group(1)}';
+}
+
 class ProductDetailView extends StatefulWidget {
   const ProductDetailView({
     super.key,
@@ -569,7 +582,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         brand: _productBrand,
         price: _productPrice,
         oldPrice: _productOldPrice,
-        discount: _validDiscountLabel(_productDiscount),
+        discount: _displayDiscountLabel(context, _productDiscount),
       ),
     );
 
@@ -860,7 +873,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _PriceHeader(
-                    discount: _validDiscountLabel(_productDiscount),
+                    discount: _displayDiscountLabel(context, _productDiscount),
                     price: _formatSinglePrice(selectedPrice),
                     oldPrice: _formatPrice(_productOldPrice),
                     isDark: isDark,

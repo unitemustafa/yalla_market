@@ -20,7 +20,7 @@ class AccountDisabledView extends StatelessWidget {
                   const Icon(Icons.lock_person_rounded, size: 72),
                   const SizedBox(height: 20),
                   const Text(
-                    'تم إيقاف حسابك. تواصل مع الدعم.',
+                    'تم تعطيل حسابك. تواصل مع الدعم.',
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
                   ),

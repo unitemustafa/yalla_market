@@ -36,8 +36,14 @@ class _NotificationsViewState extends State<NotificationsView> {
     });
   }
 
-  Future<void> _refresh() {
-    return context.read<NotificationCubit>().refreshNotifications();
+  Future<void> _refresh() async {
+    await context.read<NotificationCubit>().refreshNotifications();
+    if (!mounted) return;
+    if (context.read<NotificationCubit>().state.errorMessage != null) return;
+    CustomSnackBar.showSuccess(
+      context: context,
+      title: 'Notifications updated',
+    );
   }
 
   Future<void> _markAllRead() async {
@@ -95,6 +101,25 @@ class _NotificationsViewState extends State<NotificationsView> {
     );
   }
 
+  Future<bool> _deleteNotification(AppNotification notification) async {
+    final success = await context.read<NotificationCubit>().deleteNotification(
+      notification.id,
+    );
+    if (!mounted) return success;
+    if (success) {
+      CustomSnackBar.showRemoved(
+        context: context,
+        title: 'Notification deleted',
+      );
+      return true;
+    }
+    CustomSnackBar.showError(
+      context: context,
+      title: 'Could not delete notification.',
+    );
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -129,8 +154,21 @@ class _NotificationsViewState extends State<NotificationsView> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     child: RefreshIndicator(
+                      color: AppColors.primary,
+                      backgroundColor: isDark
+                          ? AppColors.darkCardColor
+                          : Colors.white,
+                      strokeWidth: 2.6,
+                      displacement: 54,
+                      edgeOffset: 10,
+                      elevation: 2,
+                      semanticsLabel: context.tr('Refresh notifications'),
+                      triggerMode: RefreshIndicatorTriggerMode.anywhere,
                       onRefresh: _refresh,
                       child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(
+                          parent: BouncingScrollPhysics(),
+                        ),
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                         children: [
                           PageTopBar(
@@ -183,6 +221,11 @@ class _NotificationsViewState extends State<NotificationsView> {
                                   notification: notification,
                                   isDark: isDark,
                                   onTap: () => _openNotification(notification),
+                                  onDelete: () =>
+                                      _deleteNotification(notification),
+                                  onDeleted: () => context
+                                      .read<NotificationCubit>()
+                                      .removeNotification(notification.id),
                                 ),
                               ),
                           ],

@@ -5,11 +5,15 @@ class _NotificationCard extends StatelessWidget {
     required this.notification,
     required this.isDark,
     required this.onTap,
+    required this.onDelete,
+    required this.onDeleted,
   });
 
   final AppNotification notification;
   final bool isDark;
   final VoidCallback onTap;
+  final Future<bool> Function() onDelete;
+  final VoidCallback onDeleted;
 
   @override
   Widget build(BuildContext context) {
@@ -27,91 +31,122 @@ class _NotificationCard extends StatelessWidget {
               ? Colors.white.withValues(alpha: 0.08)
               : Colors.black.withValues(alpha: 0.05));
 
-    return Material(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
+    return Dismissible(
+      key: ValueKey('notification-${notification.id}'),
+      direction: DismissDirection.horizontal,
+      confirmDismiss: (_) => onDelete(),
+      onDismissed: (_) => onDeleted(),
+      background: _NotificationDeleteBackground(
+        alignment: AlignmentDirectional.centerStart,
+      ),
+      secondaryBackground: _NotificationDeleteBackground(
+        alignment: AlignmentDirectional.centerEnd,
+      ),
+      child: Material(
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
-        child: Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: panelColor,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: borderColor),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: presentation.color.withValues(
-                    alpha: isDark ? 0.18 : 0.10,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: panelColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: presentation.color.withValues(
+                      alpha: isDark ? 0.18 : 0.10,
+                    ),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  borderRadius: BorderRadius.circular(8),
+                  child: Icon(
+                    presentation.icon,
+                    color: presentation.color,
+                    size: 21,
+                  ),
                 ),
-                child: Icon(
-                  presentation.icon,
-                  color: presentation.color,
-                  size: 21,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            presentation.localizedTitle,
-                            style: Theme.of(context).textTheme.bodyMedium
-                                ?.copyWith(fontWeight: FontWeight.w900),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        if (!notification.isRead)
-                          Container(
-                            width: 8,
-                            height: 8,
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.circle,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              presentation.localizedTitle,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(fontWeight: FontWeight.w900),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      presentation.localizedMessage,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: mutedColor,
-                        height: 1.35,
-                        fontWeight: FontWeight.w600,
+                          if (!notification.isRead)
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.primary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      NotificationTimeFormatter.format(
-                        context,
-                        notification.createdAt,
+                      const SizedBox(height: 4),
+                      Text(
+                        presentation.localizedMessage,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: mutedColor,
+                          height: 1.35,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: mutedColor,
-                        fontWeight: FontWeight.w700,
+                      const SizedBox(height: 8),
+                      Text(
+                        NotificationTimeFormatter.format(
+                          context,
+                          notification.createdAt,
+                        ),
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: mutedColor,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+}
+
+class _NotificationDeleteBackground extends StatelessWidget {
+  const _NotificationDeleteBackground({required this.alignment});
+
+  final AlignmentDirectional alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      alignment: alignment,
+      padding: const EdgeInsetsDirectional.symmetric(horizontal: 22),
+      decoration: BoxDecoration(
+        color: AppColors.error,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: const Icon(AppIcons.trash, color: Colors.white),
     );
   }
 }

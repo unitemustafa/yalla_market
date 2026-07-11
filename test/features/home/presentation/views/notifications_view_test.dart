@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_state.dart';
 import 'package:yalla_market/features/home/presentation/formatters/notification_time_formatter.dart';
@@ -84,7 +85,7 @@ void main() {
       expect(find.byWidgetPredicate(isUnreadDot), findsOneWidget);
       expect(find.text('Delete selected'), findsNothing);
       expect(find.text('Selected notifications'), findsNothing);
-      expect(find.byType(Dismissible), findsNothing);
+      expect(find.byType(Dismissible), findsNWidgets(2));
       expect(find.text('Order confirmed'), findsNothing);
       expect(find.text('Popular categories updated'), findsNothing);
       expect(find.text('Shipment update'), findsNothing);
@@ -139,6 +140,33 @@ void main() {
       await tester.pump();
 
       expect(cubit.markAllCalls, 1);
+    });
+
+    testWidgets('swiping a notification deletes it from the list', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(id: 41, isRead: false)],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      await tester.drag(
+        find.byKey(const ValueKey('notification-41')),
+        const Offset(-500, 0),
+      );
+      await tester.pumpAndSettle();
+
+      expect(cubit.deleteCalls, 1);
+      expect(find.byKey(const ValueKey('notification-41')), findsNothing);
+      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.text('Notification deleted'), findsOneWidget);
     });
 
     testWidgets('opening unread notification marks it read once', (
@@ -234,11 +262,36 @@ void main() {
       final refreshIndicator = tester.widget<RefreshIndicator>(
         find.byType(RefreshIndicator),
       );
+      expect(refreshIndicator.color, AppColors.primary);
+      expect(refreshIndicator.displacement, 54);
       await refreshIndicator.onRefresh();
       await tester.pump();
 
       expect(cubit.refreshCalls, 1);
       expect(find.text('Your order #12 was rejected.'), findsOneWidget);
+      expect(find.text('Notifications updated'), findsOneWidget);
+    });
+
+    testWidgets('dragging down the notification list triggers refresh', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(isRead: false)],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      await tester.fling(find.byType(ListView), const Offset(0, 500), 1000);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+
+      expect(cubit.refreshCalls, 1);
     });
 
     testWidgets('unknown type renders raw title and message', (tester) async {

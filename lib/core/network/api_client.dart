@@ -138,7 +138,11 @@ class ApiClient {
     ErrorInterceptorHandler handler,
   ) async {
     if (_isAccountInactiveResponse(error.response?.data)) {
-      await _disableAccount();
+      if (_isClientLoginRequest(error.requestOptions)) {
+        await _tokenStore.clear();
+      } else {
+        await _disableAccount();
+      }
       handler.next(error);
       return;
     }
@@ -199,6 +203,10 @@ class ApiClient {
   bool _isRefreshRequest(RequestOptions options) {
     return options.path.endsWith(ApiEndpoints.refreshToken) ||
         options.extra['skipAuth'] == true;
+  }
+
+  bool _isClientLoginRequest(RequestOptions options) {
+    return options.path.endsWith(ApiEndpoints.clientLogin);
   }
 
   Future<void> _expireSession() async {

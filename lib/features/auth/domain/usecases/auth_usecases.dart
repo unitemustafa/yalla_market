@@ -23,7 +23,6 @@ class AuthUseCases {
     required this.updateProfile,
     required this.updateProfileAvatar,
     required this.logout,
-    required this.deleteAccountWithPassword,
   });
 
   final RestoreSavedSessionUseCase restoreSavedSession;
@@ -41,7 +40,6 @@ class AuthUseCases {
   final UpdateProfileUseCase updateProfile;
   final UpdateProfileAvatarUseCase updateProfileAvatar;
   final LogoutUseCase logout;
-  final DeleteAccountWithPasswordUseCase deleteAccountWithPassword;
 }
 
 class RestoreSavedSessionUseCase {
@@ -245,15 +243,5 @@ class LogoutUseCase {
 
   Future<ApiResult<bool>> call() {
     return _repository.logout();
-  }
-}
-
-class DeleteAccountWithPasswordUseCase {
-  const DeleteAccountWithPasswordUseCase(this._repository);
-
-  final AuthRepository _repository;
-
-  Future<ApiResult<bool>> call(String password) {
-    return _repository.deleteAccountWithPassword(password);
   }
 }

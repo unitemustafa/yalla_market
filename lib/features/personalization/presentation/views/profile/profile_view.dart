@@ -395,6 +395,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                         initials: profile.initials,
                         imageBytes: profile.avatarBytes,
                         imageUrl: profile.avatarUrl,
+                        gender: profile.gender,
                         textScale: 0.32,
                       ),
                       if (isUploadingAvatar)

@@ -8,7 +8,6 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../../core/routing/app_routes.dart';
-import '../profile/close_account_view.dart';
 
 part 'app_preferences_tiles.dart';
 part 'app_preferences_sheet_widgets.dart';
@@ -137,36 +136,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                                 ),
                               ),
                             ],
-                          ),
-                          const SizedBox(height: 18),
-                          SizedBox(
-                            width: double.infinity,
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const CloseAccountView(),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(AppIcons.trash, size: 18),
-                              label: Text(context.tr('Delete Account')),
-                              style: OutlinedButton.styleFrom(
-                                foregroundColor: AppColors.error,
-                                side: BorderSide(
-                                  color: AppColors.error.withValues(
-                                    alpha: 0.35,
-                                  ),
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 14,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                            ),
                           ),
                         ],
                       ),

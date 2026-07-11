@@ -12,6 +12,8 @@ class AppAssets {
   // or sent to the backend.
   static const String defaultUserAvatar =
       '$_placeholdersPath/default_user_avatar.png';
+  static const String defaultFemaleUserAvatar =
+      '$_placeholdersPath/default_admin_avatar_alt.png';
   static const String defaultStore = '$_placeholdersPath/default_store.png';
   static const String defaultCategory =
       '$_placeholdersPath/default_category.png';
@@ -29,6 +31,12 @@ class AppAssets {
 
   static String themedLogo({required bool isDarkMode}) {
     return isDarkMode ? darkThemeLogo : lightThemeLogo;
+  }
+
+  static String defaultAvatarForGender(String? gender) {
+    return gender?.trim().toLowerCase() == 'female'
+        ? defaultFemaleUserAvatar
+        : defaultUserAvatar;
   }
 
   // Demo image aliases intentionally share one bundled placeholder. Product,

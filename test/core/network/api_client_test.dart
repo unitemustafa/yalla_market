@@ -158,6 +158,48 @@ void main() {
     },
   );
 
+  test(
+    'inactive client-login response clears tokens without global disable',
+    () async {
+      final tokenStore = InMemoryTokenStore();
+      await tokenStore.save(
+        StoredAuthTokens(
+          accessToken: 'stale-access',
+          refreshToken: 'stale-refresh',
+          expiresAt: DateTime.now().add(const Duration(hours: 1)),
+        ),
+      );
+      final inactiveNotifier = AccountInactiveNotifier();
+      final dio = Dio()
+        ..httpClientAdapter = _Adapter(
+          (_) => ResponseBody.fromString(
+            '{"code":"account_inactive"}',
+            403,
+            headers: {
+              Headers.contentTypeHeader: [Headers.jsonContentType],
+            },
+          ),
+        );
+      final client = ApiClient(
+        dio: dio,
+        tokenStore: tokenStore,
+        accountInactiveNotifier: inactiveNotifier,
+      );
+
+      await expectLater(
+        client.post<Object?>(
+          '/auth/login/client',
+          data: {'identifier': 'm@example.com', 'password': 'Password123!'},
+          options: Options(extra: const {'skipAuth': true}),
+        ),
+        throwsA(isA<DioException>()),
+      );
+
+      expect(await tokenStore.read(), isNull);
+      expect(inactiveNotifier.isInactive, isFalse);
+    },
+  );
+
   test('account_inactive refresh does not emit session expired', () async {
     final tokenStore = InMemoryTokenStore();
     await tokenStore.save(

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/errors/api_error_handler.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
+import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_result.dart';
 import '../../../../core/storage/token_store.dart';
 import '../../domain/entities/auth_session.dart';
@@ -63,7 +64,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return _guard(() async {
       final identifier = _normalizeLoginIdentifier(email);
       final payload = await _apiClient.post<Map<String, dynamic>>(
-        '/auth/login/client',
+        ApiEndpoints.clientLogin,
         data: {'identifier': identifier, 'password': password},
         options: _skipAuthOptions,
       );
@@ -206,19 +207,6 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         await _tokenStore.clear();
         await _clearSessionOnlyActiveMarker();
       }
-      return true;
-    });
-  }
-
-  @override
-  Future<ApiResult<bool>> deleteAccountWithPassword(String password) {
-    return _guard(() async {
-      await _apiClient.delete<Object?>(
-        '/auth/me',
-        data: {'password': password},
-      );
-      await _tokenStore.clear();
-      await _clearSessionOnlyActiveMarker();
       return true;
     });
   }

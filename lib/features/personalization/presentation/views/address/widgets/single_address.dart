@@ -15,6 +15,8 @@ class SingleAddress extends StatelessWidget {
     required this.area,
     required this.deliveryPriceLabel,
     this.isAvailable = true,
+    this.unavailableLabel,
+    this.unavailableMessage,
     this.onTap,
     this.onEdit,
     this.onDelete,
@@ -28,6 +30,8 @@ class SingleAddress extends StatelessWidget {
   final String area;
   final String deliveryPriceLabel;
   final bool isAvailable;
+  final String? unavailableLabel;
+  final String? unavailableMessage;
   final VoidCallback? onTap;
   final VoidCallback? onEdit;
   final VoidCallback? onDelete;
@@ -112,19 +116,45 @@ class SingleAddress extends StatelessWidget {
                                       ),
                                 ),
                               ),
-                              AnimatedScale(
-                                duration: const Duration(milliseconds: 180),
-                                scale: effectiveSelected ? 1 : 0.82,
-                                child: Icon(
-                                  effectiveSelected
-                                      ? AppIcons.tick_circle5
-                                      : AppIcons.tick_circle,
-                                  color: effectiveSelected
-                                      ? AppColors.primary
-                                      : mutedColor.withValues(alpha: 0.46),
-                                  size: 20,
+                              if (unavailableLabel != null) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error.withValues(
+                                      alpha: isDark ? 0.22 : 0.12,
+                                    ),
+                                    borderRadius: BorderRadius.circular(7),
+                                  ),
+                                  child: Text(
+                                    context.tr(unavailableLabel!),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                          color: AppColors.error,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                  ),
                                 ),
-                              ),
+                              ],
+                              if (isAvailable)
+                                AnimatedScale(
+                                  duration: const Duration(milliseconds: 180),
+                                  scale: effectiveSelected ? 1 : 0.82,
+                                  child: Icon(
+                                    effectiveSelected
+                                        ? AppIcons.tick_circle5
+                                        : AppIcons.tick_circle,
+                                    color: effectiveSelected
+                                        ? AppColors.primary
+                                        : mutedColor.withValues(alpha: 0.46),
+                                    size: 20,
+                                  ),
+                                ),
                             ],
                           ),
                           const SizedBox(height: 4),
@@ -170,7 +200,10 @@ class SingleAddress extends StatelessWidget {
                 _InfoLine(icon: AppIcons.truck_fast, text: deliveryPriceLabel),
                 if (!isAvailable) ...[
                   const SizedBox(height: 8),
-                  _UnavailableNotice(isDark: isDark),
+                  _UnavailableNotice(
+                    isDark: isDark,
+                    message: unavailableMessage,
+                  ),
                 ],
                 const SizedBox(height: 12),
                 Row(
@@ -200,9 +233,10 @@ class SingleAddress extends StatelessWidget {
 }
 
 class _UnavailableNotice extends StatelessWidget {
-  const _UnavailableNotice({required this.isDark});
+  const _UnavailableNotice({required this.isDark, this.message});
 
   final bool isDark;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
@@ -215,7 +249,7 @@ class _UnavailableNotice extends StatelessWidget {
         const SizedBox(width: 6),
         Expanded(
           child: Text(
-            context.tr('Not available in the current region'),
+            context.tr(message ?? 'Not available in the current region'),
             style: TextStyle(
               color: color,
               fontSize: 12,

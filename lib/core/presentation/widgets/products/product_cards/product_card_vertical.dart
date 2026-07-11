@@ -28,6 +28,19 @@ String? _validDiscountLabel(String? discount) {
   return value;
 }
 
+String? _displayDiscountLabel(BuildContext context, String? discount) {
+  final value = _validDiscountLabel(discount);
+  if (value == null || !context.isArabicLanguage) return value;
+
+  final normalized = value.toLowerCase();
+  if (!normalized.contains('discount') && !normalized.contains('off')) {
+    return value;
+  }
+
+  final percentage = RegExp(r'(\d+(?:[.,]\d+)?\s*%)').firstMatch(value);
+  return percentage == null ? 'خصم' : 'خصم ${percentage.group(1)}';
+}
+
 class ProductCardVertical extends StatefulWidget {
   const ProductCardVertical({
     super.key,
@@ -80,7 +93,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
   }
 
   void _openProductDetails(BuildContext context) {
-    final discount = _validDiscountLabel(widget.discount);
+    final discount = _displayDiscountLabel(context, widget.discount);
 
     Navigator.pushNamed(
       context,
@@ -99,7 +112,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
   }
 
   void _toggleWishlist(BuildContext context, bool wasFavorite) {
-    final discount = _validDiscountLabel(widget.discount);
+    final discount = _displayDiscountLabel(context, widget.discount);
 
     final item = WishlistItem(
       productId: _resolvedProductId,
@@ -155,7 +168,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final discount = _validDiscountLabel(widget.discount);
+    final discount = _displayDiscountLabel(context, widget.discount);
 
     return Material(
       color: Colors.transparent,

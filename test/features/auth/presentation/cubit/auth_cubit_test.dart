@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/routing/auth_guard.dart';
+import 'package:yalla_market/core/session/account_inactive_notifier.dart';
 import 'package:yalla_market/core/session/session_expired_notifier.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
@@ -96,6 +97,51 @@ void main() {
       await expectedStates;
       await cubit.close();
     });
+
+    test(
+      'emits a login-only disabled state when the account is inactive',
+      () async {
+        final repository = _FakeAuthRepository(
+          loginFailure: const AccountInactiveFailure(),
+        );
+        final cubit = AuthCubit(_authUseCases(repository));
+        final expectedStates = expectLater(
+          cubit.stream,
+          emitsInOrder([isA<AuthLoading>(), isA<AuthLoginAccountDisabled>()]),
+        );
+
+        await cubit.login(email: 'mustafa@example.com', password: 'password');
+
+        expect(cubit.state, isA<AuthLoginAccountDisabled>());
+        await expectedStates;
+        await cubit.close();
+      },
+    );
+
+    test(
+      'allows a new login attempt after a previously disabled session',
+      () async {
+        final inactiveNotifier = AccountInactiveNotifier()..notifyInactive();
+        final repository = _FakeAuthRepository(
+          loginFailure: const UnauthorizedFailure('Invalid email or password.'),
+        );
+        final cubit = AuthCubit(
+          _authUseCases(repository),
+          accountInactiveNotifier: inactiveNotifier,
+        );
+        final expectedStates = expectLater(
+          cubit.stream,
+          emitsInOrder([isA<AuthLoading>(), isA<AuthFailure>()]),
+        );
+
+        await cubit.login(email: 'mustafa@example.com', password: 'wrong');
+
+        expect(inactiveNotifier.isInactive, isFalse);
+        expect(cubit.state, isA<AuthFailure>());
+        await expectedStates;
+        await cubit.close();
+      },
+    );
 
     test('emits signup success without authenticating the user', () async {
       final repository = _FakeAuthRepository(loginResult: sampleSession);
@@ -312,26 +358,6 @@ void main() {
     });
 
     test(
-      'deleteAccountWithPassword failure keeps authenticated session',
-      () async {
-        final repository = _FakeAuthRepository(
-          loginResult: sampleSession,
-          deleteAccountFailure: const UnauthorizedFailure('Invalid password.'),
-        );
-        final cubit = AuthCubit(_authUseCases(repository));
-        await cubit.login(email: sampleUser.email, password: 'password');
-
-        final success = await cubit.deleteAccountWithPassword('wrong-password');
-
-        expect(success, isFalse);
-        expect(cubit.state, isA<AuthAuthenticated>());
-        expect(cubit.lastAccountActionError, 'Invalid password.');
-        expect(AuthGuard.isAuthenticated, isTrue);
-        await cubit.close();
-      },
-    );
-
-    test(
       'avatar update success refreshes authenticated user avatarUrl',
       () async {
         final updatedUser = sampleUser.copyWith(
@@ -419,7 +445,6 @@ AuthUseCases _authUseCases(AuthRepository repository) {
     updateProfile: UpdateProfileUseCase(repository),
     updateProfileAvatar: UpdateProfileAvatarUseCase(repository),
     logout: LogoutUseCase(repository),
-    deleteAccountWithPassword: DeleteAccountWithPasswordUseCase(repository),
   );
 }
 
@@ -436,7 +461,6 @@ class _FakeAuthRepository implements AuthRepository {
     this.updateProfileAvatarFailure,
     this.requestPasswordResetFailure,
     this.resetPasswordFailure,
-    this.deleteAccountFailure,
   });
 
   final AuthSession? restoreResult;
@@ -450,7 +474,6 @@ class _FakeAuthRepository implements AuthRepository {
   final Failure? updateProfileAvatarFailure;
   final Failure? requestPasswordResetFailure;
   final Failure? resetPasswordFailure;
-  final Failure? deleteAccountFailure;
   String? lastLoginEmail;
   bool? lastRememberMe;
   String? lastVerificationCode;
@@ -585,14 +608,6 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<bool>> logout() async {
-    return const ApiResult.success(true);
-  }
-
-  @override
-  Future<ApiResult<bool>> deleteAccountWithPassword(String password) async {
-    if (deleteAccountFailure case final failure?) {
-      return ApiResult.failure(failure);
-    }
     return const ApiResult.success(true);
   }
 }

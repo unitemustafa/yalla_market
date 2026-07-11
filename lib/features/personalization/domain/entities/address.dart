@@ -16,9 +16,11 @@ class AddressData {
     this.manualArea,
     this.serviceCityId,
     this.serviceCityName,
+    this.serviceCityIsActive,
     this.deliveryAreaId,
     this.deliveryAreaName,
     this.deliveryAreaPrice,
+    this.deliveryAreaIsActive,
     this.deliveryType,
   });
 
@@ -39,9 +41,11 @@ class AddressData {
   final String? manualArea;
   final int? serviceCityId;
   final String? serviceCityName;
+  final bool? serviceCityIsActive;
   final int? deliveryAreaId;
   final String? deliveryAreaName;
   final double? deliveryAreaPrice;
+  final bool? deliveryAreaIsActive;
   final String? deliveryType;
 
   factory AddressData.fromJson(Map<String, dynamic> json) {
@@ -99,6 +103,9 @@ class AddressData {
       serviceCityName:
           _stringOrNull(json['service_city_name']) ??
           _stringOrNull(_nestedValue(json['service_city'], 'name')),
+      serviceCityIsActive: _boolFromJson(
+        _nestedValue(json['service_city'], 'is_active'),
+      ),
       deliveryAreaId: _intFromJson(
         json['delivery_area_id'] ?? _nestedValue(json['delivery_area'], 'id'),
       ),
@@ -107,6 +114,9 @@ class AddressData {
           _stringOrNull(_nestedValue(json['delivery_area'], 'name')),
       deliveryAreaPrice: _doubleFromJson(
         json['delivery_area_price'] ?? json['delivery_price_preview'],
+      ),
+      deliveryAreaIsActive: _boolFromJson(
+        _nestedValue(json['delivery_area'], 'is_active'),
       ),
       deliveryType: _stringOrNull(json['delivery_type']),
     );
@@ -146,9 +156,11 @@ class AddressData {
       'manualArea': manualArea,
       'serviceCityId': serviceCityId,
       'serviceCityName': serviceCityName,
+      'serviceCityIsActive': serviceCityIsActive,
       'deliveryAreaId': deliveryAreaId,
       'deliveryAreaName': deliveryAreaName,
       'deliveryAreaPrice': deliveryAreaPrice,
+      'deliveryAreaIsActive': deliveryAreaIsActive,
       'deliveryType': deliveryType,
     };
   }
@@ -182,9 +194,11 @@ class AddressData {
     String? manualArea,
     int? serviceCityId,
     String? serviceCityName,
+    bool? serviceCityIsActive,
     int? deliveryAreaId,
     String? deliveryAreaName,
     double? deliveryAreaPrice,
+    bool? deliveryAreaIsActive,
     String? deliveryType,
   }) {
     return AddressData(
@@ -204,9 +218,11 @@ class AddressData {
       manualArea: manualArea ?? this.manualArea,
       serviceCityId: serviceCityId ?? this.serviceCityId,
       serviceCityName: serviceCityName ?? this.serviceCityName,
+      serviceCityIsActive: serviceCityIsActive ?? this.serviceCityIsActive,
       deliveryAreaId: deliveryAreaId ?? this.deliveryAreaId,
       deliveryAreaName: deliveryAreaName ?? this.deliveryAreaName,
       deliveryAreaPrice: deliveryAreaPrice ?? this.deliveryAreaPrice,
+      deliveryAreaIsActive: deliveryAreaIsActive ?? this.deliveryAreaIsActive,
       deliveryType: deliveryType ?? this.deliveryType,
     );
   }

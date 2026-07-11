@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/network/api_result.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/routing/auth_guard.dart';
 import '../../../../core/session/session_expired_notifier.dart';
@@ -41,7 +40,6 @@ class AuthCubit extends Cubit<AuthState> {
   AuthSession? _pendingSignupSession;
   String? _lastProfileUpdateError;
   String? _lastPasswordResetError;
-  String? _lastAccountActionError;
   int? _lastOtpResendAfterSeconds;
   int? _lastOtpRetryAfterSeconds;
 
@@ -62,7 +60,6 @@ class AuthCubit extends Cubit<AuthState> {
   bool get hasPendingSignup => _pendingSignupSession != null;
   String? get lastProfileUpdateError => _lastProfileUpdateError;
   String? get lastPasswordResetError => _lastPasswordResetError;
-  String? get lastAccountActionError => _lastAccountActionError;
   int? get lastOtpResendAfterSeconds => _lastOtpResendAfterSeconds;
   int? get lastOtpRetryAfterSeconds => _lastOtpRetryAfterSeconds;
 
@@ -76,7 +73,9 @@ class AuthCubit extends Cubit<AuthState> {
   void _handleInactiveAccount() {
     _pendingSignupSession = null;
     AuthGuard.clearAuthentication();
-    if (!isClosed) emit(const AuthAccountDisabled());
+    if (!isClosed) {
+      emit(const AuthAccountDisabled());
+    }
   }
 
   Future<bool> validateSession() async {
@@ -139,6 +138,7 @@ class AuthCubit extends Cubit<AuthState> {
     if (state is AuthLoading) return;
 
     _pendingSignupSession = null;
+    _accountInactiveNotifier.reset();
     emit(const AuthLoading());
 
     final result = await _authUseCases.login(
@@ -152,6 +152,10 @@ class AuthCubit extends Cubit<AuthState> {
         emit(AuthAuthenticated(session));
       },
       failure: (failure) {
+        if (failure is AccountInactiveFailure) {
+          emit(const AuthLoginAccountDisabled());
+          return;
+        }
         if (_accountInactiveNotifier.isInactive) return;
         emit(AuthFailure(failure.message));
       },
@@ -374,12 +378,6 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  Future<bool> deleteAccountWithPassword(String password) {
-    return _deleteAccount(
-      () => _authUseCases.deleteAccountWithPassword(password),
-    );
-  }
-
   Future<AuthUser?> refreshProfile() async {
     final currentState = state;
     if (currentState is! AuthAuthenticated) return null;
@@ -466,33 +464,6 @@ class AuthCubit extends Cubit<AuthState> {
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       expiresAt: session.expiresAt,
-    );
-  }
-
-  Future<bool> _deleteAccount(
-    Future<ApiResult<bool>> Function() deleteAccount,
-  ) async {
-    if (state is AuthLoading) return false;
-
-    final currentState = state;
-    emit(const AuthLoading());
-
-    final result = await deleteAccount();
-    return result.when(
-      success: (_) {
-        _lastAccountActionError = null;
-        emit(const AuthInitial());
-        return true;
-      },
-      failure: (failure) {
-        _lastAccountActionError = failure.message;
-        if (currentState is AuthAuthenticated) {
-          emit(currentState);
-        } else {
-          emit(AuthFailure(failure.message));
-        }
-        return false;
-      },
     );
   }
 

@@ -207,29 +207,34 @@ class _SummaryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          context.tr(label),
-          style: TextStyle(
-            color: mutedColor,
-            fontSize: 13,
-            fontWeight: FontWeight.w700,
+        Expanded(
+          child: Text(
+            context.tr(label),
+            style: TextStyle(
+              color: mutedColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
-        const Spacer(),
-        Flexible(
-          child:
-              valueWidget ??
-              AppCurrencyText(
-                text: value ?? '',
-                textAlign: TextAlign.end,
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child:
+                valueWidget ??
+                AppCurrencyText(
+                  text: value ?? '',
+                  textAlign: TextAlign.end,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.clip,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.clip,
-              ),
+          ),
         ),
       ],
     );

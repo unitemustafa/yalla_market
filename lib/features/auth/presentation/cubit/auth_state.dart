@@ -32,6 +32,10 @@ final class AuthAccountDisabled extends AuthState {
   const AuthAccountDisabled();
 }
 
+final class AuthLoginAccountDisabled extends AuthState {
+  const AuthLoginAccountDisabled();
+}
+
 final class AuthFailure extends AuthState {
   const AuthFailure(this.message);
 

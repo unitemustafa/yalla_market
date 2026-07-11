@@ -34,12 +34,12 @@ class AuthUser {
       id: _stringFromJson(json['id']) ?? '',
       email: _stringFromJson(json['email']) ?? '',
       firstName:
-          _stringFromJson(json['firstName']) ??
-          _stringFromJson(json['first_name']) ??
+          _personNameFromJson(json['firstName']) ??
+          _personNameFromJson(json['first_name']) ??
           '',
       lastName:
-          _stringFromJson(json['lastName']) ??
-          _stringFromJson(json['last_name']) ??
+          _personNameFromJson(json['lastName']) ??
+          _personNameFromJson(json['last_name']) ??
           '',
       role: _stringFromJson(json['role']) ?? 'CUSTOMER',
       avatarUrl:
@@ -112,6 +112,11 @@ class AuthUser {
 String? _stringFromJson(Object? value) {
   if (value == null) return null;
   return value.toString();
+}
+
+String? _personNameFromJson(Object? value) {
+  final name = _stringFromJson(value)?.trim();
+  return name == '-' ? '' : name;
 }
 
 DateTime? _dateFromString(Object? value) {

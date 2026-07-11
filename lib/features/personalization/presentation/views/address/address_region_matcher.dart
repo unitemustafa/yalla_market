@@ -2,6 +2,7 @@ import '../../../../location/domain/entities/city_data.dart';
 import '../../../domain/entities/address.dart';
 
 bool isAddressAvailableForCity(AddressData address, CityData? selectedCity) {
+  if (!isAddressDeliverable(address)) return false;
   if (selectedCity == null) return false;
   if (selectedCity.isGeneral) {
     final deliveryType = address.deliveryType?.trim().toLowerCase();
@@ -14,6 +15,12 @@ bool isAddressAvailableForCity(AddressData address, CityData? selectedCity) {
   final serviceCityId = selectedCity.serviceCityId;
   if (serviceCityId == null) return false;
   return address.serviceCityId == serviceCityId;
+}
+
+bool isAddressDeliverable(AddressData address) {
+  if (address.serviceCityIsActive == false) return false;
+  return address.deliveryAreaId == null ||
+      address.deliveryAreaIsActive != false;
 }
 
 AddressData? selectedAvailableAddressForCity({

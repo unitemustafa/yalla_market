@@ -14,6 +14,7 @@ abstract final class NotificationApiPaths {
   static const unreadCount = '/notifications/unread-count/';
 
   static String read(int id) => '/notifications/$id/read/';
+  static String delete(int id) => '/notifications/$id/';
 }
 
 class NotificationRemoteRepositoryImpl implements NotificationRepository {
@@ -54,6 +55,16 @@ class NotificationRemoteRepositoryImpl implements NotificationRepository {
         return AppNotificationModel.fromJson(payload);
       }
       throw const FormatException('Invalid notification payload.');
+    });
+  }
+
+  @override
+  Future<ApiResult<bool>> deleteNotification(int notificationId) {
+    return _guard(() async {
+      await _apiClient.delete<Object?>(
+        NotificationApiPaths.delete(notificationId),
+      );
+      return true;
     });
   }
 

@@ -65,6 +65,4 @@ abstract class AuthRepository {
   });
 
   Future<ApiResult<bool>> logout();
-
-  Future<ApiResult<bool>> deleteAccountWithPassword(String password);
 }

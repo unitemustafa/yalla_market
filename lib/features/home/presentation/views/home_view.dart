@@ -44,6 +44,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   bool _reportedMissingOffer = false;
+
   @override
   void initState() {
     super.initState();
@@ -412,6 +413,7 @@ class _TopProfileAvatar extends StatelessWidget {
       initials: profile.initials,
       imageBytes: profile.avatarBytes,
       imageUrl: profile.avatarUrl,
+      gender: profile.gender,
       size: 46,
       borderRadius: 7,
       borderColor: Colors.transparent,

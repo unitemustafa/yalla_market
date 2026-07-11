@@ -28,6 +28,15 @@ class NotificationPresentationMapper {
   ) {
     final orderId = '${notification.orderId ?? ''}';
     switch (notification.type) {
+      case 'account_restored':
+        return NotificationPresentationData(
+          localizedTitle: context.tr('Account restored'),
+          localizedMessage: context.tr(
+            'Your account was restored by the Yalla Market team.',
+          ),
+          icon: AppIcons.tick_circle,
+          color: AppColors.success,
+        );
       case 'order_rejected':
         return NotificationPresentationData(
           localizedTitle: context.tr('Order rejected'),

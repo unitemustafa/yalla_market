@@ -191,14 +191,6 @@ class AuthRepositoryImpl implements AuthRepository {
     return _guard(_logout, 'Could not sign you out.');
   }
 
-  @override
-  Future<ApiResult<bool>> deleteAccountWithPassword(String password) {
-    return _guard(
-      () => _deleteAccountWithPassword(password),
-      'Could not delete your account.',
-    );
-  }
-
   Future<ApiResult<T>> _guard<T>(
     Future<T> Function() action,
     String fallbackMessage,
@@ -616,25 +608,6 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   Future<bool> _logout() async {
-    await _clearSession();
-    return true;
-  }
-
-  Future<bool> _deleteAccountWithPassword(String password) async {
-    final currentUser = await _me();
-    final accounts = await _loadAccounts();
-    final account = accounts._byUserId(currentUser.id);
-    if (account == null ||
-        account.passwordDigest !=
-            _passwordDigest(currentUser.email, password)) {
-      throw const _AuthRepositoryException(
-        UnauthorizedFailure('Invalid email or password.'),
-      );
-    }
-
-    await _saveAccounts(
-      accounts.where((account) => account.user.id != currentUser.id).toList(),
-    );
     await _clearSession();
     return true;
   }

@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'core/constants/app_constants.dart';
 import 'core/di/service_locator.dart';
@@ -83,7 +84,8 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && context.read<AuthCubit>().state is AuthAccountDisabled) {
         _clearPrivateSessionState(context);
-        AppNavigator.goToAccountDisabled();
+        AppNavigator.goToLogin();
+        _showAccountDisabledDialog();
       }
     });
   }
@@ -107,6 +109,11 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     final data = pushEvent.data;
     final event = data['event']?.toString() ?? '';
     if (event.isEmpty || event == 'account_disabled') return;
+
+    if (event == 'delivery_area_status_changed') {
+      await context.read<AddressCubit>().loadAddresses();
+      return;
+    }
 
     final notifications = context.read<NotificationCubit>();
     final homeCubit = context.read<HomeCubit>();
@@ -195,14 +202,15 @@ class _AppCoordinatorState extends State<_AppCoordinator>
           }
         } else if (state is AuthAccountDisabled) {
           _clearPrivateSessionState(context);
-          AppNavigator.goToAccountDisabled();
+          AppNavigator.goToLogin();
+          _showAccountDisabledDialog();
         } else if (state is AuthInitial) {
           _clearPrivateSessionState(context);
           AppNavigator.goToLogin();
         } else if (state is AuthSessionExpired) {
           _clearPrivateSessionState(context);
           AppNavigator.goToLogin();
-          _showSessionExpiredDialog(context);
+          _showSessionExpiredDialog();
         }
       },
       child: ValueListenableBuilder<AppLanguage>(
@@ -254,32 +262,182 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     return null;
   }
 
-  void _showSessionExpiredDialog(BuildContext context) {
+  void _showSessionExpiredDialog() {
+    _showAuthNoticeDialog(
+      title: 'Session expired',
+      message:
+          'Sign in again to continue. Remember Me keeps you signed in after closing the app.',
+    );
+  }
+
+  void _showAccountDisabledDialog() {
+    _showAuthNoticeDialog(
+      title: 'Account disabled',
+      message: 'Contact support for assistance.',
+      actionLabel: 'Technical Support',
+      showCloseButton: true,
+      onAction: () {
+        unawaited(
+          launchUrl(
+            Uri.parse('https://wa.me/201016487371'),
+            mode: LaunchMode.externalApplication,
+          ),
+        );
+      },
+    );
+  }
+
+  void _showAuthNoticeDialog({
+    required String title,
+    required String message,
+    String actionLabel = 'Sign In',
+    bool showCloseButton = false,
+    VoidCallback? onAction,
+  }) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final dialogContext = AppNavigator.key.currentContext;
       if (dialogContext == null) return;
       showDialog<void>(
         context: dialogContext,
         barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Text(context.tr('Session expired')),
-          content: Text(
-            context.tr(
-              'Sign in again to continue. Remember Me keeps you signed in after closing the app.',
-            ),
-          ),
-          actions: [
-            FilledButton(
-              onPressed: () {
+        barrierColor: Colors.black.withValues(alpha: 0.55),
+        builder: (context) => _AuthNoticeDialog(
+          title: context.tr(title),
+          message: context.tr(message),
+          actionLabel: context.tr(actionLabel),
+          showCloseButton: showCloseButton,
+          onAction:
+              onAction ??
+              () {
                 Navigator.of(context).pop();
                 AppNavigator.goToLogin();
               },
-              child: Text(context.tr('Sign In')),
-            ),
-          ],
         ),
       );
     });
+  }
+}
+
+class _AuthNoticeDialog extends StatelessWidget {
+  const _AuthNoticeDialog({
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onAction,
+    required this.showCloseButton,
+  });
+
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onAction;
+  final bool showCloseButton;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.08);
+    final mutedColor =
+        theme.textTheme.bodyMedium?.color ??
+        (isDark ? Colors.white70 : Colors.black54);
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: theme.cardColor,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: borderColor),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.34 : 0.16),
+                blurRadius: 30,
+                offset: const Offset(0, 16),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (showCloseButton)
+                Align(
+                  alignment: AlignmentDirectional.topEnd,
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: borderColor),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: IconButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      tooltip: context.tr('Close'),
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+                  ),
+                ),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: colorScheme.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(
+                  Icons.lock_outline_rounded,
+                  color: colorScheme.primary,
+                  size: 29,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: mutedColor,
+                  height: 1.6,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: FilledButton(
+                  onPressed: onAction,
+                  style: FilledButton.styleFrom(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: Text(
+                    actionLabel,
+                    style: const TextStyle(fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

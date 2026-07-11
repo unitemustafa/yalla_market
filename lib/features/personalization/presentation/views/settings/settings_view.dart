@@ -281,6 +281,7 @@ class _AccountHero extends StatelessWidget {
                 initials: profile.initials,
                 imageBytes: profile.avatarBytes,
                 imageUrl: profile.avatarUrl,
+                gender: profile.gender,
                 backgroundColor: Colors.white,
                 borderColor: Colors.white.withValues(alpha: 0.7),
                 borderWidth: 2,

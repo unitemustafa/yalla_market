@@ -103,6 +103,15 @@ class _LoginViewState extends State<LoginView> {
             message: context.tr(state.message),
           );
         }
+
+        if (state is AuthLoginAccountDisabled) {
+          CustomSnackBar.showError(
+            context: context,
+            title: 'Account disabled',
+            message:
+                'Your account is disabled. Contact technical support or create a new account.',
+          );
+        }
       },
       builder: (context, authState) {
         return Scaffold(

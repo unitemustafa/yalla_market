@@ -33,6 +33,10 @@ class PromoSlider extends StatefulWidget {
 
 class _PromoSliderState extends State<PromoSlider> {
   bool _handledFocusedOffer = false;
+  Timer? _autoAdvanceTimer;
+  Timer? _expiryTimer;
+  String? _scheduledOfferKey;
+  DateTime? _scheduledExpiry;
   static const _offers = [
     _PromoOfferData(
       icon: AppIcons.box,
@@ -57,7 +61,7 @@ class _PromoSliderState extends State<PromoSlider> {
       discountRateEn: '24% off',
       discountRateAr: 'خصم 24%',
       afterDiscount: 'EGP 269',
-      deliveryFee: 'لم يحدد',
+      deliveryFee: 'غير محدد',
       total: 'EGP 269',
       actionEn: 'Add package to cart',
       visibilityMode: 'general',
@@ -118,7 +122,7 @@ class _PromoSliderState extends State<PromoSlider> {
       discountRateEn: '33% off',
       discountRateAr: 'خصم 33%',
       afterDiscount: 'EGP 160',
-      deliveryFee: 'لم يحدد',
+      deliveryFee: 'غير محدد',
       total: 'EGP 160',
       actionEn: 'Add flash offer',
       visibilityMode: 'regions',
@@ -164,7 +168,7 @@ class _PromoSliderState extends State<PromoSlider> {
       discountRateEn: 'Free delivery',
       discountRateAr: 'توصيل مجاني',
       afterDiscount: 'EGP 150',
-      deliveryFee: 'لم يحدد',
+      deliveryFee: 'غير محدد',
       total: 'EGP 150',
       actionEn: 'Add free delivery item',
       visibilityMode: 'general',
@@ -208,7 +212,7 @@ class _PromoSliderState extends State<PromoSlider> {
       discountRateEn: '10% off',
       discountRateAr: 'خصم 10%',
       afterDiscount: 'EGP 270',
-      deliveryFee: 'لم يحدد',
+      deliveryFee: 'غير محدد',
       total: 'EGP 270',
       actionEn: 'Add sponsored offer',
       visibilityMode: 'general',
@@ -251,7 +255,7 @@ class _PromoSliderState extends State<PromoSlider> {
       discountRateEn: '17% off',
       discountRateAr: 'خصم 17%',
       afterDiscount: 'EGP 350',
-      deliveryFee: 'لم يحدد',
+      deliveryFee: 'غير محدد',
       total: 'EGP 350',
       actionEn: 'Add linked ad offer',
       visibilityMode: 'general',
@@ -298,7 +302,7 @@ class _PromoSliderState extends State<PromoSlider> {
       discountRateEn: '21% off',
       discountRateAr: 'خصم 21%',
       afterDiscount: 'EGP 380',
-      deliveryFee: 'لم يحدد',
+      deliveryFee: 'غير محدد',
       total: 'EGP 380',
       actionEn: 'Add discounted item',
       visibilityMode: 'regions',
@@ -334,8 +338,58 @@ class _PromoSliderState extends State<PromoSlider> {
 
   @override
   void dispose() {
+    _autoAdvanceTimer?.cancel();
+    _expiryTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  void _scheduleExpiryRefresh(List<_PromoOfferData> offers) {
+    final now = DateTime.now();
+    DateTime? nextExpiry;
+    for (final offer in offers) {
+      final endsAt = offer.endsAt;
+      if (endsAt == null || !endsAt.isAfter(now)) continue;
+      if (nextExpiry == null || endsAt.isBefore(nextExpiry)) {
+        nextExpiry = endsAt;
+      }
+    }
+
+    if (nextExpiry == _scheduledExpiry) return;
+    _expiryTimer?.cancel();
+    _scheduledExpiry = nextExpiry;
+    if (nextExpiry == null) return;
+
+    _expiryTimer = Timer(
+      nextExpiry.difference(now) + const Duration(milliseconds: 50),
+      () {
+        if (!mounted) return;
+        setState(() {
+          _currentIndex = 0;
+          _scheduledOfferKey = null;
+        });
+      },
+    );
+  }
+
+  void _scheduleAutoAdvance(List<_PromoOfferData> offers) {
+    if (offers.length < 2) return;
+    final currentOffer = offers[_currentIndex];
+    final seconds = currentOffer.displaySeconds.clamp(1, 120);
+    final key = '${currentOffer.offerId ?? _currentIndex}:$seconds';
+    if (key == _scheduledOfferKey) return;
+
+    _scheduledOfferKey = key;
+    _autoAdvanceTimer?.cancel();
+    _autoAdvanceTimer = Timer(Duration(seconds: seconds), () {
+      if (!mounted || !_pageController.hasClients) return;
+      final nextIndex = (_currentIndex + 1) % offers.length;
+      _pageController.animateToPage(
+        nextIndex,
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   void _showOfferSheet(BuildContext context, _PromoOfferData offer) {
@@ -354,14 +408,18 @@ class _PromoSliderState extends State<PromoSlider> {
 
   @override
   Widget build(BuildContext context) {
-    final regionSlug = context.select<LocationCubit, String>(
-      (cubit) => cubit.state.selectedCity?.slug ?? 'general',
-    );
-    final offers = _visibleOffers(regionSlug, widget.offers);
+    final regionKey = context.select<LocationCubit, String>((cubit) {
+      final city = cubit.state.selectedCity;
+      if (city == null || city.isGeneral) return 'general';
+      return city.serviceCityId?.toString() ?? city.slug;
+    });
+    final offers = _visibleOffers(regionKey, widget.offers);
     if (_currentIndex >= offers.length && offers.isNotEmpty) {
       _currentIndex = 0;
     }
+    _scheduleExpiryRefresh(offers);
     if (offers.isEmpty) return const SizedBox.shrink();
+    _scheduleAutoAdvance(offers);
     final focusOfferId = widget.focusOfferId;
     if (!_handledFocusedOffer &&
         focusOfferId != null &&
@@ -388,7 +446,11 @@ class _PromoSliderState extends State<PromoSlider> {
               controller: _pageController,
               itemCount: offers.length,
               onPageChanged: (index) {
-                setState(() => _currentIndex = index);
+                setState(() {
+                  _currentIndex = index;
+                  _scheduledOfferKey = null;
+                });
+                _scheduleAutoAdvance(offers);
               },
               itemBuilder: (context, index) {
                 final offer = offers[index];
@@ -435,7 +497,8 @@ class _PromoSliderState extends State<PromoSlider> {
     List<HomeOfferData>? apiOffers,
   ) {
     final normalized = regionSlug.trim().toLowerCase();
-    final source = apiOffers != null && apiOffers.isNotEmpty
+    final hasRemoteOffers = apiOffers != null;
+    final source = hasRemoteOffers
         ? apiOffers.map(_offerFromApi).toList(growable: false)
         : AppEnvironment.useDemoRepositories
         ? _offers
@@ -443,6 +506,12 @@ class _PromoSliderState extends State<PromoSlider> {
 
     return source
         .where((offer) {
+          final endsAt = offer.endsAt;
+          if (endsAt != null && !endsAt.isAfter(DateTime.now())) return false;
+          // The server already applies the authenticated customer's selected
+          // market region, offer status, schedule, and usage limits. Repeating
+          // that filter in the app can hide a valid freshly delivered offer.
+          if (hasRemoteOffers) return true;
           if (normalized.isEmpty || normalized == 'general') {
             return offer.showInGeneral || offer.isGeneralVisibility;
           }
@@ -465,6 +534,7 @@ class _PromoSliderState extends State<PromoSlider> {
         : subtotalValue * (1 - (discountValue / 100));
     final discountAmount = (subtotalValue - totalValue).clamp(0, subtotalValue);
     final discountLabel = offer.discountLabel;
+    final isAnnouncement = type == 'announcement';
     final title = offer.title.trim().isEmpty ? 'Offer' : offer.title.trim();
     final description = offer.description.trim().isEmpty
         ? title
@@ -477,26 +547,38 @@ class _PromoSliderState extends State<PromoSlider> {
       image: offer.image,
       endsAtIso: offer.endsAt?.toIso8601String(),
       badgeEn: _badgeForApiOffer(type),
-      badgeAr: _badgeForApiOffer(type),
+      badgeAr: _badgeForApiOffer(type, arabic: true),
       titleEn: title,
       titleAr: title,
       subtitleEn: description,
       subtitleAr: description,
-      valueEn: discountLabel.isEmpty ? offer.marketName : discountLabel,
-      valueAr: discountLabel.isEmpty ? offer.marketName : discountLabel,
-      statusEn: offer.marketName.isEmpty ? 'Active offer' : offer.marketName,
-      statusAr: offer.marketName.isEmpty ? 'Active offer' : offer.marketName,
+      valueEn: isAnnouncement
+          ? 'Advertisement'
+          : (discountLabel.isEmpty ? offer.marketName : discountLabel),
+      valueAr: isAnnouncement
+          ? 'إعلان'
+          : (discountLabel.isEmpty ? offer.marketName : discountLabel),
+      statusEn: isAnnouncement
+          ? 'External campaign'
+          : (offer.marketName.isEmpty ? 'Active offer' : offer.marketName),
+      statusAr: isAnnouncement
+          ? 'حملة خارجية'
+          : (offer.marketName.isEmpty ? 'عرض نشط' : offer.marketName),
       detailEn: description,
       detailAr: description,
       subtotal: AppCurrency.format(subtotalValue, fractionDigits: 0),
       discount: AppCurrency.format(discountAmount, fractionDigits: 0),
       discountRateEn: discountLabel,
-      discountRateAr: discountLabel,
+      discountRateAr: _arabicDiscountLabel(discountLabel),
       afterDiscount: AppCurrency.format(totalValue, fractionDigits: 0),
-      deliveryFee: '',
+      deliveryFee: 'غير محدد',
       total: AppCurrency.format(totalValue, fractionDigits: 0),
-      actionEn: 'Add offer to cart',
-      actionAr: 'Add offer to cart',
+      actionEn: isAnnouncement && offer.announcementCtaLabel.isNotEmpty
+          ? offer.announcementCtaLabel
+          : 'Open campaign',
+      actionAr: isAnnouncement && offer.announcementCtaLabel.isNotEmpty
+          ? offer.announcementCtaLabel
+          : 'فتح الإعلان',
       products: products.isEmpty
           ? [
               _OfferProduct(
@@ -507,7 +589,7 @@ class _PromoSliderState extends State<PromoSlider> {
                 brandAr: offer.marketName,
                 price: AppCurrency.format(totalValue, fractionDigits: 0),
                 badgeEn: discountLabel,
-                badgeAr: discountLabel,
+                badgeAr: _arabicDiscountLabel(discountLabel),
               ),
             ]
           : products,
@@ -517,6 +599,10 @@ class _PromoSliderState extends State<PromoSlider> {
           .map((id) => id.toString())
           .toList(growable: false),
       regionNames: offer.serviceCityNames,
+      linkUrl: isAnnouncement ? offer.announcementUrl : null,
+      linkLabelEn: isAnnouncement ? offer.announcementCtaLabel : null,
+      linkLabelAr: isAnnouncement ? offer.announcementCtaLabel : null,
+      displaySeconds: isAnnouncement ? offer.announcementDisplaySeconds : 5,
     );
   }
 
@@ -543,6 +629,7 @@ class _PromoSliderState extends State<PromoSlider> {
       'delivery' => AppIcons.truck_fast,
       'discount' => AppIcons.receipt_text,
       'package' => AppIcons.box,
+      'announcement' => AppIcons.global,
       _ => AppIcons.box,
     };
   }
@@ -553,19 +640,34 @@ class _PromoSliderState extends State<PromoSlider> {
       'delivery' => AppColors.info,
       'discount' => AppColors.error,
       'package' => AppColors.primary,
+      'announcement' => AppColors.info,
       _ => AppColors.primary,
     };
   }
 
-  String _badgeForApiOffer(String type) {
+  String _badgeForApiOffer(String type, {bool arabic = false}) {
     return switch (type) {
-      'flash' => 'Flash',
-      'delivery' => 'Delivery',
-      'discount' => 'Discount',
-      'package' => 'Package',
-      _ => 'Offer',
+      'flash' => arabic ? 'عرض سريع' : 'Flash',
+      'delivery' => arabic ? 'توصيل' : 'Delivery',
+      'discount' => arabic ? 'خصم' : 'Discount',
+      'package' => arabic ? 'باكج' : 'Package',
+      'announcement' => arabic ? 'إعلان' : 'Announcement',
+      _ => arabic ? 'عرض' : 'Offer',
     };
   }
+}
+
+String _arabicDiscountLabel(String value) {
+  final trimmed = value.trim();
+  if (trimmed.isEmpty) return trimmed;
+
+  final normalized = trimmed.toLowerCase();
+  if (!normalized.contains('discount') && !normalized.contains('off')) {
+    return trimmed;
+  }
+
+  final percentage = RegExp(r'(\d+(?:[.,]\d+)?\s*%)').firstMatch(trimmed);
+  return percentage == null ? 'خصم' : 'خصم ${percentage.group(1)}';
 }
 
 class _PromoOfferCard extends StatelessWidget {
@@ -2013,13 +2115,20 @@ class _SummaryLine extends StatelessWidget {
             ),
           ),
         ),
-        AppCurrencyText(
-          text: value,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: color,
-            fontWeight: FontWeight.w900,
+        const SizedBox(width: 12),
+        Expanded(
+          child: Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: AppCurrencyText(
+              text: value,
+              textAlign: TextAlign.end,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: color,
+                fontWeight: FontWeight.w900,
+              ),
+              currencyColor: color,
+            ),
           ),
-          currencyColor: color,
         ),
       ],
     );
@@ -2120,6 +2229,7 @@ class _PromoOfferData {
     this.linkUrl,
     this.linkLabelEn,
     this.linkLabelAr,
+    this.displaySeconds = 5,
   });
 
   final String? offerId;
@@ -2156,6 +2266,7 @@ class _PromoOfferData {
   final String? linkUrl;
   final String? linkLabelEn;
   final String? linkLabelAr;
+  final int displaySeconds;
 
   bool get isGeneralVisibility =>
       visibilityMode.trim().toLowerCase() == 'general' && regionSlugs.isEmpty;

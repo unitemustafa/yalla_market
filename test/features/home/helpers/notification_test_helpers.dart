@@ -35,10 +35,12 @@ class FakeNotificationRepository implements NotificationRepository {
   Failure? listFailure;
   Failure? markReadFailure;
   Failure? markAllFailure;
+  Failure? deleteFailure;
   int listCalls = 0;
   int unreadCountCalls = 0;
   int markReadCalls = 0;
   int markAllCalls = 0;
+  int deleteCalls = 0;
 
   @override
   Future<ApiResult<List<AppNotification>>> getNotifications({
@@ -69,6 +71,14 @@ class FakeNotificationRepository implements NotificationRepository {
   }
 
   @override
+  Future<ApiResult<bool>> deleteNotification(int notificationId) async {
+    deleteCalls++;
+    if (deleteFailure case final failure?) return ApiResult.failure(failure);
+    notifications.removeWhere((item) => item.id == notificationId);
+    return const ApiResult.success(true);
+  }
+
+  @override
   Future<ApiResult<int>> markAllAsRead() async {
     markAllCalls++;
     if (markAllFailure case final failure?) return ApiResult.failure(failure);
@@ -92,10 +102,12 @@ class SpyNotificationCubit extends NotificationCubit {
   int refreshUnreadCountCalls = 0;
   int markReadCalls = 0;
   int markAllCalls = 0;
+  int deleteCalls = 0;
   int clearCalls = 0;
   int? lastMarkedReadId;
   bool markReadSucceeds = true;
   bool markAllSucceeds = true;
+  bool deleteSucceeds = true;
 
   void seed(NotificationState state) => emit(state);
 
@@ -157,6 +169,16 @@ class SpyNotificationCubit extends NotificationCubit {
         clearError: true,
       ),
     );
+    return true;
+  }
+
+  @override
+  Future<bool> deleteNotification(int id) async {
+    deleteCalls++;
+    if (!deleteSucceeds) {
+      emit(state.copyWith(errorMessage: 'Could not delete notification.'));
+      return false;
+    }
     return true;
   }
 

@@ -260,24 +260,6 @@ void main() {
       },
     );
 
-    test('deleteAccountWithPassword calls auth me delete endpoint', () async {
-      final tokenStore = InMemoryTokenStore();
-      final apiClient = FakeApiClient((request) {
-        expect(request.method, 'DELETE');
-        expect(request.path, '/auth/me');
-        expect(request.data, {'password': 'Password123!'});
-        return true;
-      });
-      final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
-
-      final result = await repository.deleteAccountWithPassword('Password123!');
-
-      result.when(
-        success: (deleted) => expect(deleted, isTrue),
-        failure: (failure) => fail(failure.message),
-      );
-    });
-
     test('updateProfile sends profile fields supported by backend', () async {
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {

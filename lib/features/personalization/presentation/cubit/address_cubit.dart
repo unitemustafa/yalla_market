@@ -11,8 +11,11 @@ class AddressCubit extends Cubit<AddressState> {
   }
 
   final AddressUseCases _addressUseCases;
+  bool _isLoading = false;
 
   Future<void> loadAddresses() async {
+    if (_isLoading) return;
+    _isLoading = true;
     final staleAddresses = state.addresses;
     final staleSelectedId = state.selectedAddressId;
     emit(
@@ -22,32 +25,36 @@ class AddressCubit extends Cubit<AddressState> {
       ),
     );
 
-    final result = await _addressUseCases.getAddresses();
-    await result.when(
-      success: (addresses) async {
-        var selectedAddressId = _selectedIdFrom(addresses);
-        final selectedResult = await _addressUseCases.getSelectedAddress();
-        selectedAddressId = selectedResult.when(
-          success: (address) => address?.id ?? selectedAddressId,
-          failure: (_) => selectedAddressId,
-        );
-        emit(
-          AddressReady(
-            addresses: addresses,
-            selectedAddressId: selectedAddressId,
-          ),
-        );
-      },
-      failure: (failure) async {
-        emit(
-          AddressFailure(
-            failure.message,
-            addresses: staleAddresses,
-            selectedAddressId: staleSelectedId,
-          ),
-        );
-      },
-    );
+    try {
+      final result = await _addressUseCases.getAddresses();
+      await result.when(
+        success: (addresses) async {
+          var selectedAddressId = _selectedIdFrom(addresses);
+          final selectedResult = await _addressUseCases.getSelectedAddress();
+          selectedAddressId = selectedResult.when(
+            success: (address) => address?.id ?? selectedAddressId,
+            failure: (_) => selectedAddressId,
+          );
+          emit(
+            AddressReady(
+              addresses: addresses,
+              selectedAddressId: selectedAddressId,
+            ),
+          );
+        },
+        failure: (failure) async {
+          emit(
+            AddressFailure(
+              failure.message,
+              addresses: staleAddresses,
+              selectedAddressId: staleSelectedId,
+            ),
+          );
+        },
+      );
+    } finally {
+      _isLoading = false;
+    }
   }
 
   Future<bool> saveAddress(AddressData address) async {

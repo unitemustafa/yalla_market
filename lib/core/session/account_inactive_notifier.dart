@@ -6,7 +6,6 @@ class AccountInactiveNotifier extends ChangeNotifier {
   static final AccountInactiveNotifier instance = AccountInactiveNotifier();
 
   bool _isInactive = false;
-
   bool get isInactive => _isInactive;
 
   void notifyInactive() {

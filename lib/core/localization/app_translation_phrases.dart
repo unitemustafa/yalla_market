@@ -2,6 +2,26 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Disabled': 'معطلة',
+    'Not supported here': 'غير مدعومة هنا',
+    'Delivery is no longer available for this address':
+        'التوصيل لم يعد متاحًا لهذا العنوان',
+    'Notifications updated': 'تم تحديث الإشعارات',
+    'Notification deleted': 'تم حذف الإشعار',
+    'Refresh notifications': 'تحديث الإشعارات',
+    'Account restored': 'تم استعادة حسابك',
+    'Your account was restored by the Yalla Market team.':
+        'تم استعادة حسابك بواسطة فريق عمل يلا ماركت',
+    'Account restored by Yalla Market support team':
+        'تم استعادة حسابك بواسطة فريق دعم يلا ماركت',
+    'Your account has been restored. You can sign in again.':
+        'تم استعادة حسابك. يمكنك تسجيل الدخول مرة أخرى.',
+    'Account permanently deleted': 'تم حذف حسابك نهائيًا',
+    'Your account has been permanently deleted. Create a new account to continue.':
+        'تم حذف حسابك نهائيًا. أنشئ حسابًا جديدًا للمتابعة.',
+    'Technical Support': 'الدعم الفني',
+    'Your account is disabled. Contact technical support or create a new account.':
+        'الحساب معطّل. تواصل مع الدعم الفني أو أنشئ حسابًا جديدًا.',
     '8+ characters': '8 حروف على الأقل',
     'Upper & lowercase': 'حرف كبير وصغير',
     'Number & symbol': 'رقم ورمز خاص',
@@ -12,6 +32,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Enter a valid email, username, or phone number':
         'اكتب إيميل أو اسم مستخدم أو رقم موبايل صحيح',
     'Session expired': 'انتهت الجلسة',
+    'Account disabled': 'تم تعطيل حسابك',
+    'Contact support for assistance.': 'تواصل مع الدعم.',
     'Delivery address needed': 'مطلوب تحديد عنوان التوصيل',
     'Review address': 'مراجعة العنوان',
     'Activate now': 'فعّل الآن',

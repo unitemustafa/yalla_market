@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 
+import '../../../constants/app_assets.dart';
 import '../../../constants/app_colors.dart';
 import 'app_image.dart';
 
@@ -11,6 +12,7 @@ class AppAvatar extends StatelessWidget {
     required this.initials,
     this.imageBytes,
     this.imageUrl,
+    this.gender,
     this.size = 48,
     this.borderRadius = 8,
     this.backgroundColor,
@@ -23,6 +25,7 @@ class AppAvatar extends StatelessWidget {
   final String initials;
   final Uint8List? imageBytes;
   final String? imageUrl;
+  final String? gender;
   final double size;
   final double borderRadius;
   final Color? backgroundColor;
@@ -55,7 +58,9 @@ class AppAvatar extends StatelessWidget {
         border: Border.all(color: effectiveBorder, width: borderWidth),
       ),
       child: AppImage(
-        source: imageUrl,
+        source: imageUrl?.trim().isNotEmpty == true
+            ? imageUrl
+            : AppAssets.defaultAvatarForGender(gender),
         bytes: imageBytes,
         width: size,
         height: size,

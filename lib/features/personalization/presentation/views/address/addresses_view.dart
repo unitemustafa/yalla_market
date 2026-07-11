@@ -18,10 +18,40 @@ import 'add_new_address_view.dart';
 import 'widgets/single_address.dart';
 import '../../../../location/presentation/cubit/location_cubit.dart';
 
-class AddressesView extends StatelessWidget {
+class AddressesView extends StatefulWidget {
   const AddressesView({super.key, this.returnAfterSelection = false});
 
   final bool returnAfterSelection;
+
+  @override
+  State<AddressesView> createState() => _AddressesViewState();
+}
+
+class _AddressesViewState extends State<AddressesView>
+    with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _refreshAddresses();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refreshAddresses();
+  }
+
+  Future<void> _refreshAddresses() {
+    return context.read<AddressCubit>().loadAddresses();
+  }
 
   Future<void> _openAddressForm(
     BuildContext context, {
@@ -104,7 +134,7 @@ class AddressesView extends StatelessWidget {
       address.id,
     );
     if (!selected || !context.mounted) return;
-    if (returnAfterSelection) {
+    if (widget.returnAfterSelection) {
       Navigator.pop(context, address);
     }
   }
@@ -170,54 +200,81 @@ class AddressesView extends StatelessWidget {
           body: SafeArea(
             child: isInitialLoading
                 ? const Center(child: CircularProgressIndicator())
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16.0, 12.0, 16.0, 90.0),
-                    itemCount: orderedAddresses.length + 2,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return const PageTopBar(
-                          title: 'Addresses',
-                          subtitle: 'Choose where orders should arrive',
+                : RefreshIndicator(
+                    color: AppColors.primary,
+                    backgroundColor: isDark
+                        ? AppColors.darkCardColor
+                        : Colors.white,
+                    triggerMode: RefreshIndicatorTriggerMode.anywhere,
+                    onRefresh: _refreshAddresses,
+                    child: ListView.separated(
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(
+                        16.0,
+                        12.0,
+                        16.0,
+                        90.0,
+                      ),
+                      itemCount: orderedAddresses.length + 2,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return const PageTopBar(
+                            title: 'Addresses',
+                            subtitle: 'Choose where orders should arrive',
+                          );
+                        }
+
+                        if (index == 1) {
+                          return _AddressSummaryCard(
+                            isDark: isDark,
+                            totalCount: addresses.length,
+                            selectedName: selectedAvailableAddress?.name,
+                          );
+                        }
+
+                        final address = orderedAddresses[index - 2];
+                        final isAvailable = isAddressAvailableForCity(
+                          address,
+                          selectedCity,
                         );
-                      }
-
-                      if (index == 1) {
-                        return _AddressSummaryCard(
-                          isDark: isDark,
-                          totalCount: addresses.length,
-                          selectedName: selectedAvailableAddress?.name,
+                        final isDeliveryAvailable = isAddressDeliverable(
+                          address,
                         );
-                      }
 
-                      final address = orderedAddresses[index - 2];
-                      final isAvailable = isAddressAvailableForCity(
-                        address,
-                        selectedCity,
-                      );
-
-                      return SingleAddress(
-                        selectedAddress:
-                            selectedAvailableAddress?.id == address.id,
-                        isAvailable: isAvailable,
-                        name: address.name,
-                        phoneNumber: address.phoneNumber,
-                        address: localizedAddressText(context, address),
-                        city: address.cityLabel,
-                        area: address.areaLabel,
-                        deliveryPriceLabel: _deliveryPriceLabel(
-                          context,
-                          address.deliveryAreaPrice,
-                        ),
-                        onTap: isAvailable
-                            ? () => _selectAddress(context, address)
-                            : null,
-                        onEdit: () =>
-                            _openAddressForm(context, address: address),
-                        onDelete: () => _deleteAddress(context, address),
-                      );
-                    },
+                        return SingleAddress(
+                          selectedAddress:
+                              selectedAvailableAddress?.id == address.id,
+                          isAvailable: isAvailable,
+                          unavailableLabel: !isDeliveryAvailable
+                              ? 'Disabled'
+                              : !isAvailable
+                              ? 'Not supported here'
+                              : null,
+                          unavailableMessage: isDeliveryAvailable
+                              ? null
+                              : 'Delivery is no longer available for this address',
+                          name: address.name,
+                          phoneNumber: address.phoneNumber,
+                          address: localizedAddressText(context, address),
+                          city: address.cityLabel,
+                          area: address.areaLabel,
+                          deliveryPriceLabel: _deliveryPriceLabel(
+                            context,
+                            address.deliveryAreaPrice,
+                          ),
+                          onTap: isAvailable
+                              ? () => _selectAddress(context, address)
+                              : null,
+                          onEdit: () =>
+                              _openAddressForm(context, address: address),
+                          onDelete: () => _deleteAddress(context, address),
+                        );
+                      },
+                    ),
                   ),
           ),
         );

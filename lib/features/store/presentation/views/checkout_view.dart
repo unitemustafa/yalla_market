@@ -226,7 +226,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                 final shippingFeeLabel = hasSavedAddress
                     ? (hasPreviewTotals
                           ? (hasPendingDeliveryQuote
-                                ? context.tr('Later')
+                                ? _notSpecifiedLabel(context)
                                 : _formatMoney(shippingFee))
                           : _notSpecifiedLabel(context))
                     : _notSpecifiedLabel(context);
@@ -308,7 +308,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   const SizedBox(height: 10),
                                   _CheckoutNotice(
                                     message:
-                                        'Delivery is not available for one or more market groups.',
+                                        'التوصيل غير متاح لأحد المحلات في سلتك. راجع مدينة عنوان التوصيل أو احذف المحل غير المتاح.',
                                     isDark: isDark,
                                     isBlocking: true,
                                   ),
@@ -367,9 +367,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                             if (hasUnavailableDelivery) {
                               CustomSnackBar.showError(
                                 context: context,
-                                title: 'Cannot complete order',
+                                title: 'لا يمكن إتمام الطلب',
                                 message:
-                                    'Delivery is not available for one or more market groups.',
+                                    'التوصيل غير متاح لأحد المحلات في سلتك. راجع مدينة عنوان التوصيل أو احذف المحل غير المتاح.',
                               );
                               return;
                             }

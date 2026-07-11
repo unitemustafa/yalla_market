@@ -86,13 +86,14 @@ class NotificationCubit extends Cubit<NotificationState> {
     if (generation != _generation || isClosed) return false;
 
     return result.when(
-      success: (updated) {
+      success: (_) {
         final nextNotifications = List<AppNotification>.of(state.notifications);
         final currentIndex = nextNotifications.indexWhere(
           (item) => item.id == id,
         );
         if (currentIndex != -1) {
-          nextNotifications[currentIndex] = updated.copyWith(isRead: true);
+          nextNotifications[currentIndex] = nextNotifications[currentIndex]
+              .copyWith(isRead: true);
         }
         final nextIds = Set<int>.of(state.markingReadIds)..remove(id);
         emit(
@@ -115,6 +116,40 @@ class NotificationCubit extends Cubit<NotificationState> {
         );
         return false;
       },
+    );
+  }
+
+  Future<bool> deleteNotification(int id) async {
+    if (!state.notifications.any((item) => item.id == id)) return false;
+
+    final generation = _generation;
+    final result = await _repository.deleteNotification(id);
+    if (generation != _generation || isClosed) return false;
+
+    return result.when(
+      success: (_) => true,
+      failure: (failure) {
+        emit(state.copyWith(errorMessage: failure.message));
+        return false;
+      },
+    );
+  }
+
+  void removeNotification(int id) {
+    final index = state.notifications.indexWhere((item) => item.id == id);
+    if (index == -1) return;
+    final notification = state.notifications[index];
+
+    emit(
+      state.copyWith(
+        notifications: List.unmodifiable(
+          state.notifications.where((item) => item.id != id),
+        ),
+        unreadCount: notification.isRead
+            ? state.unreadCount
+            : _nonNegative(state.unreadCount - 1),
+        clearError: true,
+      ),
     );
   }
 

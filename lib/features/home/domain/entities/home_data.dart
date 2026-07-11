@@ -73,6 +73,10 @@ class HomeOfferData {
     this.showInGeneral = true,
     this.serviceCityIds = const [],
     this.serviceCityNames = const [],
+    this.announcementUrl = '',
+    this.announcementCtaLabel = '',
+    this.announcementPriority = 0,
+    this.announcementDisplaySeconds = 15,
     required this.products,
   });
 
@@ -89,6 +93,10 @@ class HomeOfferData {
   final bool showInGeneral;
   final List<int> serviceCityIds;
   final List<String> serviceCityNames;
+  final String announcementUrl;
+  final String announcementCtaLabel;
+  final int announcementPriority;
+  final int announcementDisplaySeconds;
   final List<ProductData> products;
 
   factory HomeOfferData.fromJson(Map<String, dynamic> json) {
@@ -111,6 +119,11 @@ class HomeOfferData {
       showInGeneral: _boolFromJson(json['show_in_general']) ?? true,
       serviceCityIds: _serviceCityIdsFromJson(json),
       serviceCityNames: _serviceCityNamesFromJson(json),
+      announcementUrl: json['announcement_url']?.toString() ?? '',
+      announcementCtaLabel: json['announcement_cta_label']?.toString() ?? '',
+      announcementPriority: _intFromJson(json['announcement_priority']) ?? 0,
+      announcementDisplaySeconds:
+          _intFromJson(json['announcement_display_seconds']) ?? 15,
       products: _listFromJson(json['products'])
           .map(ProductData.fromJson)
           .map(_productWithResolvedImage)

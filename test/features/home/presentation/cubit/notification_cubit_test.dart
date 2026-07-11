@@ -198,6 +198,12 @@ class _FakeNotificationRepository implements NotificationRepository {
   }
 
   @override
+  Future<ApiResult<bool>> deleteNotification(int notificationId) async {
+    notifications.removeWhere((item) => item.id == notificationId);
+    return const ApiResult.success(true);
+  }
+
+  @override
   Future<ApiResult<int>> markAllAsRead() async {
     if (markAllFailure case final error?) return ApiResult.failure(error);
     return ApiResult.success(

@@ -95,12 +95,14 @@ class ProductAdditionData {
     required this.name,
     required this.price,
     this.classification = '',
+    this.isActive = true,
   });
 
   final String id;
   final String name;
   final String price;
   final String classification;
+  final bool isActive;
 
   factory ProductAdditionData.fromJson(Map<String, dynamic> json) {
     final classification = _mapFromJson(json['classification']);
@@ -116,6 +118,7 @@ class ProductAdditionData {
           json['classification_name']?.toString() ??
           classification?['name']?.toString() ??
           '',
+      isActive: _boolFromJson(json['is_active'] ?? json['isActive']) ?? true,
     );
   }
 
@@ -125,16 +128,18 @@ class ProductAdditionData {
       'name': name,
       'price': price,
       'classification': classification,
+      'isActive': isActive,
     };
   }
 }
 
 class ProductData {
   const ProductData({
-    this.id,
+    required this.id,
     this.code,
     this.slug,
     required this.image,
+    this.images = const [],
     required this.title,
     required this.brand,
     required this.price,
@@ -159,10 +164,11 @@ class ProductData {
     this.isPopular = false,
   });
 
-  final String? id;
+  final String id;
   final String? code;
   final String? slug;
   final String image;
+  final List<String> images;
   final String title;
   final String brand;
   final String price;
@@ -234,15 +240,17 @@ class ProductData {
     final price =
         json['price']?.toString() ??
         (variantPrices.isEmpty ? '' : variantPrices.join(' ~ '));
+    final images = _productImagesFromJson(json);
 
     return ProductData(
-      id: json['id']?.toString(),
+      id: json['id']?.toString() ?? '',
       code:
           json['code']?.toString() ??
           json['productCode']?.toString() ??
           json['product_code']?.toString(),
       slug: json['slug']?.toString(),
-      image: _resolveImage(json['image'] ?? json['imageUrl']),
+      image: images.first,
+      images: images,
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
       brand: json['brand']?.toString() ?? market?['name']?.toString() ?? '',
       price: price,
@@ -295,6 +303,7 @@ class ProductData {
       'code': code,
       'slug': slug,
       'image': image,
+      'images': images,
       'title': title,
       'brand': brand,
       'price': price,
@@ -380,7 +389,7 @@ List<ProductAdditionData> _additionsFromJson(Object? value) {
         return ProductAdditionData(id: id, name: '#$id', price: '');
       })
       .whereType<ProductAdditionData>()
-      .where((addition) => addition.name.trim().isNotEmpty)
+      .where((addition) => addition.isActive && addition.name.trim().isNotEmpty)
       .toList(growable: false);
 }
 
@@ -421,9 +430,50 @@ String? _stringFromJson(Object? value) {
   return text;
 }
 
-String _resolveImage(Object? value) {
+List<String> _productImagesFromJson(Map<String, dynamic> json) {
+  final candidates = <({bool isPrimary, int index, Object? value})>[];
+  final rawImages = json['images'];
+  if (rawImages is List) {
+    for (var index = 0; index < rawImages.length; index++) {
+      final item = rawImages[index];
+      if (item is Map) {
+        candidates.add((
+          isPrimary:
+              _boolFromJson(item['is_primary'] ?? item['isPrimary']) ?? false,
+          index: index,
+          value: item['url'] ?? item['image'],
+        ));
+      } else {
+        candidates.add((isPrimary: false, index: index, value: item));
+      }
+    }
+  }
+  candidates.sort((left, right) {
+    if (left.isPrimary == right.isPrimary) {
+      return left.index.compareTo(right.index);
+    }
+    return left.isPrimary ? -1 : 1;
+  });
+
+  final images = <String>[];
+  final seen = <String>{};
+  void add(Object? value) {
+    final resolved = _resolveImage(value, fallback: false);
+    if (resolved.isEmpty || !seen.add(resolved)) return;
+    images.add(resolved);
+  }
+
+  for (final candidate in candidates) {
+    add(candidate.value);
+  }
+  add(json['image'] ?? json['imageUrl']);
+  if (images.isEmpty) images.add(AppAssets.defaultProduct);
+  return List.unmodifiable(images);
+}
+
+String _resolveImage(Object? value, {bool fallback = true}) {
   final image = value?.toString().trim() ?? '';
-  if (image.isEmpty) return AppAssets.temporaryMarketPlaceholder;
+  if (image.isEmpty) return fallback ? AppAssets.defaultProduct : '';
   final uri = Uri.tryParse(image);
   if (uri != null && (uri.scheme == 'http' || uri.scheme == 'https')) {
     return image;

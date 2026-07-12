@@ -79,7 +79,7 @@ class ProductDetailRouteArgs {
     required this.title,
     required this.brand,
     required this.price,
-    this.productId,
+    required this.productId,
     this.productSlug,
     this.oldPrice,
     this.discount,
@@ -89,7 +89,7 @@ class ProductDetailRouteArgs {
   final String title;
   final String brand;
   final String price;
-  final String? productId;
+  final String productId;
   final String? productSlug;
   final String? oldPrice;
   final String? discount;

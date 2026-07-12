@@ -197,10 +197,10 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     final result = <ProductData>[];
 
     for (final product in products) {
-      final key =
-          product.id?.trim().toLowerCase() ??
-          product.slug?.trim().toLowerCase() ??
-          '${_normalize(product.brand)}::${_normalize(product.title)}';
+      final key = product.id.trim().toLowerCase().isNotEmpty
+          ? product.id.trim().toLowerCase()
+          : product.slug?.trim().toLowerCase() ??
+                '${_normalize(product.brand)}::${_normalize(product.title)}';
       if (seen.add(key)) result.add(product);
     }
 

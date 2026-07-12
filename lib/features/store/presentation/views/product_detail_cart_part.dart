@@ -57,7 +57,7 @@ class _BottomAddToCartBar extends StatelessWidget {
             const SizedBox(width: 14),
             Expanded(
               child: ElevatedButton(
-                onPressed: onAddToCart,
+                onPressed: canAdd ? onAddToCart : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: canAdd
                       ? AppColors.primary

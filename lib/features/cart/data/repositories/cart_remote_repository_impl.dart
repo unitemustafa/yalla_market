@@ -32,6 +32,7 @@ class CartRemoteRepositoryImpl implements CartRepository {
         data: {
           'productId': item.productId ?? item.id,
           'variantId': item.variantId,
+          'additionIds': item.additionIds,
           'quantity': quantityToAdd,
           'attributes': item.attributes
               .map((attribute) => attribute.toJson())

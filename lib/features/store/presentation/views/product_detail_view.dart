@@ -6,8 +6,7 @@ import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/service_locator.dart';
-import '../../data/demo/demo_categories.dart';
-import '../../data/demo/demo_shops.dart';
+import '../../../../core/errors/failure.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -20,6 +19,8 @@ import '../../../../core/routing/app_routes.dart';
 import '../../../../core/utils/image_downloader.dart';
 import '../../../../features/cart/domain/entities/cart_item.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
+import '../../data/demo/demo_categories.dart';
+import '../../data/demo/demo_shops.dart';
 import '../cubit/product_discovery_cubit.dart';
 import '../../domain/entities/category_data.dart';
 import '../../domain/entities/product_data.dart';
@@ -76,14 +77,15 @@ class ProductDetailView extends StatefulWidget {
     required this.title,
     required this.brand,
     required this.price,
-    this.productId,
+    required this.productId,
     this.productSlug,
     this.oldPrice,
     this.discount,
   });
 
   final String image, title, brand, price;
-  final String? productId, productSlug;
+  final String productId;
+  final String? productSlug;
   final String? oldPrice, discount;
 
   @override
@@ -96,7 +98,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   final Set<String> selectedAdditionIds = <String>{};
   late String currentImage;
   ProductData? _loadedProduct;
-  bool _isLoadingProductDetails = false;
+  bool _isLoadingProductDetails = true;
+  Failure? _productLoadFailure;
 
   @override
   void initState() {
@@ -119,7 +122,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         : 'No description available for this product.';
   }
 
-  String? get _productId => _loadedProduct?.id ?? widget.productId;
+  String get _productId => _loadedProduct?.id ?? widget.productId;
   String? get _marketId => _loadedProduct?.marketId;
   bool get _isProductAvailable => _loadedProduct?.isAvailable ?? true;
   List<ProductVariantData> get _variants =>
@@ -144,12 +147,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     return _productPrice;
   }
 
-  String get _resolvedProductId {
-    final productId = _productId?.trim();
-    if (productId != null && productId.isNotEmpty) return productId;
-    // TODO: Pass productId from all product sources instead of falling back.
-    return _productTitle;
-  }
+  String get _resolvedProductId => _productId;
 
   String get _resolvedCartItemId {
     final variantId = _selectedVariant?.id.trim();
@@ -162,11 +160,28 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Future<void> _loadProductDetails() async {
-    final id = widget.productId?.trim();
-    if (id == null || id.isEmpty || _isLoadingProductDetails) return;
-    if (!sl.isRegistered<GetProductUseCase>()) return;
+    final id = widget.productId.trim();
+    if (id.isEmpty) {
+      setState(() {
+        _isLoadingProductDetails = false;
+        _productLoadFailure = const ValidationFailure('Missing product ID.');
+      });
+      return;
+    }
+    if (!sl.isRegistered<GetProductUseCase>()) {
+      setState(() {
+        _isLoadingProductDetails = false;
+        _productLoadFailure = const UnknownFailure(
+          'Product details service is unavailable.',
+        );
+      });
+      return;
+    }
 
-    _isLoadingProductDetails = true;
+    setState(() {
+      _isLoadingProductDetails = true;
+      _productLoadFailure = null;
+    });
     final result = await sl<GetProductUseCase>()(id);
     if (!mounted) return;
 
@@ -175,12 +190,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         setState(() {
           _loadedProduct = product;
           _syncSelectedVariant(product);
-          if (currentImage == widget.image) currentImage = product.image;
+          currentImage = product.images.first;
           _isLoadingProductDetails = false;
+          _productLoadFailure = null;
         });
       },
-      failure: (_) {
-        setState(() => _isLoadingProductDetails = false);
+      failure: (failure) {
+        setState(() {
+          _isLoadingProductDetails = false;
+          _productLoadFailure = failure;
+        });
       },
     );
   }
@@ -652,6 +671,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         id: _resolvedCartItemId,
         productId: _resolvedProductId,
         variantId: selectedVariantId,
+        additionIds: selectedAdditionIds.toList(growable: false)..sort(),
         marketId: _marketId,
         marketName: _productBrand,
         image: currentImage,
@@ -828,10 +848,55 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    if (_loadedProduct == null) {
+      final failure = _productLoadFailure;
+      final isNotFound = failure?.statusCode == 404;
+      return Scaffold(
+        appBar: AppBar(
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => Navigator.pop(context),
+          ),
+        ),
+        body: Center(
+          child: _isLoadingProductDetails
+              ? const CircularProgressIndicator()
+              : Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isNotFound
+                            ? Icons.inventory_2_outlined
+                            : Icons.wifi_off,
+                        size: 48,
+                        color: AppColors.error,
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        isNotFound
+                            ? 'هذا المنتج غير متاح في منطقتك حاليًا.'
+                            : 'تحقق من اتصال الإنترنت ثم حاول مرة أخرى.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(height: 16),
+                      ElevatedButton(
+                        onPressed: _loadProductDetails,
+                        child: const Text('إعادة المحاولة'),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      );
+    }
     final selectedPrice = _selectedPrice;
     final selectedUnitPrice =
         _parsePrice(selectedPrice) + _selectedAdditionsTotal;
-    final isOutOfStock = !_isProductAvailable;
+    final isOutOfStock = !_isProductAvailable || _variants.isEmpty;
     final stock = isOutOfStock ? 'Out of Stock' : 'Available';
     final stockColor = isOutOfStock ? AppColors.error : AppColors.success;
     final backgroundColor = isDark
@@ -844,12 +909,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     final isFavorite = context.watch<WishlistCubit>().isFavorite(
       _resolvedProductId,
     );
-    final thumbnailImages = _uniqueImageSources([
-      _productImage,
-      AppAssets.temporaryMarketPlaceholder,
-      AppAssets.tshirtBlueNoCollarFront,
-      AppAssets.samsungS9Mobile,
-    ]);
+    final thumbnailImages = _uniqueImageSources(_loadedProduct!.images);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -881,6 +941,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   if (_isLoadingProductDetails) ...[
                     const SizedBox(height: 8),
                     const LinearProgressIndicator(minHeight: 2),
+                  ],
+                  if (_variants.isEmpty) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'هذا المنتج غير متاح للطلب حاليًا.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                   const SizedBox(height: 12),
                   Text(

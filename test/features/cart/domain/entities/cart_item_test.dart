@@ -100,6 +100,7 @@ void main() {
         'id': '1',
         'productId': 'product-1',
         'variantId': 'variant-1',
+        'additionIds': <String>[],
         'marketId': 'market-1',
         'marketName': 'Atlas Market',
         'image': 'product.png',

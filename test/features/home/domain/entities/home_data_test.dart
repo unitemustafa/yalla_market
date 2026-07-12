@@ -46,7 +46,7 @@ void main() {
       expect(home.categories.single.name, 'Supermarket');
       expect(home.categories.single.productCount, 2);
       expect(home.products.single.brand, 'Fresh Market');
-      expect(home.products.single.image, AppAssets.temporaryMarketPlaceholder);
+      expect(home.products.single.image, AppAssets.defaultProduct);
     });
   });
 }

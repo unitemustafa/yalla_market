@@ -114,7 +114,7 @@ class ProductRepositoryImpl implements ProductRepository {
 
   ProductData? _findProduct(String normalized) {
     for (final product in DemoProducts.products) {
-      if (product.id?.toLowerCase() == normalized ||
+      if (product.id.toLowerCase() == normalized ||
           product.slug?.toLowerCase() == normalized ||
           product.title.toLowerCase() == normalized ||
           _slugFrom(product.title) == normalized) {

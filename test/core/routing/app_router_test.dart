@@ -35,6 +35,7 @@ void main() {
         const RouteSettings(
           name: AppRoutes.productDetail,
           arguments: ProductDetailRouteArgs(
+            productId: 'product-1',
             image: 'asset.png',
             title: 'Demo product',
             brand: 'Demo brand',

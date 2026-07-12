@@ -72,7 +72,7 @@ class WishlistRemoteRepositoryImpl implements WishlistRepository {
   WishlistItem _itemFromProductJson(Map<String, dynamic> json) {
     final product = ProductData.fromJson(json);
     return WishlistItem(
-      productId: product.id ?? json['id']?.toString() ?? '',
+      productId: product.id,
       image: product.image,
       title: product.title,
       brand: product.brand,

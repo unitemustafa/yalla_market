@@ -143,7 +143,7 @@ class AppRouter {
 
       case AppRoutes.productDetail:
         final args = settings.arguments as ProductDetailRouteArgs?;
-        if (args == null) {
+        if (args == null || args.productId.trim().isEmpty) {
           return _buildMissingArgumentsRoute(settings);
         }
         return _buildRoute(

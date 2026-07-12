@@ -19,6 +19,7 @@ class CartItemData {
     required this.id,
     this.productId,
     this.variantId,
+    this.additionIds = const [],
     this.marketId,
     this.marketName,
     required this.image,
@@ -36,6 +37,7 @@ class CartItemData {
   final String id;
   final String? productId;
   final String? variantId;
+  final List<String> additionIds;
   final String? marketId;
   final String? marketName;
   final String image;
@@ -75,6 +77,9 @@ class CartItemData {
           json['productId']?.toString() ?? json['product_id']?.toString(),
       variantId:
           json['variantId']?.toString() ?? json['variant_id']?.toString(),
+      additionIds: _stringList(
+        json['additionIds'] ?? json['addition_ids'] ?? json['additions'],
+      ),
       marketId: json['marketId']?.toString() ?? json['market_id']?.toString(),
       marketName:
           json['marketName']?.toString() ?? json['market_name']?.toString(),
@@ -102,6 +107,7 @@ class CartItemData {
       'id': id,
       'productId': productId,
       'variantId': variantId,
+      'additionIds': additionIds,
       'marketId': marketId,
       'marketName': marketName,
       'image': image,
@@ -121,6 +127,7 @@ class CartItemData {
     String? id,
     String? productId,
     String? variantId,
+    List<String>? additionIds,
     String? marketId,
     String? marketName,
     String? image,
@@ -138,6 +145,7 @@ class CartItemData {
       id: id ?? this.id,
       productId: productId ?? this.productId,
       variantId: variantId ?? this.variantId,
+      additionIds: additionIds ?? this.additionIds,
       marketId: marketId ?? this.marketId,
       marketName: marketName ?? this.marketName,
       image: image ?? this.image,

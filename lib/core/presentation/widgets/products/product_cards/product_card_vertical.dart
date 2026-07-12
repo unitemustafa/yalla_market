@@ -48,7 +48,7 @@ class ProductCardVertical extends StatefulWidget {
     required this.title,
     required this.brand,
     required this.price,
-    this.productId,
+    required this.productId,
     this.productSlug,
     this.defaultVariantId,
     this.marketId,
@@ -58,7 +58,8 @@ class ProductCardVertical extends StatefulWidget {
   });
 
   final String image, title, brand, price;
-  final String? productId, productSlug, defaultVariantId, marketId, marketName;
+  final String productId;
+  final String? productSlug, defaultVariantId, marketId, marketName;
   final String? oldPrice, discount;
 
   @override
@@ -66,12 +67,7 @@ class ProductCardVertical extends StatefulWidget {
 }
 
 class _ProductCardVerticalState extends State<ProductCardVertical> {
-  String get _resolvedProductId {
-    final productId = widget.productId?.trim();
-    if (productId != null && productId.isNotEmpty) return productId;
-    // TODO: Pass productId from all product sources instead of falling back.
-    return widget.title;
-  }
+  String get _resolvedProductId => widget.productId;
 
   String? get _resolvedVariantId {
     final variantId = widget.defaultVariantId?.trim();
@@ -333,10 +329,8 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                                         (_resolvedVariantId != null &&
                                             i.variantId ==
                                                 _resolvedVariantId) ||
-                                        (widget.productId != null &&
-                                            i.productId == widget.productId) ||
-                                        i.id == _resolvedCartItemId ||
-                                        i.id == widget.title,
+                                        i.productId == widget.productId ||
+                                        i.id == _resolvedCartItemId,
                                   )
                                   .firstOrNull;
                               return cartItem?.quantity ?? 0;

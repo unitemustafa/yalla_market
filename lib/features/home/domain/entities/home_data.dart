@@ -70,6 +70,10 @@ class HomeOfferData {
     required this.endsAt,
     this.marketId = '',
     required this.marketName,
+    this.isMultiMarket = false,
+    this.marketCount = 0,
+    this.markets = const [],
+    this.marketNamesSummary = '',
     this.showInGeneral = true,
     this.serviceCityIds = const [],
     this.serviceCityNames = const [],
@@ -90,6 +94,10 @@ class HomeOfferData {
   final DateTime? endsAt;
   final String marketId;
   final String marketName;
+  final bool isMultiMarket;
+  final int marketCount;
+  final List<HomeOfferMarketData> markets;
+  final String marketNamesSummary;
   final bool showInGeneral;
   final List<int> serviceCityIds;
   final List<String> serviceCityNames;
@@ -116,6 +124,12 @@ class HomeOfferData {
       marketId:
           json['market_id']?.toString() ?? market?['id']?.toString() ?? '',
       marketName: market?['name']?.toString() ?? '',
+      isMultiMarket: _boolFromJson(json['is_multi_market']) ?? false,
+      marketCount: _intFromJson(json['market_count']) ?? 0,
+      markets: _listFromJson(
+        json['markets'],
+      ).map(HomeOfferMarketData.fromJson).toList(growable: false),
+      marketNamesSummary: json['market_names_summary']?.toString() ?? '',
       showInGeneral: _boolFromJson(json['show_in_general']) ?? true,
       serviceCityIds: _serviceCityIdsFromJson(json),
       serviceCityNames: _serviceCityNamesFromJson(json),
@@ -140,6 +154,26 @@ class HomeOfferData {
         ? parsed.toStringAsFixed(0)
         : parsed.toStringAsFixed(1);
     return '$text% off';
+  }
+}
+
+class HomeOfferMarketData {
+  const HomeOfferMarketData({
+    required this.id,
+    required this.name,
+    required this.branch,
+  });
+
+  final String id;
+  final String name;
+  final String branch;
+
+  factory HomeOfferMarketData.fromJson(Map<String, dynamic> json) {
+    return HomeOfferMarketData(
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      branch: json['branch']?.toString() ?? '',
+    );
   }
 }
 
@@ -170,6 +204,7 @@ ProductData _productWithResolvedImage(ProductData product) {
     code: product.code,
     slug: product.slug,
     image: _resolveImage(product.image),
+    images: product.images,
     title: product.title,
     brand: product.brand,
     price: product.price,
@@ -186,6 +221,12 @@ ProductData _productWithResolvedImage(ProductData product) {
     marketId: product.marketId,
     marketClassificationId: product.marketClassificationId,
     variants: product.variants,
+    attributes: product.attributes,
+    additions: product.additions,
+    description: product.description,
+    isAvailable: product.isAvailable,
+    theme: product.theme,
+    isPopular: product.isPopular,
   );
 }
 

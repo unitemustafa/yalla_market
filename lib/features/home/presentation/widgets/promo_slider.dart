@@ -536,6 +536,9 @@ class _PromoSliderState extends State<PromoSlider> {
     final discountLabel = offer.discountLabel;
     final isAnnouncement = type == 'announcement';
     final title = offer.title.trim().isEmpty ? 'Offer' : offer.title.trim();
+    final marketLabel = offer.isMultiMarket
+        ? 'متعدد المحلات'
+        : offer.marketName;
     final description = offer.description.trim().isEmpty
         ? title
         : offer.description.trim();
@@ -554,13 +557,13 @@ class _PromoSliderState extends State<PromoSlider> {
       subtitleAr: description,
       valueEn: isAnnouncement
           ? 'Advertisement'
-          : (discountLabel.isEmpty ? offer.marketName : discountLabel),
+          : (discountLabel.isEmpty ? marketLabel : discountLabel),
       valueAr: isAnnouncement
           ? 'إعلان'
-          : (discountLabel.isEmpty ? offer.marketName : discountLabel),
+          : (discountLabel.isEmpty ? marketLabel : discountLabel),
       statusEn: isAnnouncement
           ? 'External campaign'
-          : (offer.marketName.isEmpty ? 'Active offer' : offer.marketName),
+          : (marketLabel.isEmpty ? 'Active offer' : marketLabel),
       statusAr: isAnnouncement
           ? 'حملة خارجية'
           : (offer.marketName.isEmpty ? 'عرض نشط' : offer.marketName),
@@ -585,8 +588,8 @@ class _PromoSliderState extends State<PromoSlider> {
                 image: offer.image,
                 titleEn: title,
                 titleAr: title,
-                brandEn: offer.marketName,
-                brandAr: offer.marketName,
+                brandEn: marketLabel,
+                brandAr: marketLabel,
                 price: AppCurrency.format(totalValue, fractionDigits: 0),
                 badgeEn: discountLabel,
                 badgeAr: _arabicDiscountLabel(discountLabel),
@@ -609,6 +612,7 @@ class _PromoSliderState extends State<PromoSlider> {
   _OfferProduct _offerProductFromApi(ProductData product) {
     final discount = product.discount.trim();
     return _OfferProduct(
+      productId: product.id,
       image: product.image,
       titleEn: product.title,
       titleAr: product.title,
@@ -1658,6 +1662,8 @@ class _OfferProductRow extends StatelessWidget {
   final bool isDark;
 
   void _openProductDetails(BuildContext context) {
+    final productId = product.productId?.trim();
+    if (productId == null || productId.isEmpty) return;
     final productBadge = product.badge(context);
     final discount = _looksLikeDiscountLabel(productBadge)
         ? productBadge
@@ -1668,6 +1674,7 @@ class _OfferProductRow extends StatelessWidget {
     navigator.pushNamed(
       AppRoutes.productDetail,
       arguments: ProductDetailRouteArgs(
+        productId: productId,
         image: product.image,
         title: product.title(context),
         brand: product.brand(context),
@@ -2334,6 +2341,7 @@ class _PromoOfferData {
 
 class _OfferProduct {
   const _OfferProduct({
+    this.productId,
     required this.image,
     required this.titleEn,
     required this.titleAr,
@@ -2348,6 +2356,7 @@ class _OfferProduct {
   });
 
   final String image;
+  final String? productId;
   final String titleEn;
   final String titleAr;
   final String brandEn;

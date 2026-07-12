@@ -7,6 +7,72 @@ import '../../../../helpers/fake_api_client.dart';
 
 void main() {
   group('ProductRemoteRepositoryImpl', () {
+    test(
+      'loads full product details from the customer detail endpoint',
+      () async {
+        final apiClient = FakeApiClient((request) {
+          expect(request.method, 'GET');
+          expect(request.path, '/home/products/42/');
+          return {
+            ..._backendProduct(),
+            'images': [
+              {
+                'id': 1,
+                'url': 'https://cdn.example.com/apple-primary.png',
+                'is_primary': true,
+              },
+              {
+                'id': 2,
+                'image': '/media/apple-secondary.png',
+                'is_primary': false,
+              },
+            ],
+            'attributes': [
+              {
+                'id': 3,
+                'name': 'Size',
+                'options': [
+                  {'id': 4, 'value': 'Large'},
+                ],
+              },
+            ],
+            'variants': [
+              {
+                'id': 5,
+                'price': '120.00',
+                'attribute_values': [
+                  {'attribute_name': 'Size', 'option_value': 'Large'},
+                ],
+              },
+            ],
+            'additions': [
+              {
+                'id': 6,
+                'name_ar': 'إضافة',
+                'price': '10.00',
+                'is_active': true,
+              },
+            ],
+          };
+        });
+        final repository = ProductRemoteRepositoryImpl(apiClient);
+
+        final result = await repository.getProduct('42');
+
+        result.when(
+          success: (product) {
+            expect(product.id, '42');
+            expect(product.description, 'Fresh fruit');
+            expect(product.images, hasLength(2));
+            expect(product.attributes.single.options.single.value, 'Large');
+            expect(product.variants.single.attributeValues, {'Size': 'Large'});
+            expect(product.additions.single.id, '6');
+          },
+          failure: (failure) => fail(failure.message),
+        );
+      },
+    );
+
     test('searches products through the API contract', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');

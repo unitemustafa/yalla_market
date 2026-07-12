@@ -1,4 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_assets.dart';
+import 'package:yalla_market/core/network/api_endpoints.dart';
 import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 
 void main() {
@@ -18,6 +20,63 @@ void main() {
       expect(product.image, imageUrl);
       expect(product.code, 'PRD-A1B2C3');
       expect(product.toJson()['code'], 'PRD-A1B2C3');
+    });
+
+    test(
+      'parses primary and secondary product images in primary-first order',
+      () {
+        final product = ProductData.fromJson({
+          'id': 1,
+          'name': 'Product',
+          'image': '/media/products/secondary.png',
+          'images': [
+            {
+              'id': 2,
+              'url': 'https://cdn.example.com/secondary.png',
+              'is_primary': false,
+            },
+            {
+              'id': 1,
+              'image': '/media/products/primary.png',
+              'is_primary': true,
+            },
+          ],
+        });
+
+        expect(
+          product.images.first,
+          '${ApiEndpoints.rootBaseUrl}/media/products/primary.png',
+        );
+        expect(product.images[1], 'https://cdn.example.com/secondary.png');
+        expect(product.image, product.images.first);
+      },
+    );
+
+    test(
+      'deduplicates resolved image URLs and appends the legacy image once',
+      () {
+        final relative = '/media/products/product.png';
+        final absolute = '${ApiEndpoints.rootBaseUrl}$relative';
+        final product = ProductData.fromJson({
+          'id': 1,
+          'name': 'Product',
+          'image': relative,
+          'images': [
+            {'url': relative},
+            {'image': absolute},
+            {'url': '  '},
+          ],
+        });
+
+        expect(product.images, [absolute]);
+      },
+    );
+
+    test('uses only the official product placeholder when no images exist', () {
+      final product = ProductData.fromJson({'id': 1, 'name': 'Product'});
+
+      expect(product.image, AppAssets.defaultProduct);
+      expect(product.images, [AppAssets.defaultProduct]);
     });
 
     test('parses city metadata from API payloads', () {

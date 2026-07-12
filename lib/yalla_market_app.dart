@@ -63,6 +63,25 @@ class YallaMarketApp extends StatelessWidget {
   }
 }
 
+class ResumeRefreshGuard {
+  bool _inFlight = false;
+
+  Future<void> run({
+    required Future<bool> Function() validateSession,
+    required Future<void> Function() refreshHome,
+  }) async {
+    if (_inFlight) return;
+    _inFlight = true;
+    try {
+      if (await validateSession()) {
+        await refreshHome();
+      }
+    } finally {
+      _inFlight = false;
+    }
+  }
+}
+
 class _AppCoordinator extends StatefulWidget {
   const _AppCoordinator();
 
@@ -73,6 +92,8 @@ class _AppCoordinator extends StatefulWidget {
 class _AppCoordinatorState extends State<_AppCoordinator>
     with WidgetsBindingObserver {
   StreamSubscription<PushEvent>? _pushSubscription;
+  bool _wasBackgrounded = false;
+  final ResumeRefreshGuard _resumeRefreshGuard = ResumeRefreshGuard();
 
   @override
   void initState() {
@@ -102,8 +123,34 @@ class _AppCoordinatorState extends State<_AppCoordinator>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      context.read<AuthCubit>().validateSession();
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      _wasBackgrounded = true;
+      return;
+    }
+    if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+      _wasBackgrounded = false;
+      unawaited(_refreshAfterResume());
+    }
+  }
+
+  Future<void> _refreshAfterResume() async {
+    if (!mounted) return;
+    final authCubit = context.read<AuthCubit>();
+    if (authCubit.state is! AuthAuthenticated) return;
+    try {
+      await _resumeRefreshGuard.run(
+        validateSession: () async {
+          final sessionIsValid = await authCubit.validateSession();
+          return mounted &&
+              sessionIsValid &&
+              authCubit.state is AuthAuthenticated;
+        },
+        refreshHome: () => context.read<HomeCubit>().loadHome(force: true),
+      );
+    } catch (_) {
+      // A background refresh failure must not invalidate an otherwise valid session.
     }
   }
 

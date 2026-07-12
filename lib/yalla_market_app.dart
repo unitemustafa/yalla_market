@@ -78,10 +78,13 @@ class _AppCoordinatorState extends State<_AppCoordinator>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _pushSubscription = sl<PushNotificationService>().events.listen(
-      _handlePushEvent,
-    );
+    final pushNotificationService = sl<PushNotificationService>();
+    _pushSubscription = pushNotificationService.events.listen(_handlePushEvent);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      for (final event
+          in pushNotificationService.takePendingInitialOpenedEvents()) {
+        unawaited(_handlePushEvent(event));
+      }
       if (mounted && context.read<AuthCubit>().state is AuthAccountDisabled) {
         _clearPrivateSessionState(context);
         AppNavigator.goToLogin();
@@ -109,6 +112,13 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     final data = pushEvent.data;
     final event = data['event']?.toString() ?? '';
     if (event.isEmpty || event == 'account_disabled') return;
+
+    if (event == 'account_restored') {
+      if (pushEvent.opened) {
+        AppNavigator.goToLogin();
+      }
+      return;
+    }
 
     if (event == 'delivery_area_status_changed') {
       await context.read<AddressCubit>().loadAddresses();

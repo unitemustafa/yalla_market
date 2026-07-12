@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/routing/app_routes.dart';
+import '../../../../core/session/account_restored_notifier.dart';
 
 class AccountDisabledView extends StatelessWidget {
   const AccountDisabledView({super.key});
@@ -14,26 +15,41 @@ class AccountDisabledView extends StatelessWidget {
           child: Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.lock_person_rounded, size: 72),
-                  const SizedBox(height: 20),
-                  const Text(
-                    'تم تعطيل حسابك. تواصل مع الدعم.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                  ),
-                  const SizedBox(height: 24),
-                  FilledButton(
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.login,
-                      (route) => false,
-                    ),
-                    child: const Text('تسجيل الدخول'),
-                  ),
-                ],
+              child: ValueListenableBuilder<bool>(
+                valueListenable: AccountRestoredNotifier.instance,
+                builder: (context, isRestored, _) {
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isRestored
+                            ? Icons.lock_open_rounded
+                            : Icons.lock_person_rounded,
+                        size: 72,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        isRestored
+                            ? accountRestoredViewMessage
+                            : 'تم تعطيل حسابك. تواصل مع الدعم.',
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      FilledButton(
+                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          AppRoutes.login,
+                          (route) => false,
+                        ),
+                        child: const Text('تسجيل الدخول'),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -42,3 +58,6 @@ class AccountDisabledView extends StatelessWidget {
     );
   }
 }
+
+const accountRestoredViewMessage =
+    'تم استعادة حسابك. يمكنك الآن الانتقال إلى تسجيل الدخول.';

@@ -1,17 +1,24 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../network/api_client.dart';
 import '../session/account_inactive_notifier.dart';
+import '../session/account_restored_notifier.dart';
 import '../storage/token_store.dart';
 
 const _pendingAccountDisabledKey = 'push.pending_account_disabled';
 const _lastRegisteredTokenKey = 'push.last_registered_token';
+const accountUpdatesChannelId = 'account_updates';
+const accountUpdatesChannelName = 'تحديثات الحساب';
+const accountRestoredTitle = 'تم استعادة حسابك';
+const accountRestoredMessage = 'تم استعادة حسابك بواسطة فريق دعم يلا ماركت.';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -33,25 +40,133 @@ class PushEvent {
   final bool opened;
 }
 
+abstract interface class AccountNotificationPresenter {
+  Future<void> initialize(
+    Future<void> Function(Map<String, dynamic> data) onTap,
+  );
+
+  Future<void> requestPermission();
+
+  Future<void> showAccountRestored(Map<String, dynamic> data);
+}
+
+class FlutterAccountNotificationPresenter
+    implements AccountNotificationPresenter {
+  FlutterAccountNotificationPresenter({FlutterLocalNotificationsPlugin? plugin})
+    : _plugin = plugin ?? FlutterLocalNotificationsPlugin();
+
+  final FlutterLocalNotificationsPlugin _plugin;
+
+  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
+    accountUpdatesChannelId,
+    accountUpdatesChannelName,
+    description: 'إشعارات تعطيل واستعادة حساب العميل',
+    importance: Importance.high,
+  );
+
+  @override
+  Future<void> initialize(
+    Future<void> Function(Map<String, dynamic> data) onTap,
+  ) async {
+    await _plugin.initialize(
+      settings: const InitializationSettings(
+        android: AndroidInitializationSettings('ic_notification'),
+        iOS: DarwinInitializationSettings(
+          requestAlertPermission: false,
+          requestBadgePermission: false,
+          requestSoundPermission: false,
+        ),
+      ),
+      onDidReceiveNotificationResponse: (response) {
+        final payload = response.payload;
+        if (payload == null || payload.isEmpty) return;
+        try {
+          final decoded = jsonDecode(payload);
+          if (decoded is Map) {
+            unawaited(onTap(Map<String, dynamic>.from(decoded)));
+          }
+        } catch (error, stackTrace) {
+          _debugPushError('local notification tap', error, stackTrace);
+        }
+      },
+    );
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_channel);
+  }
+
+  @override
+  Future<void> requestPermission() async {
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.requestNotificationsPermission();
+  }
+
+  @override
+  Future<void> showAccountRestored(Map<String, dynamic> data) async {
+    final notificationId = int.tryParse(
+      data['notification_id']?.toString() ?? '',
+    );
+    await _plugin.show(
+      id: notificationId ?? accountRestoredTitle.hashCode & 0x7fffffff,
+      title: accountRestoredTitle,
+      body: accountRestoredMessage,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          accountUpdatesChannelId,
+          accountUpdatesChannelName,
+          channelDescription: 'إشعارات تعطيل واستعادة حساب العميل',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+}
+
 class PushNotificationService {
   PushNotificationService(
     this._apiClient,
     this._tokenStore, {
     AccountInactiveNotifier? accountInactiveNotifier,
+    AccountRestoredNotifier? accountRestoredNotifier,
+    AccountNotificationPresenter? accountNotificationPresenter,
   }) : _accountInactiveNotifier =
-           accountInactiveNotifier ?? AccountInactiveNotifier.instance;
+           accountInactiveNotifier ?? AccountInactiveNotifier.instance,
+       _accountRestoredNotifier =
+           accountRestoredNotifier ?? AccountRestoredNotifier.instance,
+       _accountNotificationPresenter =
+           accountNotificationPresenter ??
+           FlutterAccountNotificationPresenter();
 
   final ApiClient _apiClient;
   final TokenStore _tokenStore;
   final AccountInactiveNotifier _accountInactiveNotifier;
+  final AccountRestoredNotifier _accountRestoredNotifier;
+  final AccountNotificationPresenter _accountNotificationPresenter;
   final StreamController<PushEvent> _events =
       StreamController<PushEvent>.broadcast();
+  final Set<String> _displayedRestoredNotifications = <String>{};
+  final Set<String> _openedRestoredNotifications = <String>{};
+  final List<PushEvent> _pendingInitialOpenedEvents = <PushEvent>[];
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   StreamSubscription<RemoteMessage>? _openedMessageSubscription;
   StreamSubscription<String>? _tokenRefreshSubscription;
   bool _initialized = false;
 
   Stream<PushEvent> get events => _events.stream;
+
+  List<PushEvent> takePendingInitialOpenedEvents() {
+    final pending = List<PushEvent>.from(_pendingInitialOpenedEvents);
+    _pendingInitialOpenedEvents.clear();
+    return pending;
+  }
 
   Future<void> initialize() async {
     if (_initialized) return;
@@ -64,6 +179,13 @@ class PushNotificationService {
     try {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await Firebase.initializeApp();
+      try {
+        await _accountNotificationPresenter.initialize(
+          (data) => handleDataForTesting(data, opened: true),
+        );
+      } catch (error, stackTrace) {
+        _debugPushError('local notification initialization', error, stackTrace);
+      }
       _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen(
         (message) => _handleMessage(message, opened: false),
       );
@@ -75,7 +197,7 @@ class PushNotificationService {
       final initialMessage = await FirebaseMessaging.instance
           .getInitialMessage();
       if (initialMessage != null) {
-        _handleMessage(initialMessage, opened: true);
+        _handleMessage(initialMessage, opened: true, queueForAppStart: true);
       }
     } catch (error, stackTrace) {
       // Native Firebase configuration is supplied per deployment. Security
@@ -88,7 +210,16 @@ class PushNotificationService {
     try {
       final tokens = await _tokenStore.read();
       if (tokens == null) return;
-      await FirebaseMessaging.instance.requestPermission();
+      await FirebaseMessaging.instance.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      try {
+        await _accountNotificationPresenter.requestPermission();
+      } catch (error, stackTrace) {
+        _debugPushError('local notification permission', error, stackTrace);
+      }
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return;
       await _replaceToken(token);
@@ -108,7 +239,6 @@ class PushNotificationService {
         options: Options(extra: const {'allowAfterInactive': true}),
       );
     } catch (error, stackTrace) {
-      // Server-side account deactivation also disables every device row.
       _debugPushError('device unregistration', error, stackTrace);
     } finally {
       await preferences.remove(_lastRegisteredTokenKey);
@@ -145,11 +275,20 @@ class PushNotificationService {
   Future<void> handleTokenRefreshForTesting(String token) =>
       _replaceToken(token);
 
-  void _handleMessage(RemoteMessage message, {required bool opened}) {
+  void _handleMessage(
+    RemoteMessage message, {
+    required bool opened,
+    bool queueForAppStart = false,
+  }) {
+    final data = Map<String, dynamic>.from(message.data);
+    if (message.messageId != null) {
+      data['_fcm_message_id'] = message.messageId;
+    }
     unawaited(
       handleDataForTesting(
-        Map<String, dynamic>.from(message.data),
+        data,
         opened: opened,
+        queueForAppStart: queueForAppStart,
       ),
     );
   }
@@ -158,15 +297,63 @@ class PushNotificationService {
   Future<void> handleDataForTesting(
     Map<String, dynamic> data, {
     required bool opened,
+    bool queueForAppStart = false,
   }) async {
-    if (data['event'] == 'account_disabled') {
+    final event = data['event']?.toString();
+    if (event == 'account_disabled') {
       await _disableAccount();
+      return;
+    }
+    if (event == 'account_restored') {
+      await _handleAccountRestored(
+        data,
+        opened: opened,
+        queueForAppStart: queueForAppStart,
+      );
       return;
     }
     _events.add(PushEvent(data, opened: opened));
   }
 
+  Future<void> _handleAccountRestored(
+    Map<String, dynamic> data, {
+    required bool opened,
+    required bool queueForAppStart,
+  }) async {
+    _accountRestoredNotifier.markRestored();
+    final key = _restoredNotificationKey(data);
+    if (opened) {
+      if (!_openedRestoredNotifications.add(key)) return;
+    } else {
+      if (!_displayedRestoredNotifications.add(key)) return;
+      try {
+        await _accountNotificationPresenter.showAccountRestored(data);
+      } catch (error, stackTrace) {
+        _debugPushError('account-restored display', error, stackTrace);
+      }
+    }
+    final pushEvent = PushEvent(data, opened: opened);
+    if (queueForAppStart) {
+      _pendingInitialOpenedEvents.add(pushEvent);
+      return;
+    }
+    _events.add(pushEvent);
+  }
+
+  String _restoredNotificationKey(Map<String, dynamic> data) {
+    final notificationId = data['notification_id']?.toString().trim();
+    if (notificationId != null && notificationId.isNotEmpty) {
+      return 'notification:$notificationId';
+    }
+    final messageId = data['_fcm_message_id']?.toString().trim();
+    if (messageId != null && messageId.isNotEmpty) {
+      return 'message:$messageId';
+    }
+    return 'account_restored';
+  }
+
   Future<void> _disableAccount() async {
+    _accountRestoredNotifier.reset();
     await _accountInactiveNotifier.inactivateAfter(_tokenStore.clear);
   }
 

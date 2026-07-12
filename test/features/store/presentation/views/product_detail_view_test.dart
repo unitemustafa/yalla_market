@@ -204,7 +204,219 @@ void main() {
     );
     expect(addButton.onPressed, isNull);
   });
+
+  testWidgets('hides specifications for one base variant without attributes', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10.00', 'attribute_values': []},
+        ],
+      ),
+    );
+
+    expect(find.text('المواصفات'), findsNothing);
+  });
+
+  testWidgets('shows three read-only specifications for one variant', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        variants: [
+          {
+            'id': 'only',
+            'price': '15.00',
+            'attribute_values': _attributeValues(
+              color: 'أبيض',
+              size: 'كبير',
+              material: 'قطن',
+            ),
+          },
+        ],
+      ),
+    );
+
+    expect(find.text('المواصفات'), findsOneWidget);
+    expect(find.text('اللون: أبيض'), findsOneWidget);
+    expect(find.text('الحجم: كبير'), findsOneWidget);
+    expect(find.text('الخامة: قطن'), findsOneWidget);
+    expect(find.widgetWithText(InkWell, 'أبيض'), findsNothing);
+  });
+
+  testWidgets(
+    'multiple variants use only their values as interactive choices',
+    (tester) async {
+      await _pumpProduct(
+        tester,
+        product: _productWith(
+          attributes: const [
+            {
+              'id': 1,
+              'name': 'اللون',
+              'options': [
+                {'id': 1, 'value': 'أبيض'},
+                {'id': 2, 'value': 'أسود'},
+                {'id': 3, 'value': 'أزرق غير مستخدم'},
+              ],
+            },
+          ],
+          variants: [
+            {
+              'id': 'white',
+              'price': '10.00',
+              'attribute_values': _attributeValues(color: 'أبيض', size: 'صغير'),
+            },
+            {
+              'id': 'black',
+              'price': '20.00',
+              'attribute_values': _attributeValues(color: 'أسود', size: 'كبير'),
+            },
+          ],
+        ),
+      );
+
+      expect(find.text('اللون'), findsOneWidget);
+      expect(find.text('أبيض'), findsOneWidget);
+      expect(find.text('أسود'), findsOneWidget);
+      expect(find.text('أزرق غير مستخدم'), findsNothing);
+      expect(find.widgetWithText(InkWell, 'أسود'), findsOneWidget);
+    },
+  );
+
+  testWidgets('selection changes variant id and price', (tester) async {
+    final cartCubit = makeCartCubit();
+    await _pumpProduct(
+      tester,
+      cartCubit: cartCubit,
+      product: _productWith(
+        variants: [
+          {
+            'id': 'white',
+            'price': '10.00',
+            'attribute_values': _attributeValues(color: 'أبيض'),
+          },
+          {
+            'id': 'black',
+            'price': '20.00',
+            'attribute_values': _attributeValues(color: 'أسود'),
+          },
+        ],
+      ),
+    );
+
+    await tester.ensureVisible(find.text('أسود'));
+    await tester.tap(find.text('أسود'));
+    await tester.pump();
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
+    await tester.tap(find.byType(ElevatedButton).last);
+    await tester.pumpAndSettle();
+
+    expect(cartCubit.state.single.variantId, 'black');
+    expect(cartCubit.state.single.price, 20);
+  });
+
+  testWidgets('missing combination disables add to cart', (tester) async {
+    final cartCubit = makeCartCubit();
+    await _pumpProduct(
+      tester,
+      cartCubit: cartCubit,
+      product: _productWith(
+        variants: [
+          {
+            'id': 'white-small',
+            'price': '10.00',
+            'attribute_values': _attributeValues(color: 'أبيض', size: 'صغير'),
+          },
+          {
+            'id': 'black-large',
+            'price': '20.00',
+            'attribute_values': _attributeValues(color: 'أسود', size: 'كبير'),
+          },
+        ],
+      ),
+    );
+
+    await tester.ensureVisible(find.text('أسود'));
+    await tester.tap(find.text('أسود'));
+    await tester.pump();
+
+    expect(find.text('هذا الاختيار غير متاح حاليًا.'), findsOneWidget);
+    final addButton = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton).last,
+    );
+    expect(addButton.onPressed, isNull);
+    expect(cartCubit.state, isEmpty);
+  });
 }
+
+Future<void> _pumpProduct(
+  WidgetTester tester, {
+  required ProductData product,
+  CartCubit? cartCubit,
+}) async {
+  SharedPreferences.setMockInitialValues({});
+  final cart = cartCubit ?? makeCartCubit();
+  final wishlist = makeWishlistCubit();
+  await cart.loadCartForUser('variant-test-user');
+  if (sl.isRegistered<GetProductUseCase>()) {
+    await sl.unregister<GetProductUseCase>();
+  }
+  sl.registerLazySingleton<GetProductUseCase>(
+    () => GetProductUseCase(_StaticProductRepository(product)),
+  );
+  addTearDown(cart.close);
+  addTearDown(wishlist.close);
+  addTearDown(() async {
+    if (sl.isRegistered<GetProductUseCase>()) {
+      await sl.unregister<GetProductUseCase>();
+    }
+  });
+
+  await tester.pumpWidget(
+    MultiBlocProvider(
+      providers: [
+        BlocProvider<CartCubit>.value(value: cart),
+        BlocProvider<WishlistCubit>.value(value: wishlist),
+      ],
+      child: const MaterialApp(
+        home: ProductDetailView(
+          productId: 'variant-product',
+          image: AppAssets.defaultProduct,
+          title: 'Product',
+          brand: 'Yalla',
+          price: '0.00',
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+ProductData _productWith({
+  required List<Map<String, Object?>> variants,
+  List<Map<String, Object?>> attributes = const [],
+}) => ProductData.fromJson({
+  'id': 'variant-product',
+  'name': 'Variant product',
+  'image': AppAssets.defaultProduct,
+  'variants': variants,
+  'attributes': attributes,
+});
+
+List<Map<String, Object?>> _attributeValues({
+  String? color,
+  String? size,
+  String? material,
+}) => [
+  if (color != null) {'attribute_name': 'اللون', 'option_value': color},
+  if (size != null) {'attribute_name': 'الحجم', 'option_value': size},
+  if (material != null) {'attribute_name': 'الخامة', 'option_value': material},
+];
 
 abstract class _EmptyProductRepository implements ProductRepository {
   @override
@@ -224,6 +436,16 @@ abstract class _EmptyProductRepository implements ProductRepository {
   @override
   Future<ApiResult<List<BrandData>>> getBrands() async =>
       const ApiResult.success([]);
+}
+
+class _StaticProductRepository extends _EmptyProductRepository {
+  _StaticProductRepository(this.product);
+
+  final ProductData product;
+
+  @override
+  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async =>
+      ApiResult.success(product);
 }
 
 class _RetryProductRepository extends _EmptyProductRepository {

@@ -95,6 +95,7 @@ class ProductDetailView extends StatefulWidget {
 class _ProductDetailViewState extends State<ProductDetailView> {
   int quantity = 0;
   String? selectedVariantId;
+  final Map<String, String> _selectedAttributeValues = <String, String>{};
   final Set<String> selectedAdditionIds = <String>{};
   late String currentImage;
   ProductData? _loadedProduct;
@@ -211,6 +212,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     final variants = product.variants;
     if (variants.isEmpty) {
       selectedVariantId = null;
+      _selectedAttributeValues.clear();
       return;
     }
 
@@ -220,6 +222,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         selectedId.isNotEmpty &&
         variants.any((variant) => variant.id == selectedId);
     if (!selectedStillExists) selectedVariantId = variants.first.id;
+    _selectedAttributeValues
+      ..clear()
+      ..addAll(_selectedVariant?.attributeValues ?? const {});
   }
 
   String _formatPrice(String? price) {
@@ -559,31 +564,21 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   void _selectVariantOption(String attribute, String option) {
-    final selectedAttributes = Map<String, String>.from(
-      _selectedVariant?.attributeValues ?? const {},
-    );
-    selectedAttributes[attribute] = option;
+    setState(() {
+      _selectedAttributeValues[attribute] = option;
+      selectedVariantId = _matchingVariantId(_selectedAttributeValues);
+    });
+  }
 
-    ProductVariantData? bestMatch;
+  String? _matchingVariantId(Map<String, String> selections) {
+    final attributeNames = _variantOptionsByAttribute().keys;
     for (final variant in _variants) {
-      final matchesRequestedOption =
-          variant.attributeValues[attribute] == option;
-      final matchesOtherSelections = selectedAttributes.entries.every((entry) {
-        final value = variant.attributeValues[entry.key];
-        return value == null || value == entry.value;
-      });
-      if (matchesRequestedOption && matchesOtherSelections) {
-        bestMatch = variant;
-        break;
-      }
+      final isExactMatch = attributeNames.every(
+        (name) => variant.attributeValues[name] == selections[name],
+      );
+      if (isExactMatch) return variant.id;
     }
-
-    bestMatch ??= _variants.firstWhere(
-      (variant) => variant.attributeValues[attribute] == option,
-      orElse: () => _variants.first,
-    );
-
-    setState(() => selectedVariantId = bestMatch?.id);
+    return null;
   }
 
   String _variantFallbackLabel(ProductVariantData variant, int index) {
@@ -694,7 +689,30 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   }
 
   Widget _buildVariantSelectors({required bool isDark}) {
-    if (_variants.length <= 1) return const SizedBox.shrink();
+    if (_variants.isEmpty) return const SizedBox.shrink();
+
+    if (_variants.length == 1) {
+      final attributes = _variants.single.attributeValues;
+      if (attributes.isEmpty) return const SizedBox.shrink();
+
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(title: 'المواصفات', isDark: isDark),
+          const SizedBox(height: 10),
+          for (final entry in attributes.entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                '${entry.key}: ${entry.value}',
+                style: Theme.of(
+                  context,
+                ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+              ),
+            ),
+        ],
+      );
+    }
 
     if (!_hasVariantAttributes()) {
       return Column(
@@ -735,8 +753,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               for (final option in entry.value)
                 _buildChoiceOption(
                   label: option,
-                  isSelected:
-                      _selectedVariant?.attributeValues[entry.key] == option,
+                  isSelected: _selectedAttributeValues[entry.key] == option,
                   onTap: () => _selectVariantOption(entry.key, option),
                 ),
             ],
@@ -896,7 +913,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     final selectedPrice = _selectedPrice;
     final selectedUnitPrice =
         _parsePrice(selectedPrice) + _selectedAdditionsTotal;
-    final isOutOfStock = !_isProductAvailable || _variants.isEmpty;
+    final hasUnavailableCombination =
+        _variants.length > 1 &&
+        _hasVariantAttributes() &&
+        selectedVariantId == null;
+    final isOutOfStock =
+        !_isProductAvailable || _variants.isEmpty || hasUnavailableCombination;
     final stock = isOutOfStock ? 'Out of Stock' : 'Available';
     final stockColor = isOutOfStock ? AppColors.error : AppColors.success;
     final backgroundColor = isDark
@@ -984,6 +1006,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   ),
                   const SizedBox(height: 20),
                   _buildVariantSelectors(isDark: isDark),
+                  if (hasUnavailableCombination) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      'هذا الاختيار غير متاح حاليًا.',
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.error,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                   if (_productAdditions.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     _buildAdditionsButton(

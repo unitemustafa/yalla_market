@@ -41,9 +41,19 @@ class AppAssets {
 
   // Demo image aliases intentionally share one bundled placeholder. Product,
   // brand, banner, and category artwork should come from the API/database.
-  static const String onboarding1 = temporaryMarketPlaceholder;
-  static const String onboarding2 = temporaryMarketPlaceholder;
-  static const String onboarding3 = temporaryMarketPlaceholder;
+  // Onboarding artwork
+  static const String onboardingProductsLight =
+      '$_imagesPath/onboarding/light/onboarding_products_light.png';
+  static const String onboardingCashOnDeliveryLight =
+      '$_imagesPath/onboarding/light/onboarding_cash_on_delivery_light.png';
+  static const String onboardingFastDeliveryLight =
+      '$_imagesPath/onboarding/light/onboarding_fast_delivery_light.png';
+  static const String onboardingProductsDark =
+      '$_imagesPath/onboarding/dark/onboarding_products_dark.png';
+  static const String onboardingCashOnDeliveryDark =
+      '$_imagesPath/onboarding/dark/onboarding_cash_on_delivery_dark.png';
+  static const String onboardingFastDeliveryDark =
+      '$_imagesPath/onboarding/dark/onboarding_fast_delivery_dark.png';
 
   // Banners
   static const String promoBanner1 = temporaryMarketPlaceholder;

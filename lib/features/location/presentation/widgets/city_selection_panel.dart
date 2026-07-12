@@ -136,9 +136,7 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Text(
-                          context.tr(
-                            'No supported cities are available right now.',
-                          ),
+                          context.tr('مفيش مدن متاحة حاليًا.'),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ),

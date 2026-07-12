@@ -126,23 +126,21 @@ class _NotificationDetailSheet extends StatelessWidget {
               const SizedBox(height: 18),
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
+                height: 48,
+                child: FilledButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(AppIcons.tick_circle, size: 18),
-                  label: Text(
-                    context.tr('Done'),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primary,
-                    side: BorderSide(
-                      color: AppColors.primary.withValues(alpha: 0.30),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
+                  style: FilledButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primary,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
+                  ),
+                  child: Text(
+                    context.tr('Done'),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

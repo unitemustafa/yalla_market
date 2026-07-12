@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../domain/entities/onboarding_model.dart';
 
 class OnboardingPageItem extends StatelessWidget {
@@ -81,8 +80,8 @@ class OnboardingPageItem extends StatelessWidget {
                                 isNarrow ? 18 : 28,
                                 isCompactHeight ? 18 : 28,
                               ),
-                              child: AppImage(
-                                source: model.imagePath,
+                              child: Image.asset(
+                                model.imageFor(context),
                                 fit: BoxFit.contain,
                                 cacheWidth: 760,
                                 cacheHeight: 760,

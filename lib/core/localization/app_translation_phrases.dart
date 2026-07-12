@@ -11,9 +11,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Refresh notifications': 'تحديث الإشعارات',
     'Account restored': 'تم استعادة حسابك',
     'Your account was restored by the Yalla Market team.':
-        'تم استعادة حسابك بواسطة فريق عمل يلا ماركت',
+        'تم استعادة الحساب بواسطة فريق دعم يلا ماركت.',
     'Account restored by Yalla Market support team':
-        'تم استعادة حسابك بواسطة فريق دعم يلا ماركت',
+        'تم استعادة الحساب بواسطة فريق دعم يلا ماركت.',
     'Your account has been restored. You can sign in again.':
         'تم استعادة حسابك. يمكنك تسجيل الدخول مرة أخرى.',
     'Account permanently deleted': 'تم حذف حسابك نهائيًا',
@@ -28,12 +28,12 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Sending...': 'جاري الإرسال...',
     'Use English letters, numbers, dots, and underscores only':
         'استخدم حروف إنجليزية وأرقام ونقطة وشرطة سفلية بس',
-    'Email, username, or phone': 'الإيميل أو اسم المستخدم أو الموبايل',
+    'Mobile / Email / Username': 'موبايل / إيميل / اسم مستخدم',
     'Enter a valid email, username, or phone number':
         'اكتب إيميل أو اسم مستخدم أو رقم موبايل صحيح',
     'Session expired': 'انتهت الجلسة',
     'Account disabled': 'تم تعطيل حسابك',
-    'Contact support for assistance.': 'تواصل مع الدعم.',
+    'Contact support for assistance.': 'تواصل مع الدعم الفني.',
     'Delivery address needed': 'مطلوب تحديد عنوان التوصيل',
     'Review address': 'مراجعة العنوان',
     'Activate now': 'فعّل الآن',
@@ -550,6 +550,15 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'State': 'المحافظة',
     'Stock': 'المخزون',
     'Store': 'المتجر',
+    'Loading store...': 'بنجهزلك المتجر...',
+    'Address required': 'محتاجين عنوانك',
+    'Store could not load': 'المتجر محمّلش',
+    'No store categories': 'مفيش أقسام في المتجر',
+    'Categories will appear here once stores are available.':
+        'الأقسام هتظهر هنا أول ما المحلات تبقى متاحة.',
+    'No stores available': 'مفيش محلات متاحة دلوقتي',
+    'Stores will appear here when they cover your address.':
+        'المحلات هتظهر هنا لما التوصيل يبقى متاح لعنوانك.',
     'Street': 'الشارع',
     'Start Shopping': 'ابدأ التسوق',
     'Subtotal': 'الإجمالي الفرعي',
@@ -868,9 +877,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     ' and ': ' و ',
     '1 week left': 'باقي أسبوع',
     'All Categories': 'كل الفئات',
-    'Categories & picks': 'فئات واختيارات',
+    'Categories & picks': 'أقسام واختيارات ليك',
     'Explore market categories': 'استكشف فئات السوق',
-    'Featured Categories': 'فئات مميزة',
+    'Featured Categories': 'أقسام مميزة',
     'Products and categories': 'منتجات وفئات',
     'Search categories, products...': 'دور على فئات ومنتجات...',
     'Search products and categories...': 'دور على منتجات أو فئات...',

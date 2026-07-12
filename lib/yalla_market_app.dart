@@ -348,11 +348,11 @@ class _AuthNoticeDialog extends StatelessWidget {
     return Dialog(
       backgroundColor: Colors.transparent,
       elevation: 0,
-      insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: const BoxConstraints(maxWidth: 480),
         child: Container(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
           decoration: BoxDecoration(
             color: theme.cardColor,
             borderRadius: BorderRadius.circular(12),
@@ -368,26 +368,9 @@ class _AuthNoticeDialog extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (showCloseButton)
-                Align(
-                  alignment: AlignmentDirectional.topEnd,
-                  child: Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: borderColor),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: IconButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      tooltip: context.tr('Close'),
-                      icon: const Icon(Icons.close_rounded),
-                    ),
-                  ),
-                ),
               Container(
-                width: 56,
-                height: 56,
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
                   color: colorScheme.primary.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
@@ -399,7 +382,7 @@ class _AuthNoticeDialog extends StatelessWidget {
                   size: 29,
                 ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 14),
               Text(
                 title,
                 textAlign: TextAlign.center,
@@ -407,7 +390,7 @@ class _AuthNoticeDialog extends StatelessWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Text(
                 message,
                 textAlign: TextAlign.center,
@@ -416,22 +399,50 @@ class _AuthNoticeDialog extends StatelessWidget {
                   height: 1.6,
                 ),
               ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: FilledButton(
-                  onPressed: onAction,
-                  style: FilledButton.styleFrom(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Expanded(
+                    flex: showCloseButton ? 2 : 1,
+                    child: SizedBox(
+                      height: 46,
+                      child: FilledButton(
+                        onPressed: onAction,
+                        style: FilledButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          actionLabel,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
                     ),
                   ),
-                  child: Text(
-                    actionLabel,
-                    style: const TextStyle(fontWeight: FontWeight.w800),
-                  ),
-                ),
+                  if (showCloseButton) ...[
+                    const SizedBox(width: 10),
+                    SizedBox(
+                      width: 96,
+                      height: 46,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          side: BorderSide(color: borderColor),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        child: Text(
+                          context.tr('Cancel'),
+                          maxLines: 1,
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ],
           ),

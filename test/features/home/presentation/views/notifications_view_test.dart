@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_state.dart';
 import 'package:yalla_market/features/home/presentation/formatters/notification_time_formatter.dart';
@@ -107,7 +106,7 @@ void main() {
 
       await _pumpNotificationsView(tester, cubit);
 
-      await tester.tap(find.text('Mark all as read'));
+      await tester.tap(find.byTooltip('Mark all as read'));
       await tester.pump();
 
       expect(cubit.markAllCalls, 1);
@@ -122,7 +121,7 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.tap(find.text('Mark all as read'));
+      await tester.tap(find.byTooltip('Mark all as read'));
       await tester.pump();
 
       expect(cubit.markAllCalls, 1);
@@ -136,7 +135,7 @@ void main() {
         ),
       );
       await tester.pump();
-      await tester.tap(find.text('Mark all as read'));
+      await tester.tap(find.byTooltip('Mark all as read'));
       await tester.pump();
 
       expect(cubit.markAllCalls, 1);
@@ -262,8 +261,8 @@ void main() {
       final refreshIndicator = tester.widget<RefreshIndicator>(
         find.byType(RefreshIndicator),
       );
-      expect(refreshIndicator.color, AppColors.primary);
-      expect(refreshIndicator.displacement, 54);
+      expect(refreshIndicator.color, isNull);
+      expect(refreshIndicator.displacement, 40);
       await refreshIndicator.onRefresh();
       await tester.pump();
 

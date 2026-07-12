@@ -316,7 +316,7 @@ void main() {
     expect(find.text('Delivery type'), findsNothing);
     expect(find.text('Delivery - price determined later'), findsNothing);
     expect(find.text('Determined later'), findsNothing);
-    expect(find.text('Later'), findsOneWidget);
+    expect(find.text('Not specified'), findsOneWidget);
     expect(find.text('Courier'), findsOneWidget);
     expect(_findTextWithColor('Courier', AppColors.error), findsOneWidget);
     expect(_findPlainText('EGP 1700'), findsOneWidget);
@@ -639,14 +639,16 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(
+      find.text(
+        'التوصيل غير متاح لأحد المحلات في سلتك. راجع مدينة عنوان التوصيل أو احذف المحل غير المتاح.',
+      ),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Confirm Order'));
     await tester.pumpAndSettle();
 
     expect(orderRepository.createCalls, 0);
-    expect(
-      find.text('Delivery is not available for one or more market groups.'),
-      findsWidgets,
-    );
     expect(cartCubit.state, isNotEmpty);
   });
 

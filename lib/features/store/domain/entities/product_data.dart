@@ -39,10 +39,7 @@ class ProductVariantData {
 }
 
 class ProductAttributeOptionData {
-  const ProductAttributeOptionData({
-    required this.id,
-    required this.value,
-  });
+  const ProductAttributeOptionData({required this.id, required this.value});
 
   final String id;
   final String value;
@@ -247,17 +244,11 @@ class ProductData {
       slug: json['slug']?.toString(),
       image: _resolveImage(json['image'] ?? json['imageUrl']),
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
-      brand:
-          json['brand']?.toString() ??
-          market?['name']?.toString() ??
-          '',
+      brand: json['brand']?.toString() ?? market?['name']?.toString() ?? '',
       price: price,
       oldPrice: json['oldPrice']?.toString() ?? json['old_price']?.toString(),
       discount: json['discount']?.toString() ?? '',
-      tags: [
-        ...tags,
-        if (market?['name'] != null) market!['name'].toString(),
-      ],
+      tags: [...tags, if (market?['name'] != null) market!['name'].toString()],
       description: json['description']?.toString() ?? '',
       isAvailable:
           _boolFromJson(json['isAvailable'] ?? json['is_available']) ?? true,

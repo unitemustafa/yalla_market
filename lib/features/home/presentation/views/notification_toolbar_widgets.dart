@@ -29,8 +29,8 @@ class _MarkAllReadButton extends StatelessWidget {
           onTap: isEnabled ? onPressed : null,
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            constraints: const BoxConstraints(minWidth: 42, minHeight: 42),
-            padding: const EdgeInsets.symmetric(horizontal: 10),
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
@@ -39,11 +39,9 @@ class _MarkAllReadButton extends StatelessWidget {
                     : Colors.black.withValues(alpha: 0.06),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isLoading)
-                  SizedBox(
+            alignment: Alignment.center,
+            child: isLoading
+                ? SizedBox(
                     width: 18,
                     height: 18,
                     child: CircularProgressIndicator(
@@ -51,26 +49,13 @@ class _MarkAllReadButton extends StatelessWidget {
                       color: mutedColor,
                     ),
                   )
-                else
-                  Icon(
+                : Icon(
                     AppIcons.tick_circle,
-                    size: 20,
+                    size: 21,
                     color: isEnabled
                         ? AppColors.primary
                         : mutedColor.withValues(alpha: 0.45),
                   ),
-                const SizedBox(width: 7),
-                Text(
-                  context.tr('Mark all as read'),
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: isEnabled
-                        ? AppColors.primary
-                        : mutedColor.withValues(alpha: 0.55),
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),

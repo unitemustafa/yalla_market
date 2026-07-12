@@ -26,17 +26,20 @@ class _OnboardingViewState extends State<OnboardingView> {
   List<OnboardingModel> _pages(AppTranslations strings) {
     return [
       OnboardingModel(
-        imagePath: AppAssets.onboarding1,
+        lightImagePath: AppAssets.onboardingProductsLight,
+        darkImagePath: AppAssets.onboardingProductsDark,
         title: strings.onboardingTitle1,
         description: strings.onboardingDesc1,
       ),
       OnboardingModel(
-        imagePath: AppAssets.onboarding2,
+        lightImagePath: AppAssets.onboardingCashOnDeliveryLight,
+        darkImagePath: AppAssets.onboardingCashOnDeliveryDark,
         title: strings.onboardingTitle2,
         description: strings.onboardingDesc2,
       ),
       OnboardingModel(
-        imagePath: AppAssets.onboarding3,
+        lightImagePath: AppAssets.onboardingFastDeliveryLight,
+        darkImagePath: AppAssets.onboardingFastDeliveryDark,
         title: strings.onboardingTitle3,
         description: strings.onboardingDesc3,
       ),

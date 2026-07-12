@@ -107,72 +107,76 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _HomeTopBar(isDark: isDark),
-              const SizedBox(height: 18),
-              _HomeSearchField(isDark: isDark),
-              const SizedBox(height: 22),
-              BlocConsumer<HomeCubit, HomeState>(
-                listener: (context, homeState) {
-                  if (homeState is HomeFailure &&
-                      homeState.message == regionRequiredMessage) {
-                    _goToSelectCity();
-                  }
-                },
-                builder: (context, homeState) {
-                  final home = homeState.data;
-                  if (homeState is HomeFailure &&
-                      home == null &&
-                      homeState.message == addressRequiredMessage) {
-                    return AppStateView(
-                      icon: AppIcons.location_add,
-                      title: 'Delivery address needed',
-                      message: addressRequiredMessage,
-                      actionLabel: 'Review address',
-                      onAction: _openAddresses,
-                      showActionIcon: false,
-                    );
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (homeState is HomeFailure && home == null) ...[
-                        AppErrorState(
-                          title: 'Home could not load',
-                          message: homeState.message,
-                          onRetry: () => _loadHomeData(force: true),
+        child: RefreshIndicator(
+          onRefresh: () => _loadHomeData(force: true),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HomeTopBar(isDark: isDark),
+                const SizedBox(height: 18),
+                _HomeSearchField(isDark: isDark),
+                const SizedBox(height: 22),
+                BlocConsumer<HomeCubit, HomeState>(
+                  listener: (context, homeState) {
+                    if (homeState is HomeFailure &&
+                        homeState.message == regionRequiredMessage) {
+                      _goToSelectCity();
+                    }
+                  },
+                  builder: (context, homeState) {
+                    final home = homeState.data;
+                    if (homeState is HomeFailure &&
+                        home == null &&
+                        homeState.message == addressRequiredMessage) {
+                      return AppStateView(
+                        icon: AppIcons.location_add,
+                        title: 'Delivery address needed',
+                        message: addressRequiredMessage,
+                        actionLabel: 'Review address',
+                        onAction: _openAddresses,
+                        showActionIcon: false,
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (homeState is HomeFailure && home == null) ...[
+                          AppErrorState(
+                            title: 'Home could not load',
+                            message: homeState.message,
+                            onRetry: () => _loadHomeData(force: true),
+                          ),
+                          const SizedBox(height: 22),
+                        ],
+                        PromoSlider(
+                          offers: home?.offers,
+                          focusOfferId: widget.focusOfferId,
                         ),
+                        const SizedBox(height: 24),
+                        const SectionHeading(
+                          title: 'Popular Categories',
+                          showActionButton: false,
+                        ),
+                        const SizedBox(height: 12),
+                        HomeCategories(categories: home?.categories),
                         const SizedBox(height: 22),
+                        SectionHeading(
+                          title: 'Popular Products',
+                          onPressed: () {
+                            Navigator.pushNamed(context, AppRoutes.allProducts);
+                          },
+                        ),
+                        const SizedBox(height: 14),
+                        HomeProductsGrid(products: home?.products, limit: 8),
                       ],
-                      PromoSlider(
-                        offers: home?.offers,
-                        focusOfferId: widget.focusOfferId,
-                      ),
-                      const SizedBox(height: 24),
-                      const SectionHeading(
-                        title: 'Popular Categories',
-                        showActionButton: false,
-                      ),
-                      const SizedBox(height: 12),
-                      HomeCategories(categories: home?.categories),
-                      const SizedBox(height: 22),
-                      SectionHeading(
-                        title: 'Popular Products',
-                        onPressed: () {
-                          Navigator.pushNamed(context, AppRoutes.allProducts);
-                        },
-                      ),
-                      const SizedBox(height: 14),
-                      HomeProductsGrid(products: home?.products, limit: 8),
-                    ],
-                  );
-                },
-              ),
-            ],
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ),
       ),

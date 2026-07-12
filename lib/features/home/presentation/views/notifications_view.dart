@@ -154,16 +154,7 @@ class _NotificationsViewState extends State<NotificationsView> {
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     child: RefreshIndicator(
-                      color: AppColors.primary,
-                      backgroundColor: isDark
-                          ? AppColors.darkCardColor
-                          : Colors.white,
-                      strokeWidth: 2.6,
-                      displacement: 54,
-                      edgeOffset: 10,
-                      elevation: 2,
                       semanticsLabel: context.tr('Refresh notifications'),
-                      triggerMode: RefreshIndicatorTriggerMode.anywhere,
                       onRefresh: _refresh,
                       child: ListView(
                         physics: const AlwaysScrollableScrollPhysics(

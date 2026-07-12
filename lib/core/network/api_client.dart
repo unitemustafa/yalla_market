@@ -215,8 +215,7 @@ class ApiClient {
   }
 
   Future<void> _disableAccount() async {
-    await _tokenStore.clear();
-    _accountInactiveNotifier.notifyInactive();
+    await _accountInactiveNotifier.inactivateAfter(_tokenStore.clear);
   }
 
   bool _isAccountInactiveResponse(Object? data) {

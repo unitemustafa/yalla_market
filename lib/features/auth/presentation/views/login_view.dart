@@ -162,7 +162,7 @@ class _LoginViewState extends State<LoginView> {
                                     CustomTextField(
                                       controller: _emailController,
                                       labelText: context.tr(
-                                        'Email, username, or phone',
+                                        'Mobile / Email / Username',
                                       ),
                                       prefixIcon: AppIcons.direct_right,
                                       keyboardType: TextInputType.text,

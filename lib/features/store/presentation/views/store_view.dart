@@ -49,7 +49,8 @@ class _StoreViewState extends State<StoreView> {
           return _StorePlainScaffold(
             backgroundColor: backgroundColor,
             isDark: isDark,
-            child: const AppLoadingState(message: 'Loading store...'),
+            onRefresh: () => context.read<StoreCubit>().loadStore(force: true),
+            child: AppLoadingState(message: context.tr('Loading store...')),
           );
         }
 
@@ -58,12 +59,13 @@ class _StoreViewState extends State<StoreView> {
           return _StorePlainScaffold(
             backgroundColor: backgroundColor,
             isDark: isDark,
+            onRefresh: () => context.read<StoreCubit>().loadStore(force: true),
             child: requiresAddress
                 ? AppStateView(
                     icon: AppIcons.location_add,
-                    title: 'Address required',
-                    message: addressRequiredMessage,
-                    actionLabel: 'Add Address',
+                    title: context.tr('Address required'),
+                    message: context.tr(addressRequiredMessage),
+                    actionLabel: context.tr('Add Address'),
                     onAction: () async {
                       await Navigator.pushNamed(context, AppRoutes.addresses);
                       if (context.mounted) {
@@ -72,8 +74,8 @@ class _StoreViewState extends State<StoreView> {
                     },
                   )
                 : AppErrorState(
-                    title: 'Store could not load',
-                    message: state.message,
+                    title: context.tr('Store could not load'),
+                    message: context.tr(state.message),
                     onRetry: () =>
                         context.read<StoreCubit>().loadStore(force: true),
                   ),
@@ -84,9 +86,12 @@ class _StoreViewState extends State<StoreView> {
           return _StorePlainScaffold(
             backgroundColor: backgroundColor,
             isDark: isDark,
-            child: const AppEmptyState(
-              title: 'No store categories',
-              message: 'Categories will appear here once stores are available.',
+            onRefresh: () => context.read<StoreCubit>().loadStore(force: true),
+            child: AppEmptyState(
+              title: context.tr('No store categories'),
+              message: context.tr(
+                'Categories will appear here once stores are available.',
+              ),
               icon: AppIcons.shop,
             ),
           );
@@ -102,88 +107,93 @@ class _StoreViewState extends State<StoreView> {
           child: Scaffold(
             backgroundColor: backgroundColor,
             body: SafeArea(
-              child: NestedScrollView(
-                headerSliverBuilder: (_, _) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: ColoredBox(
-                        color: backgroundColor,
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _StoreTopBar(isDark: isDark),
-                              const SizedBox(height: 18),
-                              _StoreSearchField(isDark: isDark),
-                              const SizedBox(height: 22),
-                              SectionHeading(
-                                title: 'Featured Categories',
-                                onPressed: () {
-                                  Navigator.pushNamed(
-                                    context,
-                                    AppRoutes.categories,
-                                  );
-                                },
-                              ),
-                              const SizedBox(height: 12),
-                              GridLayout(
-                                itemCount: featured.length,
-                                mainAxisExtent: 78,
-                                itemBuilder: (_, index) {
-                                  final category = featured[index];
-                                  return BrandCard(
-                                    showBorder: true,
-                                    brand: category.name,
-                                    productCount: category.productCountLabel,
-                                    logo: category.image,
-                                    accentColor: Color(
-                                      category.accentColorValue,
-                                    ),
-                                    onTap: () {
-                                      Navigator.pushNamed(
-                                        context,
-                                        AppRoutes.brandProducts,
-                                        arguments: BrandProductsRouteArgs(
-                                          brand: category.name,
-                                          logo: category.image,
-                                          productCount:
-                                              category.productCountLabel,
-                                          classificationId: category.id,
-                                        ),
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
-                            ],
+              child: RefreshIndicator(
+                onRefresh: () =>
+                    context.read<StoreCubit>().loadStore(force: true),
+                child: NestedScrollView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  headerSliverBuilder: (_, _) {
+                    return [
+                      SliverToBoxAdapter(
+                        child: ColoredBox(
+                          color: backgroundColor,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                _StoreTopBar(isDark: isDark),
+                                const SizedBox(height: 18),
+                                _StoreSearchField(isDark: isDark),
+                                const SizedBox(height: 22),
+                                SectionHeading(
+                                  title: context.tr('Featured Categories'),
+                                  onPressed: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      AppRoutes.categories,
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 12),
+                                GridLayout(
+                                  itemCount: featured.length,
+                                  mainAxisExtent: 78,
+                                  itemBuilder: (_, index) {
+                                    final category = featured[index];
+                                    return BrandCard(
+                                      showBorder: true,
+                                      brand: category.name,
+                                      productCount: category.productCountLabel,
+                                      logo: category.image,
+                                      accentColor: Color(
+                                        category.accentColorValue,
+                                      ),
+                                      onTap: () {
+                                        Navigator.pushNamed(
+                                          context,
+                                          AppRoutes.brandProducts,
+                                          arguments: BrandProductsRouteArgs(
+                                            brand: category.name,
+                                            logo: category.image,
+                                            productCount:
+                                                category.productCountLabel,
+                                            classificationId: category.id,
+                                          ),
+                                        );
+                                      },
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    SliverPersistentHeader(
-                      pinned: true,
-                      delegate: _StoreTabsHeaderDelegate(
-                        backgroundColor: backgroundColor,
-                        isDark: isDark,
-                        labels: classifications
-                            .map((category) => category.name)
-                            .toList(growable: false),
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _StoreTabsHeaderDelegate(
+                          backgroundColor: backgroundColor,
+                          isDark: isDark,
+                          labels: classifications
+                              .map((category) => category.name)
+                              .toList(growable: false),
+                        ),
                       ),
+                    ];
+                  },
+                  body: ColoredBox(
+                    color: backgroundColor,
+                    child: TabBarView(
+                      children: classifications
+                          .map(
+                            (classification) => _StoreMarketsTab(
+                              classification: classification,
+                              markets: store.marketsFor(classification.id),
+                            ),
+                          )
+                          .toList(growable: false),
                     ),
-                  ];
-                },
-                body: ColoredBox(
-                  color: backgroundColor,
-                  child: TabBarView(
-                    children: classifications
-                        .map(
-                          (classification) => _StoreMarketsTab(
-                            classification: classification,
-                            markets: store.marketsFor(classification.id),
-                          ),
-                        )
-                        .toList(growable: false),
                   ),
                 ),
               ),
@@ -199,11 +209,13 @@ class _StorePlainScaffold extends StatelessWidget {
   const _StorePlainScaffold({
     required this.backgroundColor,
     required this.isDark,
+    required this.onRefresh,
     required this.child,
   });
 
   final Color backgroundColor;
   final bool isDark;
+  final RefreshCallback onRefresh;
   final Widget child;
 
   @override
@@ -211,17 +223,21 @@ class _StorePlainScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _StoreTopBar(isDark: isDark),
-              const SizedBox(height: 18),
-              _StoreSearchField(isDark: isDark),
-              const SizedBox(height: 24),
-              child,
-            ],
+        child: RefreshIndicator(
+          onRefresh: onRefresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _StoreTopBar(isDark: isDark),
+                const SizedBox(height: 18),
+                _StoreSearchField(isDark: isDark),
+                const SizedBox(height: 24),
+                child,
+              ],
+            ),
           ),
         ),
       ),
@@ -238,9 +254,11 @@ class _StoreMarketsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (markets.isEmpty) {
-      return const AppEmptyState(
-        title: 'No stores available',
-        message: 'Stores will appear here when they cover your address.',
+      return AppEmptyState(
+        title: context.tr('No stores available'),
+        message: context.tr(
+          'Stores will appear here when they cover your address.',
+        ),
         icon: AppIcons.shop,
       );
     }

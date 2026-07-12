@@ -15,37 +15,26 @@ void main() {
             expect(request.method, 'GET');
             expect(request.queryParameters, isNull);
             return {
-              'common_categories': [
+              'common_market_classifications': [
                 {'id': 1, 'name': 'Supermarket', 'product_count': 2},
               ],
               'market_classifications': [
-                {'id': 1, 'name': 'Supermarket', 'product_count': 2},
-              ],
-            };
-          }
-          if (request.path == '/home/classifications/1/markets/') {
-            expect(request.method, 'GET');
-            expect(request.queryParameters, isNull);
-            return {
-              'classification': {'id': 1, 'name': 'Supermarket'},
-              'markets': [
                 {
-                  'id': 9,
-                  'name': 'Fresh Market',
-                  'branch': 'Algiers',
-                  'status': 'active',
-                  'classification_id': 1,
-                  'products': [_previewProduct()],
+                  'id': 1,
+                  'name': 'Supermarket',
+                  'product_count': 2,
+                  'markets': [
+                    {
+                      'id': 9,
+                      'name': 'Fresh Market',
+                      'branch': 'Algiers',
+                      'status': 'active',
+                      'classification_id': 1,
+                      'products': [_fullProduct()],
+                    },
+                  ],
                 },
               ],
-            };
-          }
-          if (request.path == '/home/search/') {
-            expect(request.method, 'GET');
-            expect(request.queryParameters, {'q': 'Fresh Market'});
-            return {
-              'count': 1,
-              'results': [_fullProduct()],
             };
           }
           fail('Unexpected request ${request.method} ${request.path}');
@@ -100,17 +89,6 @@ DioException _addressRequiredException() {
     ),
     type: DioExceptionType.badResponse,
   );
-}
-
-Map<String, Object?> _previewProduct() {
-  return {
-    'id': 42,
-    'name': 'Red Apple',
-    'description': 'Fresh fruit',
-    'image': '',
-    'discount': '10.00',
-    'category': {'id': 3, 'name': 'Fruit'},
-  };
 }
 
 Map<String, Object?> _fullProduct() {

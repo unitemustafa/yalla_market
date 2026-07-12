@@ -37,38 +37,42 @@ class WishlistView extends StatelessWidget {
                   child: _WishlistTopBar(isDark: isDark),
                 ),
                 Expanded(
-                  child: isEmpty
-                      ? _EmptyWishlistView(
-                          isDark: isDark,
-                          onExplorePressed: () {
-                            Navigator.pushNamedAndRemoveUntil(
-                              context,
-                              AppRoutes.navigationMenu,
-                              (route) => false,
-                              arguments: const NavigationMenuRouteArgs(
-                                initialIndex: 1,
-                              ),
-                            );
-                          },
-                        )
-                      : SingleChildScrollView(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                          child: GridLayout(
-                            itemCount: wishlist.length,
-                            itemBuilder: (_, index) {
-                              final item = wishlist[index];
-                              return ProductCardVertical(
-                                image: item.image,
-                                title: item.title,
-                                brand: item.brand,
-                                price: item.price,
-                                productId: item.productId,
-                                oldPrice: item.oldPrice,
-                                discount: item.discount,
+                  child: RefreshIndicator(
+                    onRefresh: () => context.read<WishlistCubit>().refresh(),
+                    child: isEmpty
+                        ? _EmptyWishlistView(
+                            isDark: isDark,
+                            onExplorePressed: () {
+                              Navigator.pushNamedAndRemoveUntil(
+                                context,
+                                AppRoutes.navigationMenu,
+                                (route) => false,
+                                arguments: const NavigationMenuRouteArgs(
+                                  initialIndex: 1,
+                                ),
                               );
                             },
+                          )
+                        : SingleChildScrollView(
+                            physics: const AlwaysScrollableScrollPhysics(),
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                            child: GridLayout(
+                              itemCount: wishlist.length,
+                              itemBuilder: (_, index) {
+                                final item = wishlist[index];
+                                return ProductCardVertical(
+                                  image: item.image,
+                                  title: item.title,
+                                  brand: item.brand,
+                                  price: item.price,
+                                  productId: item.productId,
+                                  oldPrice: item.oldPrice,
+                                  discount: item.discount,
+                                );
+                              },
+                            ),
                           ),
-                        ),
+                  ),
                 ),
               ],
             ),
@@ -162,6 +166,7 @@ class _EmptyWishlistView extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Padding(

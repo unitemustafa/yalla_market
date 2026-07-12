@@ -17,7 +17,9 @@ const _lastRegisteredTokenKey = 'push.last_registered_token';
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     await Firebase.initializeApp();
-  } catch (_) {}
+  } catch (error, stackTrace) {
+    _debugPushError('background initialization', error, stackTrace);
+  }
   if (message.data['event'] == 'account_disabled') {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_pendingAccountDisabledKey, true);
@@ -44,6 +46,9 @@ class PushNotificationService {
   final AccountInactiveNotifier _accountInactiveNotifier;
   final StreamController<PushEvent> _events =
       StreamController<PushEvent>.broadcast();
+  StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
+  StreamSubscription<RemoteMessage>? _openedMessageSubscription;
+  StreamSubscription<String>? _tokenRefreshSubscription;
   bool _initialized = false;
 
   Stream<PushEvent> get events => _events.stream;
@@ -59,21 +64,23 @@ class PushNotificationService {
     try {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
       await Firebase.initializeApp();
-      FirebaseMessaging.onMessage.listen(
+      _foregroundMessageSubscription = FirebaseMessaging.onMessage.listen(
         (message) => _handleMessage(message, opened: false),
       );
-      FirebaseMessaging.onMessageOpenedApp.listen(
+      _openedMessageSubscription = FirebaseMessaging.onMessageOpenedApp.listen(
         (message) => _handleMessage(message, opened: true),
       );
-      FirebaseMessaging.instance.onTokenRefresh.listen(_replaceToken);
+      _tokenRefreshSubscription = FirebaseMessaging.instance.onTokenRefresh
+          .listen(_replaceToken);
       final initialMessage = await FirebaseMessaging.instance
           .getInitialMessage();
       if (initialMessage != null) {
         _handleMessage(initialMessage, opened: true);
       }
-    } catch (_) {
+    } catch (error, stackTrace) {
       // Native Firebase configuration is supplied per deployment. Security
       // still relies on the backend and /auth/me fallback when unavailable.
+      _debugPushError('initialization', error, stackTrace);
     }
   }
 
@@ -85,7 +92,9 @@ class PushNotificationService {
       final token = await FirebaseMessaging.instance.getToken();
       if (token == null || token.isEmpty) return;
       await _replaceToken(token);
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _debugPushError('device registration', error, stackTrace);
+    }
   }
 
   Future<void> unregisterCurrentDevice() async {
@@ -98,8 +107,9 @@ class PushNotificationService {
         data: {'token': token},
         options: Options(extra: const {'allowAfterInactive': true}),
       );
-    } catch (_) {
+    } catch (error, stackTrace) {
       // Server-side account deactivation also disables every device row.
+      _debugPushError('device unregistration', error, stackTrace);
     } finally {
       await preferences.remove(_lastRegisteredTokenKey);
     }
@@ -126,7 +136,9 @@ class PushNotificationService {
           data: {'token': previous},
         );
       }
-    } catch (_) {}
+    } catch (error, stackTrace) {
+      _debugPushError('token replacement', error, stackTrace);
+    }
   }
 
   @visibleForTesting
@@ -155,7 +167,19 @@ class PushNotificationService {
   }
 
   Future<void> _disableAccount() async {
-    await _tokenStore.clear();
-    _accountInactiveNotifier.notifyInactive();
+    await _accountInactiveNotifier.inactivateAfter(_tokenStore.clear);
   }
+
+  Future<void> dispose() async {
+    await _foregroundMessageSubscription?.cancel();
+    await _openedMessageSubscription?.cancel();
+    await _tokenRefreshSubscription?.cancel();
+    await _events.close();
+  }
+}
+
+void _debugPushError(String operation, Object error, StackTrace stackTrace) {
+  if (!kDebugMode) return;
+  debugPrint('Push notification $operation failed (${error.runtimeType}).');
+  debugPrintStack(stackTrace: stackTrace);
 }

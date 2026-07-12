@@ -137,11 +137,10 @@ void main() {
 
       final image = tester.widget<Image>(find.byType(Image));
 
-      expect(image.image, isA<AssetImage>());
-      expect(
-        (image.image as AssetImage).assetName,
-        AppAssets.defaultUserAvatar,
-      );
+      expect(image.image, isA<ResizeImage>());
+      final provider = (image.image as ResizeImage).imageProvider;
+      expect(provider, isA<AssetImage>());
+      expect((provider as AssetImage).assetName, AppAssets.defaultUserAvatar);
       expect(find.text('MA'), findsNothing);
     });
   });

@@ -21,6 +21,12 @@ class WishlistCubit extends Cubit<List<WishlistItem>> {
     result.when(success: emit, failure: (_) {});
   }
 
+  Future<void> refresh() async {
+    final userKey = _currentUserKey;
+    if (userKey == null || userKey.isEmpty) return;
+    await loadWishlistForUser(userKey);
+  }
+
   Future<void> toggleItem(WishlistItem item) async {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) return;

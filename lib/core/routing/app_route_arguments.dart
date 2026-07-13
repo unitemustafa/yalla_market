@@ -85,6 +85,28 @@ class ProductDetailRouteArgs {
     this.discount,
   });
 
+  factory ProductDetailRouteArgs.fromNotificationData(
+    Map<String, dynamic> data, {
+    required String productId,
+  }) {
+    final discountValue = _routeText(data['discount']);
+    final discountNumber = double.tryParse(discountValue);
+    final discount = discountNumber != null && discountNumber > 0
+        ? '${_trimRouteDecimal(discountNumber)}%'
+        : null;
+
+    return ProductDetailRouteArgs(
+      productId: productId,
+      image: _routeText(data['image']),
+      title: _routeText(data['product_name']),
+      brand: _routeText(data['market_name']),
+      price: _routeText(data['price_text']).isNotEmpty
+          ? _routeText(data['price_text'])
+          : _routeText(data['price']),
+      discount: discount,
+    );
+  }
+
   final String image;
   final String title;
   final String brand;
@@ -93,4 +115,11 @@ class ProductDetailRouteArgs {
   final String? productSlug;
   final String? oldPrice;
   final String? discount;
+}
+
+String _routeText(Object? value) => value?.toString().trim() ?? '';
+
+String _trimRouteDecimal(double value) {
+  final fixed = value.toStringAsFixed(2);
+  return fixed.replaceFirst(RegExp(r'\.?0+$'), '');
 }

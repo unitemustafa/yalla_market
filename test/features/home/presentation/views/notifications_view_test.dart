@@ -5,6 +5,8 @@ import 'package:yalla_market/features/home/presentation/cubit/notification_cubit
 import 'package:yalla_market/features/home/presentation/cubit/notification_state.dart';
 import 'package:yalla_market/features/home/presentation/formatters/notification_time_formatter.dart';
 import 'package:yalla_market/features/home/presentation/views/notifications_view.dart';
+import 'package:yalla_market/core/routing/app_route_arguments.dart';
+import 'package:yalla_market/core/routing/app_routes.dart';
 
 import '../../helpers/notification_test_helpers.dart';
 
@@ -317,6 +319,58 @@ void main() {
       expect(find.text('Backend message'), findsOneWidget);
     });
 
+    testWidgets('product notification opens the product details route', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [
+              testNotification(
+                type: 'product_created',
+                title: '🛒 منتج جديد وصل يلا ماركت!',
+                message: 'دوس وشوف تفاصيل المنتج.',
+                orderId: null,
+                productId: 44,
+                data: const {
+                  'action': 'open_product',
+                  'product_id': 44,
+                  'product_name': 'كشري مخصوص',
+                  'market_name': 'محل المدينة',
+                  'price_text': 'EGP 80',
+                  'discount': '10.00',
+                },
+              ),
+            ],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+      RouteSettings? capturedSettings;
+
+      await _pumpNotificationsView(
+        tester,
+        cubit,
+        onGenerateRoute: (settings) {
+          capturedSettings = settings;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('Product details')),
+          );
+        },
+      );
+
+      await tester.tap(find.text('دوس وشوف تفاصيل المنتج.'));
+      await tester.pumpAndSettle();
+
+      expect(capturedSettings?.name, AppRoutes.productDetail);
+      final args = capturedSettings?.arguments as ProductDetailRouteArgs;
+      expect(args.productId, '44');
+      expect(args.title, 'كشري مخصوص');
+      expect(args.brand, 'محل المدينة');
+    });
+
     testWidgets('relative time formatter is deterministic with injected now', (
       tester,
     ) async {
@@ -352,12 +406,16 @@ void main() {
 
 Future<void> _pumpNotificationsView(
   WidgetTester tester,
-  NotificationCubit cubit,
-) async {
+  NotificationCubit cubit, {
+  RouteFactory? onGenerateRoute,
+}) async {
   await tester.pumpWidget(
     BlocProvider<NotificationCubit>.value(
       value: cubit,
-      child: const MaterialApp(home: NotificationsView()),
+      child: MaterialApp(
+        home: const NotificationsView(),
+        onGenerateRoute: onGenerateRoute,
+      ),
     ),
   );
   await tester.pump();

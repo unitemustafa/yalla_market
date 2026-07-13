@@ -91,6 +91,9 @@ class FakeAuthRepository implements AuthRepository {
   int resendCalls = 0;
   int passwordResetRequests = 0;
   int resetPasswordCalls = 0;
+  int loginCalls = 0;
+  String? lastLoginEmail;
+  bool? lastRememberMe;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() async {
@@ -103,6 +106,9 @@ class FakeAuthRepository implements AuthRepository {
     required String password,
     bool rememberMe = false,
   }) async {
+    loginCalls += 1;
+    lastLoginEmail = email;
+    lastRememberMe = rememberMe;
     return ApiResult.success(sampleSession);
   }
 

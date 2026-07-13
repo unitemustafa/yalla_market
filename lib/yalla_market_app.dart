@@ -175,6 +175,8 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     final notifications = context.read<NotificationCubit>();
     final homeCubit = context.read<HomeCubit>();
     final orderHistoryCubit = context.read<OrderHistoryCubit>();
+    final productCatalogCubit = context.read<ProductCatalogCubit>();
+    final productDiscoveryCubit = context.read<ProductDiscoveryCubit>();
     await notifications.refreshUnreadCount();
     if (notifications.state.hasLoaded) {
       await notifications.refreshNotifications();
@@ -193,6 +195,30 @@ class _AppCoordinatorState extends State<_AppCoordinator>
             focusOfferId: offerId,
           ),
         );
+      } else {
+        _showForegroundBanner(data);
+      }
+      return;
+    }
+
+    if (event == 'product_created') {
+      await Future.wait([
+        homeCubit.loadHome(force: true),
+        productCatalogCubit.loadProducts(force: true),
+        productDiscoveryCubit.loadDiscovery(force: true),
+      ]);
+      if (!mounted) return;
+      if (pushEvent.opened) {
+        final productId = data['product_id']?.toString().trim() ?? '';
+        if (productId.isNotEmpty) {
+          AppNavigator.key.currentState?.pushNamed(
+            AppRoutes.productDetail,
+            arguments: ProductDetailRouteArgs.fromNotificationData(
+              data,
+              productId: productId,
+            ),
+          );
+        }
       } else {
         _showForegroundBanner(data);
       }

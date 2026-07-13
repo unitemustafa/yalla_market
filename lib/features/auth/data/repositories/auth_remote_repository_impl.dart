@@ -8,6 +8,8 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../../core/session/session_deadline_controller.dart';
+import '../../../../core/session/session_metadata.dart';
 import '../../../../core/storage/token_store.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
@@ -15,43 +17,40 @@ import '../../domain/entities/otp_delivery_result.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class AuthRemoteRepositoryImpl implements AuthRepository {
-  AuthRemoteRepositoryImpl(this._apiClient, this._tokenStore);
+  AuthRemoteRepositoryImpl(
+    this._apiClient,
+    this._tokenStore, {
+    SessionDeadlineController? sessionDeadlineController,
+  }) : _sessionDeadlineController =
+           sessionDeadlineController ??
+           SessionDeadlineController(tokenStore: _tokenStore);
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
-  static const _sessionOnlyActiveKey = 'auth.session_only_active';
-  static const _rememberedSessionDuration = Duration(days: 30);
-  static const _temporarySessionDuration = Duration(hours: 8);
   static Options get _skipAuthOptions =>
       Options(extra: const {'skipAuth': true});
 
   final ApiClient _apiClient;
   final TokenStore _tokenStore;
+  final SessionDeadlineController _sessionDeadlineController;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() {
     return _guard(() async {
       await _clearLegacyLocalAuth();
-      final tokens = await _tokenStore.read();
-      if (tokens == null) {
-        if (await _consumeSessionOnlyActiveMarker()) {
-          throw const UnauthorizedFailure('Session expired.');
-        }
-        return null;
-      }
-      if (tokens.isExpired) {
-        await _tokenStore.clear();
-        await _clearSessionOnlyActiveMarker();
+      final restoredTokens = await _tokenStore.read();
+      if (restoredTokens == null) return null;
+      if (!await _sessionDeadlineController.activate(restoredTokens)) {
         throw const UnauthorizedFailure('Session expired.');
       }
 
       final user = await _loadMe();
-      return AuthSession(
-        user: user,
-        accessToken: tokens.accessToken,
-        refreshToken: tokens.refreshToken,
-        expiresAt: tokens.expiresAt,
-      );
+      final currentTokens = await _tokenStore.read();
+      if (currentTokens == null ||
+          !await _sessionDeadlineController.activate(currentTokens)) {
+        throw const UnauthorizedFailure('Session expired.');
+      }
+      return _authSession(user, currentTokens);
     });
   }
 
@@ -65,10 +64,14 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       final identifier = _normalizeLoginIdentifier(email);
       final payload = await _apiClient.post<Map<String, dynamic>>(
         ApiEndpoints.clientLogin,
-        data: {'identifier': identifier, 'password': password},
+        data: {
+          'identifier': identifier,
+          'password': password,
+          'remember': rememberMe,
+        },
         options: _skipAuthOptions,
       );
-      return _sessionFromPayload(payload, persistTokens: rememberMe);
+      return _sessionFromPayload(payload);
     });
   }
 
@@ -118,7 +121,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     required String phone,
   }) {
     return _guard(() async {
-      await _tokenStore.clear();
+      await _sessionDeadlineController.clearSession();
       final payload = await _apiClient.post<Map<String, dynamic>>(
         '/auth/signup',
         data: {
@@ -199,13 +202,12 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         final tokens = await _tokenStore.read();
         if (tokens != null) {
           await _apiClient.post<Object?>(
-            '/auth/logout',
+            ApiEndpoints.logout,
             data: {'refreshToken': tokens.refreshToken},
           );
         }
       } finally {
-        await _tokenStore.clear();
-        await _clearSessionOnlyActiveMarker();
+        await _sessionDeadlineController.clearSession();
       }
       return true;
     });
@@ -216,29 +218,25 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return _userFromPayload(payload);
   }
 
-  Future<AuthSession> _sessionFromPayload(
-    Map<String, dynamic> payload, {
-    required bool persistTokens,
-  }) async {
+  Future<AuthSession> _sessionFromPayload(Map<String, dynamic> payload) async {
     final user = _userFromPayload(payload);
     final tokensPayload = _asJsonMap(payload['tokens']) ?? payload;
-    final sessionExpiresAt = DateTime.now().add(
-      persistTokens ? _rememberedSessionDuration : _temporarySessionDuration,
-    );
-    final tokens = tokensFromApiPayload(
-      tokensPayload,
-    ).copyWith(expiresAt: sessionExpiresAt, isSessionOnly: !persistTokens);
+    final tokens = tokensFromApiPayload(tokensPayload);
     await _tokenStore.save(tokens);
-    if (persistTokens) {
-      await _clearSessionOnlyActiveMarker();
-    } else {
-      await _markSessionOnlyActive();
-    }
+    await _sessionDeadlineController.activate(tokens);
+    return _authSession(user, tokens);
+  }
+
+  AuthSession _authSession(AuthUser user, StoredAuthTokens tokens) {
     return AuthSession(
       user: user,
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
-      expiresAt: tokens.expiresAt,
+      expiresAt: tokens.accessExpiresAt,
+      refreshExpiresAt: tokens.refreshExpiresAt,
+      sessionStartedAt: tokens.sessionStartedAt,
+      absoluteExpiresAt: tokens.absoluteExpiresAt,
+      mode: tokens.mode,
     );
   }
 
@@ -260,17 +258,19 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     );
     final tokens = _optionalTokensFromPayload(payload);
     if (tokens != null) {
-      await _tokenStore.save(tokens.copyWith(isSessionOnly: true));
-      await _markSessionOnlyActive();
-    } else {
-      await _clearSessionOnlyActiveMarker();
+      await _tokenStore.save(tokens);
+      await _sessionDeadlineController.activate(tokens);
     }
 
     return AuthSession(
       user: user,
       accessToken: tokens?.accessToken,
       refreshToken: tokens?.refreshToken,
-      expiresAt: tokens?.expiresAt,
+      expiresAt: tokens?.accessExpiresAt,
+      refreshExpiresAt: tokens?.refreshExpiresAt,
+      sessionStartedAt: tokens?.sessionStartedAt,
+      absoluteExpiresAt: tokens?.absoluteExpiresAt,
+      mode: tokens?.mode ?? AuthSessionMode.temporary,
       otpResendAfterSeconds: _intFromPayload(payload, 'resend_after_seconds'),
     );
   }
@@ -286,7 +286,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         data: {'email': email, 'otp': code},
         options: _skipAuthOptions,
       );
-      return _sessionFromPayload(payload, persistTokens: false);
+      return _sessionFromPayload(payload);
     });
   }
 
@@ -337,8 +337,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         },
         options: _skipAuthOptions,
       );
-      await _tokenStore.clear();
-      await _clearSessionOnlyActiveMarker();
+      await _sessionDeadlineController.clearSession();
       return true;
     });
   }
@@ -495,24 +494,5 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_legacySessionKey);
     await preferences.remove(_legacyAccountsKey);
-  }
-
-  Future<void> _markSessionOnlyActive() async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_sessionOnlyActiveKey, true);
-  }
-
-  Future<void> _clearSessionOnlyActiveMarker() async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.remove(_sessionOnlyActiveKey);
-  }
-
-  Future<bool> _consumeSessionOnlyActiveMarker() async {
-    final preferences = await SharedPreferences.getInstance();
-    final wasSessionOnly = preferences.getBool(_sessionOnlyActiveKey) ?? false;
-    if (wasSessionOnly) {
-      await preferences.remove(_sessionOnlyActiveKey);
-    }
-    return wasSessionOnly;
   }
 }

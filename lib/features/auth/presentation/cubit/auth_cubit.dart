@@ -297,9 +297,9 @@ class AuthCubit extends Cubit<AuthState> {
       failure: (failure) {
         _storeOtpFailure(failure);
         _lastPasswordResetError = failure.message;
-        if (currentState is AuthAuthenticated) {
-          emit(currentState);
-        } else {
+        if (currentState is! AuthAuthenticated &&
+            state is! AuthSessionExpired &&
+            state is! AuthAccountDisabled) {
           emit(AuthFailure(failure.message));
         }
         return false;
@@ -320,9 +320,9 @@ class AuthCubit extends Cubit<AuthState> {
       failure: (failure) {
         _storeOtpFailure(failure);
         _lastPasswordResetError = failure.message;
-        if (currentState is AuthAuthenticated) {
-          emit(currentState);
-        } else {
+        if (currentState is! AuthAuthenticated &&
+            state is! AuthSessionExpired &&
+            state is! AuthAccountDisabled) {
           emit(AuthFailure(failure.message));
         }
         return false;
@@ -354,6 +354,9 @@ class AuthCubit extends Cubit<AuthState> {
       },
       failure: (failure) {
         _lastPasswordResetError = failure.message;
+        if (state is AuthSessionExpired || state is AuthAccountDisabled) {
+          return false;
+        }
         if (currentState is AuthAuthenticated) {
           emit(currentState);
         } else {
@@ -385,8 +388,10 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _authUseCases.refreshProfile();
     return result.when(
       success: (user) {
+        final activeState = state;
+        if (activeState is! AuthAuthenticated) return null;
         _lastProfileUpdateError = null;
-        emit(AuthAuthenticated(_sessionWithUser(currentState.session, user)));
+        emit(AuthAuthenticated(_sessionWithUser(activeState.session, user)));
         return user;
       },
       failure: (_) => null,
@@ -414,18 +419,23 @@ class AuthCubit extends Cubit<AuthState> {
     );
     return result.when(
       success: (user) {
+        final activeState = state;
+        if (currentState is AuthAuthenticated &&
+            activeState is! AuthAuthenticated) {
+          return null;
+        }
         _lastProfileUpdateError = null;
-        final nextSession = currentState is AuthAuthenticated
-            ? _sessionWithUser(currentState.session, user)
+        final nextSession = activeState is AuthAuthenticated
+            ? _sessionWithUser(activeState.session, user)
             : AuthSession(user: user);
         emit(AuthAuthenticated(nextSession));
         return user;
       },
       failure: (failure) {
         _lastProfileUpdateError = failure.message;
-        if (currentState is AuthAuthenticated) {
-          emit(currentState);
-        } else {
+        if (currentState is! AuthAuthenticated &&
+            state is! AuthSessionExpired &&
+            state is! AuthAccountDisabled) {
           emit(AuthFailure(failure.message));
         }
         return null;
@@ -446,13 +456,14 @@ class AuthCubit extends Cubit<AuthState> {
     );
     return result.when(
       success: (user) {
+        final activeState = state;
+        if (activeState is! AuthAuthenticated) return null;
         _lastProfileUpdateError = null;
-        emit(AuthAuthenticated(_sessionWithUser(currentState.session, user)));
+        emit(AuthAuthenticated(_sessionWithUser(activeState.session, user)));
         return user;
       },
       failure: (failure) {
         _lastProfileUpdateError = failure.message;
-        emit(currentState);
         return null;
       },
     );
@@ -464,6 +475,10 @@ class AuthCubit extends Cubit<AuthState> {
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
       expiresAt: session.expiresAt,
+      refreshExpiresAt: session.refreshExpiresAt,
+      sessionStartedAt: session.sessionStartedAt,
+      absoluteExpiresAt: session.absoluteExpiresAt,
+      mode: session.mode,
     );
   }
 

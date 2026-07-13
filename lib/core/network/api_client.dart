@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 
-import '../storage/token_store.dart';
-import '../session/session_expired_notifier.dart';
 import '../session/account_inactive_notifier.dart';
+import '../session/session_deadline_controller.dart';
+import '../session/session_expired_notifier.dart';
+import '../session/session_metadata.dart';
+import '../storage/token_store.dart';
 import 'api_endpoints.dart';
 import 'dio_factory.dart';
 
@@ -12,24 +14,31 @@ class ApiClient {
     Dio? refreshDio,
     SessionExpiredNotifier? sessionExpiredNotifier,
     AccountInactiveNotifier? accountInactiveNotifier,
+    SessionDeadlineController? sessionDeadlineController,
     required TokenStore tokenStore,
   }) : _dio = dio ?? DioFactory.create(),
        _tokenStore = tokenStore,
-       _sessionExpiredNotifier =
-           sessionExpiredNotifier ?? SessionExpiredNotifier.instance,
        _accountInactiveNotifier =
            accountInactiveNotifier ?? AccountInactiveNotifier.instance,
-       _refreshDio = refreshDio ?? Dio(DioFactory.baseOptions()) {
+       _refreshDio = refreshDio ?? Dio(DioFactory.baseOptions()),
+       _sessionDeadlineController =
+           sessionDeadlineController ??
+           SessionDeadlineController(
+             tokenStore: tokenStore,
+             sessionExpiredNotifier:
+                 sessionExpiredNotifier ?? SessionExpiredNotifier.instance,
+           ) {
     _dio.interceptors.add(
-      QueuedInterceptorsWrapper(onRequest: _onRequest, onError: _onError),
+      InterceptorsWrapper(onRequest: _onRequest, onError: _onError),
     );
   }
 
   final Dio _dio;
   final Dio _refreshDio;
   final TokenStore _tokenStore;
-  final SessionExpiredNotifier _sessionExpiredNotifier;
   final AccountInactiveNotifier _accountInactiveNotifier;
+  final SessionDeadlineController _sessionDeadlineController;
+  Future<StoredAuthTokens>? _refreshInFlight;
 
   Future<T> get<T>(
     String path, {
@@ -101,23 +110,27 @@ class ApiClient {
     }
 
     try {
-      final tokens = await _tokenStore.read();
+      var tokens = await _tokenStore.read();
       if (tokens != null) {
-        if (tokens.isExpired) {
-          await _expireSession();
+        final usable = await _sessionDeadlineController.activate(tokens);
+        if (!usable) {
           throw DioException(
             requestOptions: options,
             type: DioExceptionType.cancel,
-            error: 'Session expired',
+            error: 'session_expired',
           );
         }
-        final refreshed = tokens.expiresSoon && !_isRefreshRequest(options)
-            ? await _refreshTokens(tokens)
-            : tokens;
-        options.headers['Authorization'] = 'Bearer ${refreshed.accessToken}';
+        if (tokens.accessExpiresSoon(DateTime.now()) &&
+            !_isRefreshRequest(options)) {
+          tokens = await _refreshTokens(tokens);
+        }
+        _synchronizeAuthRequest(options, tokens);
+        options.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
       }
     } catch (error) {
-      if (!_accountInactiveNotifier.isInactive) await _expireSession();
+      if (!_accountInactiveNotifier.isInactive) {
+        await _expireSession();
+      }
       handler.reject(
         error is DioException
             ? error
@@ -139,17 +152,22 @@ class ApiClient {
   ) async {
     if (_isAccountInactiveResponse(error.response?.data)) {
       if (_isClientLoginRequest(error.requestOptions)) {
-        await _tokenStore.clear();
+        await _sessionDeadlineController.clearSession();
       } else {
         await _disableAccount();
       }
       handler.next(error);
       return;
     }
-    final alreadyRetried = error.requestOptions.extra['authRetried'] == true;
-    if (error.response?.statusCode != 401 ||
-        alreadyRetried ||
-        _isRefreshRequest(error.requestOptions)) {
+
+    final request = error.requestOptions;
+    final alreadyRetried = request.extra['authRetried'] == true;
+    if (error.response?.statusCode != 401 || _isRefreshRequest(request)) {
+      handler.next(error);
+      return;
+    }
+    if (alreadyRetried) {
+      await _expireSession();
       handler.next(error);
       return;
     }
@@ -161,19 +179,60 @@ class ApiClient {
     }
 
     try {
-      final refreshed = await _refreshTokens(tokens);
-      final request = error.requestOptions;
+      if (!await _sessionDeadlineController.activate(tokens)) {
+        handler.next(error);
+        return;
+      }
+      final requestAuthorization = request.headers['Authorization']?.toString();
+      final expectedAuthorization = 'Bearer ${tokens.accessToken}';
+      final recovered = requestAuthorization != expectedAuthorization
+          ? tokens
+          : await _refreshTokens(tokens);
       request.extra['authRetried'] = true;
-      request.headers['Authorization'] = 'Bearer ${refreshed.accessToken}';
+      _synchronizeAuthRequest(request, recovered);
+      request.headers['Authorization'] = 'Bearer ${recovered.accessToken}';
       final retryResponse = await _dio.fetch<Object?>(request);
       handler.resolve(retryResponse);
-    } catch (_) {
-      if (!_accountInactiveNotifier.isInactive) await _expireSession();
-      handler.next(error);
+    } catch (refreshError) {
+      if (!_accountInactiveNotifier.isInactive) {
+        await _expireSession();
+      }
+      handler.next(refreshError is DioException ? refreshError : error);
     }
   }
 
   Future<StoredAuthTokens> _refreshTokens(StoredAuthTokens current) async {
+    var pending = _refreshInFlight;
+    if (pending != null) return pending;
+
+    final latest = await _tokenStore.read();
+    if (latest == null) {
+      throw StateError('Authentication session is no longer available.');
+    }
+    if (latest.refreshToken != current.refreshToken) {
+      _validateSessionContinuity(current, latest);
+      return latest;
+    }
+
+    pending = _refreshInFlight;
+    if (pending != null) return pending;
+
+    final operation = _performRefresh(current);
+    _refreshInFlight = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_refreshInFlight, operation)) {
+        _refreshInFlight = null;
+      }
+    }
+  }
+
+  Future<StoredAuthTokens> _performRefresh(StoredAuthTokens current) async {
+    if (!await _sessionDeadlineController.activate(current)) {
+      throw StateError('Session expired.');
+    }
+
     late final Response<Object?> response;
     try {
       response = await _refreshDio.post<Object?>(
@@ -187,35 +246,58 @@ class ApiClient {
       }
       rethrow;
     }
+
     final payload = _unwrap<Map<String, dynamic>>(response.data);
-    final next =
-        _tokensFromJson(
-          payload,
-          fallbackRefreshToken: current.refreshToken,
-        ).copyWith(
-          expiresAt: current.expiresAt,
-          isSessionOnly: current.isSessionOnly,
-        );
+    final next = tokensFromApiPayload(payload);
+    _validateSessionContinuity(current, next);
     await _tokenStore.save(next);
+    await _sessionDeadlineController.activate(next);
     return next;
   }
 
+  void _validateSessionContinuity(
+    StoredAuthTokens current,
+    StoredAuthTokens next,
+  ) {
+    if (current.mode != next.mode ||
+        current.sessionStartedAt != next.sessionStartedAt ||
+        current.absoluteExpiresAt != next.absoluteExpiresAt) {
+      throw const FormatException('Refresh changed session identity.');
+    }
+  }
+
   bool _isRefreshRequest(RequestOptions options) {
-    return options.path.endsWith(ApiEndpoints.refreshToken) ||
+    return _normalizedPath(options.path) == ApiEndpoints.refreshToken ||
         options.extra['skipAuth'] == true;
   }
 
   bool _isClientLoginRequest(RequestOptions options) {
-    return options.path.endsWith(ApiEndpoints.clientLogin);
+    return _normalizedPath(options.path) == ApiEndpoints.clientLogin;
   }
 
-  Future<void> _expireSession() async {
-    await _tokenStore.clear();
-    _sessionExpiredNotifier.notifyExpired();
+  void _synchronizeAuthRequest(
+    RequestOptions request,
+    StoredAuthTokens tokens,
+  ) {
+    if (_normalizedPath(request.path) != ApiEndpoints.logout) return;
+    final data = request.data;
+    if (data is Map<String, dynamic> && data.containsKey('refreshToken')) {
+      data['refreshToken'] = tokens.refreshToken;
+    }
+  }
+
+  String _normalizedPath(String path) {
+    return path.replaceFirst(RegExp(r'/+$'), '');
+  }
+
+  Future<void> _expireSession() {
+    return _sessionDeadlineController.expireSession();
   }
 
   Future<void> _disableAccount() async {
-    await _accountInactiveNotifier.inactivateAfter(_tokenStore.clear);
+    await _accountInactiveNotifier.inactivateAfter(
+      _sessionDeadlineController.clearSession,
+    );
   }
 
   bool _isAccountInactiveResponse(Object? data) {
@@ -232,34 +314,64 @@ class ApiClient {
 }
 
 StoredAuthTokens tokensFromApiPayload(Map<String, dynamic> json) {
-  return _tokensFromJson(json);
+  final session = _asJsonMap(json['session']);
+  if (session == null) {
+    throw const FormatException('Missing authentication session metadata.');
+  }
+
+  final mode = AuthSessionMode.parse(session['mode']);
+  final remember = session['remember'];
+  if (remember is! bool || remember != mode.isRemembered) {
+    throw const FormatException('Invalid authentication session metadata.');
+  }
+
+  final absoluteExpiresAt = _dateFromJson(session['absoluteExpiresAt']);
+  if (mode == AuthSessionMode.temporary && absoluteExpiresAt == null) {
+    throw const FormatException('Missing temporary session deadline.');
+  }
+  if (mode == AuthSessionMode.persistent && absoluteExpiresAt != null) {
+    throw const FormatException('Persistent session has an absolute deadline.');
+  }
+
+  final tokens = StoredAuthTokens(
+    accessToken: _requiredToken(json, 'accessToken', 'access_token'),
+    refreshToken: _requiredToken(json, 'refreshToken', 'refresh_token'),
+    accessExpiresAt: _requiredDate(session, 'accessExpiresAt'),
+    refreshExpiresAt: _requiredDate(session, 'refreshExpiresAt'),
+    sessionStartedAt: _requiredDate(session, 'startedAt'),
+    mode: mode,
+    absoluteExpiresAt: absoluteExpiresAt,
+  );
+  if (tokens.accessExpiresAt.isAfter(tokens.sessionDeadline) ||
+      tokens.refreshExpiresAt.isAfter(tokens.sessionDeadline)) {
+    throw const FormatException('Token expiry exceeds the session deadline.');
+  }
+  return tokens;
 }
 
-StoredAuthTokens _tokensFromJson(
-  Map<String, dynamic> json, {
-  String? fallbackRefreshToken,
-}) {
-  final expiresAt = _dateFromJson(json['expiresAt'] ?? json['expires_at']);
-  final expiresIn = json['expiresIn'] ?? json['expires_in'];
-  return StoredAuthTokens(
-    accessToken: (json['accessToken'] ?? json['access_token']) as String,
-    refreshToken:
-        (json['refreshToken'] ?? json['refresh_token'] ?? fallbackRefreshToken)
-            as String,
-    expiresAt:
-        expiresAt ??
-        DateTime.now().add(Duration(seconds: _intFromJson(expiresIn) ?? 3600)),
-  );
+Map<String, dynamic>? _asJsonMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) return Map<String, dynamic>.from(value);
+  return null;
+}
+
+String _requiredToken(
+  Map<String, dynamic> json,
+  String primary,
+  String alternate,
+) {
+  final value = json[primary] ?? json[alternate];
+  if (value is String && value.trim().isNotEmpty) return value;
+  throw FormatException('Missing $primary.');
+}
+
+DateTime _requiredDate(Map<String, dynamic> json, String key) {
+  final date = _dateFromJson(json[key]);
+  if (date != null) return date;
+  throw FormatException('Missing $key.');
 }
 
 DateTime? _dateFromJson(Object? value) {
   if (value is! String || value.trim().isEmpty) return null;
-  return DateTime.tryParse(value);
-}
-
-int? _intFromJson(Object? value) {
-  if (value is int) return value;
-  if (value is num) return value.toInt();
-  if (value is String) return int.tryParse(value);
-  return null;
+  return DateTime.tryParse(value)?.toUtc();
 }

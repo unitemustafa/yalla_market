@@ -41,7 +41,7 @@ void main() {
       },
     );
 
-    test('parses structured offer and order routing fields', () {
+    test('parses structured offer, product and order routing fields', () {
       final notification = AppNotificationModel.fromJson({
         'id': 3,
         'audience': 'client',
@@ -49,12 +49,14 @@ void main() {
         'title': 'عرض جديد',
         'message': 'افتح العرض',
         'offer_id': '15',
+        'product_id': '44',
         'order_id': '123',
         'data': {'action': 'open_offer', 'event': 'offer_created'},
         'created_at': '2026-07-10T10:30:00Z',
       });
 
       expect(notification.offerId, 15);
+      expect(notification.productId, 44);
       expect(notification.orderId, 123);
       expect(notification.data['action'], 'open_offer');
     });

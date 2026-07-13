@@ -8,6 +8,7 @@ class AppNotification {
     required this.createdAt,
     this.orderId,
     this.offerId,
+    this.productId,
     this.data = const {},
     this.isRead = false,
     this.isBlocking = false,
@@ -21,6 +22,7 @@ class AppNotification {
   final String message;
   final int? orderId;
   final int? offerId;
+  final int? productId;
   final Map<String, dynamic> data;
   final bool isRead;
   final bool isBlocking;
@@ -36,6 +38,7 @@ class AppNotification {
       message: message,
       orderId: orderId,
       offerId: offerId,
+      productId: productId,
       data: data,
       isRead: isRead ?? this.isRead,
       isBlocking: isBlocking,

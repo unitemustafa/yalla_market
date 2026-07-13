@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -276,6 +277,34 @@ void main() {
       await cubit.close();
     });
 
+    test(
+      'an in-flight profile refresh cannot revive an expired session',
+      () async {
+        final notifier = SessionExpiredNotifier();
+        final meCompleter = Completer<ApiResult<AuthUser>>();
+        final repository = _FakeAuthRepository(
+          loginResult: sampleSession,
+          meCompleter: meCompleter,
+        );
+        final cubit = AuthCubit(
+          _authUseCases(repository),
+          sessionExpiredNotifier: notifier,
+        );
+        await cubit.login(email: sampleUser.email, password: 'password');
+
+        final refresh = cubit.refreshProfile();
+        notifier.notifyExpired();
+        meCompleter.complete(
+          ApiResult.success(sampleUser.copyWith(firstName: 'Late response')),
+        );
+
+        expect(await refresh, isNull);
+        expect(cubit.state, isA<AuthSessionExpired>());
+        expect(AuthGuard.isAuthenticated, isFalse);
+        await cubit.close();
+      },
+    );
+
     test('updateProfile preserves current session tokens', () async {
       final updatedUser = sampleUser.copyWith(firstName: 'Mona');
       final repository = _FakeAuthRepository(
@@ -455,6 +484,7 @@ class _FakeAuthRepository implements AuthRepository {
     this.loginFailure,
     this.verifyEmailResult,
     this.meResult,
+    this.meCompleter,
     this.updateProfileResult,
     this.updateProfileFailure,
     this.updateProfileAvatarResult,
@@ -468,6 +498,7 @@ class _FakeAuthRepository implements AuthRepository {
   final Failure? loginFailure;
   final AuthSession? verifyEmailResult;
   final AuthUser? meResult;
+  final Completer<ApiResult<AuthUser>>? meCompleter;
   final AuthUser? updateProfileResult;
   final Failure? updateProfileFailure;
   final AuthUser? updateProfileAvatarResult;
@@ -574,6 +605,7 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<AuthUser>> me() async {
+    if (meCompleter case final completer?) return completer.future;
     return ApiResult.success(meResult ?? sampleUser);
   }
 

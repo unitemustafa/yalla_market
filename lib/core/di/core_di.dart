@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 
 import '../network/api_client.dart';
 import '../network/dio_factory.dart';
+import '../session/session_deadline_controller.dart';
 import '../storage/token_store.dart';
 import '../notifications/push_notification_service.dart';
 
@@ -17,9 +18,18 @@ void registerCoreDependencies(GetIt sl) {
   if (!sl.isRegistered<TokenStore>()) {
     sl.registerLazySingleton<TokenStore>(SecureTokenStore.new);
   }
+  if (!sl.isRegistered<SessionDeadlineController>()) {
+    sl.registerLazySingleton(
+      () => SessionDeadlineController(tokenStore: sl<TokenStore>()),
+    );
+  }
   if (!sl.isRegistered<ApiClient>()) {
     sl.registerLazySingleton(
-      () => ApiClient(dio: sl<Dio>(), tokenStore: sl<TokenStore>()),
+      () => ApiClient(
+        dio: sl<Dio>(),
+        tokenStore: sl<TokenStore>(),
+        sessionDeadlineController: sl<SessionDeadlineController>(),
+      ),
     );
   }
   if (!sl.isRegistered<PushNotificationService>()) {

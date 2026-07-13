@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:yalla_market/core/errors/failure.dart';
+import 'package:yalla_market/core/session/session_metadata.dart';
 import 'package:yalla_market/core/storage/token_store.dart';
 import 'package:yalla_market/features/auth/data/repositories/auth_remote_repository_impl.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
@@ -17,7 +17,6 @@ void main() {
     });
 
     test('login stores secure tokens when remember me is enabled', () async {
-      final startedAt = DateTime.now();
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'POST');
@@ -25,8 +24,9 @@ void main() {
         expect(request.data, {
           'identifier': 'm@example.com',
           'password': 'Password123!',
+          'remember': true,
         });
-        return _sessionPayload;
+        return _sessionPayload(remembered: true);
       });
       final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
 
@@ -43,20 +43,19 @@ void main() {
         },
         failure: (failure) => fail(failure.message),
       );
-      expect((await tokenStore.read())?.refreshToken, 'refresh-token');
-      expect((await tokenStore.read())?.isSessionOnly, isFalse);
+      final stored = await tokenStore.read();
+      expect(stored?.refreshToken, 'refresh-token');
+      expect(stored?.mode, AuthSessionMode.persistent);
+      expect(stored?.absoluteExpiresAt, isNull);
       expect(
-        (await tokenStore.read())?.expiresAt.isAfter(
-          startedAt.add(const Duration(days: 29)),
-        ),
-        isTrue,
+        stored?.refreshExpiresAt.difference(stored.sessionStartedAt),
+        const Duration(days: 7),
       );
     });
 
     test(
       'login keeps tokens session-only when remember me is disabled',
       () async {
-        final startedAt = DateTime.now();
         final tokenStore = InMemoryTokenStore();
         final apiClient = FakeApiClient((request) {
           expect(request.method, 'POST');
@@ -64,8 +63,9 @@ void main() {
           expect(request.data, {
             'identifier': 'm@example.com',
             'password': 'Password123!',
+            'remember': false,
           });
-          return _sessionPayload;
+          return _sessionPayload(remembered: false);
         });
         final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
 
@@ -81,22 +81,23 @@ void main() {
           },
           failure: (failure) => fail(failure.message),
         );
-        expect((await tokenStore.read())?.refreshToken, 'refresh-token');
-        expect((await tokenStore.read())?.isSessionOnly, isTrue);
+        final stored = await tokenStore.read();
+        expect(stored?.refreshToken, 'refresh-token');
+        expect(stored?.mode, AuthSessionMode.temporary);
         expect(
-          (await tokenStore.read())?.expiresAt.isAfter(
-            startedAt.add(const Duration(hours: 7)),
-          ),
-          isTrue,
+          stored?.absoluteExpiresAt?.difference(stored.sessionStartedAt),
+          const Duration(hours: 8),
         );
       },
     );
 
     test(
-      'restoreSavedSession reports a closed session-only login as expired',
+      'temporary session is absent after a mobile process restart',
       () async {
         final tokenStore = InMemoryTokenStore();
-        final apiClient = FakeApiClient((request) => _sessionPayload);
+        final apiClient = FakeApiClient(
+          (request) => _sessionPayload(remembered: false),
+        );
         final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
 
         await repository.login(
@@ -113,11 +114,8 @@ void main() {
         final result = await restartedRepository.restoreSavedSession();
 
         result.when(
-          success: (_) => fail('Closed session-only login should expire.'),
-          failure: (failure) {
-            expect(failure, isA<UnauthorizedFailure>());
-            expect(failure.message, 'Session expired.');
-          },
+          success: (session) => expect(session, isNull),
+          failure: (failure) => fail(failure.message),
         );
       },
     );
@@ -126,13 +124,7 @@ void main() {
       'signup accepts verification-only responses without storing tokens',
       () async {
         final tokenStore = InMemoryTokenStore();
-        await tokenStore.save(
-          StoredAuthTokens(
-            accessToken: 'old-access-token',
-            refreshToken: 'old-refresh-token',
-            expiresAt: DateTime.now().add(const Duration(hours: 1)),
-          ),
-        );
+        await tokenStore.save(_storedTokens(remembered: false));
         final apiClient = FakeApiClient((request) {
           expect(request.method, 'POST');
           expect(request.path, '/auth/signup');
@@ -181,13 +173,7 @@ void main() {
           'auth.local_accounts': '[]',
         });
         final tokenStore = InMemoryTokenStore();
-        await tokenStore.save(
-          StoredAuthTokens(
-            accessToken: 'access-token',
-            refreshToken: 'refresh-token',
-            expiresAt: DateTime.now().add(const Duration(hours: 1)),
-          ),
-        );
+        await tokenStore.save(_storedTokens(remembered: true));
         final apiClient = FakeApiClient((request) {
           expect(request.path, '/auth/me');
           return {'user': _userPayload};
@@ -212,7 +198,7 @@ void main() {
         expect(request.method, 'POST');
         expect(request.path, '/auth/verify-email');
         expect(request.data, {'email': 'm@example.com', 'otp': '123456'});
-        return _sessionPayload;
+        return _sessionPayload(remembered: false);
       });
       final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
 
@@ -228,20 +214,14 @@ void main() {
         },
         failure: (failure) => fail(failure.message),
       );
-      expect((await tokenStore.read())?.isSessionOnly, isTrue);
+      expect((await tokenStore.read())?.mode, AuthSessionMode.temporary);
     });
 
     test(
       'logout sends the refresh token before clearing local tokens',
       () async {
         final tokenStore = InMemoryTokenStore();
-        await tokenStore.save(
-          StoredAuthTokens(
-            accessToken: 'access-token',
-            refreshToken: 'refresh-token',
-            expiresAt: DateTime.now().add(const Duration(hours: 1)),
-          ),
-        );
+        await tokenStore.save(_storedTokens(remembered: false));
         final apiClient = FakeApiClient((request) {
           expect(request.method, 'POST');
           expect(request.path, '/auth/logout');
@@ -259,6 +239,26 @@ void main() {
         expect(await tokenStore.read(), isNull);
       },
     );
+
+    test('logout clears local tokens when the backend request fails', () async {
+      final tokenStore = InMemoryTokenStore();
+      await tokenStore.save(_storedTokens(remembered: true));
+      final apiClient = FakeApiClient((request) {
+        throw DioException(
+          requestOptions: RequestOptions(path: request.path),
+          type: DioExceptionType.connectionError,
+        );
+      });
+      final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
+
+      final result = await repository.logout();
+
+      result.when(
+        success: (_) => fail('The network failure should still be reported.'),
+        failure: (_) {},
+      );
+      expect(await tokenStore.read(), isNull);
+    });
 
     test('updateProfile sends profile fields supported by backend', () async {
       final tokenStore = InMemoryTokenStore();
@@ -380,13 +380,7 @@ void main() {
       'resetPassword posts otp and new password then clears tokens',
       () async {
         final tokenStore = InMemoryTokenStore();
-        await tokenStore.save(
-          StoredAuthTokens(
-            accessToken: 'access-token',
-            refreshToken: 'refresh-token',
-            expiresAt: DateTime.now().add(const Duration(hours: 1)),
-          ),
-        );
+        await tokenStore.save(_storedTokens(remembered: false));
         final apiClient = FakeApiClient((request) {
           expect(request.method, 'POST');
           expect(request.path, '/auth/reset-password');
@@ -417,12 +411,46 @@ void main() {
   });
 }
 
-final _sessionPayload = {
-  'user': _userPayload,
-  'accessToken': 'access-token',
-  'refreshToken': 'refresh-token',
-  'expiresIn': 3600,
-};
+Map<String, dynamic> _sessionPayload({required bool remembered}) {
+  final startedAt = DateTime.now().toUtc();
+  final refreshExpiresAt = startedAt.add(
+    remembered ? const Duration(days: 7) : const Duration(hours: 8),
+  );
+  return {
+    'user': _userPayload,
+    'accessToken': 'access-token',
+    'refreshToken': 'refresh-token',
+    'expiresIn': 900,
+    'session': {
+      'mode': remembered ? 'persistent' : 'temporary',
+      'remember': remembered,
+      'startedAt': startedAt.toIso8601String(),
+      'absoluteExpiresAt': remembered
+          ? null
+          : refreshExpiresAt.toIso8601String(),
+      'accessExpiresAt': startedAt
+          .add(const Duration(minutes: 15))
+          .toIso8601String(),
+      'refreshExpiresAt': refreshExpiresAt.toIso8601String(),
+    },
+  };
+}
+
+StoredAuthTokens _storedTokens({required bool remembered}) {
+  final startedAt = DateTime.now().toUtc();
+  final refreshExpiresAt = startedAt.add(
+    remembered ? const Duration(days: 7) : const Duration(hours: 8),
+  );
+  return StoredAuthTokens(
+    accessToken: 'access-token',
+    refreshToken: 'refresh-token',
+    accessExpiresAt: startedAt.add(const Duration(minutes: 15)),
+    refreshExpiresAt: refreshExpiresAt,
+    sessionStartedAt: startedAt,
+    mode: remembered ? AuthSessionMode.persistent : AuthSessionMode.temporary,
+    absoluteExpiresAt: remembered ? null : refreshExpiresAt,
+  );
+}
 
 const _userPayload = {
   'id': 'user-1',

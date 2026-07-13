@@ -69,5 +69,21 @@ void main() {
       expect(productRoute, isA<MaterialPageRoute<dynamic>>());
       expect(brandRoute, isA<MaterialPageRoute<dynamic>>());
     });
+
+    test('builds product details arguments from notification data', () {
+      final args = ProductDetailRouteArgs.fromNotificationData({
+        'product_name': 'كشري مخصوص',
+        'market_name': 'محل المدينة',
+        'image': '/media/products/koshary.webp',
+        'price_text': 'EGP 80',
+        'discount': '10.00',
+      }, productId: '44');
+
+      expect(args.productId, '44');
+      expect(args.title, 'كشري مخصوص');
+      expect(args.brand, 'محل المدينة');
+      expect(args.price, 'EGP 80');
+      expect(args.discount, '10%');
+    });
   });
 }

@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/notifications/push_notification_service.dart';
 import 'package:yalla_market/core/session/account_inactive_notifier.dart';
 import 'package:yalla_market/core/session/account_restored_notifier.dart';
+import 'package:yalla_market/core/session/session_metadata.dart';
 import 'package:yalla_market/core/storage/token_store.dart';
 
 import '../../helpers/fake_api_client.dart';
@@ -13,13 +14,7 @@ void main() {
   });
   test('account_disabled data clears tokens before notifying auth', () async {
     final tokenStore = InMemoryTokenStore();
-    await tokenStore.save(
-      StoredAuthTokens(
-        accessToken: 'access',
-        refreshToken: 'refresh',
-        expiresAt: DateTime.now().add(const Duration(hours: 1)),
-      ),
-    );
+    await tokenStore.save(_tokens());
     final notifier = AccountInactiveNotifier();
     final service = PushNotificationService(
       FakeApiClient((_) => null),
@@ -54,6 +49,26 @@ void main() {
     expect(event.opened, isTrue);
     expect(event.data['action'], 'open_offer');
     expect(event.data['offer_id'], '15');
+  });
+
+  test('structured product event keeps direct product routing data', () async {
+    final service = PushNotificationService(
+      FakeApiClient((_) => null),
+      InMemoryTokenStore(),
+    );
+    final eventFuture = service.events.first;
+
+    await service.handleDataForTesting({
+      'event': 'product_created',
+      'action': 'open_product',
+      'product_id': '44',
+      'product_name': 'كشري مخصوص',
+    }, opened: true);
+
+    final event = await eventFuture;
+    expect(event.opened, isTrue);
+    expect(event.data['action'], 'open_product');
+    expect(event.data['product_id'], '44');
   });
 
   test('account_restored foreground notification is shown once', () async {
@@ -113,13 +128,7 @@ void main() {
         'push.last_registered_token': 'old-token',
       });
       final tokenStore = InMemoryTokenStore();
-      await tokenStore.save(
-        StoredAuthTokens(
-          accessToken: 'access',
-          refreshToken: 'refresh',
-          expiresAt: DateTime.now().add(const Duration(hours: 1)),
-        ),
-      );
+      await tokenStore.save(_tokens());
       final requests = <FakeApiRequest>[];
       final service = PushNotificationService(
         FakeApiClient((request) {
@@ -138,6 +147,20 @@ void main() {
       expect((requests.first.data as Map)['token'], 'new-token');
       expect((requests.last.data as Map)['token'], 'old-token');
     },
+  );
+}
+
+StoredAuthTokens _tokens() {
+  final now = DateTime.now();
+  final deadline = now.add(const Duration(hours: 8));
+  return StoredAuthTokens(
+    accessToken: 'access',
+    refreshToken: 'refresh',
+    accessExpiresAt: now.add(const Duration(minutes: 15)),
+    refreshExpiresAt: deadline,
+    sessionStartedAt: now,
+    mode: AuthSessionMode.temporary,
+    absoluteExpiresAt: deadline,
   );
 }
 

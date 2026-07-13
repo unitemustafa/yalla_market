@@ -10,6 +10,7 @@ class AppNotificationModel extends AppNotification {
     required super.createdAt,
     super.orderId,
     super.offerId,
+    super.productId,
     super.data,
     super.isRead,
     super.isBlocking,
@@ -25,6 +26,7 @@ class AppNotificationModel extends AppNotification {
       message: _stringFromJson(json['message']),
       orderId: _intFromJson(json['order_id']),
       offerId: _intFromJson(json['offer_id']),
+      productId: _intFromJson(json['product_id']),
       data: json['data'] is Map
           ? Map<String, dynamic>.from(json['data'] as Map)
           : const {},

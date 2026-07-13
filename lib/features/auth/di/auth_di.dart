@@ -2,6 +2,7 @@ import 'package:get_it/get_it.dart';
 
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/session/session_deadline_controller.dart';
 import '../../../core/storage/token_store.dart';
 import '../../../core/notifications/push_notification_service.dart';
 import '../../../features/auth/data/repositories/auth_remote_repository_impl.dart';
@@ -15,7 +16,11 @@ void registerAuthDependencies(GetIt sl) {
     sl.registerLazySingleton<AuthRepository>(
       () => AppEnvironment.useDemoRepositories
           ? AuthRepositoryImpl()
-          : AuthRemoteRepositoryImpl(sl<ApiClient>(), sl<TokenStore>()),
+          : AuthRemoteRepositoryImpl(
+              sl<ApiClient>(),
+              sl<TokenStore>(),
+              sessionDeadlineController: sl<SessionDeadlineController>(),
+            ),
     );
   }
   if (!sl.isRegistered<RestoreSavedSessionUseCase>()) {

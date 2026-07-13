@@ -12,6 +12,8 @@ AppNotification testNotification({
   String title = 'Order rejected',
   String message = 'Your order #12 was rejected.',
   int? orderId = 12,
+  int? productId,
+  Map<String, dynamic> data = const {},
   bool isRead = false,
   DateTime? createdAt,
 }) {
@@ -22,6 +24,8 @@ AppNotification testNotification({
     title: title,
     message: message,
     orderId: orderId,
+    productId: productId,
+    data: data,
     isRead: isRead,
     createdAt: createdAt ?? DateTime(2026, 7, 5, 12),
   );

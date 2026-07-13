@@ -58,6 +58,9 @@ class _NotificationsViewState extends State<NotificationsView> {
   Future<void> _openNotification(AppNotification notification) async {
     final wasUnread = !notification.isRead;
     final action = notification.data['action']?.toString();
+    final productId =
+        notification.productId ??
+        int.tryParse(notification.data['product_id']?.toString() ?? '');
     if (action == 'open_order' && notification.orderId != null) {
       await Navigator.pushNamed(
         context,
@@ -72,6 +75,15 @@ class _NotificationsViewState extends State<NotificationsView> {
         arguments: NavigationMenuRouteArgs(
           initialIndex: 0,
           focusOfferId: notification.offerId.toString(),
+        ),
+      );
+    } else if (action == 'open_product' && productId != null) {
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.productDetail,
+        arguments: ProductDetailRouteArgs.fromNotificationData(
+          notification.data,
+          productId: productId.toString(),
         ),
       );
     } else {

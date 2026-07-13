@@ -12,4 +12,5 @@ abstract final class ApiEndpoints {
 
   static const refreshToken = '/auth/refresh';
   static const clientLogin = '/auth/login/client';
+  static const logout = '/auth/logout';
 }

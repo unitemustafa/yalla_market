@@ -64,6 +64,13 @@ class NotificationPresentationMapper {
           icon: AppIcons.shopping_bag,
           color: AppColors.warning,
         );
+      case 'product_created':
+        return NotificationPresentationData(
+          localizedTitle: notification.title,
+          localizedMessage: notification.message,
+          icon: AppIcons.shopping_bag,
+          color: AppColors.primary,
+        );
     }
 
     return NotificationPresentationData(

@@ -71,6 +71,13 @@ class NotificationPresentationMapper {
           icon: AppIcons.shopping_bag,
           color: AppColors.primary,
         );
+      case 'market_created':
+        return NotificationPresentationData(
+          localizedTitle: notification.title,
+          localizedMessage: notification.message,
+          icon: AppIcons.shop,
+          color: AppColors.success,
+        );
     }
 
     return NotificationPresentationData(

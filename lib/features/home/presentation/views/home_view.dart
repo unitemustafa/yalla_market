@@ -16,11 +16,15 @@ import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
 import '../cubit/notification_cubit.dart';
 import '../cubit/notification_state.dart';
+import '../../domain/entities/home_data.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../location/presentation/cubit/location_state.dart';
 import '../../../personalization/presentation/controllers/user_profile_controller.dart';
+import '../../../store/domain/entities/category_data.dart';
+import '../../../store/domain/entities/product_data.dart';
 import '../../../store/presentation/cubit/product_catalog_cubit.dart';
+import '../../../store/presentation/cubit/product_catalog_state.dart';
 import '../../../store/presentation/cubit/product_discovery_cubit.dart';
 import '../../../store/presentation/cubit/store_cubit.dart';
 import '../widgets/home_categories.dart';
@@ -141,69 +145,26 @@ class _HomeViewState extends State<HomeView> {
                         showActionIcon: false,
                       );
                     }
+                    if (homeState is HomeFailure && home == null) {
+                      return AppErrorState(
+                        title: 'Home could not load',
+                        message: homeState.message,
+                        onRetry: () => _loadHomeData(force: true),
+                      );
+                    }
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (homeState is HomeFailure && home == null) ...[
-                          AppErrorState(
-                            title: 'Home could not load',
-                            message: homeState.message,
-                            onRetry: () => _loadHomeData(force: true),
-                          ),
-                          const SizedBox(height: 22),
-                        ],
                         PromoSlider(
                           offers: home?.offers,
                           focusOfferId: widget.focusOfferId,
                         ),
                         const SizedBox(height: 24),
-                        const SectionHeading(
-                          title: 'Popular Categories',
-                          showActionButton: false,
-                          titleFontSize: 18,
-                        ),
-                        const SizedBox(height: 12),
-                        HomeCategories(categories: home?.categories),
-                        const SizedBox(height: 22),
-                        const SectionHeading(
-                          title: 'Popular Products',
-                          titleFontSize: 18,
-                          showActionButton: false,
-                        ),
-                        const SizedBox(height: 14),
-                        HomeProductsSlider(
-                          products: home?.products,
-                          limit: 6,
-                          onViewAll: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRoutes.allProducts,
-                              arguments: const AllProductsRouteArgs(
-                                collection: ProductCollectionType.popular,
-                              ),
-                            );
-                          },
-                        ),
-                        const SizedBox(height: 22),
-                        const SectionHeading(
-                          title: 'Latest Products',
-                          titleFontSize: 18,
-                          showActionButton: false,
-                        ),
-                        const SizedBox(height: 14),
-                        HomeProductsSlider(
-                          mode: HomeProductsSliderMode.latest,
-                          limit: 6,
-                          onViewAll: () {
-                            Navigator.pushNamed(
-                              context,
-                              AppRoutes.allProducts,
-                              arguments: const AllProductsRouteArgs(
-                                title: 'Latest Products',
-                                subtitle: 'Browse the latest products',
-                                collection: ProductCollectionType.latest,
-                                maxItems: 15,
-                              ),
+                        BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
+                          builder: (context, catalogState) {
+                            return HomeCatalogSections(
+                              home: home,
+                              catalogState: catalogState,
                             );
                           },
                         ),
@@ -216,6 +177,121 @@ class _HomeViewState extends State<HomeView> {
           ),
         ),
       ),
+    );
+  }
+}
+
+@visibleForTesting
+class HomeCatalogSections extends StatelessWidget {
+  const HomeCatalogSections({
+    super.key,
+    required this.home,
+    required this.catalogState,
+  });
+
+  final HomeData? home;
+  final ProductCatalogState catalogState;
+
+  @override
+  Widget build(BuildContext context) {
+    final popularProducts = (home?.products ?? const <ProductData>[])
+        .where((product) => product.isPopular)
+        .toList(growable: false);
+    final latestProducts = catalogState is ProductCatalogReady
+        ? (catalogState as ProductCatalogReady).products
+        : const <ProductData>[];
+    final categories = home?.categories ?? const <CategoryData>[];
+
+    if (categories.isEmpty &&
+        popularProducts.isEmpty &&
+        latestProducts.isEmpty) {
+      if (catalogState is ProductCatalogInitial ||
+          catalogState is ProductCatalogLoading) {
+        return const AppLoadingState(message: 'Loading products...');
+      }
+      if (catalogState is ProductCatalogFailure) {
+        return AppErrorState(
+          title: 'Products could not load',
+          message: (catalogState as ProductCatalogFailure).message,
+          onRetry: () =>
+              context.read<ProductCatalogCubit>().loadProducts(force: true),
+        );
+      }
+      if (catalogState is ProductCatalogNeedsCity) {
+        return const AppEmptyState(
+          title: 'Choose your city',
+          message: 'So we can show products available in your area.',
+        );
+      }
+      return const AppEmptyState(
+        key: ValueKey('home_empty_products'),
+        title: 'No products available',
+        message: 'Products will appear here once the catalog is ready.',
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (categories.isNotEmpty) ...[
+          const SectionHeading(
+            title: 'Popular Categories',
+            showActionButton: false,
+            titleFontSize: 18,
+          ),
+          const SizedBox(height: 12),
+          HomeCategories(categories: categories),
+        ],
+        if (popularProducts.isNotEmpty) ...[
+          if (categories.isNotEmpty) const SizedBox(height: 22),
+          const SectionHeading(
+            title: 'Popular Products',
+            titleFontSize: 18,
+            showActionButton: false,
+          ),
+          const SizedBox(height: 14),
+          HomeProductsSlider(
+            products: popularProducts,
+            limit: 6,
+            onViewAll: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.allProducts,
+                arguments: const AllProductsRouteArgs(
+                  collection: ProductCollectionType.popular,
+                ),
+              );
+            },
+          ),
+        ],
+        if (latestProducts.isNotEmpty) ...[
+          if (categories.isNotEmpty || popularProducts.isNotEmpty)
+            const SizedBox(height: 22),
+          const SectionHeading(
+            title: 'Latest Products',
+            titleFontSize: 18,
+            showActionButton: false,
+          ),
+          const SizedBox(height: 14),
+          HomeProductsSlider(
+            products: latestProducts,
+            mode: HomeProductsSliderMode.latest,
+            limit: 6,
+            onViewAll: () {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.allProducts,
+                arguments: const AllProductsRouteArgs(
+                  title: 'Latest Products',
+                  subtitle: 'Browse the latest products',
+                  collection: ProductCollectionType.latest,
+                  maxItems: 15,
+                ),
+              );
+            },
+          ),
+        ],
+      ],
     );
   }
 }

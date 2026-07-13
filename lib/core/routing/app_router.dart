@@ -157,6 +157,7 @@ class AppRouter {
             brand: args.brand,
             price: args.price,
             productId: args.productId,
+            initialVariantId: args.initialVariantId,
             productSlug: args.productSlug,
             oldPrice: args.oldPrice,
             discount: args.discount,

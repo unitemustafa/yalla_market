@@ -84,6 +84,19 @@ class ResumeRefreshGuard {
   }
 }
 
+@visibleForTesting
+Future<bool> presentDeliveryAreaCreatedFeedback({
+  required PushEvent pushEvent,
+  required Future<void> Function(Map<String, dynamic> data) showBanner,
+}) async {
+  if (pushEvent.opened ||
+      pushEvent.data['event']?.toString() != 'delivery_area_created') {
+    return false;
+  }
+  await showBanner(pushEvent.data);
+  return true;
+}
+
 class _AppCoordinator extends StatefulWidget {
   const _AppCoordinator();
 
@@ -179,9 +192,18 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     final orderHistoryCubit = context.read<OrderHistoryCubit>();
     final productCatalogCubit = context.read<ProductCatalogCubit>();
     final productDiscoveryCubit = context.read<ProductDiscoveryCubit>();
+    final storeCubit = context.read<StoreCubit>();
     await notifications.refreshUnreadCount();
     if (notifications.state.hasLoaded) {
       await notifications.refreshNotifications();
+    }
+
+    if (event == 'delivery_area_created') {
+      await presentDeliveryAreaCreatedFeedback(
+        pushEvent: pushEvent,
+        showBanner: _showForegroundBanner,
+      );
+      return;
     }
 
     if (event == 'offer_created') {
@@ -197,6 +219,35 @@ class _AppCoordinatorState extends State<_AppCoordinator>
             focusOfferId: offerId,
           ),
         );
+      } else {
+        await _showForegroundBanner(data);
+      }
+      return;
+    }
+
+    if (event == 'market_created') {
+      await Future.wait([
+        homeCubit.loadHome(force: true),
+        storeCubit.loadStore(force: true),
+        productCatalogCubit.loadProducts(force: true),
+        productDiscoveryCubit.loadDiscovery(force: true),
+      ]);
+      if (!mounted) return;
+      if (pushEvent.opened) {
+        final marketId = data['market_id']?.toString().trim() ?? '';
+        if (marketId.isNotEmpty) {
+          AppNavigator.key.currentState?.pushNamed(
+            AppRoutes.brandProducts,
+            arguments: BrandProductsRouteArgs(
+              brand: data['market_name']?.toString().trim() ?? 'المحل',
+              logo: data['image']?.toString().trim() ?? '',
+              productCount: '',
+              marketId: marketId,
+              shopId: marketId,
+              classificationId: data['classification_id']?.toString(),
+            ),
+          );
+        }
       } else {
         await _showForegroundBanner(data);
       }

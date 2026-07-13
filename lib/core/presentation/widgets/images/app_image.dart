@@ -105,6 +105,9 @@ class AppImage extends StatelessWidget {
         memCacheHeight: effectiveCacheHeight,
         filterQuality: filterQuality,
         useOldImageOnUrlChange: true,
+        fadeInDuration: Duration.zero,
+        fadeOutDuration: Duration.zero,
+        placeholderFadeInDuration: Duration.zero,
         imageBuilder: (context, imageProvider) {
           return Image(
             image: imageProvider,

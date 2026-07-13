@@ -227,6 +227,8 @@ ProductData _productWithResolvedImage(ProductData product) {
     isAvailable: product.isAvailable,
     theme: product.theme,
     isPopular: product.isPopular,
+    offerVariantId: product.offerVariantId,
+    offerQuantity: product.offerQuantity,
   );
 }
 

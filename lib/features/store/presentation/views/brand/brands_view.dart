@@ -7,8 +7,18 @@ import '../../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
 import '../../../../../core/routing/app_routes.dart';
+import '../../../domain/entities/category_data.dart';
 import '../../cubit/product_discovery_cubit.dart';
 import '../../cubit/product_discovery_state.dart';
+
+@visibleForTesting
+List<CategoryData> normalCategoriesForAllCategories(
+  Iterable<CategoryData> categories,
+) {
+  return categories
+      .where((category) => category.classificationType == 'normal')
+      .toList(growable: false);
+}
 
 class BrandsView extends StatelessWidget {
   const BrandsView({super.key});
@@ -44,23 +54,9 @@ class BrandsView extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
 
-                  final featuredCategories = state.categories
-                      .where(
-                        (category) => category.classificationType == 'featured',
-                      )
-                      .toList(growable: false);
-                  final normalCategories = state.categories
-                      .where(
-                        (category) => category.classificationType == 'normal',
-                      )
-                      .toList(growable: false);
-                  final occupiedNormalSlots = featuredCategories.length >= 4
-                      ? 0
-                      : 4 - featuredCategories.length;
-                  final visibleCategories = [
-                    ...featuredCategories,
-                    ...normalCategories.skip(occupiedNormalSlots),
-                  ];
+                  final visibleCategories = normalCategoriesForAllCategories(
+                    state.categories,
+                  );
 
                   return GridLayout(
                     itemCount: visibleCategories.length,

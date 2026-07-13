@@ -35,10 +35,13 @@ class StoreData {
 
   List<StoreMarketData> marketsFor(String classificationId) {
     final markets = marketsByClassificationId[classificationId] ?? const [];
-    return [...markets]..sort((first, second) {
-      if (first.isPopular == second.isPopular) return 0;
-      return first.isPopular ? -1 : 1;
-    });
+    return List<StoreMarketData>.unmodifiable(markets);
+  }
+
+  List<StoreMarketData> popularMarketsFor(String classificationId) {
+    return marketsFor(
+      classificationId,
+    ).where((market) => market.isPopular).toList(growable: false);
   }
 
   List<StoreClassificationData> get featuredCandidates => [
@@ -141,9 +144,7 @@ class StoreMarketData {
       status: json['status']?.toString() ?? '',
       classificationId: classificationId,
       products: products,
-      image: products.isEmpty
-          ? AppAssets.temporaryMarketPlaceholder
-          : products.first.image,
+      image: _resolveImage(json['image']),
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
       isPopular: json['is_popular'] == true,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
@@ -158,7 +159,7 @@ class StoreMarketData {
       status: status,
       classificationId: classificationId,
       products: products,
-      image: products.isEmpty ? image : products.first.image,
+      image: image,
       accentColorValue: accentColorValue,
       isPopular: isPopular,
       createdAt: createdAt,

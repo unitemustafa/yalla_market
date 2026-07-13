@@ -63,12 +63,14 @@ class ProductDetailView extends StatefulWidget {
     this.productSlug,
     this.oldPrice,
     this.discount,
+    this.initialVariantId,
   });
 
   final String image, title, brand, price;
   final String productId;
   final String? productSlug;
   final String? oldPrice, discount;
+  final String? initialVariantId;
 
   @override
   State<ProductDetailView> createState() => _ProductDetailViewState();
@@ -88,6 +90,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   void initState() {
     super.initState();
     currentImage = widget.image;
+    selectedVariantId = widget.initialVariantId;
     _loadProductDetails();
   }
 

@@ -48,6 +48,40 @@ void main() {
       expect(home.products.single.brand, 'Fresh Market');
       expect(home.products.single.image, AppAssets.defaultProduct);
     });
+
+    test('keeps the exact offer variant and quantity', () {
+      final offer = HomeOfferData.fromJson({
+        'id': 9,
+        'title': 'Variant offer',
+        'products': [
+          {
+            ..._backendProduct(),
+            'offer_variant_id': 4,
+            'offer_quantity': 3,
+            'variants': [
+              {
+                'id': 4,
+                'price': '400.00',
+                'attribute_values': [
+                  {'attribute_name': 'اللون', 'option_value': 'الأخضر'},
+                  {'attribute_name': 'المقاس', 'option_value': '50'},
+                ],
+              },
+            ],
+          },
+        ],
+      });
+
+      final product = offer.products.single;
+      expect(product.offerVariantId, '4');
+      expect(product.offerQuantity, 3);
+      expect(product.defaultVariantId, '4');
+      expect(product.defaultVariantPrice, '400.00');
+      expect(product.defaultVariant?.attributeValues, {
+        'اللون': 'الأخضر',
+        'المقاس': '50',
+      });
+    });
   });
 }
 

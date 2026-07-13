@@ -89,6 +89,7 @@ class ProductDetailRouteArgs {
     this.productSlug,
     this.oldPrice,
     this.discount,
+    this.initialVariantId,
   });
 
   factory ProductDetailRouteArgs.fromNotificationData(
@@ -121,6 +122,7 @@ class ProductDetailRouteArgs {
   final String? productSlug;
   final String? oldPrice;
   final String? discount;
+  final String? initialVariantId;
 }
 
 String _routeText(Object? value) => value?.toString().trim() ?? '';

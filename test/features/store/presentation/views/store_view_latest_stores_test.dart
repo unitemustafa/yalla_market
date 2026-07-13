@@ -44,6 +44,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Latest Stores'), findsOneWidget);
+    expect(find.byType(TabBar), findsNothing);
     final slider = find.byKey(
       const ValueKey('latest_stores_horizontal_slider'),
     );
@@ -60,6 +61,37 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Latest stores'), findsOneWidget);
   });
+
+  testWidgets(
+    'popular store tabs stay scrollable and exclude empty categories',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 760));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final storeCubit = StoreCubit(
+        GetStoreUseCase(_StoreRepository(_storeWithPopularMarkets())),
+      );
+      final cartCubit = makeCartCubit();
+      addTearDown(storeCubit.close);
+      addTearDown(cartCubit.close);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<StoreCubit>.value(value: storeCubit),
+            BlocProvider<CartCubit>.value(value: cartCubit),
+          ],
+          child: const MaterialApp(home: StoreView()),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final tabBar = tester.widget<TabBar>(find.byType(TabBar));
+      expect(tabBar.isScrollable, isTrue);
+      expect(find.text('No popular stores here'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 StoreData _store() {
@@ -92,6 +124,57 @@ StoreData _store() {
     classifications: const [classification],
     marketsByClassificationId: {'featured': markets},
     latestMarkets: markets,
+  );
+}
+
+StoreData _storeWithPopularMarkets() {
+  final classifications = List.generate(
+    4,
+    (index) => StoreClassificationData(
+      id: 'popular-$index',
+      name: index == 3
+          ? 'No popular stores here'
+          : 'A very long popular category name number $index',
+      marketCount: 1,
+      products: const [],
+      image: '',
+      accentColorValue: 0xFF4F60F6,
+      classificationType: 'popular',
+    ),
+  );
+  final markets = <String, List<StoreMarketData>>{
+    for (var index = 0; index < 3; index++)
+      'popular-$index': [
+        StoreMarketData(
+          id: 'popular-market-$index',
+          name: 'Popular Market $index',
+          branch: '',
+          status: 'active',
+          classificationId: 'popular-$index',
+          products: const [],
+          image: '',
+          accentColorValue: 0xFF4F60F6,
+          isPopular: true,
+        ),
+      ],
+    'popular-3': [
+      const StoreMarketData(
+        id: 'regular-market',
+        name: 'Regular Market',
+        branch: '',
+        status: 'active',
+        classificationId: 'popular-3',
+        products: [],
+        image: '',
+        accentColorValue: 0xFF4F60F6,
+      ),
+    ],
+  };
+
+  return StoreData(
+    commonClassifications: const [],
+    classifications: classifications,
+    marketsByClassificationId: markets,
   );
 }
 

@@ -17,6 +17,7 @@ void main() {
         'branch': 'Algiers',
         'status': 'active',
         'classification_id': 7,
+        'image': '/media/markets/fresh-market.webp',
         'is_popular': true,
         'created_at': '2026-07-13T12:00:00Z',
         'products': [_marketProduct()],
@@ -30,6 +31,7 @@ void main() {
       expect(market.id, '9');
       expect(market.classificationId, '7');
       expect(market.isPopular, isTrue);
+      expect(market.image, endsWith('/media/markets/fresh-market.webp'));
       expect(market.createdAt, DateTime.utc(2026, 7, 13, 12));
       expect(market.products.single.title, 'Red Apple');
       expect(market.products.single.brand, 'Fresh Market');
@@ -69,7 +71,7 @@ void main() {
       );
     });
 
-    test('places popular stores first inside their classification', () {
+    test('keeps all category stores and exposes popular stores separately', () {
       const regular = StoreMarketData(
         id: 'regular',
         name: 'Regular',
@@ -100,8 +102,11 @@ void main() {
       );
 
       expect(store.marketsFor('7').map((market) => market.id), [
-        'popular',
         'regular',
+        'popular',
+      ]);
+      expect(store.popularMarketsFor('7').map((market) => market.id), [
+        'popular',
       ]);
     });
   });

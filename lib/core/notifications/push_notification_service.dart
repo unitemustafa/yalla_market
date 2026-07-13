@@ -17,6 +17,12 @@ const _pendingAccountDisabledKey = 'push.pending_account_disabled';
 const _lastRegisteredTokenKey = 'push.last_registered_token';
 const accountUpdatesChannelId = 'account_updates';
 const accountUpdatesChannelName = 'تحديثات الحساب';
+const deliveryUpdatesChannelId = 'delivery_updates';
+const deliveryUpdatesChannelName = 'تحديثات مناطق التوصيل';
+const storeUpdatesChannelId = 'store_updates';
+const storeUpdatesChannelName = 'المحلات الجديدة';
+const productUpdatesChannelId = 'product_updates';
+const productUpdatesChannelName = 'المنتجات الجديدة';
 const accountRestoredTitle = 'تم استعادة حسابك';
 const accountRestoredMessage = 'تم استعادة حسابك بواسطة فريق دعم يلا ماركت.';
 
@@ -48,6 +54,12 @@ abstract interface class AccountNotificationPresenter {
   Future<void> requestPermission();
 
   Future<void> showAccountRestored(Map<String, dynamic> data);
+
+  Future<void> showDeliveryAreaCreated(Map<String, dynamic> data);
+
+  Future<void> showMarketCreated(Map<String, dynamic> data);
+
+  Future<void> showProductCreated(Map<String, dynamic> data);
 }
 
 class FlutterAccountNotificationPresenter
@@ -57,12 +69,43 @@ class FlutterAccountNotificationPresenter
 
   final FlutterLocalNotificationsPlugin _plugin;
 
-  static const AndroidNotificationChannel _channel = AndroidNotificationChannel(
-    accountUpdatesChannelId,
-    accountUpdatesChannelName,
-    description: 'إشعارات تعطيل واستعادة حساب العميل',
-    importance: Importance.high,
-  );
+  static const AndroidNotificationChannel _accountChannel =
+      AndroidNotificationChannel(
+        accountUpdatesChannelId,
+        accountUpdatesChannelName,
+        description: 'إشعارات تعطيل واستعادة حساب العميل',
+        importance: Importance.high,
+      );
+
+  static const AndroidNotificationChannel _deliveryChannel =
+      AndroidNotificationChannel(
+        deliveryUpdatesChannelId,
+        deliveryUpdatesChannelName,
+        description: 'إشعارات إضافة مناطق توصيل جديدة',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
+  static const AndroidNotificationChannel _storeChannel =
+      AndroidNotificationChannel(
+        storeUpdatesChannelId,
+        storeUpdatesChannelName,
+        description: 'إشعارات المحلات الجديدة المتاحة في منطقتك',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
+  static const AndroidNotificationChannel _productChannel =
+      AndroidNotificationChannel(
+        productUpdatesChannelId,
+        productUpdatesChannelName,
+        description: 'إشعارات المنتجات الجديدة المتاحة في منطقتك',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
 
   @override
   Future<void> initialize(
@@ -90,11 +133,14 @@ class FlutterAccountNotificationPresenter
         }
       },
     );
-    await _plugin
+    final androidPlugin = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_channel);
+        >();
+    await androidPlugin?.createNotificationChannel(_accountChannel);
+    await androidPlugin?.createNotificationChannel(_deliveryChannel);
+    await androidPlugin?.createNotificationChannel(_storeChannel);
+    await androidPlugin?.createNotificationChannel(_productChannel);
   }
 
   @override
@@ -128,6 +174,114 @@ class FlutterAccountNotificationPresenter
       payload: jsonEncode(data),
     );
   }
+
+  @override
+  Future<void> showDeliveryAreaCreated(Map<String, dynamic> data) async {
+    final notificationId = int.tryParse(
+      data['notification_id']?.toString() ?? '',
+    );
+    final title = data['title']?.toString().trim() ?? '';
+    final message = data['message']?.toString().trim() ?? '';
+    if (title.isEmpty && message.isEmpty) return;
+
+    await _plugin.show(
+      id:
+          notificationId ??
+          Object.hash(title, message, data['delivery_area_id']) & 0x7fffffff,
+      title: title.isEmpty ? 'منطقة توصيل جديدة' : title,
+      body: message.isEmpty ? null : message,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          deliveryUpdatesChannelId,
+          deliveryUpdatesChannelName,
+          channelDescription: 'إشعارات إضافة مناطق توصيل جديدة',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+
+  @override
+  Future<void> showMarketCreated(Map<String, dynamic> data) async {
+    final notificationId = int.tryParse(
+      data['notification_id']?.toString() ?? '',
+    );
+    final title = data['title']?.toString().trim() ?? '';
+    final message = data['message']?.toString().trim() ?? '';
+    if (title.isEmpty && message.isEmpty) return;
+
+    await _plugin.show(
+      id:
+          notificationId ??
+          Object.hash(title, message, data['market_id']) & 0x7fffffff,
+      title: title.isEmpty ? 'محل جديد متاح' : title,
+      body: message.isEmpty ? null : message,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          storeUpdatesChannelId,
+          storeUpdatesChannelName,
+          channelDescription: 'إشعارات المحلات الجديدة المتاحة في منطقتك',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
+
+  @override
+  Future<void> showProductCreated(Map<String, dynamic> data) async {
+    final notificationId = int.tryParse(
+      data['notification_id']?.toString() ?? '',
+    );
+    final title = data['title']?.toString().trim() ?? '';
+    final message = data['message']?.toString().trim() ?? '';
+    if (title.isEmpty && message.isEmpty) return;
+
+    await _plugin.show(
+      id:
+          notificationId ??
+          Object.hash(title, message, data['product_id']) & 0x7fffffff,
+      title: title.isEmpty ? 'منتج جديد متاح' : title,
+      body: message.isEmpty ? null : message,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          productUpdatesChannelId,
+          productUpdatesChannelName,
+          channelDescription: 'إشعارات المنتجات الجديدة المتاحة في منطقتك',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
 }
 
 class PushNotificationService {
@@ -154,6 +308,9 @@ class PushNotificationService {
       StreamController<PushEvent>.broadcast();
   final Set<String> _displayedRestoredNotifications = <String>{};
   final Set<String> _openedRestoredNotifications = <String>{};
+  final Set<String> _displayedDeliveryAreaNotifications = <String>{};
+  final Set<String> _displayedMarketNotifications = <String>{};
+  final Set<String> _displayedProductNotifications = <String>{};
   final List<PushEvent> _pendingInitialOpenedEvents = <PushEvent>[];
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   StreamSubscription<RemoteMessage>? _openedMessageSubscription;
@@ -312,7 +469,73 @@ class PushNotificationService {
       );
       return;
     }
+    if (event == 'delivery_area_created' && !opened) {
+      final key = _deliveryAreaNotificationKey(data);
+      if (_displayedDeliveryAreaNotifications.add(key)) {
+        try {
+          await _accountNotificationPresenter.showDeliveryAreaCreated(data);
+        } catch (error, stackTrace) {
+          _debugPushError('delivery-area display', error, stackTrace);
+        }
+      }
+    }
+    if (event == 'market_created' && !opened) {
+      final key = _marketNotificationKey(data);
+      if (_displayedMarketNotifications.add(key)) {
+        try {
+          await _accountNotificationPresenter.showMarketCreated(data);
+        } catch (error, stackTrace) {
+          _debugPushError('market-created display', error, stackTrace);
+        }
+      }
+    }
+    if (event == 'product_created' && !opened) {
+      final key = _productNotificationKey(data);
+      if (_displayedProductNotifications.add(key)) {
+        try {
+          await _accountNotificationPresenter.showProductCreated(data);
+        } catch (error, stackTrace) {
+          _debugPushError('product-created display', error, stackTrace);
+        }
+      }
+    }
     _events.add(PushEvent(data, opened: opened));
+  }
+
+  String _productNotificationKey(Map<String, dynamic> data) {
+    final notificationId = data['notification_id']?.toString().trim();
+    if (notificationId != null && notificationId.isNotEmpty) {
+      return 'notification:$notificationId';
+    }
+    final messageId = data['_fcm_message_id']?.toString().trim();
+    if (messageId != null && messageId.isNotEmpty) {
+      return 'message:$messageId';
+    }
+    return 'product:${data['product_id']}:${data['dispatch_id']}';
+  }
+
+  String _marketNotificationKey(Map<String, dynamic> data) {
+    final notificationId = data['notification_id']?.toString().trim();
+    if (notificationId != null && notificationId.isNotEmpty) {
+      return 'notification:$notificationId';
+    }
+    final messageId = data['_fcm_message_id']?.toString().trim();
+    if (messageId != null && messageId.isNotEmpty) {
+      return 'message:$messageId';
+    }
+    return 'market:${data['market_id']}:${data['dispatch_id']}';
+  }
+
+  String _deliveryAreaNotificationKey(Map<String, dynamic> data) {
+    final notificationId = data['notification_id']?.toString().trim();
+    if (notificationId != null && notificationId.isNotEmpty) {
+      return 'notification:$notificationId';
+    }
+    final messageId = data['_fcm_message_id']?.toString().trim();
+    if (messageId != null && messageId.isNotEmpty) {
+      return 'message:$messageId';
+    }
+    return 'delivery-area:${data['delivery_area_id']}:${data['area_name']}';
   }
 
   Future<void> _handleAccountRestored(

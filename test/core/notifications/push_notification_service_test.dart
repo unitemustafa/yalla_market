@@ -71,6 +71,89 @@ void main() {
     expect(event.data['product_id'], '44');
   });
 
+  test('delivery area foreground notification is shown once', () async {
+    final presenter = FakeAccountNotificationPresenter();
+    final service = PushNotificationService(
+      FakeApiClient((_) => null),
+      InMemoryTokenStore(),
+      accountNotificationPresenter: presenter,
+    );
+    final data = <String, dynamic>{
+      'event': 'delivery_area_created',
+      'notification_id': '51',
+      'delivery_area_id': '9',
+      'title': 'وصلنا لمنطقتك',
+      'message': 'تمت إضافة منطقة توصيل جديدة.',
+    };
+    final eventFuture = service.events.first;
+
+    await service.handleDataForTesting(data, opened: false);
+    await service.handleDataForTesting(data, opened: false);
+
+    final event = await eventFuture;
+    expect(event.opened, isFalse);
+    expect(event.data['delivery_area_id'], '9');
+    expect(presenter.deliveryAreasShown, hasLength(1));
+  });
+
+  test(
+    'market foreground notification is shown once and keeps route data',
+    () async {
+      final presenter = FakeAccountNotificationPresenter();
+      final service = PushNotificationService(
+        FakeApiClient((_) => null),
+        InMemoryTokenStore(),
+        accountNotificationPresenter: presenter,
+      );
+      final data = <String, dynamic>{
+        'event': 'market_created',
+        'action': 'open_store',
+        'notification_id': '71',
+        'market_id': '12',
+        'title': 'محل جديد',
+        'message': 'المحل متاح دلوقتي.',
+      };
+      final eventFuture = service.events.first;
+
+      await service.handleDataForTesting(data, opened: false);
+      await service.handleDataForTesting(data, opened: false);
+
+      final event = await eventFuture;
+      expect(event.data['action'], 'open_store');
+      expect(event.data['market_id'], '12');
+      expect(presenter.marketsShown, hasLength(1));
+    },
+  );
+
+  test(
+    'product foreground notification is shown once with sound route data',
+    () async {
+      final presenter = FakeAccountNotificationPresenter();
+      final service = PushNotificationService(
+        FakeApiClient((_) => null),
+        InMemoryTokenStore(),
+        accountNotificationPresenter: presenter,
+      );
+      final data = <String, dynamic>{
+        'event': 'product_created',
+        'action': 'open_product',
+        'notification_id': '81',
+        'product_id': '44',
+        'title': 'منتج جديد',
+        'message': 'المنتج متاح دلوقتي.',
+      };
+      final eventFuture = service.events.first;
+
+      await service.handleDataForTesting(data, opened: false);
+      await service.handleDataForTesting(data, opened: false);
+
+      final event = await eventFuture;
+      expect(event.data['action'], 'open_product');
+      expect(event.data['product_id'], '44');
+      expect(presenter.productsShown, hasLength(1));
+    },
+  );
+
   test('account_restored foreground notification is shown once', () async {
     final presenter = FakeAccountNotificationPresenter();
     final restoredNotifier = AccountRestoredNotifier();
@@ -167,6 +250,9 @@ StoredAuthTokens _tokens() {
 class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   Future<void> Function(Map<String, dynamic> data)? _onTap;
   final List<Map<String, dynamic>> shown = [];
+  final List<Map<String, dynamic>> deliveryAreasShown = [];
+  final List<Map<String, dynamic>> marketsShown = [];
+  final List<Map<String, dynamic>> productsShown = [];
 
   @override
   Future<void> initialize(
@@ -181,6 +267,21 @@ class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   @override
   Future<void> showAccountRestored(Map<String, dynamic> data) async {
     shown.add(Map<String, dynamic>.from(data));
+  }
+
+  @override
+  Future<void> showDeliveryAreaCreated(Map<String, dynamic> data) async {
+    deliveryAreasShown.add(Map<String, dynamic>.from(data));
+  }
+
+  @override
+  Future<void> showMarketCreated(Map<String, dynamic> data) async {
+    marketsShown.add(Map<String, dynamic>.from(data));
+  }
+
+  @override
+  Future<void> showProductCreated(Map<String, dynamic> data) async {
+    productsShown.add(Map<String, dynamic>.from(data));
   }
 
   Future<void> tap(Map<String, dynamic> data) async {

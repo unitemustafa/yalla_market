@@ -36,6 +36,8 @@ void main() {
                       'branch': 'Algiers',
                       'status': 'active',
                       'classification_id': 1,
+                      'is_popular': true,
+                      'image': '/media/markets/fresh-market.webp',
                       'products': [_fullProduct()],
                     },
                   ],
@@ -67,6 +69,7 @@ void main() {
             expect(store.classifications.single.marketCountLabel, '1 store');
             final market = store.marketsFor('1').single;
             expect(market.name, 'Fresh Market');
+            expect(market.image, endsWith('/media/markets/fresh-market.webp'));
             expect(market.products.single.price, '120.00');
             expect(market.products.single.marketId, '9');
             expect(store.latestMarkets.single.name, 'Newest Market');

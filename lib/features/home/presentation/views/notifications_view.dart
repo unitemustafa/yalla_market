@@ -86,6 +86,24 @@ class _NotificationsViewState extends State<NotificationsView> {
           productId: productId.toString(),
         ),
       );
+    } else if (action == 'open_store') {
+      final marketId = notification.data['market_id']?.toString().trim() ?? '';
+      if (marketId.isNotEmpty) {
+        await Navigator.pushNamed(
+          context,
+          AppRoutes.brandProducts,
+          arguments: BrandProductsRouteArgs(
+            brand:
+                notification.data['market_name']?.toString().trim() ?? 'المحل',
+            logo: notification.data['image']?.toString().trim() ?? '',
+            productCount: '',
+            marketId: marketId,
+            shopId: marketId,
+            classificationId: notification.data['classification_id']
+                ?.toString(),
+          ),
+        );
+      }
     } else {
       showModalBottomSheet<void>(
         context: context,

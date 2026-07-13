@@ -100,11 +100,16 @@ class _StoreViewState extends State<StoreView> {
         final readyStore = store!;
         final featuredSlots = readyStore.featuredSlots;
         final showAllFeatured = readyStore.hasFeaturedOverflow;
+        final popularClassifications = classifications
+            .where(
+              (classification) =>
+                  readyStore.popularMarketsFor(classification.id).isNotEmpty,
+            )
+            .toList(growable: false);
+        final hasPopularMarkets = popularClassifications.isNotEmpty;
 
-        return DefaultTabController(
-          key: ValueKey(classifications.map((item) => item.id).join('|')),
-          length: classifications.length,
-          child: Scaffold(
+        Widget buildStoreScaffold() {
+          return Scaffold(
             backgroundColor: backgroundColor,
             body: SafeArea(
               child: RefreshIndicator(
@@ -188,35 +193,59 @@ class _StoreViewState extends State<StoreView> {
                           ),
                         ),
                       ),
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: _StoreTabsHeaderDelegate(
-                          backgroundColor: backgroundColor,
-                          isDark: isDark,
-                          labels: classifications
-                              .map((category) => category.name)
-                              .toList(growable: false),
+                      if (hasPopularMarkets)
+                        SliverPersistentHeader(
+                          pinned: true,
+                          delegate: _StoreTabsHeaderDelegate(
+                            backgroundColor: backgroundColor,
+                            isDark: isDark,
+                            labels: popularClassifications
+                                .map((category) => category.name)
+                                .toList(growable: false),
+                          ),
                         ),
-                      ),
                     ];
                   },
                   body: ColoredBox(
                     color: backgroundColor,
-                    child: TabBarView(
-                      children: classifications
-                          .map(
-                            (classification) => _StoreMarketsTab(
-                              classification: classification,
-                              markets: readyStore.marketsFor(classification.id),
-                            ),
+                    child: hasPopularMarkets
+                        ? TabBarView(
+                            children: popularClassifications
+                                .map(
+                                  (classification) => _StoreMarketsTab(
+                                    classification: classification,
+                                    markets: readyStore.popularMarketsFor(
+                                      classification.id,
+                                    ),
+                                  ),
+                                )
+                                .toList(growable: false),
                           )
-                          .toList(growable: false),
-                    ),
+                        : const CustomScrollView(
+                            physics: AlwaysScrollableScrollPhysics(),
+                            slivers: [
+                              SliverFillRemaining(
+                                hasScrollBody: false,
+                                child: SizedBox.shrink(),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
             ),
+          );
+        }
+
+        final scaffold = buildStoreScaffold();
+        if (!hasPopularMarkets) return scaffold;
+
+        return DefaultTabController(
+          key: ValueKey(
+            popularClassifications.map((item) => item.id).join('|'),
           ),
+          length: popularClassifications.length,
+          child: scaffold,
         );
       },
     );
@@ -615,7 +644,19 @@ class _StoreTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
             labelStyle: tabTextStyle,
             unselectedLabelStyle: tabTextStyle,
             tabs: labels
-                .map((label) => Tab(height: 34, child: Text(context.tr(label))))
+                .map(
+                  (label) => Tab(
+                    height: 34,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 180),
+                      child: Text(
+                        context.tr(label),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ),
+                )
                 .toList(growable: false),
           ),
         ),

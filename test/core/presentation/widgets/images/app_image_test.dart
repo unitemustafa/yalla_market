@@ -53,6 +53,9 @@ void main() {
       expect(image.imageUrl, imageUrl);
       expect(image.placeholder, isNotNull);
       expect(image.errorWidget, isNotNull);
+      expect(image.fadeInDuration, Duration.zero);
+      expect(image.fadeOutDuration, Duration.zero);
+      expect(image.placeholderFadeInDuration, Duration.zero);
     });
 
     testWidgets('prioritizes in-memory bytes over source', (tester) async {

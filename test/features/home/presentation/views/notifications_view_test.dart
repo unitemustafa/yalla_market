@@ -170,6 +170,26 @@ void main() {
       expect(find.text('Notification deleted'), findsOneWidget);
     });
 
+    testWidgets('visible delete button removes a notification', (tester) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [testNotification(id: 42, isRead: false)],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+      await tester.tap(find.byKey(const ValueKey('notification-delete-42')));
+      await tester.pumpAndSettle();
+
+      expect(cubit.deleteCalls, 1);
+      expect(find.byKey(const ValueKey('notification-42')), findsNothing);
+      expect(find.text('Notification deleted'), findsOneWidget);
+    });
+
     testWidgets('opening unread notification marks it read once', (
       tester,
     ) async {
@@ -369,6 +389,56 @@ void main() {
       expect(args.productId, '44');
       expect(args.title, 'كشري مخصوص');
       expect(args.brand, 'محل المدينة');
+    });
+
+    testWidgets('market notification opens the announced store route', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [
+              testNotification(
+                type: 'market_created',
+                title: 'محل جديد',
+                message: 'افتح المحل وشوف منتجاته.',
+                orderId: null,
+                data: const {
+                  'action': 'open_store',
+                  'market_id': 18,
+                  'market_name': 'محل الأسماك',
+                  'classification_id': 7,
+                  'image': '/media/markets/fish.webp',
+                },
+              ),
+            ],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+      RouteSettings? capturedSettings;
+
+      await _pumpNotificationsView(
+        tester,
+        cubit,
+        onGenerateRoute: (settings) {
+          capturedSettings = settings;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('Store products')),
+          );
+        },
+      );
+
+      await tester.tap(find.text('افتح المحل وشوف منتجاته.'));
+      await tester.pumpAndSettle();
+
+      expect(capturedSettings?.name, AppRoutes.brandProducts);
+      final args = capturedSettings?.arguments as BrandProductsRouteArgs;
+      expect(args.marketId, '18');
+      expect(args.brand, 'محل الأسماك');
+      expect(args.classificationId, '7');
     });
 
     testWidgets('relative time formatter is deterministic with injected now', (

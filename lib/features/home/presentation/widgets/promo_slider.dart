@@ -526,7 +526,7 @@ class _PromoSliderState extends State<PromoSlider> {
     final products = offer.products.map(_offerProductFromApi).toList();
     final subtotalValue = offer.products.fold<double>(
       0,
-      (sum, product) => sum + product.priceValue,
+      (sum, product) => sum + (product.priceValue * product.offerQuantity),
     );
     final discountValue = double.tryParse(offer.discount) ?? 0;
     final totalValue = subtotalValue <= 0
@@ -611,19 +611,42 @@ class _PromoSliderState extends State<PromoSlider> {
 
   _OfferProduct _offerProductFromApi(ProductData product) {
     final discount = product.discount.trim();
+    final selectedVariantId = product.offerVariantId?.trim().isNotEmpty == true
+        ? product.offerVariantId!.trim()
+        : product.defaultVariantId;
+    ProductVariantData? selectedVariant;
+    for (final variant in product.variants) {
+      if (variant.id == selectedVariantId) {
+        selectedVariant = variant;
+        break;
+      }
+    }
+    final variantDescription =
+        selectedVariant?.attributeValues.entries
+            .map((entry) => '${entry.key}: ${entry.value}')
+            .join(' / ') ??
+        '';
+    final quantityDescription = product.offerQuantity > 1
+        ? '× ${product.offerQuantity}'
+        : '';
+    final meta = [
+      variantDescription,
+      quantityDescription,
+    ].where((value) => value.isNotEmpty).join(' · ');
     return _OfferProduct(
       productId: product.id,
+      variantId: selectedVariantId,
       image: product.image,
       titleEn: product.title,
       titleAr: product.title,
       brandEn: product.brand,
       brandAr: product.brand,
-      price: product.price,
+      price: selectedVariant?.price ?? product.price,
       oldPrice: product.oldPrice,
       badgeEn: discount,
       badgeAr: discount,
-      metaEn: product.code ?? '',
-      metaAr: product.code ?? '',
+      metaEn: meta.isNotEmpty ? meta : (product.code ?? ''),
+      metaAr: meta.isNotEmpty ? meta : (product.code ?? ''),
     );
   }
 
@@ -1675,6 +1698,7 @@ class _OfferProductRow extends StatelessWidget {
       AppRoutes.productDetail,
       arguments: ProductDetailRouteArgs(
         productId: productId,
+        initialVariantId: product.variantId,
         image: product.image,
         title: product.title(context),
         brand: product.brand(context),
@@ -1749,6 +1773,18 @@ class _OfferProductRow extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                     ),
                   ),
+                  if (product.meta(context).trim().isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      product.meta(context),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: mutedColor,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -2342,6 +2378,7 @@ class _PromoOfferData {
 class _OfferProduct {
   const _OfferProduct({
     this.productId,
+    this.variantId,
     required this.image,
     required this.titleEn,
     required this.titleAr,
@@ -2357,6 +2394,7 @@ class _OfferProduct {
 
   final String image;
   final String? productId;
+  final String? variantId;
   final String titleEn;
   final String titleAr;
   final String brandEn;
@@ -2391,7 +2429,7 @@ class _OfferProduct {
       image: image,
       brand: brand(context),
       title: title(context),
-      price: _moneyValue(price),
+      price: _moneyValue(offer.total),
       quantity: 1,
       itemType: 'offer',
       visibilityMode: offer.visibilityMode,

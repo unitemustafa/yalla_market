@@ -162,6 +162,8 @@ class ProductData {
     this.additions = const [],
     this.theme = 'other',
     this.isPopular = false,
+    this.offerVariantId,
+    this.offerQuantity = 1,
   });
 
   final String id;
@@ -191,6 +193,8 @@ class ProductData {
   final List<ProductAdditionData> additions;
   final String theme;
   final bool isPopular;
+  final String? offerVariantId;
+  final int offerQuantity;
 
   ProductVariantData? get defaultVariant =>
       variants.isEmpty ? null : variants.first;
@@ -294,6 +298,13 @@ class ProductData {
       theme: json['theme']?.toString() ?? 'other',
       isPopular:
           _boolFromJson(json['isPopular'] ?? json['is_popular']) ?? false,
+      offerVariantId:
+          json['offerVariantId']?.toString() ??
+          json['offer_variant_id']?.toString(),
+      offerQuantity:
+          (_intFromJson(json['offerQuantity'] ?? json['offer_quantity']) ?? 1)
+              .clamp(1, 99)
+              .toInt(),
     );
   }
 
@@ -326,6 +337,8 @@ class ProductData {
       'additions': additions.map((addition) => addition.toJson()).toList(),
       'theme': theme,
       'isPopular': isPopular,
+      'offerVariantId': offerVariantId,
+      'offerQuantity': offerQuantity,
     };
   }
 
@@ -533,6 +546,12 @@ bool? _boolFromJson(Object? value) {
     }
   }
   return null;
+}
+
+int? _intFromJson(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value?.toString() ?? '');
 }
 
 bool _isUnsafeTag(String tag) {

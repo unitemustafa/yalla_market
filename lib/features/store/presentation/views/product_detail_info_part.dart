@@ -48,36 +48,50 @@ class _PriceHeader extends StatelessWidget {
           ],
           Expanded(
             child: Container(
-              constraints: const BoxConstraints(minHeight: 44),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              constraints: const BoxConstraints(minHeight: 58),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
               decoration: BoxDecoration(
                 color: priceFill,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Flexible(
-                    child: GreenCurrencyPrice(
-                      price: price,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 28,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: AlignmentDirectional.centerStart,
+                      child: GreenCurrencyPrice(
+                        price: price,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontSize: 21,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
                     ),
                   ),
                   if (oldPrice.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: AppCurrencyText(
-                        text: oldPrice,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                          decoration: TextDecoration.lineThrough,
-                          fontWeight: FontWeight.w700,
+                    const SizedBox(height: 2),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 18,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: AppCurrencyText(
+                          text: oldPrice,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: isDark
+                                    ? AppColors.darkTextSecondary
+                                    : AppColors.lightTextSecondary,
+                                decoration: TextDecoration.lineThrough,
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -99,7 +113,7 @@ class _PriceDiscountBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 44,
+      height: 58,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
         color: AppColors.warning,
@@ -272,88 +286,6 @@ class _BrandPill extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _VariationCard extends StatelessWidget {
-  const _VariationCard({
-    required this.price,
-    required this.oldPrice,
-    required this.stock,
-    required this.stockColor,
-    required this.isDark,
-  });
-
-  final String price;
-  final String oldPrice;
-  final String stock;
-  final Color stockColor;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return _InfoCard(
-      isDark: isDark,
-      title: 'Selected variation',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                context.tr('Price'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              if (oldPrice.isNotEmpty) ...[
-                AppCurrencyText(
-                  text: oldPrice,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey,
-                    decoration: TextDecoration.lineThrough,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(width: 8),
-              ],
-              GreenCurrencyPrice(
-                price: price,
-                style: Theme.of(
-                  context,
-                ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Text(
-                context.tr('Stock'),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: isDark
-                      ? AppColors.darkTextSecondary
-                      : AppColors.lightTextSecondary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                context.tr(stock),
-                style: TextStyle(
-                  color: stockColor,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ],
       ),
     );
   }

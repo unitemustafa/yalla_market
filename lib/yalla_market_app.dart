@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -12,6 +13,7 @@ import 'core/localization/app_translations.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/preferences/app_preferences_controller.dart';
 import 'core/presentation/widgets/offline_connection_banner.dart';
+import 'core/presentation/widgets/snackbars/custom_snackbar.dart';
 import 'core/routing/app_navigator.dart';
 import 'core/routing/app_route_arguments.dart';
 import 'core/routing/app_router.dart';
@@ -196,7 +198,7 @@ class _AppCoordinatorState extends State<_AppCoordinator>
           ),
         );
       } else {
-        _showForegroundBanner(data);
+        await _showForegroundBanner(data);
       }
       return;
     }
@@ -237,21 +239,29 @@ class _AppCoordinatorState extends State<_AppCoordinator>
           );
         }
       } else {
-        _showForegroundBanner(data);
+        await _showForegroundBanner(data);
       }
     }
   }
 
-  void _showForegroundBanner(Map<String, dynamic> data) {
-    final currentContext = AppNavigator.key.currentContext;
-    if (currentContext == null) return;
+  Future<void> _showForegroundBanner(Map<String, dynamic> data) async {
     final title = data['title']?.toString().trim() ?? '';
     final message = data['message']?.toString().trim() ?? '';
-    final text = [title, message].where((value) => value.isNotEmpty).join('\n');
-    if (text.isEmpty) return;
-    ScaffoldMessenger.of(currentContext)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(text)));
+    if (title.isEmpty && message.isEmpty) return;
+    final currentContext = AppNavigator.key.currentContext;
+    final messenger = AppNavigator.scaffoldMessengerKey.currentState;
+    if (currentContext == null || messenger == null) return;
+    CustomSnackBar.showNotification(
+      context: currentContext,
+      messenger: messenger,
+      title: title.isEmpty ? 'Notifications' : title,
+      message: message.isEmpty ? null : message,
+    );
+    try {
+      await HapticFeedback.vibrate();
+    } catch (_) {
+      // Haptic feedback is optional and must not block the notification UI.
+    }
   }
 
   void _clearPrivateSessionState(BuildContext context) {
@@ -304,6 +314,7 @@ class _AppCoordinatorState extends State<_AppCoordinator>
             builder: (context, preferences, _) {
               return MaterialApp(
                 navigatorKey: AppNavigator.key,
+                scaffoldMessengerKey: AppNavigator.scaffoldMessengerKey,
                 debugShowCheckedModeBanner: false,
                 title: AppConstants.appName,
                 onGenerateTitle: (context) =>

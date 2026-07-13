@@ -20,9 +20,9 @@ class HomeCategories extends StatelessWidget {
     if (visibleCategories.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
-      height: 82,
+      height: 92,
       child: ListView.builder(
-        itemExtent: 94,
+        itemExtent: 112,
         itemCount: visibleCategories.length,
         scrollDirection: Axis.horizontal,
         itemBuilder: (_, index) {
@@ -98,9 +98,9 @@ class _HomeCategoryChip extends StatelessWidget {
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
 
     return Container(
-      width: 86,
+      width: 104,
       margin: const EdgeInsetsDirectional.only(end: 8),
-      padding: const EdgeInsets.all(7),
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: panelColor,
         borderRadius: BorderRadius.circular(8),
@@ -113,9 +113,9 @@ class _HomeCategoryChip extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 34,
-            height: 34,
-            padding: const EdgeInsets.all(6),
+            width: double.infinity,
+            height: 52,
+            padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: data.color.withValues(alpha: isDark ? 0.20 : 0.10),
               borderRadius: BorderRadius.circular(8),
@@ -124,14 +124,15 @@ class _HomeCategoryChip extends StatelessWidget {
               child: AppImage(
                 source: data.image,
                 fallbackType: AppImagePlaceholderType.category,
-                fit: BoxFit.contain,
-                cacheWidth: 72,
-                cacheHeight: 72,
-                filterQuality: FilterQuality.low,
+                fit: BoxFit.cover,
+                borderRadius: BorderRadius.circular(6),
+                cacheWidth: 128,
+                cacheHeight: 128,
+                filterQuality: FilterQuality.medium,
               ),
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
           Text(
             context.tr(data.name),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(

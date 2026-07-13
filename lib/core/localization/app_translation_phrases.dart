@@ -446,7 +446,10 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Payment and sensitive data should only be entered on trusted checkout screens.':
         'بيانات الدفع والبيانات الحساسة تتكتب بس في شاشات الدفع الموثوقة.',
     'Pay when your order arrives': 'ادفع لما طلبك يوصل',
+    'Available': 'متوفر',
     'Out of Stock': 'غير متوفر',
+    'Additions': 'الإضافات',
+    'Choose additions': 'اختر الإضافات',
     'Pending': 'قيد الانتظار',
     'Performance gym kit': 'طقم جيم عملي',
     'Permanent': 'نهائي',
@@ -781,6 +784,12 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Prefer not to say': 'أفضل عدم الإفصاح',
     'Popular Categories': 'الفئات الشائعة',
     'Popular Products': 'المنتجات الشائعة',
+    'Latest Products': 'أحدث المنتجات',
+    'Browse the latest products': 'تصفح أحدث المنتجات',
+    'Latest Stores': 'أحدث المحلات',
+    'Browse the newest stores': 'اتصفح أحدث المحلات',
+    'New stores will appear here once added.':
+        'المحلات الجديدة هتظهر هنا أول ما تتضاف.',
     'Products will appear here once the catalog is ready.':
         'المنتجات هتظهر هنا أول ما الكتالوج يجهز.',
     'Ratings and reviews are verified and are from people who use the same type of device that you use.':
@@ -879,7 +888,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'All Categories': 'كل الفئات',
     'Categories & picks': 'أقسام واختيارات ليك',
     'Explore market categories': 'استكشف فئات السوق',
-    'Featured Categories': 'أقسام مميزة',
+    'Featured Categories': 'فئات مميزة',
     'Products and categories': 'منتجات وفئات',
     'Search categories, products...': 'دور على فئات ومنتجات...',
     'Search products and categories...': 'دور على منتجات أو فئات...',

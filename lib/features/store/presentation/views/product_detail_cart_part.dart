@@ -83,7 +83,7 @@ class _BottomAddToCartBar extends StatelessWidget {
                         text: quantity > 0
                             ? '${context.tr('Add')} ${AppCurrency.format(total)}'
                             : context.tr('Add to Bag'),
-                        currencyColor: Colors.white,
+                        currencyColor: AppColors.currency,
                         style: const TextStyle(fontWeight: FontWeight.w900),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

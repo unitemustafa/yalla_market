@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/core/presentation/widgets/texts/green_currency_price.dart';
 
 void main() {
@@ -38,14 +39,16 @@ void main() {
 
     final richText = tester.widget<RichText>(find.byType(RichText));
     final plainText = richText.text.toPlainText();
+    final symbolSpan = findSymbolSpan(richText.text as TextSpan);
 
     expect(plainText, contains('120'));
     expect(plainText, contains('180'));
     expect(plainText, contains('EGP\u00A0120'));
     expect(plainText.startsWith('EGP\u00A0120'), isTrue);
-    expect(plainText, contains('120-180'));
+    expect(plainText, contains('120 - 180'));
     expect(plainText, isNot(contains('EGP\u00A0180')));
     expect(richText.textDirection, TextDirection.ltr);
+    expect(symbolSpan.style?.color, AppColors.success);
   });
 
   testWidgets('keeps short two-digit prices compact and readable', (

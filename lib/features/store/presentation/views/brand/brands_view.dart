@@ -44,15 +44,33 @@ class BrandsView extends StatelessWidget {
                     return const Center(child: CircularProgressIndicator());
                   }
 
+                  final featuredCategories = state.categories
+                      .where(
+                        (category) => category.classificationType == 'featured',
+                      )
+                      .toList(growable: false);
+                  final normalCategories = state.categories
+                      .where(
+                        (category) => category.classificationType == 'normal',
+                      )
+                      .toList(growable: false);
+                  final occupiedNormalSlots = featuredCategories.length >= 4
+                      ? 0
+                      : 4 - featuredCategories.length;
+                  final visibleCategories = [
+                    ...featuredCategories,
+                    ...normalCategories.skip(occupiedNormalSlots),
+                  ];
+
                   return GridLayout(
-                    itemCount: state.categories.length,
-                    mainAxisExtent: 78,
+                    itemCount: visibleCategories.length,
+                    mainAxisExtent: 92,
                     itemBuilder: (context, index) {
-                      final category = state.categories[index];
+                      final category = visibleCategories[index];
                       return BrandCard(
                         showBorder: true,
                         brand: category.name,
-                        productCount: category.productCountLabel,
+                        productCount: category.marketCountLabel,
                         logo: category.image,
                         accentColor: Color(category.accentColorValue),
                         onTap: () {
@@ -61,7 +79,7 @@ class BrandsView extends StatelessWidget {
                             AppRoutes.brandProducts,
                             arguments: BrandProductsRouteArgs(
                               brand: category.name,
-                              productCount: category.productCountLabel,
+                              productCount: category.marketCountLabel,
                               logo: category.image,
                               classificationId: category.id,
                             ),

@@ -37,6 +37,7 @@ class CustomSnackBar {
     required BuildContext context,
     required String title,
     String? message,
+    ScaffoldMessengerState? messenger,
   }) {
     _show(
       context: context,
@@ -44,6 +45,23 @@ class CustomSnackBar {
       message: message,
       icon: AppIcons.tick_circle,
       accentColor: AppColors.success,
+      messenger: messenger,
+    );
+  }
+
+  static void showNotification({
+    required BuildContext context,
+    required String title,
+    String? message,
+    ScaffoldMessengerState? messenger,
+  }) {
+    _show(
+      context: context,
+      title: title,
+      message: message,
+      icon: AppIcons.notification_bing,
+      accentColor: AppColors.success,
+      messenger: messenger,
     );
   }
 
@@ -131,6 +149,7 @@ class CustomSnackBar {
     String? message,
     Duration? duration,
     String? actionLabel,
+    ScaffoldMessengerState? messenger,
   }) {
     final theme = Theme.of(context);
     final localizedTitle = context.tr(title);
@@ -139,10 +158,10 @@ class CustomSnackBar {
         ? null
         : context.tr(actionLabel);
     final hasMessage = message != null && message.trim().isNotEmpty;
-    final messenger = ScaffoldMessenger.of(context);
+    final activeMessenger = messenger ?? ScaffoldMessenger.of(context);
 
-    messenger.clearSnackBars();
-    messenger.showSnackBar(
+    activeMessenger.clearSnackBars();
+    activeMessenger.showSnackBar(
       SnackBar(
         elevation: 0,
         behavior: SnackBarBehavior.floating,
@@ -211,7 +230,7 @@ class CustomSnackBar {
               if (localizedAction != null) ...[
                 const SizedBox(width: 8),
                 TextButton(
-                  onPressed: messenger.hideCurrentSnackBar,
+                  onPressed: activeMessenger.hideCurrentSnackBar,
                   style: TextButton.styleFrom(
                     foregroundColor: Colors.white,
                     minimumSize: const Size(44, 36),

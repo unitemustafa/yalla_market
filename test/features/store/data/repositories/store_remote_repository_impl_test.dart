@@ -16,13 +16,19 @@ void main() {
             expect(request.queryParameters, isNull);
             return {
               'common_market_classifications': [
-                {'id': 1, 'name': 'Supermarket', 'product_count': 2},
+                {
+                  'id': 1,
+                  'name': 'Supermarket',
+                  'classification_type': 'featured',
+                  'market_count': 1,
+                },
               ],
               'market_classifications': [
                 {
                   'id': 1,
                   'name': 'Supermarket',
-                  'product_count': 2,
+                  'classification_type': 'featured',
+                  'market_count': 1,
                   'markets': [
                     {
                       'id': 9,
@@ -33,6 +39,17 @@ void main() {
                       'products': [_fullProduct()],
                     },
                   ],
+                },
+              ],
+              'latest_markets': [
+                {
+                  'id': 10,
+                  'name': 'Newest Market',
+                  'branch': 'Cairo',
+                  'status': 'active',
+                  'classification_id': 1,
+                  'created_at': '2026-07-13T12:00:00Z',
+                  'products': [_fullProduct()],
                 },
               ],
             };
@@ -47,10 +64,16 @@ void main() {
           success: (store) {
             expect(store.commonClassifications.single.name, 'Supermarket');
             expect(store.classifications.single.id, '1');
+            expect(store.classifications.single.marketCountLabel, '1 store');
             final market = store.marketsFor('1').single;
             expect(market.name, 'Fresh Market');
             expect(market.products.single.price, '120.00');
             expect(market.products.single.marketId, '9');
+            expect(store.latestMarkets.single.name, 'Newest Market');
+            expect(
+              store.latestMarkets.single.createdAt,
+              DateTime.utc(2026, 7, 13, 12),
+            );
           },
           failure: (failure) => fail(failure.message),
         );

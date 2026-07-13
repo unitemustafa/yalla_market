@@ -42,6 +42,10 @@ class StoreRepositoryImpl implements StoreRepository {
               .toList(growable: false),
           classifications: classifications,
           marketsByClassificationId: marketsByClassificationId,
+          latestMarkets: marketsByClassificationId.values
+              .expand((markets) => markets)
+              .take(15)
+              .toList(growable: false),
         ),
       );
     } catch (_) {
@@ -66,12 +70,19 @@ class StoreRepositoryImpl implements StoreRepository {
           (category) => StoreClassificationData(
             id: _slugFrom(category.name),
             name: category.name,
-            productCount: _countFromLabel(category.count),
+            marketCount: MarketShops.all
+                .where(
+                  (shop) =>
+                      _normalize(shop.categoryName) ==
+                      _normalize(category.name),
+                )
+                .length,
             products: const [],
             image: category.image.isEmpty
                 ? AppAssets.temporaryMarketPlaceholder
                 : category.image,
             accentColorValue: category.color.toARGB32(),
+            classificationType: 'normal',
           ),
         )
         .toList(growable: false);
@@ -85,9 +96,5 @@ class StoreRepositoryImpl implements StoreRepository {
         .toLowerCase()
         .replaceAll(RegExp(r'[^a-z0-9\u0600-\u06ff]+'), '-')
         .replaceAll(RegExp(r'^-+|-+$'), '');
-  }
-
-  int _countFromLabel(String value) {
-    return int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
   }
 }

@@ -40,7 +40,7 @@ class BrandCard extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
             color: showBorder ? panelColor : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -49,9 +49,9 @@ class BrandCard extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 40,
-                height: 40,
-                padding: const EdgeInsets.all(7),
+                width: 56,
+                height: 56,
+                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: logoBackground,
                   borderRadius: BorderRadius.circular(8),
@@ -59,9 +59,11 @@ class BrandCard extends StatelessWidget {
                 child: AppImage(
                   source: logo,
                   fallbackType: AppImagePlaceholderType.store,
-                  fit: BoxFit.contain,
-                  cacheWidth: 80,
-                  cacheHeight: 80,
+                  fit: BoxFit.cover,
+                  borderRadius: BorderRadius.circular(6),
+                  cacheWidth: 112,
+                  cacheHeight: 112,
+                  filterQuality: FilterQuality.medium,
                 ),
               ),
               const SizedBox(width: 8),
@@ -102,6 +104,7 @@ class BrandCard extends StatelessWidget {
                       style: Theme.of(
                         context,
                       ).textTheme.labelMedium!.apply(color: Colors.grey),
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

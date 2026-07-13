@@ -49,6 +49,13 @@ class AppTranslations {
       if (int.tryParse(count) != null) return '$count منتج';
     }
 
+    if (value.endsWith(' stores') || value.endsWith(' store')) {
+      final count = value
+          .replaceFirst(' stores', '')
+          .replaceFirst(' store', '');
+      if (int.tryParse(count) != null) return '$count محل';
+    }
+
     if (value.endsWith(' markets') || value.endsWith(' market')) {
       final count = value
           .replaceFirst(' markets', '')

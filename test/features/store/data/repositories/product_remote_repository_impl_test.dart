@@ -92,24 +92,32 @@ void main() {
       );
     });
 
-    test('loads products without forwarding the selected city', () async {
-      final apiClient = FakeApiClient((request) {
-        expect(request.method, 'GET');
-        expect(request.path, '/home/products/');
-        expect(request.queryParameters, isNull);
-        return {
-          'products': [_backendProduct()],
-        };
-      });
-      final repository = ProductRemoteRepositoryImpl(apiClient);
+    test(
+      'loads the latest fifteen without forwarding the selected city',
+      () async {
+        final apiClient = FakeApiClient((request) {
+          expect(request.method, 'GET');
+          expect(request.path, '/home/products/');
+          expect(request.queryParameters, {
+            'order_by_latest': true,
+            'page_size': 15,
+          });
+          return {
+            'products': [_backendProduct()],
+          };
+        });
+        final repository = ProductRemoteRepositoryImpl(apiClient);
 
-      final result = await repository.getProducts(citySlug: 'sharm-el-sheikh');
+        final result = await repository.getProducts(
+          citySlug: 'sharm-el-sheikh',
+        );
 
-      result.when(
-        success: (products) => expect(products.single.id, '42'),
-        failure: (failure) => fail(failure.message),
-      );
-    });
+        result.when(
+          success: (products) => expect(products.single.id, '42'),
+          failure: (failure) => fail(failure.message),
+        );
+      },
+    );
 
     for (final entry in <String, Object?>{
       'a direct list': [_backendProduct()],
@@ -167,8 +175,25 @@ void main() {
         if (request.path == '/home/classifications/') {
           expect(request.queryParameters, isNull);
           return {
-            'common_categories': [
-              {'id': 7, 'name': 'Supermarket', 'product_count': 5},
+            'market_classifications': [
+              {
+                'id': 7,
+                'name': 'Supermarket',
+                'classification_type': 'popular',
+                'market_count': 5,
+              },
+              {
+                'id': 8,
+                'name': 'Restaurants',
+                'classification_type': 'featured',
+                'market_count': 3,
+              },
+              {
+                'id': 9,
+                'name': 'Pharmacies',
+                'classification_type': 'normal',
+                'market_count': 2,
+              },
             ],
           };
         }
@@ -180,11 +205,23 @@ void main() {
       final brandsResult = await repository.getBrands();
 
       categoriesResult.when(
-        success: (categories) => expect(categories.single.name, 'Supermarket'),
+        success: (categories) {
+          expect(categories.map((category) => category.name), [
+            'Supermarket',
+            'Restaurants',
+            'Pharmacies',
+          ]);
+          expect(categories.first.marketCount, 5);
+          expect(categories.first.classificationType, 'popular');
+        },
         failure: (failure) => fail(failure.message),
       );
       brandsResult.when(
-        success: (brands) => expect(brands.single.name, 'Supermarket'),
+        success: (brands) => expect(brands.map((brand) => brand.name), [
+          'Supermarket',
+          'Restaurants',
+          'Pharmacies',
+        ]),
         failure: (failure) => fail(failure.message),
       );
     });

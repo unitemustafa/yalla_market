@@ -5,6 +5,9 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
+import '../../../../../core/routing/app_route_arguments.dart';
+import '../../../../home/presentation/cubit/home_cubit.dart';
+import '../../../../home/presentation/cubit/home_state.dart';
 import '../../../domain/entities/product_data.dart';
 import '../../cubit/product_catalog_cubit.dart';
 import '../../cubit/product_catalog_state.dart';
@@ -14,16 +17,101 @@ class AllProductsView extends StatefulWidget {
     super.key,
     this.title = 'Popular Products',
     this.subtitle = 'Browse all curated products',
+    this.collection = ProductCollectionType.popular,
+    this.maxItems,
   });
 
   final String title;
   final String subtitle;
+  final ProductCollectionType collection;
+  final int? maxItems;
 
   @override
   State<AllProductsView> createState() => _AllProductsViewState();
 }
 
 class _AllProductsViewState extends State<AllProductsView> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.collection == ProductCollectionType.popular) {
+      context.read<HomeCubit>().loadHome();
+    }
+  }
+
+  List<ProductData> _limited(List<ProductData> products) {
+    final maxItems = widget.maxItems;
+    if (maxItems == null || maxItems >= products.length) return products;
+    return products
+        .take(maxItems.clamp(0, products.length))
+        .toList(growable: false);
+  }
+
+  Widget _buildProductResults() {
+    return switch (widget.collection) {
+      ProductCollectionType.popular => BlocBuilder<HomeCubit, HomeState>(
+        builder: (context, state) {
+          final products =
+              state.data?.products
+                  .where((product) => product.isPopular)
+                  .toList(growable: false) ??
+              const <ProductData>[];
+          final status = switch (state) {
+            HomeInitial() => ProductResultsStatus.loading,
+            HomeLoading() when state.data == null =>
+              ProductResultsStatus.loading,
+            HomeFailure() when state.data == null => ProductResultsStatus.error,
+            _ => ProductResultsStatus.ready,
+          };
+
+          return ProductResultsView(
+            products: _limited(products),
+            status: status,
+            initialSortOption: 'Newest',
+            onRetry: () => context.read<HomeCubit>().loadHome(force: true),
+            errorMessage: state is HomeFailure
+                ? state.message
+                : 'Please check your connection and try again.',
+            pageSize: 4,
+            emptyTitle: 'No products available',
+            emptyMessage:
+                'Products will appear here once the catalog is ready.',
+          );
+        },
+      ),
+      ProductCollectionType.latest =>
+        BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
+          builder: (context, state) {
+            final products = state is ProductCatalogReady
+                ? _limited(state.products)
+                : const <ProductData>[];
+            final status = switch (state) {
+              ProductCatalogLoading() => ProductResultsStatus.loading,
+              ProductCatalogFailure() => ProductResultsStatus.error,
+              ProductCatalogNeedsCity() => ProductResultsStatus.empty,
+              _ => ProductResultsStatus.ready,
+            };
+
+            return ProductResultsView(
+              products: products,
+              status: status,
+              initialSortOption: 'Newest',
+              onRetry: () =>
+                  context.read<ProductCatalogCubit>().loadProducts(force: true),
+              errorMessage: state is ProductCatalogFailure
+                  ? state.message
+                  : 'Please check your connection and try again.',
+              pageSize: 4,
+              emptyTitle: 'No products available',
+              emptyMessage: state is ProductCatalogNeedsCity
+                  ? 'So we can show products available in your area.'
+                  : 'Products will appear here once the catalog is ready.',
+            );
+          },
+        ),
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -54,35 +142,7 @@ class _AllProductsViewState extends State<AllProductsView> {
                         isDark: isDark,
                       ),
                       const SizedBox(height: 18),
-                      BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
-                        builder: (context, state) {
-                          final status = switch (state) {
-                            ProductCatalogLoading() =>
-                              ProductResultsStatus.loading,
-                            ProductCatalogFailure() =>
-                              ProductResultsStatus.error,
-                            ProductCatalogNeedsCity() =>
-                              ProductResultsStatus.empty,
-                            _ => ProductResultsStatus.ready,
-                          };
-                          final products = state is ProductCatalogReady
-                              ? state.products
-                              : const <ProductData>[];
-
-                          return ProductResultsView(
-                            products: products,
-                            status: status,
-                            onRetry: () => context
-                                .read<ProductCatalogCubit>()
-                                .loadProducts(force: true),
-                            pageSize: 4,
-                            emptyTitle: 'No products available',
-                            emptyMessage: state is ProductCatalogNeedsCity
-                                ? 'So we can show products available in your area.'
-                                : 'Products will appear here once the catalog is ready.',
-                          );
-                        },
-                      ),
+                      _buildProductResults(),
                     ],
                   ),
                 ),

@@ -97,9 +97,9 @@ class _StoreViewState extends State<StoreView> {
           );
         }
 
-        final featured = store!.commonClassifications.isEmpty
-            ? classifications.take(4).toList(growable: false)
-            : store.commonClassifications;
+        final readyStore = store!;
+        final featuredSlots = readyStore.featuredSlots;
+        final showAllFeatured = readyStore.hasFeaturedOverflow;
 
         return DefaultTabController(
           key: ValueKey(classifications.map((item) => item.id).join('|')),
@@ -126,45 +126,63 @@ class _StoreViewState extends State<StoreView> {
                                 const SizedBox(height: 18),
                                 _StoreSearchField(isDark: isDark),
                                 const SizedBox(height: 22),
-                                SectionHeading(
-                                  title: context.tr('Featured Categories'),
-                                  onPressed: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      AppRoutes.categories,
-                                    );
-                                  },
-                                ),
-                                const SizedBox(height: 12),
-                                GridLayout(
-                                  itemCount: featured.length,
-                                  mainAxisExtent: 78,
-                                  itemBuilder: (_, index) {
-                                    final category = featured[index];
-                                    return BrandCard(
-                                      showBorder: true,
-                                      brand: category.name,
-                                      productCount: category.productCountLabel,
-                                      logo: category.image,
-                                      accentColor: Color(
-                                        category.accentColorValue,
-                                      ),
-                                      onTap: () {
-                                        Navigator.pushNamed(
-                                          context,
-                                          AppRoutes.brandProducts,
-                                          arguments: BrandProductsRouteArgs(
-                                            brand: category.name,
-                                            logo: category.image,
-                                            productCount:
-                                                category.productCountLabel,
-                                            classificationId: category.id,
-                                          ),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
+                                if (featuredSlots.isNotEmpty) ...[
+                                  SectionHeading(
+                                    title: 'Featured Categories',
+                                    titleFontSize: 18,
+                                    showActionButton: showAllFeatured,
+                                    onPressed: showAllFeatured
+                                        ? () {
+                                            Navigator.pushNamed(
+                                              context,
+                                              AppRoutes.categories,
+                                            );
+                                          }
+                                        : null,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  GridLayout(
+                                    itemCount: featuredSlots.length,
+                                    mainAxisExtent: 92,
+                                    itemBuilder: (_, index) {
+                                      final category = featuredSlots[index];
+                                      return BrandCard(
+                                        showBorder: true,
+                                        brand: category.name,
+                                        productCount: category.marketCountLabel,
+                                        logo: category.image,
+                                        accentColor: Color(
+                                          category.accentColorValue,
+                                        ),
+                                        onTap: () {
+                                          Navigator.pushNamed(
+                                            context,
+                                            AppRoutes.brandProducts,
+                                            arguments: BrandProductsRouteArgs(
+                                              brand: category.name,
+                                              logo: category.image,
+                                              productCount:
+                                                  category.marketCountLabel,
+                                              classificationId: category.id,
+                                            ),
+                                          );
+                                        },
+                                      );
+                                    },
+                                  ),
+                                ],
+                                if (readyStore.latestMarkets.isNotEmpty) ...[
+                                  const SizedBox(height: 22),
+                                  const SectionHeading(
+                                    title: 'Latest Stores',
+                                    titleFontSize: 18,
+                                    showActionButton: false,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  _LatestStoresSlider(
+                                    markets: readyStore.latestMarkets,
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -189,7 +207,7 @@ class _StoreViewState extends State<StoreView> {
                           .map(
                             (classification) => _StoreMarketsTab(
                               classification: classification,
-                              markets: store.marketsFor(classification.id),
+                              markets: readyStore.marketsFor(classification.id),
                             ),
                           )
                           .toList(growable: false),
@@ -201,6 +219,121 @@ class _StoreViewState extends State<StoreView> {
           ),
         );
       },
+    );
+  }
+}
+
+class _LatestStoresSlider extends StatelessWidget {
+  const _LatestStoresSlider({required this.markets});
+
+  final List<StoreMarketData> markets;
+
+  void _openStore(BuildContext context, StoreMarketData market) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.brandProducts,
+      arguments: BrandProductsRouteArgs(
+        brand: market.name,
+        logo: market.image,
+        productCount: market.productCountLabel,
+        classificationId: market.classificationId,
+        marketId: market.id,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleMarkets = markets.take(6).toList(growable: false);
+    final showViewAll = markets.length > visibleMarkets.length;
+
+    return SizedBox(
+      height: 92,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final cardWidth = (constraints.maxWidth * 0.76)
+              .clamp(240.0, 310.0)
+              .toDouble();
+
+          return ListView.separated(
+            key: const ValueKey('latest_stores_horizontal_slider'),
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: visibleMarkets.length + (showViewAll ? 1 : 0),
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              if (showViewAll && index == visibleMarkets.length) {
+                return const _LatestStoresViewAllCard();
+              }
+
+              final market = visibleMarkets[index];
+              return SizedBox(
+                key: ValueKey('latest_store_${market.id}'),
+                width: cardWidth,
+                child: BrandCard(
+                  showBorder: true,
+                  brand: market.name,
+                  productCount: market.productCountLabel,
+                  logo: market.image,
+                  accentColor: Color(market.accentColorValue),
+                  onTap: () => _openStore(context, market),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LatestStoresViewAllCard extends StatelessWidget {
+  const _LatestStoresViewAllCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    return SizedBox(
+      key: const ValueKey('latest_stores_view_all'),
+      width: 92,
+      child: Material(
+        color: isDark ? AppColors.darkCardColor : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => Navigator.pushNamed(context, AppRoutes.latestStores),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppColors.primary.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.arrow_forward_rounded,
+                  color: AppColors.primary,
+                  size: 26,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  context.tr('View all'),
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: mutedColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

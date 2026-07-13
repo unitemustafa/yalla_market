@@ -20,6 +20,7 @@ class ProductResultsView extends StatefulWidget {
     this.status = ProductResultsStatus.ready,
     this.showSearch = true,
     this.pageSize = 4,
+    this.initialSortOption = 'Name',
     this.initialQuery = '',
     this.emptyTitle = 'No products found',
     this.emptyMessage = 'Try another search, category, or sorting option.',
@@ -33,6 +34,7 @@ class ProductResultsView extends StatefulWidget {
   final ProductResultsStatus status;
   final bool showSearch;
   final int pageSize;
+  final String initialSortOption;
   final String initialQuery;
   final String emptyTitle;
   final String emptyMessage;
@@ -47,7 +49,7 @@ class ProductResultsView extends StatefulWidget {
 
 class _ProductResultsViewState extends State<ProductResultsView> {
   late final TextEditingController _queryController;
-  String _sortOption = 'Name';
+  late String _sortOption;
   int _page = 0;
 
   static const _sortOptions = ['Name', 'Higher Price', 'Lower Price', 'Newest'];
@@ -56,6 +58,9 @@ class _ProductResultsViewState extends State<ProductResultsView> {
   void initState() {
     super.initState();
     _queryController = TextEditingController(text: widget.initialQuery);
+    _sortOption = _sortOptions.contains(widget.initialSortOption)
+        ? widget.initialSortOption
+        : 'Name';
   }
 
   @override

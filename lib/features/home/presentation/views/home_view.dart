@@ -9,6 +9,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
+import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../cubit/home_cubit.dart';
@@ -23,7 +24,7 @@ import '../../../store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../store/presentation/cubit/product_discovery_cubit.dart';
 import '../../../store/presentation/cubit/store_cubit.dart';
 import '../widgets/home_categories.dart';
-import '../widgets/home_products_grid.dart';
+import '../widgets/home_popular_products_slider.dart';
 import '../widgets/promo_slider.dart';
 
 @visibleForTesting
@@ -159,18 +160,53 @@ class _HomeViewState extends State<HomeView> {
                         const SectionHeading(
                           title: 'Popular Categories',
                           showActionButton: false,
+                          titleFontSize: 18,
                         ),
                         const SizedBox(height: 12),
                         HomeCategories(categories: home?.categories),
                         const SizedBox(height: 22),
-                        SectionHeading(
+                        const SectionHeading(
                           title: 'Popular Products',
-                          onPressed: () {
-                            Navigator.pushNamed(context, AppRoutes.allProducts);
-                          },
+                          titleFontSize: 18,
+                          showActionButton: false,
                         ),
                         const SizedBox(height: 14),
-                        HomeProductsGrid(products: home?.products, limit: 8),
+                        HomeProductsSlider(
+                          products: home?.products,
+                          limit: 6,
+                          onViewAll: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.allProducts,
+                              arguments: const AllProductsRouteArgs(
+                                collection: ProductCollectionType.popular,
+                              ),
+                            );
+                          },
+                        ),
+                        const SizedBox(height: 22),
+                        const SectionHeading(
+                          title: 'Latest Products',
+                          titleFontSize: 18,
+                          showActionButton: false,
+                        ),
+                        const SizedBox(height: 14),
+                        HomeProductsSlider(
+                          mode: HomeProductsSliderMode.latest,
+                          limit: 6,
+                          onViewAll: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.allProducts,
+                              arguments: const AllProductsRouteArgs(
+                                title: 'Latest Products',
+                                subtitle: 'Browse the latest products',
+                                collection: ProductCollectionType.latest,
+                                maxItems: 15,
+                              ),
+                            );
+                          },
+                        ),
                       ],
                     );
                   },

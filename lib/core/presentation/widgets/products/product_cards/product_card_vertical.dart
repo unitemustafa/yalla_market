@@ -4,6 +4,7 @@ import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../constants/app_colors.dart';
 import '../../../../formatters/app_currency.dart';
+import '../../../../formatters/product_pricing.dart';
 import '../../../../localization/app_translations.dart';
 import '../../../../routing/app_route_arguments.dart';
 import '../../../../routing/app_routes.dart';
@@ -16,29 +17,10 @@ import '../../snackbars/custom_snackbar.dart';
 import '../../texts/app_currency_text.dart';
 import '../../texts/green_currency_price.dart';
 
-String? _validDiscountLabel(String? discount) {
-  final value = discount?.trim();
-  if (value == null || value.isEmpty) return null;
-
-  final numericValue = double.tryParse(
-    value.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', ''),
-  );
-  if (numericValue != null && numericValue <= 0) return null;
-
-  return value;
-}
-
-String? _displayDiscountLabel(BuildContext context, String? discount) {
-  final value = _validDiscountLabel(discount);
-  if (value == null || !context.isArabicLanguage) return value;
-
-  final normalized = value.toLowerCase();
-  if (!normalized.contains('discount') && !normalized.contains('off')) {
-    return value;
-  }
-
-  final percentage = RegExp(r'(\d+(?:[.,]\d+)?\s*%)').firstMatch(value);
-  return percentage == null ? 'خصم' : 'خصم ${percentage.group(1)}';
+String? _discountBadgeLabel(BuildContext context, String? discount) {
+  final percentage = ProductPricing.discountLabel(discount);
+  if (percentage == null) return null;
+  return context.isArabicLanguage ? 'خصم $percentage' : '$percentage OFF';
 }
 
 class ProductCardVertical extends StatefulWidget {
@@ -80,17 +62,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
     return AppCurrency.formatPriceText(price);
   }
 
-  double _parseFirstPrice(String price) {
-    final firstPrice = price.split('-').first.trim();
-    return double.tryParse(
-          firstPrice.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', ''),
-        ) ??
-        0.0;
-  }
-
   void _openProductDetails(BuildContext context) {
-    final discount = _displayDiscountLabel(context, widget.discount);
-
     Navigator.pushNamed(
       context,
       AppRoutes.productDetail,
@@ -102,22 +74,29 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
         productId: widget.productId,
         productSlug: widget.productSlug,
         oldPrice: widget.oldPrice,
-        discount: discount,
+        discount: widget.discount,
       ),
     );
   }
 
   void _toggleWishlist(BuildContext context, bool wasFavorite) {
-    final discount = _displayDiscountLabel(context, widget.discount);
+    final displayedPrice = ProductPricing.formattedPrice(
+      widget.price,
+      discount: widget.discount,
+    );
+    final originalPrice = ProductPricing.originalPrice(
+      widget.price,
+      discount: widget.discount,
+    );
 
     final item = WishlistItem(
       productId: _resolvedProductId,
       image: widget.image,
       title: widget.title,
       brand: widget.brand,
-      price: widget.price,
-      oldPrice: widget.oldPrice,
-      discount: discount,
+      price: displayedPrice,
+      oldPrice: originalPrice.isNotEmpty ? originalPrice : widget.oldPrice,
+      discount: _discountBadgeLabel(context, widget.discount),
     );
 
     context.read<WishlistCubit>().toggleItem(item);
@@ -145,7 +124,10 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
         image: widget.image,
         brand: widget.brand,
         title: widget.title,
-        price: _parseFirstPrice(widget.price),
+        price: ProductPricing.firstPrice(
+          widget.price,
+          discount: widget.discount,
+        ),
         quantity: 1,
       ),
       1,
@@ -164,7 +146,15 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final discount = _displayDiscountLabel(context, widget.discount);
+    final discount = _discountBadgeLabel(context, widget.discount);
+    final displayedPrice = ProductPricing.formattedPrice(
+      widget.price,
+      discount: widget.discount,
+    );
+    final originalPrice = ProductPricing.originalPrice(
+      widget.price,
+      discount: widget.discount,
+    );
 
     return Material(
       color: Colors.transparent,
@@ -192,82 +182,84 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                height: 132,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: imagePanelColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(8),
-                  ),
+              ClipRRect(
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(8),
                 ),
-                child: Stack(
-                  children: [
-                    Positioned.fill(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
-                        child: RepaintBoundary(
-                          child: AppImage(
-                            source: widget.image,
-                            fallbackType: AppImagePlaceholderType.product,
-                            fit: BoxFit.contain,
-                            cacheWidth: 260,
-                            cacheHeight: 240,
-                            filterQuality: FilterQuality.low,
-                          ),
-                        ),
-                      ),
-                    ),
-                    if (discount != null)
-                      PositionedDirectional(
-                        top: 0,
-                        start: 0,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.warning,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            discount,
-                            style: const TextStyle(
-                              color: Colors.black,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w900,
+                child: SizedBox(
+                  height: 108,
+                  child: ColoredBox(
+                    color: imagePanelColor,
+                    child: Stack(
+                      children: [
+                        Positioned.fill(
+                          child: RepaintBoundary(
+                            child: AppImage(
+                              source: widget.image,
+                              fallbackType: AppImagePlaceholderType.product,
+                              fit: BoxFit.cover,
+                              cacheWidth: 320,
+                              cacheHeight: 264,
+                              filterQuality: FilterQuality.low,
                             ),
                           ),
                         ),
-                      ),
-                    PositionedDirectional(
-                      top: 0,
-                      end: 0,
-                      child:
-                          BlocSelector<WishlistCubit, List<WishlistItem>, bool>(
-                            selector: (items) => items.any(
-                              (element) =>
-                                  element.productId == _resolvedProductId,
+                        if (discount != null)
+                          PositionedDirectional(
+                            top: 8,
+                            start: 8,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.warning,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                discount,
+                                style: const TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w900,
+                                ),
+                              ),
                             ),
-                            builder: (context, isFavorite) {
-                              return _ProductIconButton(
-                                icon: isFavorite
-                                    ? AppIcons.heart5
-                                    : AppIcons.heart,
-                                iconColor: isFavorite
-                                    ? AppColors.error
-                                    : (isDark
-                                          ? Colors.white70
-                                          : Colors.black45),
-                                isDark: isDark,
-                                onTap: () =>
-                                    _toggleWishlist(context, isFavorite),
-                              );
-                            },
                           ),
+                        PositionedDirectional(
+                          top: 8,
+                          end: 8,
+                          child:
+                              BlocSelector<
+                                WishlistCubit,
+                                List<WishlistItem>,
+                                bool
+                              >(
+                                selector: (items) => items.any(
+                                  (element) =>
+                                      element.productId == _resolvedProductId,
+                                ),
+                                builder: (context, isFavorite) {
+                                  return _ProductIconButton(
+                                    icon: isFavorite
+                                        ? AppIcons.heart5
+                                        : AppIcons.heart,
+                                    iconColor: isFavorite
+                                        ? AppColors.error
+                                        : (isDark
+                                              ? Colors.white70
+                                              : Colors.black45),
+                                    isDark: isDark,
+                                    onTap: () =>
+                                        _toggleWishlist(context, isFavorite),
+                                  );
+                                },
+                              ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
               Expanded(
@@ -314,8 +306,10 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         children: [
                           Expanded(
                             child: _ProductPriceBlock(
-                              price: widget.price,
-                              oldPrice: _formatPrice(widget.oldPrice),
+                              price: displayedPrice,
+                              oldPrice: originalPrice.isNotEmpty
+                                  ? originalPrice
+                                  : _formatPrice(widget.oldPrice),
                               textColor: textColor,
                               mutedColor: mutedColor,
                             ),
@@ -377,7 +371,7 @@ class _ProductPriceBlock extends StatelessWidget {
       children: [
         SizedBox(
           width: double.infinity,
-          height: 24,
+          height: 20,
           child: Align(
             alignment: AlignmentDirectional.centerStart,
             child: FittedBox(
@@ -385,8 +379,9 @@ class _ProductPriceBlock extends StatelessWidget {
               alignment: AlignmentDirectional.centerStart,
               child: GreenCurrencyPrice(
                 price: price,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: textColor,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -395,14 +390,21 @@ class _ProductPriceBlock extends StatelessWidget {
         ),
         if (oldPrice.isNotEmpty) ...[
           const SizedBox(height: 2),
-          AppCurrencyText(
-            text: oldPrice,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: mutedColor,
-              decoration: TextDecoration.lineThrough,
+          SizedBox(
+            width: double.infinity,
+            height: 16,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: AlignmentDirectional.centerStart,
+              child: AppCurrencyText(
+                text: oldPrice,
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: mutedColor,
+                  fontSize: 10,
+                  decoration: TextDecoration.lineThrough,
+                ),
+              ),
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ],

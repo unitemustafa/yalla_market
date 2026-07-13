@@ -8,6 +8,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/formatters/app_currency.dart';
+import '../../../../core/formatters/product_pricing.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
@@ -45,29 +46,10 @@ List<String> _uniqueImageSources(Iterable<String> sources) {
   return images;
 }
 
-String? _validDiscountLabel(String? discount) {
-  final value = discount?.trim();
-  if (value == null || value.isEmpty) return null;
-
-  final numericValue = double.tryParse(
-    value.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', ''),
-  );
-  if (numericValue != null && numericValue <= 0) return null;
-
-  return value;
-}
-
-String? _displayDiscountLabel(BuildContext context, String? discount) {
-  final value = _validDiscountLabel(discount);
-  if (value == null || !context.isArabicLanguage) return value;
-
-  final normalized = value.toLowerCase();
-  if (!normalized.contains('discount') && !normalized.contains('off')) {
-    return value;
-  }
-
-  final percentage = RegExp(r'(\d+(?:[.,]\d+)?\s*%)').firstMatch(value);
-  return percentage == null ? 'خصم' : 'خصم ${percentage.group(1)}';
+String? _discountBadgeLabel(BuildContext context, String? discount) {
+  final percentage = ProductPricing.discountLabel(discount);
+  if (percentage == null) return null;
+  return context.isArabicLanguage ? 'خصم $percentage' : '$percentage OFF';
 }
 
 class ProductDetailView extends StatefulWidget {
@@ -148,6 +130,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     return _productPrice;
   }
 
+  String get _selectedDisplayPrice =>
+      ProductPricing.formattedPrice(_selectedPrice, discount: _productDiscount);
+
+  String get _selectedOriginalPrice =>
+      ProductPricing.originalPrice(_selectedPrice, discount: _productDiscount);
+
   String get _resolvedProductId => _productId;
 
   String get _resolvedCartItemId {
@@ -221,7 +209,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         selectedId != null &&
         selectedId.isNotEmpty &&
         variants.any((variant) => variant.id == selectedId);
-    if (!selectedStillExists) selectedVariantId = variants.first.id;
+    if (!selectedStillExists) {
+      selectedVariantId = variants.length == 1 ? variants.first.id : null;
+    }
     _selectedAttributeValues
       ..clear()
       ..addAll(_selectedVariant?.attributeValues ?? const {});
@@ -397,7 +387,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                                       text: AppCurrency.format(
                                         _parsePrice(addition.price),
                                       ),
-                                      currencyColor: AppColors.primary,
+                                      currencyColor: AppColors.currency,
                                       style: theme.textTheme.bodySmall
                                           ?.copyWith(
                                             color: AppColors.primary,
@@ -594,9 +584,21 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         image: _productImage,
         title: _productTitle,
         brand: _productBrand,
-        price: _productPrice,
-        oldPrice: _productOldPrice,
-        discount: _displayDiscountLabel(context, _productDiscount),
+        price: ProductPricing.formattedPrice(
+          _productPrice,
+          discount: _productDiscount,
+        ),
+        oldPrice:
+            ProductPricing.originalPrice(
+              _productPrice,
+              discount: _productDiscount,
+            ).isNotEmpty
+            ? ProductPricing.originalPrice(
+                _productPrice,
+                discount: _productDiscount,
+              )
+            : _productOldPrice,
+        discount: _discountBadgeLabel(context, _productDiscount),
       ),
     );
 
@@ -672,7 +674,12 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         image: currentImage,
         brand: _productBrand,
         title: _productTitle,
-        price: _parsePrice(selectedPrice) + _selectedAdditionsTotal,
+        price:
+            ProductPricing.firstPrice(
+              selectedPrice,
+              discount: _productDiscount,
+            ) +
+            _selectedAdditionsTotal,
         quantity: quantity,
         attributes: cartAttributes.toList(growable: false),
       ),
@@ -746,17 +753,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         for (final entry in optionsByAttribute.entries) ...[
           _SectionTitle(title: entry.key, isDark: isDark),
           const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final option in entry.value)
-                _buildChoiceOption(
-                  label: option,
-                  isSelected: _selectedAttributeValues[entry.key] == option,
-                  onTap: () => _selectVariantOption(entry.key, option),
-                ),
-            ],
+          _buildFullWidthChoiceOptions(
+            options: entry.value,
+            selectedOption: _selectedAttributeValues[entry.key],
+            onSelected: (option) => _selectVariantOption(entry.key, option),
           ),
           const SizedBox(height: 20),
         ],
@@ -862,6 +862,39 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     );
   }
 
+  Widget _buildFullWidthChoiceOptions({
+    required List<String> options,
+    required String? selectedOption,
+    required ValueChanged<String> onSelected,
+  }) {
+    final rows = <List<String>>[];
+    for (var index = 0; index < options.length; index += 3) {
+      rows.add(options.sublist(index, (index + 3).clamp(0, options.length)));
+    }
+
+    return Column(
+      children: [
+        for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) ...[
+          Row(
+            children: [
+              for (var index = 0; index < rows[rowIndex].length; index++) ...[
+                if (index > 0) const SizedBox(width: 8),
+                Expanded(
+                  child: _buildChoiceOption(
+                    label: rows[rowIndex][index],
+                    isSelected: selectedOption == rows[rowIndex][index],
+                    onTap: () => onSelected(rows[rowIndex][index]),
+                  ),
+                ),
+              ],
+            ],
+          ),
+          if (rowIndex < rows.length - 1) const SizedBox(height: 8),
+        ],
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -912,15 +945,26 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     }
     final selectedPrice = _selectedPrice;
     final selectedUnitPrice =
-        _parsePrice(selectedPrice) + _selectedAdditionsTotal;
+        ProductPricing.firstPrice(selectedPrice, discount: _productDiscount) +
+        _selectedAdditionsTotal;
+    final variantAttributeNames = _variantOptionsByAttribute().keys;
+    final hasCompleteSelection =
+        variantAttributeNames.isNotEmpty &&
+        variantAttributeNames.every(
+          (name) => _selectedAttributeValues[name]?.trim().isNotEmpty ?? false,
+        );
     final hasUnavailableCombination =
         _variants.length > 1 &&
         _hasVariantAttributes() &&
+        hasCompleteSelection &&
         selectedVariantId == null;
     final isOutOfStock =
-        !_isProductAvailable || _variants.isEmpty || hasUnavailableCombination;
-    final stock = isOutOfStock ? 'Out of Stock' : 'Available';
-    final stockColor = isOutOfStock ? AppColors.error : AppColors.success;
+        !_isProductAvailable ||
+        _variants.isEmpty ||
+        (_variants.length > 1 && selectedVariantId == null);
+    final productIsAvailable = _isProductAvailable && _variants.isNotEmpty;
+    final stock = productIsAvailable ? 'Available' : 'Out of Stock';
+    final stockColor = productIsAvailable ? AppColors.success : AppColors.error;
     final backgroundColor = isDark
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
@@ -955,9 +999,11 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _PriceHeader(
-                    discount: _displayDiscountLabel(context, _productDiscount),
-                    price: _formatSinglePrice(selectedPrice),
-                    oldPrice: _formatPrice(_productOldPrice),
+                    discount: _discountBadgeLabel(context, _productDiscount),
+                    price: _selectedDisplayPrice,
+                    oldPrice: _selectedOriginalPrice.isNotEmpty
+                        ? _selectedOriginalPrice
+                        : _formatPrice(_productOldPrice),
                     isDark: isDark,
                   ),
                   if (_isLoadingProductDetails) ...[
@@ -995,14 +1041,6 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                       const SizedBox(width: 10),
                       _BrandPill(brand: _productBrand, isDark: isDark),
                     ],
-                  ),
-                  const SizedBox(height: 18),
-                  _VariationCard(
-                    price: _formatSinglePrice(selectedPrice),
-                    oldPrice: _formatSinglePrice(_productOldPrice),
-                    stock: stock,
-                    stockColor: stockColor,
-                    isDark: isDark,
                   ),
                   const SizedBox(height: 20),
                   _buildVariantSelectors(isDark: isDark),
@@ -1098,6 +1136,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             ),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             mainAxisAlignment: MainAxisAlignment.center,
             textDirection: TextDirection.ltr,
             children: [

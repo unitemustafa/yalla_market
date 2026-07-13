@@ -20,22 +20,30 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
       final summary = await _apiClient.get<Map<String, dynamic>>(
         '/home/classifications/',
       );
-      final commonClassifications = _classificationsFromPayload(
-        summary['common_market_classifications'],
-      );
       final classifications = _classificationsFromPayload(
         summary['market_classifications'],
       );
+      final classificationsById = {
+        for (final classification in classifications)
+          classification.id: classification,
+      };
+      final commonClassifications =
+          _jsonMaps(summary['common_market_classifications'])
+              .map((raw) => classificationsById[raw['id']?.toString() ?? ''])
+              .whereType<StoreClassificationData>()
+              .toList(growable: false);
       final marketsByClassificationId = <String, List<StoreMarketData>>{
         for (final raw in _jsonMaps(summary['market_classifications']))
           if ((raw['id']?.toString() ?? '').isNotEmpty)
             raw['id'].toString(): _marketsFromPayload(raw['markets']),
       };
+      final latestMarkets = _marketsFromPayload(summary['latest_markets']);
 
       return StoreData(
         commonClassifications: commonClassifications,
         classifications: classifications,
         marketsByClassificationId: marketsByClassificationId,
+        latestMarkets: latestMarkets,
       );
     });
   }

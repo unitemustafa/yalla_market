@@ -16,6 +16,7 @@ void main() {
         AppRoutes.search,
         AppRoutes.allProducts,
         AppRoutes.categories,
+        AppRoutes.latestStores,
         AppRoutes.profile,
         AppRoutes.notifications,
         AppRoutes.addresses,

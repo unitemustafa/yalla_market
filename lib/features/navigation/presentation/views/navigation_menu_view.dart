@@ -271,7 +271,7 @@ class _RegionSwitchDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: const BoxConstraints(maxWidth: 400),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: surfaceColor,
@@ -286,7 +286,7 @@ class _RegionSwitchDialog extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -294,8 +294,8 @@ class _RegionSwitchDialog extends StatelessWidget {
                 Align(
                   alignment: Alignment.center,
                   child: Container(
-                    width: 48,
-                    height: 48,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
                       color: AppColors.primary.withValues(
                         alpha: isDark ? 0.18 : 0.10,
@@ -305,21 +305,22 @@ class _RegionSwitchDialog extends StatelessWidget {
                     child: const Icon(
                       AppIcons.location,
                       color: AppColors.primary,
-                      size: 24,
+                      size: 21,
                     ),
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 11),
                 Text(
                   context.regionSwitchTitle(unsupported: unsupported),
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: textColor,
+                    fontSize: 17,
                     fontWeight: FontWeight.w900,
                     height: 1.25,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 9),
                 Text(
                   context.regionSwitchMessage(
                     currentRegion: safeCurrentLabel,
@@ -329,15 +330,16 @@ class _RegionSwitchDialog extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: mutedColor,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    height: 1.55,
+                    height: 1.45,
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 11),
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 10,
+                    horizontal: 10,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.warning.withValues(
@@ -353,15 +355,16 @@ class _RegionSwitchDialog extends StatelessWidget {
                       const Icon(
                         AppIcons.shopping_cart,
                         color: AppColors.warning,
-                        size: 18,
+                        size: 16,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Expanded(
                         child: Text(
                           context.cartClearedRegionWarning,
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: textColor,
+                                fontSize: 11,
                                 fontWeight: FontWeight.w700,
                                 height: 1.35,
                               ),
@@ -370,41 +373,43 @@ class _RegionSwitchDialog extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 18),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final stackButtons = constraints.maxWidth < 340;
-                    final keepButton = AppActionButton(
-                      label: context.keepCurrentRegion(safeCurrentLabel),
-                      icon: AppIcons.arrow_left_2,
-                      variant: AppActionButtonVariant.outlined,
-                      onPressed: onKeepCurrent,
-                    );
-                    final changeButton = AppActionButton(
-                      label: context.changeToRegion(detectedLabel),
-                      icon: AppIcons.tick_circle,
-                      onPressed: onChangeRegion,
-                    );
-
-                    if (stackButtons) {
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          changeButton,
-                          const SizedBox(height: 10),
-                          keepButton,
-                        ],
-                      );
-                    }
-
-                    return Row(
-                      children: [
-                        Expanded(child: keepButton),
-                        const SizedBox(width: 10),
-                        Expanded(child: changeButton),
-                      ],
-                    );
-                  },
+                const SizedBox(height: 14),
+                Row(
+                  textDirection: TextDirection.rtl,
+                  children: [
+                    Expanded(
+                      child: AppActionButton(
+                        label: context.changeToRegion(detectedLabel),
+                        icon: AppIcons.tick_circle,
+                        onPressed: onChangeRegion,
+                        textStyle: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        horizontalPadding: 6,
+                        verticalPadding: 10,
+                        iconSize: 14,
+                        iconSpacing: 3,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: AppActionButton(
+                        label: context.keepCurrentRegion(safeCurrentLabel),
+                        icon: AppIcons.arrow_left_2,
+                        variant: AppActionButtonVariant.outlined,
+                        onPressed: onKeepCurrent,
+                        textStyle: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                        ),
+                        horizontalPadding: 6,
+                        verticalPadding: 10,
+                        iconSize: 14,
+                        iconSpacing: 3,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

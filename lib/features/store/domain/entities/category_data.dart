@@ -8,6 +8,8 @@ class CategoryData {
     required this.galleryImages,
     required this.accentColorValue,
     this.keywords = const [],
+    this.marketCount,
+    this.classificationType = 'normal',
   });
 
   final String id;
@@ -18,6 +20,8 @@ class CategoryData {
   final List<String> galleryImages;
   final int accentColorValue;
   final List<String> keywords;
+  final int? marketCount;
+  final String classificationType;
 
   CategoryData copyWith({
     String? id,
@@ -28,6 +32,8 @@ class CategoryData {
     List<String>? galleryImages,
     int? accentColorValue,
     List<String>? keywords,
+    int? marketCount,
+    String? classificationType,
   }) {
     return CategoryData(
       id: id ?? this.id,
@@ -38,6 +44,8 @@ class CategoryData {
       galleryImages: galleryImages ?? this.galleryImages,
       accentColorValue: accentColorValue ?? this.accentColorValue,
       keywords: keywords ?? this.keywords,
+      marketCount: marketCount ?? this.marketCount,
+      classificationType: classificationType ?? this.classificationType,
     );
   }
 
@@ -58,11 +66,23 @@ class CategoryData {
         json['accentColor'] ?? json['accent_color'] ?? json['color'],
       ),
       keywords: _stringList(json['keywords']),
+      marketCount:
+          _nullableIntFromJson(json['marketCount'] ?? json['market_count']) ??
+          (json['markets'] is List ? (json['markets'] as List).length : null),
+      classificationType:
+          (json['classificationType'] ?? json['classification_type'])
+              ?.toString() ??
+          'normal',
     );
   }
 
   String get productCountLabel =>
       '$productCount product${productCount == 1 ? '' : 's'}';
+
+  String get marketCountLabel {
+    final count = marketCount ?? 0;
+    return '$count store${count == 1 ? '' : 's'}';
+  }
 
   Map<String, Object?> toJson() {
     return {
@@ -74,6 +94,8 @@ class CategoryData {
       'galleryImages': galleryImages,
       'accentColor': accentColorValue,
       'keywords': keywords,
+      'marketCount': marketCount,
+      'classificationType': classificationType,
     };
   }
 
@@ -106,6 +128,16 @@ int _intFromJson(Object? value) {
     return int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), '')) ?? 0;
   }
   return 0;
+}
+
+int? _nullableIntFromJson(Object? value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) {
+    return int.tryParse(value.replaceAll(RegExp(r'[^0-9]'), ''));
+  }
+  return null;
 }
 
 int _colorFromJson(Object? value) {

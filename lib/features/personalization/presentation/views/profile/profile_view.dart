@@ -23,6 +23,7 @@ class ProfileView extends StatefulWidget {
 
 class _ProfileViewState extends State<ProfileView> {
   bool _isRefreshingProfile = false;
+  bool _showInlineRefreshProgress = false;
   bool _isUploadingProfilePhoto = false;
   String? _refreshProfileError;
 
@@ -32,10 +33,11 @@ class _ProfileViewState extends State<ProfileView> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
   }
 
-  Future<void> _loadProfile() async {
-    if (!mounted) return;
+  Future<void> _loadProfile({bool showInlineProgress = true}) async {
+    if (!mounted || _isRefreshingProfile) return;
     setState(() {
       _isRefreshingProfile = true;
+      _showInlineRefreshProgress = showInlineProgress;
       _refreshProfileError = null;
     });
 
@@ -48,6 +50,7 @@ class _ProfileViewState extends State<ProfileView> {
 
     setState(() {
       _isRefreshingProfile = false;
+      _showInlineRefreshProgress = false;
       _refreshProfileError = user == null ? 'Could not refresh profile' : null;
     });
   }
@@ -111,15 +114,19 @@ class _ProfileViewState extends State<ProfileView> {
         child: ValueListenableBuilder<UserProfileController>(
           valueListenable: UserProfileController.instance,
           builder: (context, profile, _) {
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              child: Column(
-                children: [
+            return RefreshIndicator(
+              onRefresh: () => _loadProfile(showInlineProgress: false),
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                child: Column(
+                  children: [
                   const PageTopBar(
                     title: 'Profile',
                     subtitle: 'Edit personal details',
                   ),
-                  if (_isRefreshingProfile) ...[
+                  if (_isRefreshingProfile &&
+                      _showInlineRefreshProgress) ...[
                     const SizedBox(height: 10),
                     const LinearProgressIndicator(minHeight: 2),
                   ],
@@ -202,7 +209,8 @@ class _ProfileViewState extends State<ProfileView> {
                       ),
                     ],
                   ),
-                ],
+                  ],
+                ),
               ),
             );
           },

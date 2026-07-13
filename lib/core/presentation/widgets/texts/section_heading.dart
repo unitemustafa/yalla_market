@@ -10,12 +10,14 @@ class SectionHeading extends StatelessWidget {
     this.showActionButton = true,
     required this.title,
     this.buttonTitle = 'View all',
+    this.titleFontSize,
     this.onPressed,
   });
 
   final Color? textColor;
   final bool showActionButton;
   final String title, buttonTitle;
+  final double? titleFontSize;
   final void Function()? onPressed;
 
   @override
@@ -26,9 +28,10 @@ class SectionHeading extends StatelessWidget {
         Expanded(
           child: Text(
             context.tr(title),
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge!.apply(color: textColor),
+            style: Theme.of(context).textTheme.titleLarge!.copyWith(
+              color: textColor,
+              fontSize: titleFontSize,
+            ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),

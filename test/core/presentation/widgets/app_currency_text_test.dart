@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/core/presentation/widgets/texts/app_currency_text.dart';
 
 void main() {
@@ -37,6 +38,7 @@ void main() {
 
     expect(rootSpan.toPlainText(), 'EGP\u00A035');
     expect(symbolSpan.style?.fontSize, lessThan(20));
+    expect(symbolSpan.style?.color, AppColors.success);
     expect(richText.textDirection, TextDirection.ltr);
   });
 }

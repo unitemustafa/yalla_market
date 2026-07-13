@@ -11,8 +11,9 @@ void main() {
     test('normalizes EGP and Arabic currency text from product prices', () {
       expect(
         AppCurrency.formatPriceText('EGP 120.00 - EGP 180.00'),
-        'EGP 120 - EGP 180',
+        'EGP 120 - 180',
       );
+      expect(AppCurrency.formatPriceText('120.00 ~ 180.00'), 'EGP 120 - 180');
       expect(AppCurrency.formatPriceText('35 ج.م'), 'EGP 35');
     });
 

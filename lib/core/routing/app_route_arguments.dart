@@ -11,14 +11,20 @@ class OrderFocusRouteArgs {
   final int orderId;
 }
 
+enum ProductCollectionType { popular, latest }
+
 class AllProductsRouteArgs {
   const AllProductsRouteArgs({
     this.title = 'Popular Products',
     this.subtitle = 'Browse all curated products',
+    this.collection = ProductCollectionType.popular,
+    this.maxItems,
   });
 
   final String title;
   final String subtitle;
+  final ProductCollectionType collection;
+  final int? maxItems;
 }
 
 class AddressesRouteArgs {

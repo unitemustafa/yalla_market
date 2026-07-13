@@ -2133,7 +2133,7 @@ class _SummaryLine extends StatelessWidget {
                 color: color,
                 fontWeight: FontWeight.w900,
               ),
-              currencyColor: color,
+              currencyColor: AppColors.currency,
             ),
           ),
         ),

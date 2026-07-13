@@ -30,7 +30,7 @@ class GreenCurrencyPrice extends StatelessWidget {
           const TextSpan(text: _currencyGap),
           for (var index = 0; index < numbers.length; index++) ...[
             TextSpan(text: numbers[index]),
-            if (index < numbers.length - 1) const TextSpan(text: '-'),
+            if (index < numbers.length - 1) const TextSpan(text: ' - '),
           ],
         ],
       ),

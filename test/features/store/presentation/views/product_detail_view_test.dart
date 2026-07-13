@@ -280,12 +280,61 @@ void main() {
       );
 
       expect(find.text('اللون'), findsOneWidget);
+      expect(find.text('الحجم'), findsOneWidget);
       expect(find.text('أبيض'), findsOneWidget);
       expect(find.text('أسود'), findsOneWidget);
       expect(find.text('أزرق غير مستخدم'), findsNothing);
       expect(find.widgetWithText(InkWell, 'أسود'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('الحجم')).dy,
+        greaterThan(tester.getTopLeft(find.text('اللون')).dy),
+      );
+      expect(
+        tester.getTopLeft(find.text('أبيض')).dy,
+        tester.getTopLeft(find.text('أسود')).dy,
+      );
+      expect(
+        tester.getSize(find.widgetWithText(InkWell, 'أبيض')).width,
+        tester.getSize(find.widgetWithText(InkWell, 'أسود')).width,
+      );
+      expect(find.text('Selected variation'), findsNothing);
     },
   );
+
+  testWidgets('three values share the full attribute row equally', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        variants: [
+          {
+            'id': 'green',
+            'price': '10.00',
+            'attribute_values': _attributeValues(color: 'أخضر'),
+          },
+          {
+            'id': 'black',
+            'price': '20.00',
+            'attribute_values': _attributeValues(color: 'أسود'),
+          },
+          {
+            'id': 'white',
+            'price': '30.00',
+            'attribute_values': _attributeValues(color: 'أبيض'),
+          },
+        ],
+      ),
+    );
+
+    final green = find.widgetWithText(InkWell, 'أخضر');
+    final black = find.widgetWithText(InkWell, 'أسود');
+    final white = find.widgetWithText(InkWell, 'أبيض');
+    expect(tester.getTopLeft(green).dy, tester.getTopLeft(black).dy);
+    expect(tester.getTopLeft(black).dy, tester.getTopLeft(white).dy);
+    expect(tester.getSize(green).width, tester.getSize(black).width);
+    expect(tester.getSize(black).width, tester.getSize(white).width);
+  });
 
   testWidgets('selection changes variant id and price', (tester) async {
     final cartCubit = makeCartCubit();
@@ -320,6 +369,37 @@ void main() {
     expect(cartCubit.state.single.price, 20);
   });
 
+  testWidgets('shows discounted price range before selecting a variant', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        discount: '50.00',
+        variants: [
+          {
+            'id': 'small',
+            'price': '100.00',
+            'attribute_values': _attributeValues(size: 'صغير'),
+          },
+          {
+            'id': 'medium',
+            'price': '200.00',
+            'attribute_values': _attributeValues(size: 'متوسط'),
+          },
+        ],
+      ),
+    );
+
+    expect(find.text('50% OFF'), findsOneWidget);
+    expect(find.byIcon(Icons.check), findsNothing);
+    expect(find.text('Selected variation'), findsNothing);
+    final priceTexts = tester
+        .widgetList<RichText>(find.byType(RichText))
+        .map((widget) => widget.text.toPlainText());
+    expect(priceTexts.any((text) => text.contains('50 - 100')), isTrue);
+  });
+
   testWidgets('missing combination disables add to cart', (tester) async {
     final cartCubit = makeCartCubit();
     await _pumpProduct(
@@ -342,6 +422,8 @@ void main() {
     );
 
     await tester.ensureVisible(find.text('أسود'));
+    await tester.tap(find.text('صغير'));
+    await tester.pump();
     await tester.tap(find.text('أسود'));
     await tester.pump();
 
@@ -400,12 +482,14 @@ Future<void> _pumpProduct(
 ProductData _productWith({
   required List<Map<String, Object?>> variants,
   List<Map<String, Object?>> attributes = const [],
+  String discount = '0.00',
 }) => ProductData.fromJson({
   'id': 'variant-product',
   'name': 'Variant product',
   'image': AppAssets.defaultProduct,
   'variants': variants,
   'attributes': attributes,
+  'discount': discount,
 });
 
 List<Map<String, Object?>> _attributeValues({

@@ -21,6 +21,7 @@ import '../../features/navigation/presentation/views/navigation_menu_view.dart';
 import '../../features/store/presentation/views/all_products/all_products_view.dart';
 import '../../features/store/presentation/views/brand/brands_view.dart';
 import '../../features/store/presentation/views/brand/brand_products_view.dart';
+import '../../features/store/presentation/views/latest_stores_view.dart';
 import '../../features/store/presentation/views/checkout/processing_order_view.dart';
 import '../../features/store/presentation/views/checkout/payment_success_view.dart';
 import '../../features/store/presentation/views/checkout_view.dart';
@@ -48,6 +49,7 @@ class AppRouter {
     AppRoutes.search,
     AppRoutes.allProducts,
     AppRoutes.categories,
+    AppRoutes.latestStores,
     AppRoutes.productDetail,
     AppRoutes.brandProducts,
     AppRoutes.profile,
@@ -137,6 +139,8 @@ class AppRouter {
           AllProductsView(
             title: args?.title ?? 'Popular Products',
             subtitle: args?.subtitle ?? 'Browse all curated products',
+            collection: args?.collection ?? ProductCollectionType.popular,
+            maxItems: args?.maxItems,
           ),
           settings,
         );
@@ -162,6 +166,9 @@ class AppRouter {
 
       case AppRoutes.categories:
         return _buildRoute(const BrandsView(), settings);
+
+      case AppRoutes.latestStores:
+        return _buildRoute(const LatestStoresView(), settings);
 
       case AppRoutes.brandProducts:
         final args = settings.arguments as BrandProductsRouteArgs?;

@@ -302,17 +302,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           subtitle: subtitle.isEmpty ? market.productCountLabel : subtitle,
         ),
         const SizedBox(height: 18),
-        BrandShowcase(
-          brand: market.name,
-          logo: market.image,
-          productCount: market.productCountLabel,
-          accentColor: Color(market.accentColorValue),
-          images: market.products
-              .map((product) => product.image)
-              .take(3)
-              .toList(growable: false),
-        ),
-        const SizedBox(height: 26),
         ProductResultsView(
           products: market.products,
           status: ProductResultsStatus.ready,
@@ -420,8 +409,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           subtitle: '${widget.brand} • ${context.tr(shop.cityName)}',
         ),
         const SizedBox(height: 18),
-        _ShopHeaderCard(shop: shop),
-        const SizedBox(height: 22),
         ProductResultsView(
           products: shop.products,
           status: ProductResultsStatus.ready,

@@ -3,20 +3,25 @@ import '../../../../core/network/api_endpoints.dart';
 import 'product_data.dart';
 
 class StoreData {
+  static const featuredSlotCount = 4;
+
   const StoreData({
     required this.commonClassifications,
     required this.classifications,
     required this.marketsByClassificationId,
+    this.latestMarkets = const [],
   });
 
   final List<StoreClassificationData> commonClassifications;
   final List<StoreClassificationData> classifications;
   final Map<String, List<StoreMarketData>> marketsByClassificationId;
+  final List<StoreMarketData> latestMarkets;
 
   StoreData copyWith({
     List<StoreClassificationData>? commonClassifications,
     List<StoreClassificationData>? classifications,
     Map<String, List<StoreMarketData>>? marketsByClassificationId,
+    List<StoreMarketData>? latestMarkets,
   }) {
     return StoreData(
       commonClassifications:
@@ -24,30 +29,51 @@ class StoreData {
       classifications: classifications ?? this.classifications,
       marketsByClassificationId:
           marketsByClassificationId ?? this.marketsByClassificationId,
+      latestMarkets: latestMarkets ?? this.latestMarkets,
     );
   }
 
   List<StoreMarketData> marketsFor(String classificationId) {
-    return marketsByClassificationId[classificationId] ?? const [];
+    final markets = marketsByClassificationId[classificationId] ?? const [];
+    return [...markets]..sort((first, second) {
+      if (first.isPopular == second.isPopular) return 0;
+      return first.isPopular ? -1 : 1;
+    });
   }
+
+  List<StoreClassificationData> get featuredCandidates => [
+    ...classifications.where(
+      (classification) => classification.classificationType == 'featured',
+    ),
+    ...classifications.where(
+      (classification) => classification.classificationType == 'normal',
+    ),
+  ];
+
+  List<StoreClassificationData> get featuredSlots =>
+      featuredCandidates.take(featuredSlotCount).toList(growable: false);
+
+  bool get hasFeaturedOverflow => featuredCandidates.length > featuredSlotCount;
 }
 
 class StoreClassificationData {
   const StoreClassificationData({
     required this.id,
     required this.name,
-    required this.productCount,
+    required this.marketCount,
     required this.products,
     required this.image,
     required this.accentColorValue,
+    required this.classificationType,
   });
 
   final String id;
   final String name;
-  final int productCount;
+  final int marketCount;
   final List<ProductData> products;
   final String image;
   final int accentColorValue;
+  final String classificationType;
 
   factory StoreClassificationData.fromJson(Map<String, dynamic> json) {
     final id = json['id']?.toString() ?? '';
@@ -59,15 +85,18 @@ class StoreClassificationData {
     return StoreClassificationData(
       id: id,
       name: name,
-      productCount: _intFromJson(json['product_count']) ?? products.length,
+      marketCount:
+          _intFromJson(json['market_count']) ??
+          _jsonList(json['markets']).length,
       products: products,
       image: _resolveImage(json['image']),
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
+      classificationType: json['classification_type']?.toString() ?? 'normal',
     );
   }
 
-  String get productCountLabel {
-    return '$productCount product${productCount == 1 ? '' : 's'}';
+  String get marketCountLabel {
+    return '$marketCount store${marketCount == 1 ? '' : 's'}';
   }
 }
 
@@ -81,6 +110,8 @@ class StoreMarketData {
     required this.products,
     required this.image,
     required this.accentColorValue,
+    this.isPopular = false,
+    this.createdAt,
   });
 
   final String id;
@@ -91,6 +122,8 @@ class StoreMarketData {
   final List<ProductData> products;
   final String image;
   final int accentColorValue;
+  final bool isPopular;
+  final DateTime? createdAt;
 
   factory StoreMarketData.fromJson(Map<String, dynamic> json) {
     final id = json['id']?.toString() ?? '';
@@ -112,6 +145,8 @@ class StoreMarketData {
           ? AppAssets.temporaryMarketPlaceholder
           : products.first.image,
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
+      isPopular: json['is_popular'] == true,
+      createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
     );
   }
 
@@ -125,6 +160,8 @@ class StoreMarketData {
       products: products,
       image: products.isEmpty ? image : products.first.image,
       accentColorValue: accentColorValue,
+      isPopular: isPopular,
+      createdAt: createdAt,
     );
   }
 

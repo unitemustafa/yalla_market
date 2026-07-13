@@ -14,6 +14,11 @@ class AppActionButton extends StatelessWidget {
     this.isLoading = false,
     this.variant = AppActionButtonVariant.filled,
     this.fullWidth = true,
+    this.textStyle,
+    this.horizontalPadding = 16,
+    this.verticalPadding = 15,
+    this.iconSize = 18,
+    this.iconSpacing = 8,
   });
 
   final String label;
@@ -22,6 +27,11 @@ class AppActionButton extends StatelessWidget {
   final bool isLoading;
   final AppActionButtonVariant variant;
   final bool fullWidth;
+  final TextStyle? textStyle;
+  final double horizontalPadding;
+  final double verticalPadding;
+  final double iconSize;
+  final double iconSpacing;
 
   bool get _enabled => onPressed != null && !isLoading;
 
@@ -46,11 +56,15 @@ class AppActionButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 if (icon != null) ...[
-                  Icon(icon, size: 18),
-                  const SizedBox(width: 8),
+                  Icon(icon, size: iconSize),
+                  SizedBox(width: iconSpacing),
                 ],
                 Flexible(
-                  child: Text(localizedLabel, overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    localizedLabel,
+                    overflow: TextOverflow.ellipsis,
+                    style: textStyle,
+                  ),
                 ),
               ],
             ),
@@ -64,7 +78,10 @@ class AppActionButton extends StatelessWidget {
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.38),
           disabledForegroundColor: Colors.white.withValues(alpha: 0.78),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: 0,
         ),
@@ -80,7 +97,10 @@ class AppActionButton extends StatelessWidget {
                 ? AppColors.primary.withValues(alpha: 0.45)
                 : AppColors.primary.withValues(alpha: 0.18),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: child,
@@ -95,7 +115,10 @@ class AppActionButton extends StatelessWidget {
                 ? AppColors.error.withValues(alpha: 0.38)
                 : AppColors.error.withValues(alpha: 0.16),
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+          padding: EdgeInsets.symmetric(
+            horizontal: horizontalPadding,
+            vertical: verticalPadding,
+          ),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: child,

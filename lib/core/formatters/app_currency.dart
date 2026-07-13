@@ -19,16 +19,21 @@ class AppCurrency {
   static String formatPriceText(String? value) {
     if (value == null || value.trim().isEmpty) return '';
 
-    final parts = value.split('-');
-    return parts
+    final parts = value.split(RegExp(r'\s*(?:~|\s-\s)\s*'));
+    final formattedParts = parts
         .map(_formatPricePart)
         .where((part) => part.isNotEmpty)
-        .join(' - ');
+        .toList(growable: false);
+    if (formattedParts.length <= 1) return formattedParts.firstOrNull ?? '';
+    final amounts = formattedParts
+        .map((part) => part.replaceFirst('$symbol ', ''))
+        .toList(growable: false);
+    return '$symbol ${amounts.join(' - ')}';
   }
 
   static List<String> priceNumbers(String value) {
     return value
-        .split('-')
+        .split(RegExp(r'\s*(?:~|\s-\s)\s*'))
         .map(_numberFromText)
         .where((part) => part.isNotEmpty)
         .toList(growable: false);

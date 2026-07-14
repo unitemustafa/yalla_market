@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_assets.dart';
 import '../../../icons/app_icons.dart';
+import '../../../network/cloudinary_image_url.dart';
 
 enum AppImagePlaceholderType {
   user,
@@ -99,8 +100,12 @@ class AppImage extends StatelessWidget {
     if (value.isEmpty) return _buildFallback(context);
 
     if (_isNetworkSource(value)) {
+      final optimizedSource = optimizedCloudinaryImageUrl(
+        value,
+        targetWidth: effectiveCacheWidth,
+      );
       return CachedNetworkImage(
-        imageUrl: value,
+        imageUrl: optimizedSource,
         memCacheWidth: effectiveCacheWidth,
         memCacheHeight: effectiveCacheHeight,
         filterQuality: filterQuality,

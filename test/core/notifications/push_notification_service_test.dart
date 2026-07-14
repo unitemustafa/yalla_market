@@ -34,9 +34,11 @@ void main() {
   });
 
   test('structured offer event is emitted without routing from text', () async {
+    final presenter = FakeAccountNotificationPresenter();
     final service = PushNotificationService(
       FakeApiClient((_) => null),
       InMemoryTokenStore(),
+      accountNotificationPresenter: presenter,
     );
     final eventFuture = service.events.first;
 
@@ -51,6 +53,33 @@ void main() {
     expect(event.opened, isTrue);
     expect(event.data['action'], 'open_offer');
     expect(event.data['offer_id'], '15');
+    expect(presenter.offersShown, isEmpty);
+  });
+
+  test('offer foreground notification is shown once with route data', () async {
+    final presenter = FakeAccountNotificationPresenter();
+    final service = PushNotificationService(
+      FakeApiClient((_) => null),
+      InMemoryTokenStore(),
+      accountNotificationPresenter: presenter,
+    );
+    final data = <String, dynamic>{
+      'event': 'offer_created',
+      'action': 'open_offer',
+      'notification_id': '91',
+      'offer_id': '15',
+      'title': 'عرض جديد',
+      'message': 'العرض متاح دلوقتي.',
+    };
+    final eventFuture = service.events.first;
+
+    await service.handleDataForTesting(data, opened: false);
+    await service.handleDataForTesting(data, opened: false);
+
+    final event = await eventFuture;
+    expect(event.data['action'], 'open_offer');
+    expect(event.data['offer_id'], '15');
+    expect(presenter.offersShown, hasLength(1));
   });
 
   test('structured product event keeps direct product routing data', () async {
@@ -272,6 +301,7 @@ class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   final List<Map<String, dynamic>> deliveryAreasShown = [];
   final List<Map<String, dynamic>> marketsShown = [];
   final List<Map<String, dynamic>> productsShown = [];
+  final List<Map<String, dynamic>> offersShown = [];
 
   @override
   Future<void> initialize(
@@ -301,6 +331,11 @@ class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   @override
   Future<void> showProductCreated(Map<String, dynamic> data) async {
     productsShown.add(Map<String, dynamic>.from(data));
+  }
+
+  @override
+  Future<void> showOfferCreated(Map<String, dynamic> data) async {
+    offersShown.add(Map<String, dynamic>.from(data));
   }
 
   Future<void> tap(Map<String, dynamic> data) async {

@@ -1,5 +1,149 @@
 part of 'checkout_view.dart';
 
+List<CartItemData> _reviewItemsFromPreview(
+  List<CartItemData> cartItems,
+  OrderPreviewData preview,
+) {
+  final selectedProductsByVariant = <String, Map<String, dynamic>>{};
+  final selectedOffersById = <String, Map<String, dynamic>>{};
+
+  for (final group in preview.marketGroups) {
+    for (final product in group.selectedProducts) {
+      final variantId = product['variant_id']?.toString();
+      if (variantId == null || variantId.isEmpty) continue;
+      selectedProductsByVariant[variantId] = {
+        ...product,
+        '_market_id': group.market['id'],
+        '_market_name': group.marketName,
+      };
+    }
+    for (final offer in group.selectedOffers) {
+      final offerId = offer['id']?.toString();
+      if (offerId == null || offerId.isEmpty) continue;
+      final fragmentProducts = _previewMapList(offer['products'])
+          .map(
+            (product) => <String, dynamic>{
+              ...product,
+              '_market_id': group.market['id'],
+              '_market_name': group.marketName,
+            },
+          )
+          .toList(growable: false);
+      final existingOffer = selectedOffersById[offerId];
+      if (existingOffer == null) {
+        selectedOffersById[offerId] = {...offer, 'products': fragmentProducts};
+      } else {
+        existingOffer['products'] = [
+          ..._previewMapList(existingOffer['products']),
+          ...fragmentProducts,
+        ];
+      }
+    }
+  }
+
+  final reviewItems = <CartItemData>[];
+  for (final cartItem in cartItems) {
+    if (!cartItem.isOffer) {
+      final previewProduct = cartItem.variantId == null
+          ? null
+          : selectedProductsByVariant[cartItem.variantId];
+      reviewItems.add(
+        previewProduct == null
+            ? cartItem
+            : _reviewItemFromPreviewProduct(
+                previewProduct,
+                fallback: cartItem,
+                idSuffix: 'product',
+              ),
+      );
+      continue;
+    }
+
+    final previewOffer =
+        selectedOffersById[cartItem.id] ??
+        (cartItem.productId == null
+            ? null
+            : selectedOffersById[cartItem.productId]);
+    final products = _previewMapList(previewOffer?['products']);
+    if (previewOffer == null || products.isEmpty) {
+      reviewItems.add(cartItem);
+      continue;
+    }
+
+    for (var index = 0; index < products.length; index++) {
+      reviewItems.add(
+        _reviewItemFromPreviewProduct(
+          products[index],
+          fallback: cartItem,
+          idSuffix: 'offer-$index',
+        ),
+      );
+    }
+  }
+
+  return reviewItems;
+}
+
+CartItemData _reviewItemFromPreviewProduct(
+  Map<String, dynamic> product, {
+  required CartItemData fallback,
+  required String idSuffix,
+}) {
+  final variantId = product['variant_id']?.toString() ?? fallback.variantId;
+  return CartItemData(
+    id: '${fallback.id}-$idSuffix-${variantId ?? 'item'}',
+    productId: product['product_id']?.toString() ?? fallback.productId,
+    variantId: variantId,
+    additionIds: fallback.additionIds,
+    marketId: product['_market_id']?.toString() ?? fallback.marketId,
+    marketName: product['_market_name']?.toString().trim().isNotEmpty == true
+        ? product['_market_name']!.toString()
+        : fallback.marketName,
+    image: product['image']?.toString().trim().isNotEmpty == true
+        ? product['image']!.toString()
+        : fallback.image,
+    brand: product['_market_name']?.toString().trim().isNotEmpty == true
+        ? product['_market_name']!.toString()
+        : fallback.brand,
+    title: product['product_name']?.toString().trim().isNotEmpty == true
+        ? product['product_name']!.toString()
+        : fallback.title,
+    price: _previewDouble(product['unit_price']) ?? fallback.price,
+    quantity: _previewInt(product['quantity']) ?? fallback.quantity,
+    attributes: fallback.attributes,
+    itemType: fallback.itemType,
+    visibilityMode: fallback.visibilityMode,
+    regionSlugs: fallback.regionSlugs,
+    regionNames: fallback.regionNames,
+  );
+}
+
+List<Map<String, dynamic>> _previewMapList(Object? value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map(
+        (item) => <String, dynamic>{
+          for (final entry in item.entries)
+            if (entry.key is String) entry.key as String: entry.value,
+        },
+      )
+      .toList(growable: false);
+}
+
+double? _previewDouble(Object? value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
+}
+
+int? _previewInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
 class _ReviewItemsSection extends StatelessWidget {
   const _ReviewItemsSection({
     required this.items,

@@ -48,4 +48,57 @@ void main() {
     expect(find.textContaining('SEED-07-2', findRichText: true), findsNothing);
     expect(find.textContaining('1470', findRichText: true), findsWidgets);
   });
+
+  testWidgets('shows all package products together as one offer', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final cartCubit = makeCartCubit();
+    addTearDown(cartCubit.close);
+
+    await cartCubit.loadCartForUser('user-a');
+    await cartCubit.addItem(
+      const CartItemData(
+        id: '2',
+        productId: '2',
+        image: AppAssets.temporaryMarketPlaceholder,
+        brand: 'Package offer',
+        title: 'Sharm offer',
+        price: 78.2,
+        quantity: 1,
+        itemType: 'offer',
+        offerProducts: [
+          CartOfferProductData(
+            image: AppAssets.temporaryMarketPlaceholder,
+            brand: 'Grocery Store',
+            title: 'Chips',
+            price: 20,
+            quantity: 1,
+          ),
+          CartOfferProductData(
+            image: AppAssets.temporaryMarketPlaceholder,
+            brand: 'Dessert Store',
+            title: 'Harissa',
+            price: 72,
+            quantity: 1,
+          ),
+        ],
+      ),
+      1,
+    );
+
+    await tester.pumpWidget(
+      BlocProvider<CartCubit>.value(
+        value: cartCubit,
+        child: const MaterialApp(home: CartView()),
+      ),
+    );
+
+    expect(find.text('Sharm offer'), findsOneWidget);
+    expect(find.text('Chips'), findsOneWidget);
+    expect(find.text('Harissa'), findsOneWidget);
+    expect(find.text('2 products'), findsNWidgets(2));
+    expect(find.text('Offer price'), findsOneWidget);
+    expect(find.textContaining('78.2', findRichText: true), findsWidgets);
+  });
 }

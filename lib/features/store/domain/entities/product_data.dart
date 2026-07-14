@@ -164,6 +164,7 @@ class ProductData {
     this.isPopular = false,
     this.offerVariantId,
     this.offerQuantity = 1,
+    this.applyProductDiscount = true,
   });
 
   final String id;
@@ -195,6 +196,7 @@ class ProductData {
   final bool isPopular;
   final String? offerVariantId;
   final int offerQuantity;
+  final bool applyProductDiscount;
 
   ProductVariantData? get defaultVariant =>
       variants.isEmpty ? null : variants.first;
@@ -305,6 +307,11 @@ class ProductData {
           (_intFromJson(json['offerQuantity'] ?? json['offer_quantity']) ?? 1)
               .clamp(1, 99)
               .toInt(),
+      applyProductDiscount:
+          _boolFromJson(
+            json['applyProductDiscount'] ?? json['apply_product_discount'],
+          ) ??
+          true,
     );
   }
 
@@ -339,6 +346,7 @@ class ProductData {
       'isPopular': isPopular,
       'offerVariantId': offerVariantId,
       'offerQuantity': offerQuantity,
+      'applyProductDiscount': applyProductDiscount,
     };
   }
 
@@ -348,6 +356,24 @@ class ProductData {
           firstPrice.replaceAll(RegExp(r'[^0-9.,-]'), '').replaceAll(',', ''),
         ) ??
         0.0;
+  }
+
+  double get offerBasePriceValue {
+    final selectedVariantId = offerVariantId?.trim();
+    if (selectedVariantId != null && selectedVariantId.isNotEmpty) {
+      for (final variant in variants) {
+        if (variant.id == selectedVariantId) {
+          return _moneyValue(variant.price);
+        }
+      }
+    }
+    return priceValue;
+  }
+
+  double get offerUnitPriceValue {
+    if (!applyProductDiscount) return offerBasePriceValue;
+    final percentage = _moneyValue(discount).clamp(0.0, 100.0).toDouble();
+    return offerBasePriceValue * (1 - percentage / 100);
   }
 
   bool matches(String query) {
@@ -552,6 +578,18 @@ int? _intFromJson(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString() ?? '');
+}
+
+double _moneyValue(Object? value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(
+        value
+                ?.toString()
+                .replaceAll(RegExp(r'[^0-9.,-]'), '')
+                .replaceAll(',', '') ??
+            '',
+      ) ??
+      0;
 }
 
 bool _isUnsafeTag(String tag) {

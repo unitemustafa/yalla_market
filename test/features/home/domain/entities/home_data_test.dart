@@ -82,6 +82,36 @@ void main() {
         'المقاس': '50',
       });
     });
+
+    test('respects whether the product discount applies inside an offer', () {
+      final discountedOffer = HomeOfferData.fromJson({
+        'id': 10,
+        'title': 'Discounted product offer',
+        'products': [
+          {
+            ..._backendProduct(),
+            'offer_variant_id': 1,
+            'apply_product_discount': true,
+          },
+        ],
+      });
+      final fullPriceOffer = HomeOfferData.fromJson({
+        'id': 11,
+        'title': 'Full-price product offer',
+        'products': [
+          {
+            ..._backendProduct(),
+            'offer_variant_id': 1,
+            'apply_product_discount': false,
+          },
+        ],
+      });
+
+      expect(discountedOffer.products.single.applyProductDiscount, isTrue);
+      expect(discountedOffer.products.single.offerUnitPriceValue, 108);
+      expect(fullPriceOffer.products.single.applyProductDiscount, isFalse);
+      expect(fullPriceOffer.products.single.offerUnitPriceValue, 120);
+    });
   });
 }
 

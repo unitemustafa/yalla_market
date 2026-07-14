@@ -241,8 +241,8 @@ class _SummaryRow extends StatelessWidget {
   }
 }
 
-class _StackedSummaryValue extends StatelessWidget {
-  const _StackedSummaryValue({
+class _InlineSummaryValue extends StatelessWidget {
+  const _InlineSummaryValue({
     required this.primaryText,
     required this.primaryColor,
     required this.secondaryColor,
@@ -256,40 +256,44 @@ class _StackedSummaryValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return FittedBox(
       key: ValueKey('summary-value-${secondaryText ?? primaryText}'),
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        AppCurrencyText(
-          text: primaryText,
-          textAlign: TextAlign.end,
-          style: TextStyle(
-            color: primaryColor,
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
-          maxLines: 1,
-          overflow: TextOverflow.clip,
-        ),
-        if (secondaryText case final text?) ...[
-          const SizedBox(height: 4),
-          Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: Text(
-              text,
+      fit: BoxFit.scaleDown,
+      alignment: AlignmentDirectional.centerEnd,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AppCurrencyText(
+              text: primaryText,
               textAlign: TextAlign.end,
               style: TextStyle(
-                color: secondaryColor,
-                fontSize: 12,
+                color: primaryColor,
+                fontSize: 14,
                 fontWeight: FontWeight.w900,
               ),
               maxLines: 1,
               overflow: TextOverflow.clip,
             ),
-          ),
-        ],
-      ],
+            if (secondaryText case final text?) ...[
+              const SizedBox(width: 6),
+              Text(
+                '+ $text',
+                textDirection: TextDirection.ltr,
+                style: TextStyle(
+                  color: secondaryColor,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.clip,
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

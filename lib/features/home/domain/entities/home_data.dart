@@ -229,6 +229,7 @@ ProductData _productWithResolvedImage(ProductData product) {
     isPopular: product.isPopular,
     offerVariantId: product.offerVariantId,
     offerQuantity: product.offerQuantity,
+    applyProductDiscount: product.applyProductDiscount,
   );
 }
 

@@ -473,6 +473,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Product added to cart': 'المنتج اتضاف للسلة',
     'Product is out of stock': 'المنتج خلص من المخزون',
     'Products': 'المنتجات',
+    'Package offer': 'عرض باكدج',
+    'Offer price': 'سعر العرض',
     'Products, brands and categories': 'منتجات وبراندات وأقسام',
     'Profile': 'البروفايل',
     'Profile Information': 'بيانات البروفايل',

@@ -5,6 +5,7 @@ class _OrderSummaryCard extends StatelessWidget {
     required this.subtotal,
     required this.deliveryTypeLabel,
     required this.discount,
+    required this.discountLabel,
     required this.shippingFeeLabel,
     required this.totalLabel,
     this.pendingTotalDeliveryTypeLabel,
@@ -14,6 +15,7 @@ class _OrderSummaryCard extends StatelessWidget {
   final double subtotal;
   final String deliveryTypeLabel;
   final double discount;
+  final String discountLabel;
   final String shippingFeeLabel;
   final String totalLabel;
   final String? pendingTotalDeliveryTypeLabel;
@@ -64,7 +66,7 @@ class _OrderSummaryCard extends StatelessWidget {
           const SizedBox(height: 12),
           _SummaryRow(
             label: 'Shipping Fee',
-            valueWidget: _StackedSummaryValue(
+            valueWidget: _InlineSummaryValue(
               primaryText: shippingFeeLabel,
               secondaryText: deliveryTypeLabel == _notSpecifiedLabel(context)
                   ? null
@@ -77,7 +79,7 @@ class _OrderSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           _SummaryRow(
-            label: context.tr('Discount'),
+            label: discountLabel,
             value: _formatMoney(discount),
             textColor: textColor,
             mutedColor: mutedColor,
@@ -148,4 +150,28 @@ class _OrderSummaryCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _discountSummaryLabel(BuildContext context, OrderPreviewData? preview) {
+  if (preview == null) return context.tr('Discount');
+
+  final percentages = <double>{};
+  var hasOffer = false;
+  for (final group in preview.marketGroups) {
+    for (final offer in group.selectedOffers) {
+      hasOffer = true;
+      final percentage = _previewDouble(offer['discount_percentage']);
+      if (percentage != null && percentage > 0) percentages.add(percentage);
+    }
+  }
+
+  if (!hasOffer) return context.tr('Discount');
+  final baseLabel = context.tr('Offer discount');
+  if (percentages.length != 1) return baseLabel;
+
+  final percentage = percentages.single;
+  final percentageLabel = percentage == percentage.roundToDouble()
+      ? percentage.toInt().toString()
+      : percentage.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
+  return '$baseLabel ($percentageLabel%)';
 }

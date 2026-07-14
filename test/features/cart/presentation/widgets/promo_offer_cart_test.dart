@@ -13,6 +13,7 @@ import 'package:yalla_market/features/location/domain/entities/city_data.dart';
 import 'package:yalla_market/features/location/domain/repositories/location_repository.dart';
 import 'package:yalla_market/features/location/domain/usecases/location_usecases.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
+import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 
 void main() {
   group('PromoSlider offer cart items', () {
@@ -33,6 +34,12 @@ void main() {
       expect(cartCubit.state.single.productId, '5');
       expect(cartCubit.state.single.itemType, 'offer');
       expect(cartCubit.state.single.variantId, isNull);
+      expect(cartCubit.state.single.title, 'Fresh offer');
+      expect(cartCubit.state.single.offerProducts, hasLength(2));
+      expect(
+        cartCubit.state.single.offerProducts.map((product) => product.title),
+        ['Chips', 'Harissa'],
+      );
 
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump(const Duration(seconds: 1));
@@ -103,7 +110,30 @@ HomeOfferData _offer(String id) {
     startsAt: null,
     endsAt: null,
     marketName: 'Fresh Market',
-    products: const [],
+    products: const [
+      ProductData(
+        id: '7',
+        image: 'chips.png',
+        title: 'Chips',
+        brand: 'Grocery Store',
+        price: '20.00',
+        oldPrice: null,
+        discount: '0.00',
+        tags: [],
+        offerQuantity: 1,
+      ),
+      ProductData(
+        id: '6',
+        image: 'harissa.png',
+        title: 'Harissa',
+        brand: 'Dessert Store',
+        price: '80.00',
+        oldPrice: null,
+        discount: '10.00',
+        tags: [],
+        offerQuantity: 1,
+      ),
+    ],
   );
 }
 

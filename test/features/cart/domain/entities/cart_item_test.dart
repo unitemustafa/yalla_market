@@ -57,6 +57,7 @@ void main() {
       expect(item.price, 0);
       expect(item.quantity, 1);
       expect(item.attributes, isEmpty);
+      expect(item.offerProducts, isEmpty);
     });
 
     test('copyWith updates only provided fields', () {
@@ -115,7 +116,50 @@ void main() {
         'visibilityMode': 'general',
         'regionSlugs': [],
         'regionNames': [],
+        'offerProducts': [],
       });
+    });
+
+    test('serializes package products together with the offer cart item', () {
+      const item = CartItemData(
+        id: 'offer-2',
+        image: 'offer.png',
+        brand: 'Package offer',
+        title: 'Sharm offer',
+        price: 78.2,
+        quantity: 1,
+        itemType: 'offer',
+        offerProducts: [
+          CartOfferProductData(
+            productId: '7',
+            variantId: '12',
+            image: 'chips.png',
+            brand: 'Grocery Store',
+            title: 'Chips',
+            price: 20,
+            quantity: 1,
+          ),
+          CartOfferProductData(
+            productId: '6',
+            variantId: '10',
+            image: 'harissa.png',
+            brand: 'Dessert Store',
+            title: 'Harissa',
+            price: 72,
+            quantity: 1,
+          ),
+        ],
+      );
+
+      final restored = CartItemData.fromJson(item.toJson());
+
+      expect(restored.title, 'Sharm offer');
+      expect(restored.offerProducts, hasLength(2));
+      expect(restored.offerProducts.map((product) => product.title), [
+        'Chips',
+        'Harissa',
+      ]);
+      expect(restored.offerProducts.last.price, 72);
     });
   });
 }

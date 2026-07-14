@@ -526,7 +526,8 @@ class _PromoSliderState extends State<PromoSlider> {
     final products = offer.products.map(_offerProductFromApi).toList();
     final subtotalValue = offer.products.fold<double>(
       0,
-      (sum, product) => sum + (product.priceValue * product.offerQuantity),
+      (sum, product) =>
+          sum + (product.offerUnitPriceValue * product.offerQuantity),
     );
     final discountValue = double.tryParse(offer.discount) ?? 0;
     final totalValue = subtotalValue <= 0
@@ -610,7 +611,9 @@ class _PromoSliderState extends State<PromoSlider> {
   }
 
   _OfferProduct _offerProductFromApi(ProductData product) {
-    final discount = product.discount.trim();
+    final discount = product.applyProductDiscount
+        ? product.discount.trim()
+        : '';
     final selectedVariantId = product.offerVariantId?.trim().isNotEmpty == true
         ? product.offerVariantId!.trim()
         : product.defaultVariantId;
@@ -641,12 +644,16 @@ class _PromoSliderState extends State<PromoSlider> {
       titleAr: product.title,
       brandEn: product.brand,
       brandAr: product.brand,
-      price: selectedVariant?.price ?? product.price,
-      oldPrice: product.oldPrice,
+      price: AppCurrency.format(product.offerUnitPriceValue, fractionDigits: 2),
+      oldPrice:
+          product.applyProductDiscount && _moneyValue(product.discount) > 0
+          ? AppCurrency.format(product.offerBasePriceValue, fractionDigits: 2)
+          : product.oldPrice,
       badgeEn: discount,
       badgeAr: discount,
       metaEn: meta.isNotEmpty ? meta : (product.code ?? ''),
       metaAr: meta.isNotEmpty ? meta : (product.code ?? ''),
+      quantity: product.offerQuantity,
     );
   }
 
@@ -1281,8 +1288,7 @@ class _PromoOfferSheet extends StatelessWidget {
       return;
     }
 
-    final product = offer.products.first;
-    await cartCubit.addItem(product.toCartItem(offer, context, offerId), 1);
+    await cartCubit.addItem(offer.toCartItem(context, offerId), 1);
 
     if (!context.mounted) return;
 
@@ -2373,6 +2379,44 @@ class _PromoOfferData {
       _useArabicCopy(context) ? actionAr : actionEn;
 
   bool get hasExternalLink => linkUrl?.trim().isNotEmpty ?? false;
+
+  CartItemData toCartItem(BuildContext context, String validOfferId) {
+    final fallbackProduct = products.isEmpty ? null : products.first;
+    return CartItemData(
+      id: validOfferId,
+      productId: validOfferId,
+      image: image.trim().isNotEmpty ? image : (fallbackProduct?.image ?? ''),
+      brand: context.tr('Package offer'),
+      title: title(context),
+      price: _moneyValue(total),
+      quantity: 1,
+      itemType: 'offer',
+      visibilityMode: visibilityMode,
+      regionSlugs: regionSlugs,
+      regionNames: regionNames,
+      offerProducts: products
+          .map(
+            (product) => CartOfferProductData(
+              productId: product.productId,
+              variantId: product.variantId,
+              image: product.image,
+              brand: product.brand(context),
+              title: product.title(context),
+              price: _moneyValue(product.price),
+              quantity: product.quantity,
+              attributes: product.meta(context).trim().isEmpty
+                  ? const []
+                  : [
+                      CartItemAttribute(
+                        label: context.tr('Variant'),
+                        value: product.meta(context),
+                      ),
+                    ],
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
 }
 
 class _OfferProduct {
@@ -2390,6 +2434,7 @@ class _OfferProduct {
     this.oldPrice,
     this.metaEn = '',
     this.metaAr = '',
+    this.quantity = 1,
   });
 
   final String image;
@@ -2405,6 +2450,7 @@ class _OfferProduct {
   final String badgeAr;
   final String metaEn;
   final String metaAr;
+  final int quantity;
 
   String title(BuildContext context) =>
       _useArabicCopy(context) ? titleAr : titleEn;
@@ -2417,32 +2463,6 @@ class _OfferProduct {
 
   String meta(BuildContext context) =>
       _useArabicCopy(context) ? metaAr : metaEn;
-
-  CartItemData toCartItem(
-    _PromoOfferData offer,
-    BuildContext context,
-    String offerId,
-  ) {
-    return CartItemData(
-      id: offerId,
-      productId: offerId,
-      image: image,
-      brand: brand(context),
-      title: title(context),
-      price: _moneyValue(offer.total),
-      quantity: 1,
-      itemType: 'offer',
-      visibilityMode: offer.visibilityMode,
-      regionSlugs: offer.regionSlugs,
-      regionNames: offer.regionNames,
-      attributes: [
-        CartItemAttribute(
-          label: context.isArabicLanguage ? 'عرض' : 'Offer',
-          value: offer.title(context),
-        ),
-      ],
-    );
-  }
 }
 
 double _moneyValue(String value) {

@@ -231,6 +231,10 @@ class _CheckoutViewState extends State<CheckoutView> {
                           : _notSpecifiedLabel(context))
                     : _notSpecifiedLabel(context);
                 final deliveryTypeLabel = _deliveryTypeLabel(context, preview);
+                final reviewItems = hasPreviewTotals && preview != null
+                    ? _reviewItemsFromPreview(cartItems, preview)
+                    : cartItems;
+                final discountLabel = _discountSummaryLabel(context, preview);
                 final hasUnavailableDelivery =
                     preview?.hasUnavailableDelivery ?? false;
                 final canConfirmRemoteOrder =
@@ -268,8 +272,8 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 ),
                                 const SizedBox(height: 18),
                                 _ReviewItemsSection(
-                                  items: cartItems,
-                                  itemCount: _itemCount(cartItems),
+                                  items: reviewItems,
+                                  itemCount: _itemCount(reviewItems),
                                   isDark: isDark,
                                 ),
                                 const SizedBox(height: 14),
@@ -277,6 +281,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   subtotal: subtotal,
                                   deliveryTypeLabel: deliveryTypeLabel,
                                   discount: discount,
+                                  discountLabel: discountLabel,
                                   shippingFeeLabel: shippingFeeLabel,
                                   totalLabel: totalLabel,
                                   pendingTotalDeliveryTypeLabel:

@@ -271,8 +271,8 @@ void main() {
     expect(find.text('Fixed-price delivery'), findsNothing);
     expect(find.text('Delivery - price determined later'), findsNothing);
     expect(_findPlainText('EGP 120'), findsOneWidget);
-    expect(find.text('Delivery'), findsOneWidget);
-    expect(_findTextWithColor('Delivery', AppColors.error), findsOneWidget);
+    expect(find.text('+ Delivery'), findsOneWidget);
+    expect(_findTextWithColor('+ Delivery', AppColors.error), findsOneWidget);
     expect(_findPlainText('EGP 1580'), findsWidgets);
     expect(_findPlainText('EGP 1580.00'), findsNothing);
   });
@@ -317,15 +317,83 @@ void main() {
     expect(find.text('Delivery - price determined later'), findsNothing);
     expect(find.text('Determined later'), findsNothing);
     expect(find.text('Not specified'), findsOneWidget);
-    expect(find.text('Courier'), findsOneWidget);
-    expect(_findTextWithColor('Courier', AppColors.error), findsOneWidget);
+    expect(find.text('Courier'), findsNothing);
     expect(_findPlainText('EGP 1700'), findsOneWidget);
     expect(_findPlainText('EGP 1460'), findsNWidgets(2));
-    expect(find.text('+ Courier'), findsNWidgets(2));
-    expect(_findTextWithColor('+ Courier', AppColors.error), findsNWidgets(2));
+    expect(find.text('+ Courier'), findsNWidgets(3));
+    expect(_findTextWithColor('+ Courier', AppColors.error), findsNWidgets(3));
     expect(_findPlainText('EGP 1460.00 + delivery fee'), findsNothing);
     expect(find.textContaining('delivery fee'), findsNothing);
   });
+
+  testWidgets(
+    'package offer review expands server-priced products and explains discount',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final orderRepository = _CreateOrderRepository(
+        preview: _packageOfferPreview(),
+      );
+      final cartCubit = makeCartCubit();
+      final addressCubit = makeAddressCubit();
+      final checkoutCubit = makeCheckoutCubit(repository: orderRepository);
+      final orderHistoryCubit = makeOrderHistoryCubit(
+        repository: orderRepository,
+      );
+      await cartCubit.loadCartForUser('user-a');
+      await cartCubit.addItem(
+        const CartItemData(
+          id: '2',
+          productId: '2',
+          image: 'chips.png',
+          brand: 'Grocery Store',
+          title: 'Chips',
+          price: 85,
+          quantity: 1,
+          itemType: 'offer',
+          attributes: [CartItemAttribute(label: 'Offer', value: 'Sharm offer')],
+        ),
+        1,
+      );
+      addTearDown(cartCubit.close);
+      addTearDown(addressCubit.close);
+      addTearDown(checkoutCubit.close);
+      addTearDown(orderHistoryCubit.close);
+
+      await _pumpCheckoutView(
+        tester,
+        cartCubit: cartCubit,
+        addressCubit: addressCubit,
+        checkoutCubit: checkoutCubit,
+        orderHistoryCubit: orderHistoryCubit,
+        checkoutView: const CheckoutView(useDemoRepositories: false),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 products'), findsOneWidget);
+      expect(find.text('Chips'), findsOneWidget);
+      expect(find.text('Harissa'), findsOneWidget);
+      expect(find.text('Qty 1'), findsNWidgets(2));
+      expect(_findPlainText('EGP 20'), findsOneWidget);
+      expect(_findPlainText('EGP 72'), findsOneWidget);
+      expect(_findPlainText('EGP 85'), findsNothing);
+      expect(_findPlainText('EGP 92'), findsOneWidget);
+      expect(find.text('Offer discount (15%)'), findsOneWidget);
+      expect(_findPlainText('EGP 13.80'), findsOneWidget);
+
+      final shippingValue = find.byKey(
+        const ValueKey('summary-value-Delivery'),
+      );
+      expect(shippingValue, findsOneWidget);
+      expect(
+        find.descendant(of: shippingValue, matching: _findPlainText('EGP 600')),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(of: shippingValue, matching: find.text('+ Delivery')),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('checkout price formatting trims only empty decimals', (
     tester,
@@ -439,7 +507,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_findPlainText('EGP 1460'), findsNWidgets(2));
-    expect(find.text('+ Courier'), findsNWidgets(2));
+    expect(find.text('+ Courier'), findsNWidgets(3));
     expect(
       _findTextWithOverflow('EGP 1460', TextOverflow.ellipsis),
       findsNothing,
@@ -521,7 +589,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(_findPlainText('EGP 1460'), findsNWidgets(2));
-    expect(find.text('+ Courier'), findsNWidgets(2));
+    expect(find.text('+ Courier'), findsNWidgets(3));
     expect(find.text('Confirm Order'), findsOneWidget);
     expect(tester.getSize(find.text('Confirm Order')), isNot(Size.zero));
 
@@ -566,11 +634,11 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('+ دليفيري'), findsNWidgets(2));
+    expect(find.text('+ دليفيري'), findsNWidgets(3));
     expect(find.text('دليفيري +'), findsNothing);
     expect(
       _findTextWithDirection('+ دليفيري', TextDirection.ltr),
-      findsNWidgets(2),
+      findsNWidgets(3),
     );
   });
 
@@ -1034,6 +1102,83 @@ OrderPreviewData _twoMarketFixedAreaPreview() {
       discountTotal: 240,
       deliveryTotal: 120,
       grandTotal: 1580,
+    ),
+  );
+}
+
+OrderPreviewData _packageOfferPreview() {
+  return const OrderPreviewData(
+    marketGroups: [
+      OrderPreviewMarketGroupData(
+        market: {'id': 3, 'name': 'Grocery Store'},
+        deliveryType: 'fixed_area',
+        deliveryPrice: 600,
+        deliveryAvailable: true,
+        selectedOffers: [
+          {
+            'id': 2,
+            'title': 'Sharm offer',
+            'discount_percentage': '15.00',
+            'offer_products_subtotal': '20.00',
+            'discount_amount': '3.00',
+            'products': [
+              {
+                'product_id': 7,
+                'product_name': 'Chips',
+                'image': 'chips.png',
+                'variant_id': 12,
+                'quantity': 1,
+                'unit_price': '20.00',
+                'subtotal': '20.00',
+              },
+            ],
+          },
+        ],
+        pricing: OrderPreviewPricingData(
+          productsSubtotal: 20,
+          totalOfferDiscounts: 3,
+          deliveryPrice: 600,
+          marketTotal: 617,
+        ),
+      ),
+      OrderPreviewMarketGroupData(
+        market: {'id': 6, 'name': 'Dessert Store'},
+        deliveryType: 'fixed_area',
+        deliveryPrice: null,
+        deliveryAvailable: true,
+        selectedOffers: [
+          {
+            'id': 2,
+            'title': 'Sharm offer',
+            'discount_percentage': '15.00',
+            'offer_products_subtotal': '72.00',
+            'discount_amount': '10.80',
+            'products': [
+              {
+                'product_id': 6,
+                'product_name': 'Harissa',
+                'image': 'harissa.png',
+                'variant_id': 10,
+                'quantity': 1,
+                'unit_price': '72.00',
+                'subtotal': '72.00',
+              },
+            ],
+          },
+        ],
+        pricing: OrderPreviewPricingData(
+          productsSubtotal: 72,
+          totalOfferDiscounts: 10.8,
+          deliveryPrice: null,
+          marketTotal: 61.2,
+        ),
+      ),
+    ],
+    summary: OrderPreviewSummaryData(
+      subtotal: 92,
+      discountTotal: 13.8,
+      deliveryTotal: 600,
+      grandTotal: 678.2,
     ),
   );
 }

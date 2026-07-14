@@ -14,6 +14,60 @@ class CartItemAttribute {
   Map<String, Object?> toJson() => {'label': label, 'value': value};
 }
 
+class CartOfferProductData {
+  const CartOfferProductData({
+    this.productId,
+    this.variantId,
+    required this.image,
+    required this.brand,
+    required this.title,
+    required this.price,
+    required this.quantity,
+    this.attributes = const [],
+  });
+
+  final String? productId;
+  final String? variantId;
+  final String image;
+  final String brand;
+  final String title;
+  final double price;
+  final int quantity;
+  final List<CartItemAttribute> attributes;
+
+  factory CartOfferProductData.fromJson(Map<String, dynamic> json) {
+    return CartOfferProductData(
+      productId:
+          json['productId']?.toString() ?? json['product_id']?.toString(),
+      variantId:
+          json['variantId']?.toString() ?? json['variant_id']?.toString(),
+      image: json['image']?.toString() ?? json['imageUrl']?.toString() ?? '',
+      brand:
+          json['brand']?.toString() ??
+          json['marketName']?.toString() ??
+          json['market_name']?.toString() ??
+          '',
+      title: json['title']?.toString() ?? json['name']?.toString() ?? '',
+      price: _doubleFromJson(json['price'] ?? json['unitPrice']),
+      quantity: _intFromJson(json['quantity']) ?? 1,
+      attributes: _attributesFromJson(json['attributes']),
+    );
+  }
+
+  Map<String, Object?> toJson() {
+    return {
+      'productId': productId,
+      'variantId': variantId,
+      'image': image,
+      'brand': brand,
+      'title': title,
+      'price': price,
+      'quantity': quantity,
+      'attributes': attributes.map((attribute) => attribute.toJson()).toList(),
+    };
+  }
+}
+
 class CartItemData {
   const CartItemData({
     required this.id,
@@ -32,6 +86,7 @@ class CartItemData {
     this.visibilityMode = 'general',
     this.regionSlugs = const [],
     this.regionNames = const [],
+    this.offerProducts = const [],
   });
 
   final String id;
@@ -50,6 +105,7 @@ class CartItemData {
   final String visibilityMode;
   final List<String> regionSlugs;
   final List<String> regionNames;
+  final List<CartOfferProductData> offerProducts;
 
   bool get isOffer => itemType.trim().toLowerCase() == 'offer';
 
@@ -99,6 +155,9 @@ class CartItemData {
           'general',
       regionSlugs: _stringList(json['regionSlugs'] ?? json['region_slugs']),
       regionNames: _stringList(json['regionNames'] ?? json['region_names']),
+      offerProducts: _offerProductsFromJson(
+        json['offerProducts'] ?? json['offer_products'],
+      ),
     );
   }
 
@@ -120,6 +179,9 @@ class CartItemData {
       'visibilityMode': visibilityMode,
       'regionSlugs': regionSlugs,
       'regionNames': regionNames,
+      'offerProducts': offerProducts
+          .map((product) => product.toJson())
+          .toList(),
     };
   }
 
@@ -140,6 +202,7 @@ class CartItemData {
     String? visibilityMode,
     List<String>? regionSlugs,
     List<String>? regionNames,
+    List<CartOfferProductData>? offerProducts,
   }) {
     return CartItemData(
       id: id ?? this.id,
@@ -158,8 +221,21 @@ class CartItemData {
       visibilityMode: visibilityMode ?? this.visibilityMode,
       regionSlugs: regionSlugs ?? this.regionSlugs,
       regionNames: regionNames ?? this.regionNames,
+      offerProducts: offerProducts ?? this.offerProducts,
     );
   }
+}
+
+List<CartOfferProductData> _offerProductsFromJson(Object? value) {
+  if (value is! List) return const [];
+  return value
+      .whereType<Map>()
+      .map(
+        (item) => CartOfferProductData.fromJson(
+          item.map((key, value) => MapEntry(key.toString(), value)),
+        ),
+      )
+      .toList(growable: false);
 }
 
 List<CartItemAttribute> _attributesFromJson(Object? value) {

@@ -58,11 +58,6 @@ class _PaymentMethodCard extends StatelessWidget {
               ],
             ),
           ),
-          _SoftBadge(
-            label: 'Default',
-            icon: AppIcons.tick_circle,
-            isDark: isDark,
-          ),
         ],
       ),
     );
@@ -142,12 +137,6 @@ class _SavedAddressCheckoutCard extends StatelessWidget {
               ],
             ),
           ),
-          if (hasAddress)
-            _SoftBadge(
-              label: 'Selected',
-              icon: AppIcons.tick_circle,
-              isDark: isDark,
-            ),
         ],
       ),
     );

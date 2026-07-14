@@ -7,6 +7,7 @@ import '../../../../../core/config/app_environment.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/formatters/app_currency.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
+import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../../core/presentation/widgets/texts/app_currency_text.dart';
 import '../../../data/demo/demo_orders.dart';
@@ -45,9 +46,7 @@ class _OrdersViewState extends State<OrdersView> {
   }
 
   Future<void> _loadAndFocusOrder() async {
-    await context.read<OrderHistoryCubit>().loadOrders(
-      force: widget.focusOrderId != null,
-    );
+    await context.read<OrderHistoryCubit>().loadOrders(force: true);
     if (!mounted || widget.focusOrderId == null) return;
     final state = context.read<OrderHistoryCubit>().state;
     final orders = switch (state) {
@@ -102,68 +101,74 @@ class _OrdersViewState extends State<OrdersView> {
                       force: true,
                     ),
                   )
-                : ListView.separated(
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                    itemCount: filteredOrders.isEmpty
-                        ? 4
-                        : filteredOrders.length + 3,
-                    separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return const PageTopBar(
-                          title: 'My Orders',
-                          subtitle: 'Track current and previous purchases',
+                : AppRefreshIndicator(
+                    onRefresh: () => context
+                        .read<OrderHistoryCubit>()
+                        .loadOrders(force: true),
+                    child: ListView.separated(
+                      physics: AppRefreshIndicator.scrollPhysics,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                      itemCount: filteredOrders.isEmpty
+                          ? 4
+                          : filteredOrders.length + 3,
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        if (index == 0) {
+                          return const PageTopBar(
+                            title: 'My Orders',
+                            subtitle: 'Track current and previous purchases',
+                          );
+                        }
+
+                        if (index == 1) {
+                          return _OrdersDateFilterBar(
+                            selected: _dateFilter,
+                            customRange: _customDateRange,
+                            onChanged: (filter) =>
+                                _selectDateFilter(context, filter),
+                          );
+                        }
+
+                        if (index == 2) {
+                          return _OrdersSummaryCard(
+                            isDark: isDark,
+                            orders: filteredOrders,
+                          );
+                        }
+
+                        if (filteredOrders.isEmpty) {
+                          return orders.isEmpty
+                              ? const _OrdersEmptyState()
+                              : _OrdersEmptyFilterState(isDark: isDark);
+                        }
+
+                        final order = filteredOrders[index - 3];
+
+                        return OrderListItem(
+                          status: order.status,
+                          date: order.date,
+                          orderId: order.orderId,
+                          shippingDate: order.shippingDate,
+                          itemCount: order.itemCount,
+                          total: order.total,
+                          statusColor: order.statusColor,
+                          products: order.products
+                              .map(
+                                (product) => OrderListItemProduct(
+                                  title: product.title,
+                                  brand: product.brand,
+                                  quantity: product.quantity,
+                                ),
+                              )
+                              .toList(growable: false),
+                          isMultiMarket: order.isMultiMarket,
+                          marketCount: order.marketCount,
+                          marketSummary: order.marketSummary,
+                          onTap: () => _showOrderDetails(context, order),
                         );
-                      }
-
-                      if (index == 1) {
-                        return _OrdersDateFilterBar(
-                          selected: _dateFilter,
-                          customRange: _customDateRange,
-                          onChanged: (filter) =>
-                              _selectDateFilter(context, filter),
-                        );
-                      }
-
-                      if (index == 2) {
-                        return _OrdersSummaryCard(
-                          isDark: isDark,
-                          orders: filteredOrders,
-                        );
-                      }
-
-                      if (filteredOrders.isEmpty) {
-                        return orders.isEmpty
-                            ? const _OrdersEmptyState()
-                            : _OrdersEmptyFilterState(isDark: isDark);
-                      }
-
-                      final order = filteredOrders[index - 3];
-
-                      return OrderListItem(
-                        status: order.status,
-                        date: order.date,
-                        orderId: order.orderId,
-                        shippingDate: order.shippingDate,
-                        itemCount: order.itemCount,
-                        total: order.total,
-                        statusColor: order.statusColor,
-                        products: order.products
-                            .map(
-                              (product) => OrderListItemProduct(
-                                title: product.title,
-                                brand: product.brand,
-                                quantity: product.quantity,
-                              ),
-                            )
-                            .toList(growable: false),
-                        isMultiMarket: order.isMultiMarket,
-                        marketCount: order.marketCount,
-                        marketSummary: order.marketSummary,
-                        onTap: () => _showOrderDetails(context, order),
-                      );
-                    },
+                      },
+                    ),
                   ),
           ),
         );
@@ -293,7 +298,7 @@ class _OrdersViewState extends State<OrdersView> {
       AppCurrency.format(value, fractionDigits: 2, trimTrailingZero: false);
 
   String _monthName(int month) {
-    const names = [
+    const englishNames = [
       'Jan',
       'Feb',
       'Mar',
@@ -307,6 +312,21 @@ class _OrdersViewState extends State<OrdersView> {
       'Nov',
       'Dec',
     ];
+    const arabicNames = [
+      'يناير',
+      'فبراير',
+      'مارس',
+      'أبريل',
+      'مايو',
+      'يونيو',
+      'يوليو',
+      'أغسطس',
+      'سبتمبر',
+      'أكتوبر',
+      'نوفمبر',
+      'ديسمبر',
+    ];
+    final names = context.isArabicLanguage ? arabicNames : englishNames;
     return names[(month - 1).clamp(0, names.length - 1)];
   }
 
@@ -751,6 +771,7 @@ class _SummaryPill extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 AppCurrencyText(
@@ -895,7 +916,7 @@ class _OrderMarketSectionsSection extends StatelessWidget {
                 if (section.pickupStatus.trim().isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
-                    context.tr(section.pickupStatus),
+                    context.tr(section.pickupStatusLabel),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: mutedColor,
                       fontWeight: FontWeight.w700,

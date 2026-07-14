@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
+import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
 import '../../../../home/presentation/cubit/home_cubit.dart';
@@ -45,6 +46,16 @@ class _AllProductsViewState extends State<AllProductsView> {
     return products
         .take(maxItems.clamp(0, products.length))
         .toList(growable: false);
+  }
+
+  Future<void> _refreshProducts() {
+    return switch (widget.collection) {
+      ProductCollectionType.popular => context.read<HomeCubit>().loadHome(
+        force: true,
+      ),
+      ProductCollectionType.latest =>
+        context.read<ProductCatalogCubit>().loadProducts(force: true),
+    };
   }
 
   Widget _buildProductResults() {
@@ -128,22 +139,26 @@ class _AllProductsViewState extends State<AllProductsView> {
                 ? 920.0
                 : constraints.maxWidth;
 
-            return SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: maxContentWidth),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _ProductsTopBar(
-                        title: widget.title,
-                        subtitle: widget.subtitle,
-                        isDark: isDark,
-                      ),
-                      const SizedBox(height: 18),
-                      _buildProductResults(),
-                    ],
+            return AppRefreshIndicator(
+              onRefresh: _refreshProducts,
+              child: SingleChildScrollView(
+                physics: AppRefreshIndicator.scrollPhysics,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxContentWidth),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _ProductsTopBar(
+                          title: widget.title,
+                          subtitle: widget.subtitle,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 18),
+                        _buildProductResults(),
+                      ],
+                    ),
                   ),
                 ),
               ),

@@ -71,6 +71,22 @@ void main() {
       );
     });
 
+    test('DELETE clear read returns deleted count', () async {
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'DELETE');
+        expect(request.path, '/notifications/clear-read/');
+        return {'deleted_count': 4};
+      });
+      final repository = NotificationRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.clearReadNotifications();
+
+      result.when(
+        success: (count) => expect(count, 4),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
     test('GET unread count never returns a negative value', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.method, 'GET');

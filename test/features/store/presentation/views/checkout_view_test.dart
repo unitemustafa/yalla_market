@@ -317,11 +317,15 @@ void main() {
     expect(find.text('Delivery - price determined later'), findsNothing);
     expect(find.text('Determined later'), findsNothing);
     expect(find.text('Not specified'), findsOneWidget);
+    expect(
+      _findTextWithColor('Not specified', AppColors.error),
+      findsOneWidget,
+    );
     expect(find.text('Courier'), findsNothing);
     expect(_findPlainText('EGP 1700'), findsOneWidget);
     expect(_findPlainText('EGP 1460'), findsNWidgets(2));
-    expect(find.text('+ Courier'), findsNWidgets(3));
-    expect(_findTextWithColor('+ Courier', AppColors.error), findsNWidgets(3));
+    expect(find.text('+ Courier'), findsOneWidget);
+    expect(_findTextWithColor('+ Courier', AppColors.error), findsOneWidget);
     expect(_findPlainText('EGP 1460.00 + delivery fee'), findsNothing);
     expect(find.textContaining('delivery fee'), findsNothing);
   });
@@ -507,7 +511,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(_findPlainText('EGP 1460'), findsNWidgets(2));
-    expect(find.text('+ Courier'), findsNWidgets(3));
+    expect(find.text('+ Courier'), findsOneWidget);
     expect(
       _findTextWithOverflow('EGP 1460', TextOverflow.ellipsis),
       findsNothing,
@@ -589,7 +593,7 @@ void main() {
 
     expect(tester.takeException(), isNull);
     expect(_findPlainText('EGP 1460'), findsNWidgets(2));
-    expect(find.text('+ Courier'), findsNWidgets(3));
+    expect(find.text('+ Courier'), findsOneWidget);
     expect(find.text('Confirm Order'), findsOneWidget);
     expect(tester.getSize(find.text('Confirm Order')), isNot(Size.zero));
 
@@ -634,15 +638,15 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('+ دليفيري'), findsNWidgets(3));
+    expect(find.text('+ دليفيري'), findsOneWidget);
     expect(find.text('دليفيري +'), findsNothing);
     expect(
       _findTextWithDirection('+ دليفيري', TextDirection.ltr),
-      findsNWidgets(3),
+      findsOneWidget,
     );
   });
 
-  testWidgets('selected and default chips render with equal size', (
+  testWidgets('hides selection chips and pins the total to the outer edge', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
@@ -670,10 +674,26 @@ void main() {
       checkoutCubit: checkoutCubit,
       orderHistoryCubit: orderHistoryCubit,
       checkoutView: const CheckoutView(useDemoRepositories: false),
+      locale: const Locale('ar'),
     );
     await tester.pumpAndSettle();
 
-    expect(_badgeSize(tester, 'Selected'), _badgeSize(tester, 'Default'));
+    expect(find.text('Selected'), findsNothing);
+    expect(find.text('Default'), findsNothing);
+    expect(find.text('مختار'), findsNothing);
+    expect(find.text('الافتراضي'), findsNothing);
+
+    final panelRect = tester.getRect(
+      find.byKey(const ValueKey('order-total-panel')),
+    );
+    final labelRect = tester.getRect(
+      find.byKey(const ValueKey('order-total-label')),
+    );
+    final valueRect = tester.getRect(
+      find.byKey(const ValueKey('order-total-value')),
+    );
+    expect(panelRect.right - labelRect.right, lessThanOrEqualTo(16));
+    expect(valueRect.left - panelRect.left, lessThanOrEqualTo(16));
   });
 
   testWidgets('delivery unavailable blocks confirmation', (tester) async {
@@ -874,21 +894,6 @@ Finder _findTextWithDirection(String text, TextDirection direction) {
     );
     return plainText == text && widget.textDirection == direction;
   });
-}
-
-Size _badgeSize(WidgetTester tester, String label) {
-  final badge = find.ancestor(
-    of: find.text(label),
-    matching: find.byWidgetPredicate((widget) {
-      if (widget is! Container) return false;
-      final constraints = widget.constraints;
-      return constraints?.minWidth == 104 && constraints?.minHeight == 30;
-    }),
-  );
-  expect(badge, findsOneWidget);
-  final widget = tester.widget<Container>(badge);
-  final constraints = widget.constraints!;
-  return Size(constraints.minWidth, constraints.minHeight);
 }
 
 class _FakeLocationRepository implements LocationRepository, LocationUserScope {

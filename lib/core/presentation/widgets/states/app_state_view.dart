@@ -35,53 +35,48 @@ class AppStateView extends StatelessWidget {
         ? AppIcons.arrow_left_2
         : AppIcons.arrow_right_3;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 104,
-                height: 104,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: isDark ? 0.18 : 0.10),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, color: color, size: 46),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                context.tr(title),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                context.tr(message),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: mutedColor,
-                  height: 1.45,
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              if (actionLabel != null && onAction != null) ...[
-                const SizedBox(height: 22),
-                AppActionButton(
-                  label: actionLabel!,
-                  icon: showActionIcon ? actionIcon : null,
-                  onPressed: onAction,
-                ),
-              ],
-            ],
+    return _ScrollableStateBody(
+      maxWidth: 360,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 104,
+            height: 104,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isDark ? 0.18 : 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 46),
           ),
-        ),
+          const SizedBox(height: 20),
+          Text(
+            context.tr(title),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            context.tr(message),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: mutedColor,
+              height: 1.45,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (actionLabel != null && onAction != null) ...[
+            const SizedBox(height: 22),
+            AppActionButton(
+              label: actionLabel!,
+              icon: showActionIcon ? actionIcon : null,
+              onPressed: onAction,
+            ),
+          ],
+        ],
       ),
     );
   }
@@ -99,43 +94,71 @@ class AppLoadingState extends StatelessWidget {
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
 
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(28),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 320),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 84,
-                height: 84,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(
-                    alpha: isDark ? 0.18 : 0.10,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    color: AppColors.primary,
-                    strokeWidth: 2.8,
-                  ),
-                ),
+    return _ScrollableStateBody(
+      maxWidth: 320,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+                strokeWidth: 2.8,
               ),
-              const SizedBox(height: 18),
-              Text(
-                context.tr(message),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: mutedColor,
-                  fontWeight: FontWeight.w700,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+            ),
           ),
-        ),
+          const SizedBox(height: 18),
+          Text(
+            context.tr(message),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: mutedColor,
+              fontWeight: FontWeight.w700,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
+    );
+  }
+}
+
+class _ScrollableStateBody extends StatelessWidget {
+  const _ScrollableStateBody({required this.maxWidth, required this.child});
+
+  final double maxWidth;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const padding = 28.0;
+        final minHeight = constraints.hasBoundedHeight
+            ? (constraints.maxHeight - (padding * 2)).clamp(
+                0.0,
+                double.infinity,
+              )
+            : 0.0;
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(padding),
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minHeight: minHeight),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: child,
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

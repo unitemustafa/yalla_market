@@ -32,15 +32,18 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   final GetCategoriesUseCase _getCategories;
   final GetBrandsUseCase _getBrands;
   final GetSelectedCityUseCase _getSelectedCity;
-  bool _isLoadingDiscovery = false;
+  int? _loadingGeneration;
+  int _requestGeneration = 0;
 
   Future<void> loadDiscovery({bool force = false}) async {
-    if (_isLoadingDiscovery) return;
+    if (_loadingGeneration != null) return;
     if (!force && state is ProductDiscoveryReady) return;
-    _isLoadingDiscovery = true;
+    final generation = ++_requestGeneration;
+    _loadingGeneration = generation;
 
     try {
       final cityResult = await _getSelectedCity();
+      if (!_isCurrent(generation)) return;
       final selectedCity = cityResult.when(
         success: (city) => city,
         failure: (_) => null,
@@ -61,9 +64,13 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         ),
       );
 
-      final productsResult = await _getProducts(citySlug: selectedCity.slug);
-      final categoriesResult = await _getCategories();
-      final brandsResult = await _getBrands();
+      final productsFuture = _getProducts(citySlug: selectedCity.slug);
+      final categoriesFuture = _getCategories();
+      final brandsFuture = _getBrands();
+      final productsResult = await productsFuture;
+      final categoriesResult = await categoriesFuture;
+      final brandsResult = await brandsFuture;
+      if (!_isCurrent(generation)) return;
 
       productsResult.when(
         success: (products) {
@@ -101,7 +108,9 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         failure: (failure) => _emitFailure(failure.message),
       );
     } finally {
-      _isLoadingDiscovery = false;
+      if (_loadingGeneration == generation) {
+        _loadingGeneration = null;
+      }
     }
   }
 
@@ -111,7 +120,10 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
       return;
     }
 
+    final generation = ++_requestGeneration;
+
     final cityResult = await _getSelectedCity();
+    if (!_isCurrent(generation)) return;
     final selectedCity = cityResult.when(
       success: (city) => city,
       failure: (_) => null,
@@ -135,6 +147,7 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     final productsResult = normalizedQuery.isEmpty
         ? await _getProducts(citySlug: selectedCity.slug)
         : await _searchProducts(normalizedQuery, citySlug: selectedCity.slug);
+    if (!_isCurrent(generation)) return;
 
     productsResult.when(
       success: (products) {
@@ -270,5 +283,15 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         city: state.city,
       ),
     );
+  }
+
+  void clearSession() {
+    _requestGeneration++;
+    _loadingGeneration = null;
+    emit(const ProductDiscoveryInitial());
+  }
+
+  bool _isCurrent(int generation) {
+    return generation == _requestGeneration && !isClosed;
   }
 }

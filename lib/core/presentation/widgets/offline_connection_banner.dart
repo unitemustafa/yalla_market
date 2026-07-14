@@ -20,18 +20,28 @@ class OfflineConnectionBanner extends StatefulWidget {
       _OfflineConnectionBannerState();
 }
 
-class _OfflineConnectionBannerState extends State<OfflineConnectionBanner> {
+class _OfflineConnectionBannerState extends State<OfflineConnectionBanner>
+    with WidgetsBindingObserver {
   late final InternetStatusController _internetStatusController;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _internetStatusController = InternetStatusController();
     unawaited(_internetStatusController.start());
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      unawaited(_internetStatusController.refresh());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _internetStatusController.dispose();
     super.dispose();
   }

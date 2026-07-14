@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/preferences/app_preferences_controller.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/app_preferences_view.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/settings_view.dart';
@@ -21,6 +23,39 @@ void main() {
     expect(find.text('My Addresses'), findsOneWidget);
     expect(find.text('Orders'), findsNothing);
     expect(find.text('-'), findsNothing);
+  });
+
+  testWidgets('settings fits a compact iPhone viewport', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(320, 568));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    await tester.pumpWidget(const MaterialApp(home: SettingsView()));
+    await tester.pump();
+
+    expect(find.text('My Orders'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('settings tooltip is translated in Arabic', (tester) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        locale: Locale('ar'),
+        supportedLocales: AppTranslations.supportedLocales,
+        localizationsDelegates: [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        home: SettingsView(),
+      ),
+    );
+
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is Tooltip && widget.message == 'تفضيلات التطبيق',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('app preferences shows readonly EGP currency', (tester) async {

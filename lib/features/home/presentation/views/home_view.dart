@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/errors/region_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -25,8 +26,6 @@ import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
 import '../../../store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../store/presentation/cubit/product_catalog_state.dart';
-import '../../../store/presentation/cubit/product_discovery_cubit.dart';
-import '../../../store/presentation/cubit/store_cubit.dart';
 import '../widgets/home_categories.dart';
 import '../widgets/home_popular_products_slider.dart';
 import '../widgets/promo_slider.dart';
@@ -55,7 +54,7 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _loadHomeData(force: true);
+      _loadHomeData();
     });
   }
 
@@ -83,10 +82,6 @@ class _HomeViewState extends State<HomeView> {
       ).showSnackBar(const SnackBar(content: Text('هذا العرض لم يعد متاحًا')));
     }
     await context.read<ProductCatalogCubit>().loadProducts(force: force);
-    if (!mounted) return;
-    await context.read<ProductDiscoveryCubit>().loadDiscovery(force: force);
-    if (!mounted) return;
-    await context.read<StoreCubit>().loadStore(force: force);
   }
 
   Future<void> _openAddresses() async {
@@ -112,10 +107,10 @@ class _HomeViewState extends State<HomeView> {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
+        child: AppRefreshIndicator(
           onRefresh: () => _loadHomeData(force: true),
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: AppRefreshIndicator.scrollPhysics,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

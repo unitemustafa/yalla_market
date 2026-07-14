@@ -11,6 +11,8 @@ abstract class NotificationRepository {
 
   Future<ApiResult<bool>> deleteNotification(int notificationId);
 
+  Future<ApiResult<int>> clearReadNotifications();
+
   Future<ApiResult<int>> markAllAsRead();
 
   Future<ApiResult<int>> getUnreadCount();

@@ -9,8 +9,10 @@ class OrderHistoryCubit extends Cubit<OrderHistoryState> {
     : super(const OrderHistoryInitial());
 
   final GetMyOrdersUseCase _getMyOrdersUseCase;
+  int _generation = 0;
 
   void clearSession() {
+    _generation++;
     emit(const OrderHistoryInitial());
   }
 
@@ -18,6 +20,7 @@ class OrderHistoryCubit extends Cubit<OrderHistoryState> {
     if (state is OrderHistoryLoading) return;
     if (!force && state is OrderHistoryReady) return;
 
+    final generation = _generation;
     final staleOrders = switch (state) {
       OrderHistoryReady(:final orders) => orders,
       OrderHistoryFailure(:final orders) => orders,
@@ -28,6 +31,7 @@ class OrderHistoryCubit extends Cubit<OrderHistoryState> {
     emit(OrderHistoryLoading(orders: staleOrders));
 
     final result = await _getMyOrdersUseCase();
+    if (generation != _generation || isClosed) return;
     result.when(
       success: (orders) {
         emit(OrderHistoryReady(orders));

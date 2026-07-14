@@ -8,6 +8,13 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'التوصيل لم يعد متاحًا لهذا العنوان',
     'Notifications updated': 'تم تحديث الإشعارات',
     'Notification deleted': 'تم حذف الإشعار',
+    'Content updated': 'تم تحديث المحتوى',
+    'Delete all notifications': 'حذف كل الإشعارات',
+    'Delete all notifications?': 'حذف كل الإشعارات؟',
+    'This will permanently delete all your notifications.':
+        'سيتم حذف كل إشعاراتك نهائيًا.',
+    'All notifications deleted': 'تم حذف كل الإشعارات',
+    'Could not delete all notifications.': 'تعذر حذف كل الإشعارات.',
     'Refresh notifications': 'تحديث الإشعارات',
     'Account restored': 'تم استعادة حسابك',
     'Your account was restored by the Yalla Market team.':
@@ -179,6 +186,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Delivery area': 'منطقة التوصيل',
     'Delivery type': 'نوع التوصيل',
     'Courier': 'دليفيري',
+    'Courier assigned': 'تم تعيين المندوب',
     'Later': 'لاحقًا',
     'Fixed-price delivery': 'توصيل بسعر ثابت',
     'Delivery - price determined later': 'دليفري - السعر يتحدد لاحقًا',
@@ -451,6 +459,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Additions': 'الإضافات',
     'Choose additions': 'اختر الإضافات',
     'Pending': 'قيد الانتظار',
+    'Picked up': 'تم الاستلام',
     'Performance gym kit': 'طقم جيم عملي',
     'Permanent': 'نهائي',
     'Permanent deletion': 'حذف نهائي',
@@ -529,6 +538,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Rejected': 'مرفوض',
     'Review': 'المراجعة',
     'Status': 'الحالة',
+    'Status updated': 'تم تحديث الحالة',
     'Shipping Address': 'عنوان الشحن',
     'Shipping address required': 'عنوان الشحن مطلوب',
     'Complete the delivery address first.': 'أكمل بيانات عنوان التوصيل أولًا.',
@@ -754,7 +764,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Mobile Notifications': 'إشعارات الموبايل',
     'Offers, order updates, and account alerts':
         'العروض وتحديثات الطلب وتنبيهات الحساب',
-    'Do not save my search history': 'ما تحفظش سجل البحث بتاعي',
+    'Hide age-restricted products': 'إخفاء المنتجات المقيّدة حسب العمر',
     'EGP': 'EGP',
     'Keep your account information accurate and protect your password.':
         'خلي بيانات حسابك دقيقة واحمي كلمة السر.',

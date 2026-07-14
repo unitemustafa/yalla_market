@@ -214,7 +214,7 @@ class _ProfileTopBar extends StatelessWidget {
           ),
         ),
         Tooltip(
-          message: 'App preferences',
+          message: context.tr('App preferences'),
           child: Material(
             color: isDark ? AppColors.darkCardColor : Colors.white,
             borderRadius: BorderRadius.circular(8),

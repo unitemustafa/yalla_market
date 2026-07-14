@@ -16,7 +16,7 @@ void main() {
     AppLanguageController.instance.value = AppLanguage.english;
   });
 
-  testWidgets('remember me is unchecked and sends temporary mode by default', (
+  testWidgets('remember me is checked and sends persistent mode by default', (
     tester,
   ) async {
     final repository = FakeAuthRepository();
@@ -24,16 +24,16 @@ void main() {
 
     expect(
       tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
-      isFalse,
+      isTrue,
     );
     await _submitLogin(tester);
 
     expect(repository.loginCalls, 1);
     expect(repository.lastLoginEmail, 'm@example.com');
-    expect(repository.lastRememberMe, isFalse);
+    expect(repository.lastRememberMe, isTrue);
   });
 
-  testWidgets('checked remember me reaches the real login request', (
+  testWidgets('unchecked remember me reaches the temporary login request', (
     tester,
   ) async {
     final repository = FakeAuthRepository();
@@ -43,20 +43,35 @@ void main() {
     await tester.pump();
     expect(
       tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
-      isTrue,
+      isFalse,
     );
     await _submitLogin(tester);
 
     expect(repository.loginCalls, 1);
-    expect(repository.lastRememberMe, isTrue);
+    expect(repository.lastRememberMe, isFalse);
+  });
+
+  testWidgets('login fits a compact iPhone width with remember me selected', (
+    tester,
+  ) async {
+    final repository = FakeAuthRepository();
+    await _pumpLogin(tester, repository, surfaceSize: const Size(320, 568));
+
+    expect(tester.takeException(), isNull);
+    expect(find.text('Remember Me'), findsOneWidget);
+    expect(
+      tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
+      isTrue,
+    );
   });
 }
 
 Future<void> _pumpLogin(
   WidgetTester tester,
-  FakeAuthRepository repository,
-) async {
-  await tester.binding.setSurfaceSize(const Size(430, 900));
+  FakeAuthRepository repository, {
+  Size surfaceSize = const Size(430, 900),
+}) async {
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   final authCubit = AuthCubit(authUseCases(repository));
   final locationCubit = LocationCubit(

@@ -8,6 +8,7 @@ import '../../../data/demo/demo_categories.dart';
 import '../../../data/demo/demo_shops.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
+import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../../core/presentation/widgets/brands/brand_showcase.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
@@ -55,6 +56,13 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     });
   }
 
+  Future<void> _refreshContent() async {
+    await Future.wait([
+      context.read<StoreCubit>().loadStore(force: true),
+      context.read<ProductCatalogCubit>().loadProducts(force: true),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -69,9 +77,13 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           builder: (context, storeState) {
             return BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
               builder: (context, catalogState) {
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                  child: _buildContent(context, storeState, catalogState),
+                return AppRefreshIndicator(
+                  onRefresh: _refreshContent,
+                  child: SingleChildScrollView(
+                    physics: AppRefreshIndicator.scrollPhysics,
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                    child: _buildContent(context, storeState, catalogState),
+                  ),
                 );
               },
             );

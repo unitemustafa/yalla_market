@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/notifications/push_notification_service.dart';
+import 'package:yalla_market/core/preferences/app_preferences_controller.dart';
 import 'package:yalla_market/core/session/account_inactive_notifier.dart';
 import 'package:yalla_market/core/session/account_restored_notifier.dart';
 import 'package:yalla_market/core/session/session_metadata.dart';
@@ -11,6 +12,7 @@ import '../../helpers/fake_api_client.dart';
 void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
+    AppPreferencesController.instance.value = const AppPreferences();
   });
   test('account_disabled data clears tokens before notifying auth', () async {
     final tokenStore = InMemoryTokenStore();
@@ -229,6 +231,23 @@ void main() {
       ]);
       expect((requests.first.data as Map)['token'], 'new-token');
       expect((requests.last.data as Map)['token'], 'old-token');
+    },
+  );
+
+  test(
+    'token refresh stays unregistered when notifications are disabled',
+    () async {
+      AppPreferencesController.instance.value = const AppPreferences(
+        mobileNotificationsEnabled: false,
+      );
+      final tokenStore = InMemoryTokenStore();
+      await tokenStore.save(_tokens());
+      final apiClient = FakeApiClient((_) => null);
+      final service = PushNotificationService(apiClient, tokenStore);
+
+      await service.handleTokenRefreshForTesting('new-token');
+
+      expect(apiClient.requests, isEmpty);
     },
   );
 }

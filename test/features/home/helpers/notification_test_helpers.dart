@@ -40,11 +40,13 @@ class FakeNotificationRepository implements NotificationRepository {
   Failure? markReadFailure;
   Failure? markAllFailure;
   Failure? deleteFailure;
+  Failure? clearFailure;
   int listCalls = 0;
   int unreadCountCalls = 0;
   int markReadCalls = 0;
   int markAllCalls = 0;
   int deleteCalls = 0;
+  int clearReadCalls = 0;
 
   @override
   Future<ApiResult<List<AppNotification>>> getNotifications({
@@ -83,6 +85,15 @@ class FakeNotificationRepository implements NotificationRepository {
   }
 
   @override
+  Future<ApiResult<int>> clearReadNotifications() async {
+    clearReadCalls++;
+    if (clearFailure case final failure?) return ApiResult.failure(failure);
+    final deletedCount = notifications.length;
+    notifications.clear();
+    return ApiResult.success(deletedCount);
+  }
+
+  @override
   Future<ApiResult<int>> markAllAsRead() async {
     markAllCalls++;
     if (markAllFailure case final failure?) return ApiResult.failure(failure);
@@ -107,11 +118,13 @@ class SpyNotificationCubit extends NotificationCubit {
   int markReadCalls = 0;
   int markAllCalls = 0;
   int deleteCalls = 0;
+  int deleteAllCalls = 0;
   int clearCalls = 0;
   int? lastMarkedReadId;
   bool markReadSucceeds = true;
   bool markAllSucceeds = true;
   bool deleteSucceeds = true;
+  bool deleteAllSucceeds = true;
 
   void seed(NotificationState state) => emit(state);
 
@@ -183,6 +196,24 @@ class SpyNotificationCubit extends NotificationCubit {
       emit(state.copyWith(errorMessage: 'Could not delete notification.'));
       return false;
     }
+    return true;
+  }
+
+  @override
+  Future<bool> deleteAllNotifications() async {
+    deleteAllCalls++;
+    if (!deleteAllSucceeds) {
+      emit(state.copyWith(errorMessage: 'Could not delete notifications.'));
+      return false;
+    }
+    emit(
+      state.copyWith(
+        notifications: const [],
+        unreadCount: 0,
+        isDeletingAll: false,
+        clearError: true,
+      ),
+    );
     return true;
   }
 

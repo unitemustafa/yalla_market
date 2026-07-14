@@ -7,6 +7,7 @@ class NotificationState {
     this.isInitialLoading = false,
     this.isRefreshing = false,
     this.isMarkingAllRead = false,
+    this.isDeletingAll = false,
     this.markingReadIds = const <int>{},
     this.errorMessage,
     this.hasLoaded = false,
@@ -17,6 +18,7 @@ class NotificationState {
   final bool isInitialLoading;
   final bool isRefreshing;
   final bool isMarkingAllRead;
+  final bool isDeletingAll;
   final Set<int> markingReadIds;
   final String? errorMessage;
   final bool hasLoaded;
@@ -27,6 +29,7 @@ class NotificationState {
     bool? isInitialLoading,
     bool? isRefreshing,
     bool? isMarkingAllRead,
+    bool? isDeletingAll,
     Set<int>? markingReadIds,
     String? errorMessage,
     bool clearError = false,
@@ -38,6 +41,7 @@ class NotificationState {
       isInitialLoading: isInitialLoading ?? this.isInitialLoading,
       isRefreshing: isRefreshing ?? this.isRefreshing,
       isMarkingAllRead: isMarkingAllRead ?? this.isMarkingAllRead,
+      isDeletingAll: isDeletingAll ?? this.isDeletingAll,
       markingReadIds: markingReadIds ?? this.markingReadIds,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       hasLoaded: hasLoaded ?? this.hasLoaded,

@@ -8,6 +8,7 @@ class WishlistCubit extends Cubit<List<WishlistItem>> {
 
   final WishlistUseCases _wishlistUseCases;
   String? _currentUserKey;
+  int _generation = 0;
 
   Future<void> loadWishlistForUser(String userKey) async {
     final normalizedUserKey = userKey.trim();
@@ -16,8 +17,14 @@ class WishlistCubit extends Cubit<List<WishlistItem>> {
       return;
     }
 
-    _currentUserKey = normalizedUserKey;
+    if (_currentUserKey != normalizedUserKey) {
+      _generation++;
+      _currentUserKey = normalizedUserKey;
+      emit(const []);
+    }
+    final generation = _generation;
     final result = await _wishlistUseCases.getItems(normalizedUserKey);
+    if (!_isCurrent(normalizedUserKey, generation)) return;
     result.when(success: emit, failure: (_) {});
   }
 
@@ -31,7 +38,9 @@ class WishlistCubit extends Cubit<List<WishlistItem>> {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) return;
 
+    final generation = _generation;
     final result = await _wishlistUseCases.toggleItem(userKey, item);
+    if (!_isCurrent(userKey, generation)) return;
     result.when(success: emit, failure: (_) {});
   }
 
@@ -39,15 +48,25 @@ class WishlistCubit extends Cubit<List<WishlistItem>> {
     final normalizedUserKey = userKey.trim();
     if (normalizedUserKey.isEmpty) return;
 
-    _currentUserKey = normalizedUserKey;
+    if (_currentUserKey != normalizedUserKey) {
+      _generation++;
+      _currentUserKey = normalizedUserKey;
+      emit(const []);
+    }
+    final generation = _generation;
     final result = await _wishlistUseCases.toggleItem(normalizedUserKey, item);
+    if (!_isCurrent(normalizedUserKey, generation)) return;
     result.when(success: emit, failure: (_) {});
   }
 
   void clearSession() {
+    _generation++;
     _currentUserKey = null;
     emit(const []);
   }
+
+  bool _isCurrent(String userKey, int generation) =>
+      generation == _generation && _currentUserKey == userKey && !isClosed;
 
   bool isFavorite(String productId) {
     return state.any((element) => element.productId == productId);

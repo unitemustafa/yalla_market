@@ -110,7 +110,7 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                               _PreferenceSwitchTile(
                                 icon: AppIcons.security_user,
                                 title: 'Safe Mode',
-                                subtitle: 'Do not save my search history',
+                                subtitle: 'Hide age-restricted products',
                                 value: preferences.safeModeEnabled,
                                 accentColor: AppColors.warning,
                                 onChanged: AppPreferencesController

@@ -45,6 +45,18 @@ void main() {
 
     expect(find.text('Latest Stores'), findsOneWidget);
     expect(find.byType(TabBar), findsNothing);
+    expect(find.byType(NestedScrollView), findsNothing);
+    final storeScroll = find.byKey(
+      const ValueKey('store_without_popular_scroll'),
+    );
+    expect(storeScroll, findsOneWidget);
+    final initialStoreTop = tester.getTopLeft(find.text('Store')).dy;
+    await tester.drag(storeScroll, const Offset(0, -400));
+    await tester.pumpAndSettle();
+    expect(
+      tester.getTopLeft(find.text('Store')).dy,
+      closeTo(initialStoreTop, 1),
+    );
     final slider = find.byKey(
       const ValueKey('latest_stores_horizontal_slider'),
     );
@@ -68,9 +80,8 @@ void main() {
       await tester.binding.setSurfaceSize(const Size(320, 760));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final storeCubit = StoreCubit(
-        GetStoreUseCase(_StoreRepository(_storeWithPopularMarkets())),
-      );
+      final repository = _StoreRepository(_storeWithPopularMarkets());
+      final storeCubit = StoreCubit(GetStoreUseCase(repository));
       final cartCubit = makeCartCubit();
       addTearDown(storeCubit.close);
       addTearDown(cartCubit.close);
@@ -90,6 +101,21 @@ void main() {
       expect(tabBar.isScrollable, isTrue);
       expect(find.text('No popular stores here'), findsNothing);
       expect(tester.takeException(), isNull);
+
+      final callsBeforeRefresh = repository.calls;
+      final popularStoresList = find.descendant(
+        of: find.byType(TabBarView),
+        matching: find.byType(ListView),
+      );
+      expect(popularStoresList, findsOneWidget);
+
+      await tester.fling(popularStoresList, const Offset(0, 500), 1000);
+      await tester.pump();
+      await tester.pump(const Duration(seconds: 1));
+      await tester.pumpAndSettle();
+
+      expect(repository.calls, callsBeforeRefresh + 1);
+      expect(find.text('Content updated'), findsOneWidget);
     },
   );
 }
@@ -179,10 +205,14 @@ StoreData _storeWithPopularMarkets() {
 }
 
 class _StoreRepository implements StoreRepository {
-  const _StoreRepository(this.store);
+  _StoreRepository(this.store);
 
   final StoreData store;
+  int calls = 0;
 
   @override
-  Future<ApiResult<StoreData>> getStore() async => ApiResult.success(store);
+  Future<ApiResult<StoreData>> getStore() async {
+    calls++;
+    return ApiResult.success(store);
+  }
 }

@@ -443,6 +443,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       context: context,
       builder: (dialogContext) {
         final isDark = Theme.of(dialogContext).brightness == Brightness.dark;
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(dialogContext);
+        final imageLogicalWidth = (MediaQuery.sizeOf(dialogContext).width - 88)
+            .clamp(1.0, 720.0);
 
         return Dialog(
           backgroundColor: Colors.transparent,
@@ -471,6 +474,9 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                       source: imagePath,
                       fallbackType: AppImagePlaceholderType.product,
                       fit: BoxFit.contain,
+                      cacheWidth: (imageLogicalWidth * devicePixelRatio)
+                          .round(),
+                      cacheHeight: (300 * devicePixelRatio).round(),
                     ),
                   ),
                 ),

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -84,6 +86,27 @@ void main() {
       await cubit.close();
     });
 
+    test('ignores a late order response after session reset', () async {
+      final completer = Completer<ApiResult<List<OrderData>>>();
+      final repository = _FakeOrderRepository(createCompleter: completer);
+      final cubit = CheckoutCubit(
+        CreateOrderUseCase(repository),
+        PreviewOrderUseCase(repository),
+      );
+
+      final createFuture = cubit.createOrder(
+        shippingAddress: sampleShippingAddress,
+        items: const [sampleOrderItem],
+      );
+      await Future<void>.delayed(Duration.zero);
+      cubit.reset();
+      completer.complete(ApiResult.success([sampleOrder]));
+      await createFuture;
+
+      expect(cubit.state, isA<CheckoutInitial>());
+      await cubit.close();
+    });
+
     test('loads checkout preview successfully', () async {
       final repository = _FakeOrderRepository(previewResult: samplePreview);
       final cubit = CheckoutCubit(
@@ -146,12 +169,14 @@ class _FakeOrderRepository implements OrderRepository {
     this.createFailure,
     this.previewResult,
     this.previewFailure,
+    this.createCompleter,
   });
 
   final OrderData? createResult;
   final Failure? createFailure;
   final OrderPreviewData? previewResult;
   final Failure? previewFailure;
+  final Completer<ApiResult<List<OrderData>>>? createCompleter;
   String? lastPaymentMethod;
   List<CartItemData> lastCartItems = const [];
 
@@ -172,6 +197,10 @@ class _FakeOrderRepository implements OrderRepository {
   }) async {
     lastPaymentMethod = paymentMethod;
     lastCartItems = cartItems;
+
+    if (createCompleter case final completer?) {
+      return completer.future;
+    }
 
     if (createFailure case final failure?) {
       return ApiResult.failure(failure);

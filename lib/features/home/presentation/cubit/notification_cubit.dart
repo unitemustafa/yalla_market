@@ -135,6 +135,62 @@ class NotificationCubit extends Cubit<NotificationState> {
     );
   }
 
+  Future<bool> deleteAllNotifications() async {
+    if (state.notifications.isEmpty) return true;
+    if (state.isDeletingAll) return false;
+
+    final generation = _generation;
+    emit(state.copyWith(isDeletingAll: true, clearError: true));
+
+    final markResult = await _repository.markAllAsRead();
+    if (generation != _generation || isClosed) return false;
+
+    var markedAll = false;
+    String? failureMessage;
+    markResult.when(
+      success: (_) => markedAll = true,
+      failure: (failure) => failureMessage = failure.message,
+    );
+    if (!markedAll) {
+      emit(state.copyWith(isDeletingAll: false, errorMessage: failureMessage));
+      return false;
+    }
+
+    final clearResult = await _repository.clearReadNotifications();
+    if (generation != _generation || isClosed) return false;
+
+    return clearResult.when(
+      success: (_) {
+        final protectedNotifications = state.notifications
+            .where((item) => item.isBlocking && !item.isResolved)
+            .map((item) => item.copyWith(isRead: true))
+            .toList(growable: false);
+        emit(
+          state.copyWith(
+            notifications: List.unmodifiable(protectedNotifications),
+            unreadCount: 0,
+            isDeletingAll: false,
+            clearError: true,
+          ),
+        );
+        return true;
+      },
+      failure: (failure) {
+        emit(
+          state.copyWith(
+            notifications: List.unmodifiable(
+              state.notifications.map((item) => item.copyWith(isRead: true)),
+            ),
+            unreadCount: 0,
+            isDeletingAll: false,
+            errorMessage: failure.message,
+          ),
+        );
+        return false;
+      },
+    );
+  }
+
   void removeNotification(int id) {
     final index = state.notifications.indexWhere((item) => item.id == id);
     if (index == -1) return;

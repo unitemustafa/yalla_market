@@ -5,6 +5,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
+import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/routing/app_route_arguments.dart';
@@ -52,6 +53,51 @@ class _NotificationsViewState extends State<NotificationsView> {
     CustomSnackBar.showError(
       context: context,
       title: 'Could not mark notifications as read.',
+    );
+  }
+
+  Future<void> _deleteAllNotifications() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(dialogContext.tr('Delete all notifications?')),
+          content: Text(
+            dialogContext.tr(
+              'This will permanently delete all your notifications.',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(dialogContext.tr('Cancel')),
+            ),
+            FilledButton(
+              key: const ValueKey('confirm-delete-all-notifications'),
+              onPressed: () => Navigator.pop(dialogContext, true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
+              child: Text(dialogContext.tr('Delete')),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !mounted) return;
+
+    final success = await context
+        .read<NotificationCubit>()
+        .deleteAllNotifications();
+    if (!mounted) return;
+    if (success) {
+      CustomSnackBar.showRemoved(
+        context: context,
+        title: 'All notifications deleted',
+      );
+      return;
+    }
+    CustomSnackBar.showError(
+      context: context,
+      title: 'Could not delete all notifications.',
     );
   }
 
@@ -183,13 +229,11 @@ class _NotificationsViewState extends State<NotificationsView> {
                 return Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
-                    child: RefreshIndicator(
-                      semanticsLabel: context.tr('Refresh notifications'),
+                    child: AppRefreshIndicator(
                       onRefresh: _refresh,
+                      showSuccessSnackBar: false,
                       child: ListView(
-                        physics: const AlwaysScrollableScrollPhysics(
-                          parent: BouncingScrollPhysics(),
-                        ),
+                        physics: AppRefreshIndicator.scrollPhysics,
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                         children: [
                           PageTopBar(
@@ -201,6 +245,13 @@ class _NotificationsViewState extends State<NotificationsView> {
                                 isLoading: state.isMarkingAllRead,
                                 enabled: state.unreadCount > 0,
                                 onPressed: _markAllRead,
+                              ),
+                              const SizedBox(width: 8),
+                              _DeleteAllNotificationsButton(
+                                isDark: isDark,
+                                isLoading: state.isDeletingAll,
+                                enabled: state.notifications.isNotEmpty,
+                                onPressed: _deleteAllNotifications,
                               ),
                             ],
                           ),

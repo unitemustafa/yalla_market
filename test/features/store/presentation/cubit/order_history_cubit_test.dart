@@ -95,6 +95,26 @@ void main() {
       expect(cubit.state, isA<OrderHistoryInitial>());
       await cubit.close();
     });
+
+    test(
+      'clearSession ignores an order response from the old session',
+      () async {
+        final delay = Completer<void>();
+        final repository = _FakeOrderRepository(
+          orders: [sampleOrder],
+          delay: delay,
+        );
+        final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+
+        final load = cubit.loadOrders();
+        cubit.clearSession();
+        delay.complete();
+        await load;
+
+        expect(cubit.state, isA<OrderHistoryInitial>());
+        await cubit.close();
+      },
+    );
   });
 }
 

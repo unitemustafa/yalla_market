@@ -33,6 +33,22 @@ import '../../helpers/notification_test_helpers.dart';
 
 void main() {
   group('home notification badge', () {
+    testWidgets('home header fits a compact iPhone viewport', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final cubit = SpyNotificationCubit()
+        ..seed(const NotificationState(unreadCount: 100));
+      addTearDown(cubit.close);
+
+      await _pumpHome(tester, cubit);
+
+      expect(
+        find.byKey(const ValueKey('notification_bell_button')),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('unreadCount 0 hides badge', (tester) async {
       final cubit = SpyNotificationCubit()
         ..seed(const NotificationState(unreadCount: 0));

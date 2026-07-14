@@ -314,36 +314,6 @@ class _HorizontalProductCardState extends State<_HorizontalProductCard> {
                               ),
                             ),
                           ),
-                        PositionedDirectional(
-                          top: 8,
-                          end: 8,
-                          child:
-                              BlocSelector<
-                                WishlistCubit,
-                                List<WishlistItem>,
-                                bool
-                              >(
-                                selector: (items) => items.any(
-                                  (item) => item.productId == product.id,
-                                ),
-                                builder: (context, isFavorite) {
-                                  return _SmallIconButton(
-                                    icon: isFavorite
-                                        ? AppIcons.heart5
-                                        : AppIcons.heart,
-                                    iconColor: isFavorite
-                                        ? AppColors.error
-                                        : (isDark
-                                              ? Colors.white70
-                                              : Colors.black45),
-                                    backgroundColor: isDark
-                                        ? Colors.black.withValues(alpha: 0.28)
-                                        : Colors.white.withValues(alpha: 0.95),
-                                    onTap: () => _toggleWishlist(isFavorite),
-                                  );
-                                },
-                              ),
-                        ),
                       ],
                     ),
                   ),
@@ -352,48 +322,51 @@ class _HorizontalProductCardState extends State<_HorizontalProductCard> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.all(10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Text(
-                        context.tr(product.title),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: textColor,
-                          height: 1.18,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 5),
-                      Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              context.tr(product.brand),
-                              style: Theme.of(context).textTheme.labelMedium
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.tr(product.title),
+                              style: Theme.of(context).textTheme.bodyMedium
                                   ?.copyWith(
-                                    color: mutedColor,
-                                    fontWeight: FontWeight.w700,
+                                    color: textColor,
+                                    height: 1.18,
+                                    fontWeight: FontWeight.w900,
                                   ),
-                              maxLines: 1,
+                              maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            AppIcons.verify5,
-                            color: AppColors.primary,
-                            size: 14,
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: _HorizontalPriceBlock(
+                            const SizedBox(height: 5),
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    context.tr(product.brand),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          color: mutedColor,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(
+                                  AppIcons.verify5,
+                                  color: AppColors.primary,
+                                  size: 14,
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            _HorizontalPriceBlock(
                               price: displayedPrice,
                               oldPrice: originalPrice.isNotEmpty
                                   ? originalPrice
@@ -401,8 +374,37 @@ class _HorizontalProductCardState extends State<_HorizontalProductCard> {
                               textColor: textColor,
                               mutedColor: mutedColor,
                             ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          BlocSelector<WishlistCubit, List<WishlistItem>, bool>(
+                            selector: (items) => items.any(
+                              (item) => item.productId == product.id,
+                            ),
+                            builder: (context, isFavorite) {
+                              return _SmallIconButton(
+                                key: ValueKey(
+                                  'horizontal-product-wishlist-${product.id}',
+                                ),
+                                icon: isFavorite
+                                    ? AppIcons.heart5
+                                    : AppIcons.heart,
+                                iconColor: isFavorite
+                                    ? AppColors.error
+                                    : (isDark
+                                          ? Colors.white70
+                                          : Colors.black45),
+                                backgroundColor: isDark
+                                    ? Colors.white.withValues(alpha: 0.08)
+                                    : const Color(0xFFF1F3F8),
+                                onTap: () => _toggleWishlist(isFavorite),
+                              );
+                            },
                           ),
-                          const SizedBox(width: 8),
                           BlocSelector<CartCubit, List<CartItemData>, int>(
                             selector: (items) {
                               final matchingItems = items.where(
@@ -418,6 +420,9 @@ class _HorizontalProductCardState extends State<_HorizontalProductCard> {
                             },
                             builder: (context, quantity) {
                               return _SmallAddToCartButton(
+                                key: ValueKey(
+                                  'horizontal-product-add-${product.id}',
+                                ),
                                 quantity: quantity,
                                 onTap: _addToCart,
                               );
@@ -490,6 +495,7 @@ class _HorizontalPriceBlock extends StatelessWidget {
 
 class _SmallIconButton extends StatelessWidget {
   const _SmallIconButton({
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.backgroundColor,
@@ -520,7 +526,11 @@ class _SmallIconButton extends StatelessWidget {
 }
 
 class _SmallAddToCartButton extends StatelessWidget {
-  const _SmallAddToCartButton({required this.quantity, required this.onTap});
+  const _SmallAddToCartButton({
+    super.key,
+    required this.quantity,
+    required this.onTap,
+  });
 
   final int quantity;
   final VoidCallback onTap;

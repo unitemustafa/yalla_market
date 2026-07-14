@@ -170,7 +170,44 @@ void main() {
       expect(find.text('Notification deleted'), findsOneWidget);
     });
 
-    testWidgets('visible delete button removes a notification', (tester) async {
+    testWidgets('delete all asks for confirmation and clears notifications', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(
+          NotificationState(
+            notifications: [
+              testNotification(id: 1, isRead: false),
+              testNotification(id: 2, isRead: true),
+            ],
+            unreadCount: 1,
+            hasLoaded: true,
+          ),
+        );
+      addTearDown(cubit.close);
+
+      await _pumpNotificationsView(tester, cubit);
+
+      expect(find.byKey(const ValueKey('delete-all-notifications')), findsOne);
+      await tester.tap(find.byTooltip('Delete all notifications'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Delete all notifications?'), findsOneWidget);
+      expect(cubit.deleteAllCalls, 0);
+
+      await tester.tap(
+        find.byKey(const ValueKey('confirm-delete-all-notifications')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(cubit.deleteAllCalls, 1);
+      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.text('All notifications deleted'), findsOneWidget);
+    });
+
+    testWidgets('does not show a delete button inside notification cards', (
+      tester,
+    ) async {
       final cubit = SpyNotificationCubit()
         ..seed(
           NotificationState(
@@ -182,12 +219,13 @@ void main() {
       addTearDown(cubit.close);
 
       await _pumpNotificationsView(tester, cubit);
-      await tester.tap(find.byKey(const ValueKey('notification-delete-42')));
-      await tester.pumpAndSettle();
 
-      expect(cubit.deleteCalls, 1);
-      expect(find.byKey(const ValueKey('notification-42')), findsNothing);
-      expect(find.text('Notification deleted'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('notification-delete-42')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('notification-42')), findsOneWidget);
+      expect(cubit.deleteCalls, 0);
     });
 
     testWidgets('opening unread notification marks it read once', (

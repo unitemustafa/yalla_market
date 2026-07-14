@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -18,13 +20,14 @@ void main() {
       );
       final expectedStates = expectLater(
         cubit.stream,
-        emits(
+        emitsInOrder([
+          isEmpty,
           predicate<List<WishlistItem>>(
             (items) =>
                 items.length == 1 &&
                 items.first.title == sampleWishlistItem.title,
           ),
-        ),
+        ]),
       );
 
       await cubit.loadWishlistForUser(sampleUser.id);
@@ -60,6 +63,26 @@ void main() {
       expect(cubit.isFavorite(sampleWishlistItem.productId), isTrue);
       await cubit.close();
     });
+
+    test(
+      'clearSession ignores a wishlist response from the old user',
+      () async {
+        final delay = Completer<void>();
+        final repository = _FakeWishlistRepository(
+          items: const [sampleWishlistItem],
+          loadDelay: delay,
+        );
+        final cubit = WishlistCubit(_wishlistUseCases(repository));
+
+        final load = cubit.loadWishlistForUser('old-user');
+        cubit.clearSession();
+        delay.complete();
+        await load;
+
+        expect(cubit.state, isEmpty);
+        await cubit.close();
+      },
+    );
   });
 }
 
@@ -71,10 +94,11 @@ WishlistUseCases _wishlistUseCases(WishlistRepository repository) {
 }
 
 class _FakeWishlistRepository implements WishlistRepository {
-  _FakeWishlistRepository({List<WishlistItem> items = const []})
+  _FakeWishlistRepository({List<WishlistItem> items = const [], this.loadDelay})
     : _items = List.of(items);
 
   final List<WishlistItem> _items;
+  final Completer<void>? loadDelay;
   Failure? nextFailure;
 
   Future<ApiResult<List<WishlistItem>>> _result() async {
@@ -87,7 +111,10 @@ class _FakeWishlistRepository implements WishlistRepository {
   }
 
   @override
-  Future<ApiResult<List<WishlistItem>>> getItems(String userKey) => _result();
+  Future<ApiResult<List<WishlistItem>>> getItems(String userKey) async {
+    await loadDelay?.future;
+    return _result();
+  }
 
   @override
   Future<ApiResult<List<WishlistItem>>> toggleItem(

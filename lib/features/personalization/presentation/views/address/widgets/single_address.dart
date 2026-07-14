@@ -45,6 +45,7 @@ class SingleAddress extends StatelessWidget {
         : Colors.black.withValues(alpha: 0.56);
     final effectiveSelected = selectedAddress && isAvailable;
     final opacity = isAvailable ? 1.0 : 0.58;
+    final localPhoneNumber = _localEgyptianPhoneNumber(phoneNumber);
     final cardColor = !isAvailable
         ? (isDark
               ? Colors.white.withValues(alpha: 0.035)
@@ -164,7 +165,7 @@ class SingleAddress extends StatelessWidget {
                               const SizedBox(width: 6),
                               Expanded(
                                 child: Text(
-                                  phoneNumber,
+                                  localPhoneNumber,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: Theme.of(context).textTheme.bodyMedium
@@ -230,6 +231,16 @@ class SingleAddress extends StatelessWidget {
       ),
     );
   }
+}
+
+String _localEgyptianPhoneNumber(String value) {
+  final trimmed = value.trim();
+  final digits = trimmed.replaceAll(RegExp(r'\D'), '');
+  if (digits.length == 12 && digits.startsWith('20')) {
+    return '0${digits.substring(2)}';
+  }
+  if (digits.length == 10 && digits.startsWith('1')) return '0$digits';
+  return trimmed;
 }
 
 class _UnavailableNotice extends StatelessWidget {

@@ -59,18 +59,14 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
     ),
   ];
 
-  late final List<Widget> screens;
+  late final List<Widget?> _screens;
 
   @override
   void initState() {
     super.initState();
-    screens = [
-      HomeView(focusOfferId: widget.focusOfferId),
-      const StoreView(),
-      const WishlistView(),
-      const SettingsView(),
-    ];
-    selectedIndex = widget.initialIndex.clamp(0, screens.length - 1).toInt();
+    _screens = List<Widget?>.filled(_items.length, null);
+    selectedIndex = widget.initialIndex.clamp(0, _items.length - 1).toInt();
+    _screens[selectedIndex] = _screenAt(selectedIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _runOneTimeGpsSuggestion();
     });
@@ -120,7 +116,7 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
     );
     if (!mounted) return;
     if (!accepted) {
-      locationCubit.markSuggestionDismissed(current, detected);
+      await locationCubit.markSuggestionDismissed(current, detected);
       return;
     }
 
@@ -140,7 +136,7 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
     );
     if (!mounted) return;
     if (!accepted) {
-      locationCubit.markSuggestionDismissed(current, CityData.general);
+      await locationCubit.markSuggestionDismissed(current, CityData.general);
       return;
     }
 
@@ -222,14 +218,37 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
     return city.displayName(arabic: context.isArabicLanguage);
   }
 
+  Widget _screenAt(int index) {
+    return switch (index) {
+      0 => HomeView(focusOfferId: widget.focusOfferId),
+      1 => const StoreView(),
+      2 => const WishlistView(),
+      _ => const SettingsView(),
+    };
+  }
+
+  void _selectTab(int index) {
+    if (index == selectedIndex) return;
+    setState(() {
+      selectedIndex = index;
+      _screens[index] ??= _screenAt(index);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(index: selectedIndex, children: screens),
+      body: IndexedStack(
+        index: selectedIndex,
+        children: List<Widget>.generate(
+          _screens.length,
+          (index) => _screens[index] ?? const SizedBox.shrink(),
+        ),
+      ),
       bottomNavigationBar: _YallaBottomNavigationBar(
         items: _items,
         selectedIndex: selectedIndex,
-        onSelected: (index) => setState(() => selectedIndex = index),
+        onSelected: _selectTab,
       ),
     );
   }

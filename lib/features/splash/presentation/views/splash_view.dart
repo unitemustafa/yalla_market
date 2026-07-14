@@ -99,14 +99,17 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
         : AppColors.lightTextSecondary;
 
     return BlocListener<SplashCubit, SplashState>(
-      listener: (context, state) {
+      listener: (context, state) async {
         if (state is! SplashNavigateTo) return;
         final authCubit = context.read<AuthCubit>();
+        final locationCubit = context.read<LocationCubit>();
         if (state.session != null) {
           authCubit.hydrate(state.session!);
+          await locationCubit.activateUser(state.session!.user.id);
+          if (!context.mounted) return;
         }
         if (state.city != null) {
-          context.read<LocationCubit>().syncCity(state.city);
+          locationCubit.syncCity(state.city);
         }
         Navigator.of(context).pushReplacementNamed(state.route);
         if (state.sessionExpired) {
@@ -151,7 +154,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                       child: Column(
                         children: [
                           Text(
-                            'Yalla Market',
+                            context.tr('Yalla Market'),
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   color: textColor,

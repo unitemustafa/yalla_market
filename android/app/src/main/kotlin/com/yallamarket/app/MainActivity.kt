@@ -1,7 +1,10 @@
 package com.yallamarket.app
 
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.content.ContentValues
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
@@ -13,6 +16,11 @@ import java.io.FileOutputStream
 
 class MainActivity : FlutterActivity() {
     private val downloadsChannelName = "yallamarket/downloads"
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        createOrderUpdatesNotificationChannel()
+        super.onCreate(savedInstanceState)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -81,6 +89,20 @@ class MainActivity : FlutterActivity() {
         return true
     }
 
+    private fun createOrderUpdatesNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+
+        val channel = NotificationChannel(
+            ORDER_UPDATES_CHANNEL_ID,
+            "تحديثات الطلبات",
+            NotificationManager.IMPORTANCE_HIGH
+        ).apply {
+            description = "إشعارات حالة الطلب والتوصيل"
+            enableVibration(true)
+        }
+        getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
+    }
+
     private fun sanitizeFileName(fileName: String): String {
         val cleaned = fileName
             .substringBefore("?")
@@ -111,5 +133,9 @@ class MainActivity : FlutterActivity() {
             if (!candidate.exists()) return candidate
             index++
         }
+    }
+
+    companion object {
+        private const val ORDER_UPDATES_CHANNEL_ID = "order_updates"
     }
 }

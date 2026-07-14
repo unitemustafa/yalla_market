@@ -6,6 +6,7 @@ import 'package:yalla_market/core/localization/app_translations.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
+import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../domain/entities/address.dart';
 import '../../../../location/data/datasources/device_location_data_source.dart';
@@ -200,17 +201,10 @@ class _AddressesViewState extends State<AddressesView>
           body: SafeArea(
             child: isInitialLoading
                 ? const Center(child: CircularProgressIndicator())
-                : RefreshIndicator(
-                    color: AppColors.primary,
-                    backgroundColor: isDark
-                        ? AppColors.darkCardColor
-                        : Colors.white,
-                    triggerMode: RefreshIndicatorTriggerMode.anywhere,
+                : AppRefreshIndicator(
                     onRefresh: _refreshAddresses,
                     child: ListView.separated(
-                      physics: const AlwaysScrollableScrollPhysics(
-                        parent: BouncingScrollPhysics(),
-                      ),
+                      physics: AppRefreshIndicator.scrollPhysics,
                       padding: const EdgeInsets.fromLTRB(
                         16.0,
                         12.0,

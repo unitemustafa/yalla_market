@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -89,14 +91,39 @@ void main() {
       expect(repository.loadCount, 0);
       await cubit.close();
     });
+
+    test('ignores a late catalog response after session clear', () async {
+      final completer = Completer<ApiResult<List<ProductData>>>();
+      final repository = _FakeProductRepository(
+        products: const [],
+        loadCompleter: completer,
+      );
+      final cubit = ProductCatalogCubit(
+        GetProductsUseCase(repository),
+        GetSelectedCityUseCase(_FakeLocationRepository()),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.clearSession();
+      completer.complete(const ApiResult.success([sampleProduct]));
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state, isA<ProductCatalogInitial>());
+      await cubit.close();
+    });
   });
 }
 
 class _FakeProductRepository implements ProductRepository {
-  _FakeProductRepository({required this.products, this.failure});
+  _FakeProductRepository({
+    required this.products,
+    this.failure,
+    this.loadCompleter,
+  });
 
   final List<ProductData> products;
   final Failure? failure;
+  final Completer<ApiResult<List<ProductData>>>? loadCompleter;
   int loadCount = 0;
   String? lastCitySlug;
 
@@ -104,6 +131,10 @@ class _FakeProductRepository implements ProductRepository {
   Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) async {
     loadCount += 1;
     lastCitySlug = citySlug;
+
+    if (loadCompleter case final completer?) {
+      return completer.future;
+    }
 
     if (failure case final error?) {
       return ApiResult.failure(error);

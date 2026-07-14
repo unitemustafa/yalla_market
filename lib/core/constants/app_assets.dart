@@ -6,26 +6,28 @@ class AppAssets {
   static const String _placeholdersPath = '$_imagesPath/placeholders';
 
   static const String temporaryMarketPlaceholder =
-      '$_imagesPath/temporary_market_placeholder.png';
+      '$_imagesPath/temporary_market_placeholder.webp';
 
   // Frontend-only fallbacks for API images. These paths are never persisted
   // or sent to the backend.
   static const String defaultUserAvatar =
-      '$_placeholdersPath/default_user_avatar.png';
+      '$_placeholdersPath/default_user_avatar.webp';
   static const String defaultFemaleUserAvatar =
-      '$_placeholdersPath/default_admin_avatar_alt.png';
-  static const String defaultStore = '$_placeholdersPath/default_store.png';
+      '$_placeholdersPath/default_admin_avatar_alt.webp';
+  static const String defaultStore = '$_placeholdersPath/default_store.webp';
   static const String defaultCategory =
-      '$_placeholdersPath/default_category.png';
-  static const String defaultProduct = '$_placeholdersPath/default_product.png';
-  static const String defaultAddon = '$_placeholdersPath/default_addon.png';
-  static const String defaultOffer = '$_placeholdersPath/default_offer.png';
-  static const String defaultCourier = '$_placeholdersPath/default_courier.png';
+      '$_placeholdersPath/default_category.webp';
+  static const String defaultProduct =
+      '$_placeholdersPath/default_product.webp';
+  static const String defaultAddon = '$_placeholdersPath/default_addon.webp';
+  static const String defaultOffer = '$_placeholdersPath/default_offer.webp';
+  static const String defaultCourier =
+      '$_placeholdersPath/default_courier.webp';
 
   // Logos
-  static const String appIconLogo = '$_logosPath/yallamarket_blacklogo.png';
-  static const String lightThemeLogo = '$_logosPath/yallamarket_whitelogo.png';
-  static const String darkThemeLogo = '$_logosPath/yallamarket_blacklogo.png';
+  static const String appIconLogo = '$_logosPath/yallamarket_blacklogo.webp';
+  static const String lightThemeLogo = '$_logosPath/yallamarket_whitelogo.webp';
+  static const String darkThemeLogo = '$_logosPath/yallamarket_blacklogo.webp';
   static const String logo = lightThemeLogo;
   static const String defaultAvatar = appIconLogo;
 
@@ -43,17 +45,17 @@ class AppAssets {
   // brand, banner, and category artwork should come from the API/database.
   // Onboarding artwork
   static const String onboardingProductsLight =
-      '$_imagesPath/onboarding/light/onboarding_products_light.png';
+      '$_imagesPath/onboarding/light/onboarding_products_light.webp';
   static const String onboardingCashOnDeliveryLight =
-      '$_imagesPath/onboarding/light/onboarding_cash_on_delivery_light.png';
+      '$_imagesPath/onboarding/light/onboarding_cash_on_delivery_light.webp';
   static const String onboardingFastDeliveryLight =
-      '$_imagesPath/onboarding/light/onboarding_fast_delivery_light.png';
+      '$_imagesPath/onboarding/light/onboarding_fast_delivery_light.webp';
   static const String onboardingProductsDark =
-      '$_imagesPath/onboarding/dark/onboarding_products_dark.png';
+      '$_imagesPath/onboarding/dark/onboarding_products_dark.webp';
   static const String onboardingCashOnDeliveryDark =
-      '$_imagesPath/onboarding/dark/onboarding_cash_on_delivery_dark.png';
+      '$_imagesPath/onboarding/dark/onboarding_cash_on_delivery_dark.webp';
   static const String onboardingFastDeliveryDark =
-      '$_imagesPath/onboarding/dark/onboarding_fast_delivery_dark.png';
+      '$_imagesPath/onboarding/dark/onboarding_fast_delivery_dark.webp';
 
   // Banners
   static const String promoBanner1 = temporaryMarketPlaceholder;

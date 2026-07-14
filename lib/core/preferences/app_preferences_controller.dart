@@ -77,8 +77,6 @@ class AppPreferencesController extends ValueNotifier<AppPreferences> {
   }
 
   Future<void> setMobileNotificationsEnabled(bool enabled) {
-    // TODO: Wire this preference to real notification permissions, device
-    // tokens, and backend sync during the Notifications phase.
     return _setPreference(
       key: mobileNotificationsStorageKey,
       value: enabled,

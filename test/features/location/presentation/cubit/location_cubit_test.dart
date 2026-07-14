@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
@@ -7,6 +8,10 @@ import 'package:yalla_market/features/location/domain/usecases/location_usecases
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 
 void main() {
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   group('LocationCubit region GPS session flow', () {
     test('runs GPS suggestion only once per session', () {
       final cubit = LocationCubit(_useCases(_FakeLocationRepository()));
@@ -19,16 +24,46 @@ void main() {
       expect(cubit.consumeGpsSuggestionSlot(), isTrue);
     });
 
-    test('tracks dismissed suggestions for the current session', () {
+    test('tracks dismissed suggestions for the current session', () async {
       final cubit = LocationCubit(_useCases(_FakeLocationRepository()));
       const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
       const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
 
       expect(cubit.wasSuggestionDismissed(current, detected), isFalse);
 
-      cubit.markSuggestionDismissed(current, detected);
+      await cubit.markSuggestionDismissed(current, detected);
 
       expect(cubit.wasSuggestionDismissed(current, detected), isTrue);
+    });
+
+    test('restores a dismissed suggestion for the same user', () async {
+      const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
+      const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
+      final firstCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      await firstCubit.activateUser('client-1');
+      await firstCubit.markSuggestionDismissed(current, detected);
+      await firstCubit.close();
+
+      final restoredCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      await restoredCubit.activateUser('client-1');
+
+      expect(restoredCubit.wasSuggestionDismissed(current, detected), isTrue);
+      await restoredCubit.close();
+    });
+
+    test('does not leak a dismissed suggestion to another user', () async {
+      const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
+      const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
+      final firstCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      await firstCubit.activateUser('client-1');
+      await firstCubit.markSuggestionDismissed(current, detected);
+      await firstCubit.close();
+
+      final otherCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      await otherCubit.activateUser('client-2');
+
+      expect(otherCubit.wasSuggestionDismissed(current, detected), isFalse);
+      await otherCubit.close();
     });
 
     test(

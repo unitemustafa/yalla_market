@@ -9,7 +9,7 @@ import '../../../../helpers/fake_api_client.dart';
 
 void main() {
   group('OrderRemoteRepositoryImpl', () {
-    test('preflights auth/me immediately before preview and create', () async {
+    test('uses one authenticated request for preview and create', () async {
       final apiClient = FakeApiClient((request) {
         if (request.path == '/orders/preview/') return _previewPayload;
         if (request.path == '/orders/create/') return _createdOrderPayload;
@@ -28,9 +28,7 @@ void main() {
       );
 
       expect(apiClient.requests.map((request) => request.path), [
-        '/auth/me',
         '/orders/preview/',
-        '/auth/me',
         '/orders/create/',
       ]);
     });
@@ -78,6 +76,7 @@ void main() {
       );
       expect(capturedRequest.method, 'POST');
       expect(capturedRequest.path, '/orders/create/');
+      expect(apiClient.requests, hasLength(1));
       expect(capturedRequest.data, {
         'address_id': 12,
         'payment_method': 'cash',
@@ -467,6 +466,7 @@ void main() {
       result.when(success: (_) {}, failure: (failure) => fail(failure.message));
       expect(capturedRequest.method, 'POST');
       expect(capturedRequest.path, '/orders/preview/');
+      expect(apiClient.requests, hasLength(1));
       expect(capturedRequest.data, {
         'address_id': 12,
         'payment_method': 'cash',
@@ -891,6 +891,74 @@ void main() {
       expect(
         manualQuoteOrder.deliveryPriceStatus,
         OrderDeliveryPriceStatus.pendingQuote,
+      );
+    });
+
+    test('maps production lifecycle statuses to customer-facing states', () {
+      final assigned = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'status': 'assigned',
+      });
+      final pickedUp = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'status': 'picked_up',
+      });
+      final delivered = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'status': 'delivered',
+      });
+
+      expect(assigned.status, OrderStatus.processing);
+      expect(assigned.statusLabel, 'Preparing');
+      expect(pickedUp.status, OrderStatus.shipped);
+      expect(pickedUp.statusLabel, 'Shipment on the way');
+      expect(delivered.status, OrderStatus.delivered);
+      expect(delivered.statusLabel, 'Delivered');
+    });
+
+    test('uses the picked-up transition as the shipping date', () {
+      final order = OrderData.fromJson({
+        ..._createdOrderPayload,
+        'status': 'delivered',
+        'estimated_delivery_at': null,
+        'assigned_at': '2026-07-14T10:23:21.741507Z',
+        'delivered_at': '2026-07-14T10:24:45.647947Z',
+        'history': [
+          {
+            'from_status': 'assigned',
+            'to_status': 'picked_up',
+            'created_at': '2026-07-14T10:24:05.455629Z',
+          },
+          {
+            'from_status': 'picked_up',
+            'to_status': 'delivered',
+            'created_at': '2026-07-14T10:24:45.652188Z',
+          },
+        ],
+      });
+
+      expect(
+        order.estimatedDeliveryAt,
+        DateTime.parse('2026-07-14T10:24:05.455629Z'),
+      );
+    });
+
+    test('normalizes market pickup statuses before presentation', () {
+      expect(
+        const OrderMarketSectionData(
+          marketId: '1',
+          marketName: 'Market',
+          pickupStatus: 'picked_up',
+        ).pickupStatusLabel,
+        'Picked up',
+      );
+      expect(
+        const OrderMarketSectionData(
+          marketId: '1',
+          marketName: 'Market',
+          pickupStatus: 'unknown_backend_value',
+        ).pickupStatusLabel,
+        'Status updated',
       );
     });
   });

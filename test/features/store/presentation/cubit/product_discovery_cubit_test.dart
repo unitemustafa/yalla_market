@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -91,6 +93,32 @@ void main() {
       await cubit.close();
     });
 
+    test('keeps the newest result when searches finish out of order', () async {
+      final repository = _OutOfOrderSearchRepository();
+      final cubit = ProductDiscoveryCubit(
+        getProducts: GetProductsUseCase(repository),
+        searchProducts: SearchProductsUseCase(repository),
+        getCategories: GetCategoriesUseCase(repository),
+        getBrands: GetBrandsUseCase(repository),
+        getSelectedCity: GetSelectedCityUseCase(_FakeLocationRepository()),
+      );
+      await cubit.stream.firstWhere((state) => state is ProductDiscoveryReady);
+
+      final firstSearch = cubit.search('first');
+      await Future<void>.delayed(Duration.zero);
+      final secondSearch = cubit.search('second');
+      await Future<void>.delayed(Duration.zero);
+      repository.complete('second', _productWithId('second'));
+      await secondSearch;
+      repository.complete('first', _productWithId('first'));
+      await firstSearch;
+
+      final state = cubit.state as ProductDiscoveryReady;
+      expect(state.query, 'second');
+      expect(state.products.single.id, 'second');
+      await cubit.close();
+    });
+
     test('requires a selected city before loading discovery data', () async {
       final repository = _FakeProductRepository();
       final cubit = ProductDiscoveryCubit(
@@ -155,6 +183,36 @@ class _FakeProductRepository implements ProductRepository {
   Future<ApiResult<List<BrandData>>> getBrands() async {
     return const ApiResult.success([sampleBrand]);
   }
+}
+
+class _OutOfOrderSearchRepository extends _FakeProductRepository {
+  final _searches = <String, Completer<ApiResult<List<ProductData>>>>{};
+
+  @override
+  Future<ApiResult<List<ProductData>>> searchProducts(
+    String query, {
+    String? citySlug,
+  }) {
+    return (_searches[query] ??= Completer<ApiResult<List<ProductData>>>())
+        .future;
+  }
+
+  void complete(String query, ProductData product) {
+    _searches[query]!.complete(ApiResult.success([product]));
+  }
+}
+
+ProductData _productWithId(String id) {
+  return ProductData(
+    id: id,
+    image: sampleProduct.image,
+    title: id,
+    brand: sampleProduct.brand,
+    price: sampleProduct.price,
+    oldPrice: sampleProduct.oldPrice,
+    discount: sampleProduct.discount,
+    tags: sampleProduct.tags,
+  );
 }
 
 class _FakeLocationRepository implements LocationRepository {

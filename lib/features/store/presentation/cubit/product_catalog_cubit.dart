@@ -12,38 +12,45 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
 
   final GetProductsUseCase _getProductsUseCase;
   final GetSelectedCityUseCase _getSelectedCityUseCase;
-  bool _isLoading = false;
+  int _generation = 0;
 
   Future<void> loadProducts({bool force = false}) async {
-    if (_isLoading || state is ProductCatalogLoading) return;
+    if (state is ProductCatalogLoading) return;
     if (!force && state is ProductCatalogReady) return;
-    _isLoading = true;
+    final generation = ++_generation;
 
-    try {
-      final cityResult = await _getSelectedCityUseCase();
-      final selectedCity = cityResult.when(
-        success: (city) => city,
-        failure: (_) => null,
-      );
+    final cityResult = await _getSelectedCityUseCase();
+    if (!_isCurrent(generation)) return;
+    final selectedCity = cityResult.when(
+      success: (city) => city,
+      failure: (_) => null,
+    );
 
-      if (selectedCity == null) {
-        emit(const ProductCatalogNeedsCity());
-        return;
-      }
-
-      emit(const ProductCatalogLoading());
-
-      final result = await _getProductsUseCase(citySlug: selectedCity.slug);
-      result.when(
-        success: (products) {
-          emit(ProductCatalogReady(products, city: selectedCity));
-        },
-        failure: (failure) {
-          emit(ProductCatalogFailure(failure.message));
-        },
-      );
-    } finally {
-      _isLoading = false;
+    if (selectedCity == null) {
+      emit(const ProductCatalogNeedsCity());
+      return;
     }
+
+    emit(const ProductCatalogLoading());
+
+    final result = await _getProductsUseCase(citySlug: selectedCity.slug);
+    if (!_isCurrent(generation)) return;
+    result.when(
+      success: (products) {
+        emit(ProductCatalogReady(products, city: selectedCity));
+      },
+      failure: (failure) {
+        emit(ProductCatalogFailure(failure.message));
+      },
+    );
+  }
+
+  void clearSession() {
+    _generation++;
+    emit(const ProductCatalogInitial());
+  }
+
+  bool _isCurrent(int generation) {
+    return generation == _generation && !isClosed;
   }
 }

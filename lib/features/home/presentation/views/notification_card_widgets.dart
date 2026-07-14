@@ -98,21 +98,6 @@ class _NotificationCard extends StatelessWidget {
                                 shape: BoxShape.circle,
                               ),
                             ),
-                          IconButton(
-                            key: ValueKey(
-                              'notification-delete-${notification.id}',
-                            ),
-                            tooltip: context.tr('Delete notification'),
-                            visualDensity: VisualDensity.compact,
-                            onPressed: () async {
-                              if (await onDelete()) onDeleted();
-                            },
-                            icon: const Icon(
-                              AppIcons.trash,
-                              size: 19,
-                              color: AppColors.error,
-                            ),
-                          ),
                         ],
                       ),
                       const SizedBox(height: 4),

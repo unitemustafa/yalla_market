@@ -11,6 +11,7 @@ import '../models/app_notification_model.dart';
 abstract final class NotificationApiPaths {
   static const notifications = '/notifications/';
   static const markAllRead = '/notifications/mark-all-read/';
+  static const clearRead = '/notifications/clear-read/';
   static const unreadCount = '/notifications/unread-count/';
 
   static String read(int id) => '/notifications/$id/read/';
@@ -65,6 +66,21 @@ class NotificationRemoteRepositoryImpl implements NotificationRepository {
         NotificationApiPaths.delete(notificationId),
       );
       return true;
+    });
+  }
+
+  @override
+  Future<ApiResult<int>> clearReadNotifications() {
+    return _guard(() async {
+      final payload = await _apiClient.delete<Object?>(
+        NotificationApiPaths.clearRead,
+      );
+      if (payload is Map<String, dynamic>) {
+        final deletedCount = payload['deleted_count'];
+        if (deletedCount is int) return deletedCount;
+        if (deletedCount is num) return deletedCount.toInt();
+      }
+      return 0;
     });
   }
 

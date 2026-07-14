@@ -65,6 +65,18 @@ void main() {
         find.descendant(of: firstCard, matching: find.text('Product 1')),
       );
       expect(imageCenter.dx, lessThan(titleCenter.dx));
+      final imageRect = tester.getRect(
+        find.descendant(of: firstCard, matching: find.byType(AppImage)),
+      );
+      final wishlistCenter = tester.getCenter(
+        find.byKey(const ValueKey('horizontal-product-wishlist-product-1')),
+      );
+      final addCenter = tester.getCenter(
+        find.byKey(const ValueKey('horizontal-product-add-product-1')),
+      );
+      expect(wishlistCenter.dx, greaterThan(imageRect.right));
+      expect(wishlistCenter.dx, closeTo(addCenter.dx, 0.1));
+      expect(wishlistCenter.dy, lessThan(addCenter.dy));
 
       await tester.drag(sliderFinder, const Offset(-2400, 0));
       await tester.pumpAndSettle();

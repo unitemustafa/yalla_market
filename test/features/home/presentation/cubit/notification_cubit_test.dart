@@ -120,6 +120,27 @@ void main() {
       await cubit.close();
     });
 
+    test('delete all marks notifications read then clears them', () async {
+      final repository = _FakeNotificationRepository(
+        notifications: [
+          _notification(id: 1, isRead: false),
+          _notification(id: 2, isRead: true),
+        ],
+      );
+      final cubit = NotificationCubit(repository);
+      await cubit.loadNotifications();
+
+      final success = await cubit.deleteAllNotifications();
+
+      expect(success, isTrue);
+      expect(repository.markAllCalls, 1);
+      expect(repository.clearReadCalls, 1);
+      expect(cubit.state.notifications, isEmpty);
+      expect(cubit.state.unreadCount, 0);
+      expect(cubit.state.isDeletingAll, isFalse);
+      await cubit.close();
+    });
+
     test('clear drops state and ignores stale responses', () async {
       final completer = Completer<ApiResult<List<AppNotification>>>();
       final repository = _FakeNotificationRepository(loadCompleter: completer);
@@ -169,6 +190,8 @@ class _FakeNotificationRepository implements NotificationRepository {
   Failure? markReadFailure;
   Failure? markAllFailure;
   int markReadCalls = 0;
+  int markAllCalls = 0;
+  int clearReadCalls = 0;
 
   @override
   Future<ApiResult<List<AppNotification>>> getNotifications({
@@ -204,7 +227,16 @@ class _FakeNotificationRepository implements NotificationRepository {
   }
 
   @override
+  Future<ApiResult<int>> clearReadNotifications() async {
+    clearReadCalls++;
+    final count = notifications.length;
+    notifications.clear();
+    return ApiResult.success(count);
+  }
+
+  @override
   Future<ApiResult<int>> markAllAsRead() async {
+    markAllCalls++;
     if (markAllFailure case final error?) return ApiResult.failure(error);
     return ApiResult.success(
       notifications.where((item) => !item.isRead).length,

@@ -265,19 +265,20 @@ class _InlineSummaryValue extends StatelessWidget {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppCurrencyText(
-              text: primaryText,
-              textAlign: TextAlign.end,
-              style: TextStyle(
-                color: primaryColor,
-                fontSize: 14,
-                fontWeight: FontWeight.w900,
+            if (primaryText.trim().isNotEmpty)
+              AppCurrencyText(
+                text: primaryText,
+                textAlign: TextAlign.end,
+                style: TextStyle(
+                  color: primaryColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.clip,
               ),
-              maxLines: 1,
-              overflow: TextOverflow.clip,
-            ),
             if (secondaryText case final text?) ...[
-              const SizedBox(width: 6),
+              if (primaryText.trim().isNotEmpty) const SizedBox(width: 6),
               Text(
                 '+ $text',
                 textDirection: TextDirection.ltr,

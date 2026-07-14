@@ -9,6 +9,7 @@ class CartCubit extends Cubit<List<CartItemData>> {
 
   final CartUseCases _cartUseCases;
   String? _currentUserKey;
+  int _generation = 0;
 
   String? lastErrorMessage;
 
@@ -21,41 +22,51 @@ class CartCubit extends Cubit<List<CartItemData>> {
       return;
     }
 
-    _currentUserKey = normalizedUserKey;
+    if (_currentUserKey != normalizedUserKey) {
+      _generation++;
+      _currentUserKey = normalizedUserKey;
+      lastErrorMessage = null;
+      emit(const []);
+    }
+    final generation = _generation;
     final result = await _cartUseCases.getItems(normalizedUserKey);
-    _emitResult(result);
+    _emitResult(result, normalizedUserKey, generation);
   }
 
   Future<void> addItem(CartItemData newItem, int quantityToAdd) async {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) return;
 
+    final generation = _generation;
     final result = await _cartUseCases.addItem(userKey, newItem, quantityToAdd);
-    _emitResult(result);
+    _emitResult(result, userKey, generation);
   }
 
   Future<void> incrementQuantity(String id) async {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) return;
 
+    final generation = _generation;
     final result = await _cartUseCases.incrementQuantity(userKey, id);
-    _emitResult(result);
+    _emitResult(result, userKey, generation);
   }
 
   Future<void> decrementQuantity(String id) async {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) return;
 
+    final generation = _generation;
     final result = await _cartUseCases.decrementQuantity(userKey, id);
-    _emitResult(result);
+    _emitResult(result, userKey, generation);
   }
 
   Future<void> removeItem(String id) async {
     final userKey = _currentUserKey;
     if (userKey == null || userKey.isEmpty) return;
 
+    final generation = _generation;
     final result = await _cartUseCases.removeItem(userKey, id);
-    _emitResult(result);
+    _emitResult(result, userKey, generation);
   }
 
   Future<bool> clearLocalCart() async {
@@ -65,7 +76,9 @@ class CartCubit extends Cubit<List<CartItemData>> {
       return true;
     }
 
+    final generation = _generation;
     final result = await _cartUseCases.clearCart(userKey);
+    if (!_isCurrent(userKey, generation)) return false;
     return result.when(
       success: (items) {
         lastErrorMessage = null;
@@ -80,12 +93,18 @@ class CartCubit extends Cubit<List<CartItemData>> {
   }
 
   void clearSession() {
+    _generation++;
     _currentUserKey = null;
     lastErrorMessage = null;
     emit(const []);
   }
 
-  void _emitResult(ApiResult<List<CartItemData>> result) {
+  void _emitResult(
+    ApiResult<List<CartItemData>> result,
+    String userKey,
+    int generation,
+  ) {
+    if (!_isCurrent(userKey, generation)) return;
     result.when(
       success: (items) {
         lastErrorMessage = null;
@@ -96,4 +115,7 @@ class CartCubit extends Cubit<List<CartItemData>> {
       },
     );
   }
+
+  bool _isCurrent(String userKey, int generation) =>
+      generation == _generation && _currentUserKey == userKey && !isClosed;
 }

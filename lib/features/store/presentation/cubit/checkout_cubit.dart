@@ -13,6 +13,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   final CreateOrderUseCase _createOrderUseCase;
   final PreviewOrderUseCase? _previewOrderUseCase;
   int _previewGeneration = 0;
+  int _orderGeneration = 0;
 
   Future<void> loadPreview({
     required List<CartItemData> cartItems,
@@ -45,7 +46,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       description: description,
       deliveryNote: deliveryNote,
     );
-    if (generation != _previewGeneration) return;
+    if (generation != _previewGeneration || isClosed) return;
 
     result.when(
       success: (preview) {
@@ -73,6 +74,8 @@ class CheckoutCubit extends Cubit<CheckoutState> {
   }) async {
     if (state is CheckoutLoading) return;
 
+    final generation = ++_orderGeneration;
+
     emit(
       CheckoutLoading(
         preview: state.preview,
@@ -94,6 +97,8 @@ class CheckoutCubit extends Cubit<CheckoutState> {
       taxTotal: taxTotal,
       discountTotal: discountTotal,
     );
+    if (generation != _orderGeneration || isClosed) return;
+
     result.when(
       success: (order) {
         emit(
@@ -118,6 +123,7 @@ class CheckoutCubit extends Cubit<CheckoutState> {
 
   void reset() {
     _previewGeneration++;
+    _orderGeneration++;
     emit(const CheckoutInitial());
   }
 

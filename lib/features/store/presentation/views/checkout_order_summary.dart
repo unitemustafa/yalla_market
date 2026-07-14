@@ -8,7 +8,6 @@ class _OrderSummaryCard extends StatelessWidget {
     required this.discountLabel,
     required this.shippingFeeLabel,
     required this.totalLabel,
-    this.pendingTotalDeliveryTypeLabel,
     required this.isDark,
   });
 
@@ -18,11 +17,12 @@ class _OrderSummaryCard extends StatelessWidget {
   final String discountLabel;
   final String shippingFeeLabel;
   final String totalLabel;
-  final String? pendingTotalDeliveryTypeLabel;
   final bool isDark;
 
   @override
   Widget build(BuildContext context) {
+    final isShippingFeeUnspecified =
+        shippingFeeLabel == _notSpecifiedLabel(context);
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
     final mutedColor = isDark
         ? AppColors.darkTextSecondary
@@ -68,10 +68,14 @@ class _OrderSummaryCard extends StatelessWidget {
             label: 'Shipping Fee',
             valueWidget: _InlineSummaryValue(
               primaryText: shippingFeeLabel,
-              secondaryText: deliveryTypeLabel == _notSpecifiedLabel(context)
+              secondaryText:
+                  isShippingFeeUnspecified ||
+                      deliveryTypeLabel == _notSpecifiedLabel(context)
                   ? null
                   : deliveryTypeLabel,
-              primaryColor: textColor,
+              primaryColor: isShippingFeeUnspecified
+                  ? AppColors.error
+                  : textColor,
               secondaryColor: AppColors.error,
             ),
             textColor: textColor,
@@ -93,6 +97,7 @@ class _OrderSummaryCard extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           Container(
+            key: const ValueKey('order-total-panel'),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.08),
@@ -102,6 +107,7 @@ class _OrderSummaryCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
+                    key: const ValueKey('order-total-label'),
                     context.tr('Order Total'),
                     style: TextStyle(
                       color: textColor,
@@ -110,37 +116,27 @@ class _OrderSummaryCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                Flexible(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      AppCurrencyText(
-                        text: totalLabel,
-                        textAlign: TextAlign.end,
-                        style: const TextStyle(
-                          color: AppColors.primary,
-                          fontSize: 20,
-                          fontWeight: FontWeight.w900,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                      ),
-                      if (pendingTotalDeliveryTypeLabel case final label?) ...[
-                        const SizedBox(height: 3),
-                        Padding(
-                          padding: const EdgeInsetsDirectional.only(end: 8),
-                          child: _PendingDeliveryLine(
-                            deliveryTypeLabel: label,
-                            style: const TextStyle(
-                              color: AppColors.error,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w900,
-                            ),
+                Expanded(
+                  child: Align(
+                    alignment: AlignmentDirectional.centerEnd,
+                    child: Column(
+                      key: const ValueKey('order-total-value'),
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        AppCurrencyText(
+                          text: totalLabel,
+                          textAlign: TextAlign.end,
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.clip,
                         ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
               ],

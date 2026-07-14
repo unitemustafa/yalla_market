@@ -49,6 +49,14 @@ class _CheckoutViewState extends State<CheckoutView> {
 
   static const _checkoutPaymentMethod = 'cash';
 
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<AddressCubit>().loadAddresses();
+    });
+  }
+
   bool get _useDemoRepositories =>
       widget.useDemoRepositories ?? AppEnvironment.useDemoRepositories;
 
@@ -216,20 +224,16 @@ class _CheckoutViewState extends State<CheckoutView> {
                     : localSubtotal;
                 final hasPendingDeliveryQuote =
                     preview?.hasPendingDeliveryQuote ?? false;
-                final totalLabel = hasPreviewTotals
-                    ? _formatMoney(total)
-                    : _notSpecifiedLabel(context);
+                final totalLabel = hasPreviewTotals ? _formatMoney(total) : '';
                 final pendingTotalDeliveryTypeLabel =
                     hasPreviewTotals && hasPendingDeliveryQuote
                     ? _deliveryTypeLabel(context, preview)
                     : null;
                 final shippingFeeLabel = hasSavedAddress
-                    ? (hasPreviewTotals
-                          ? (hasPendingDeliveryQuote
-                                ? _notSpecifiedLabel(context)
-                                : _formatMoney(shippingFee))
+                    ? (hasPreviewTotals && !hasPendingDeliveryQuote
+                          ? _formatMoney(shippingFee)
                           : _notSpecifiedLabel(context))
-                    : _notSpecifiedLabel(context);
+                    : '';
                 final deliveryTypeLabel = _deliveryTypeLabel(context, preview);
                 final reviewItems = hasPreviewTotals && preview != null
                     ? _reviewItemsFromPreview(cartItems, preview)
@@ -284,8 +288,6 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   discountLabel: discountLabel,
                                   shippingFeeLabel: shippingFeeLabel,
                                   totalLabel: totalLabel,
-                                  pendingTotalDeliveryTypeLabel:
-                                      pendingTotalDeliveryTypeLabel,
                                   isDark: isDark,
                                 ),
                                 if (checkoutState.previewErrorMessage !=

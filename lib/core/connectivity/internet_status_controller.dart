@@ -11,7 +11,6 @@ class InternetStatusController extends ChangeNotifier {
 
   final Connectivity _connectivity;
   StreamSubscription<List<ConnectivityResult>>? _subscription;
-  Timer? _verificationTimer;
   bool _hasStatus = false;
   bool _isOffline = false;
   bool _isChecking = false;
@@ -28,10 +27,6 @@ class InternetStatusController extends ChangeNotifier {
     _subscription = _connectivity.onConnectivityChanged.listen(
       (result) => unawaited(_updateFromConnectivity(result)),
       onError: (_) => _setStatus(isOffline: false),
-    );
-    _verificationTimer = Timer.periodic(
-      const Duration(seconds: 12),
-      (_) => unawaited(refresh()),
     );
 
     await refresh();
@@ -82,7 +77,6 @@ class InternetStatusController extends ChangeNotifier {
   void dispose() {
     _isDisposed = true;
     _subscription?.cancel();
-    _verificationTimer?.cancel();
     super.dispose();
   }
 }

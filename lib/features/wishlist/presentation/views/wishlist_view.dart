@@ -6,6 +6,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
+import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/routing/app_route_arguments.dart';
@@ -37,7 +38,7 @@ class WishlistView extends StatelessWidget {
                   child: _WishlistTopBar(isDark: isDark),
                 ),
                 Expanded(
-                  child: RefreshIndicator(
+                  child: AppRefreshIndicator(
                     onRefresh: () => context.read<WishlistCubit>().refresh(),
                     child: isEmpty
                         ? _EmptyWishlistView(
@@ -54,7 +55,7 @@ class WishlistView extends StatelessWidget {
                             },
                           )
                         : SingleChildScrollView(
-                            physics: const AlwaysScrollableScrollPhysics(),
+                            physics: AppRefreshIndicator.scrollPhysics,
                             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
                             child: GridLayout(
                               itemCount: wishlist.length,
@@ -166,7 +167,7 @@ class _EmptyWishlistView extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: AppRefreshIndicator.scrollPhysics,
             child: ConstrainedBox(
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: Padding(

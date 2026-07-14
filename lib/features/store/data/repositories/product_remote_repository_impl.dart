@@ -15,6 +15,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   ProductRemoteRepositoryImpl(this._apiClient);
 
   final ApiClient _apiClient;
+  Future<Object?>? _classificationsInFlight;
 
   @override
   Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) {
@@ -54,7 +55,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   @override
   Future<ApiResult<List<CategoryData>>> getCategories() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/home/classifications/');
+      final payload = await _getClassificationsPayload();
       return _categoriesFromPayload(payload);
     });
   }
@@ -62,9 +63,24 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   @override
   Future<ApiResult<List<BrandData>>> getBrands() {
     return _guard(() async {
-      final payload = await _apiClient.get<Object?>('/home/classifications/');
+      final payload = await _getClassificationsPayload();
       return _brandsFromPayload(payload);
     });
+  }
+
+  Future<Object?> _getClassificationsPayload() async {
+    final existing = _classificationsInFlight;
+    if (existing != null) return existing;
+
+    final operation = _apiClient.get<Object?>('/home/classifications/');
+    _classificationsInFlight = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_classificationsInFlight, operation)) {
+        _classificationsInFlight = null;
+      }
+    }
   }
 
   List<ProductData> _productsFromPayload(Object? payload) {

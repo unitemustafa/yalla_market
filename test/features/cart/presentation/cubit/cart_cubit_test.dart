@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
@@ -18,11 +20,12 @@ void main() {
       );
       final expectedStates = expectLater(
         cubit.stream,
-        emits(
+        emitsInOrder([
+          isEmpty,
           predicate<List<CartItemData>>(
             (items) => items.length == 1 && items.first.id == sampleCartItem.id,
           ),
-        ),
+        ]),
       );
 
       await cubit.loadCartForUser('user-a');
@@ -111,6 +114,23 @@ void main() {
       );
       await cubit.close();
     });
+
+    test('clearSession ignores a cart response from the old user', () async {
+      final delay = Completer<void>();
+      final repository = _FakeCartRepository(
+        items: const [sampleCartItem],
+        loadDelay: delay,
+      );
+      final cubit = CartCubit(_cartUseCases(repository));
+
+      final load = cubit.loadCartForUser('old-user');
+      cubit.clearSession();
+      delay.complete();
+      await load;
+
+      expect(cubit.state, isEmpty);
+      await cubit.close();
+    });
   });
 }
 
@@ -126,10 +146,11 @@ CartUseCases _cartUseCases(CartRepository repository) {
 }
 
 class _FakeCartRepository implements CartRepository {
-  _FakeCartRepository({List<CartItemData> items = const []})
+  _FakeCartRepository({List<CartItemData> items = const [], this.loadDelay})
     : _items = List.of(items);
 
   final List<CartItemData> _items;
+  final Completer<void>? loadDelay;
   Failure? nextFailure;
 
   Future<ApiResult<List<CartItemData>>> _result() async {
@@ -142,7 +163,10 @@ class _FakeCartRepository implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> getItems(String userKey) => _result();
+  Future<ApiResult<List<CartItemData>>> getItems(String userKey) async {
+    await loadDelay?.future;
+    return _result();
+  }
 
   @override
   Future<ApiResult<List<CartItemData>>> addItem(

@@ -71,12 +71,16 @@ class ResumeRefreshGuard {
   Future<void> run({
     required Future<bool> Function() validateSession,
     required Future<void> Function() refreshHome,
+    Future<void> Function()? refreshOrders,
   }) async {
     if (_inFlight) return;
     _inFlight = true;
     try {
       if (await validateSession()) {
-        await refreshHome();
+        await Future.wait([
+          refreshHome(),
+          if (refreshOrders != null) refreshOrders(),
+        ]);
       }
     } finally {
       _inFlight = false;
@@ -108,11 +112,17 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     with WidgetsBindingObserver {
   StreamSubscription<PushEvent>? _pushSubscription;
   bool _wasBackgrounded = false;
+  late bool _mobileNotificationsEnabled;
   final ResumeRefreshGuard _resumeRefreshGuard = ResumeRefreshGuard();
 
   @override
   void initState() {
     super.initState();
+    _mobileNotificationsEnabled =
+        AppPreferencesController.instance.mobileNotificationsEnabled;
+    AppPreferencesController.instance.addListener(
+      _handleNotificationPreferenceChanged,
+    );
     WidgetsBinding.instance.addObserver(this);
     final pushNotificationService = sl<PushNotificationService>();
     _pushSubscription = pushNotificationService.events.listen(_handlePushEvent);
@@ -131,9 +141,27 @@ class _AppCoordinatorState extends State<_AppCoordinator>
 
   @override
   void dispose() {
+    AppPreferencesController.instance.removeListener(
+      _handleNotificationPreferenceChanged,
+    );
     WidgetsBinding.instance.removeObserver(this);
     _pushSubscription?.cancel();
     super.dispose();
+  }
+
+  void _handleNotificationPreferenceChanged() {
+    final enabled =
+        AppPreferencesController.instance.mobileNotificationsEnabled;
+    if (enabled == _mobileNotificationsEnabled) return;
+    _mobileNotificationsEnabled = enabled;
+    if (context.read<AuthCubit>().state is! AuthAuthenticated) return;
+
+    final service = sl<PushNotificationService>();
+    unawaited(
+      enabled
+          ? service.registerAuthenticatedDevice()
+          : service.unregisterCurrentDevice(),
+    );
   }
 
   @override
@@ -163,6 +191,8 @@ class _AppCoordinatorState extends State<_AppCoordinator>
               authCubit.state is AuthAuthenticated;
         },
         refreshHome: () => context.read<HomeCubit>().loadHome(force: true),
+        refreshOrders: () =>
+            context.read<OrderHistoryCubit>().loadOrders(force: true),
       );
     } catch (_) {
       // A background refresh failure must not invalidate an otherwise valid session.
@@ -239,7 +269,9 @@ class _AppCoordinatorState extends State<_AppCoordinator>
           AppNavigator.key.currentState?.pushNamed(
             AppRoutes.brandProducts,
             arguments: BrandProductsRouteArgs(
-              brand: data['market_name']?.toString().trim() ?? 'المحل',
+              brand:
+                  data['market_name']?.toString().trim() ??
+                  context.tr('Market'),
               logo: data['image']?.toString().trim() ?? '',
               productCount: '',
               marketId: marketId,
@@ -320,9 +352,14 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     context.read<LocationCubit>().clearSession();
     context.read<WishlistCubit>().clearSession();
     context.read<CartCubit>().clearSession();
+    context.read<AddressCubit>().clearSession();
     context.read<CheckoutCubit>().reset();
     context.read<OrderHistoryCubit>().clearSession();
     context.read<NotificationCubit>().clear();
+    context.read<HomeCubit>().clearSession();
+    context.read<ProductCatalogCubit>().clearSession();
+    context.read<ProductDiscoveryCubit>().clearSession();
+    context.read<StoreCubit>().clearSession();
   }
 
   @override
@@ -332,7 +369,12 @@ class _AppCoordinatorState extends State<_AppCoordinator>
         if (state is AuthAuthenticated) {
           UserProfileController.instance.updateFromAuthUser(state.session.user);
           context.read<NotificationCubit>().refreshUnreadCount();
-          sl<PushNotificationService>().registerAuthenticatedDevice();
+          final pushService = sl<PushNotificationService>();
+          unawaited(
+            AppPreferencesController.instance.mobileNotificationsEnabled
+                ? pushService.registerAuthenticatedDevice()
+                : pushService.unregisterCurrentDevice(),
+          );
           final userKey = _wishlistUserKey(
             id: state.session.user.id,
             email: state.session.user.email,

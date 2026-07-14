@@ -195,6 +195,20 @@ class OrderMarketSectionData {
     return items.fold(0, (sum, item) => sum + item.quantity) + offers.length;
   }
 
+  String get pickupStatusLabel {
+    final normalized = pickupStatus.trim().toLowerCase();
+    return switch (normalized) {
+      '' => '',
+      'pending' => 'Pending',
+      'confirmed' || 'under_preparation' || 'ready' => 'Preparing',
+      'assigned' => 'Courier assigned',
+      'picked_up' || 'shipped' => 'Picked up',
+      'delivered' => 'Delivered',
+      'cancelled' => 'Cancelled',
+      _ => 'Status updated',
+    };
+  }
+
   factory OrderMarketSectionData.fromJson(Map<String, dynamic> json) {
     final market = _mapFromJson(json['market']);
     return OrderMarketSectionData(
@@ -283,6 +297,17 @@ class OrderData {
     final rawDeliveryPrice =
         json['shippingFee'] ?? json['shipping_fee'] ?? json['delivery_price'];
     final marketSections = _marketSectionsFromJson(json['market_sections']);
+    final history = _mapListFromJson(json['history']);
+    final shippingDate =
+        _dateFromJson(
+          json['estimatedDeliveryAt'] ??
+              json['estimated_delivery_at'] ??
+              json['shipping_date'] ??
+              json['shipped_at'] ??
+              json['picked_up_at'],
+        ) ??
+        _statusTransitionDate(history, 'picked_up') ??
+        _dateFromJson(json['delivered_at'] ?? json['assigned_at']);
     return OrderData(
       id: json['id'].toString(),
       orderNumber:
@@ -334,9 +359,7 @@ class OrderData {
         json['discountTotal'] ?? json['discount_total'] ?? json['discount'],
       ),
       total: _doubleFromJson(json['total'] ?? json['total_price']),
-      estimatedDeliveryAt: _dateFromJson(
-        json['estimatedDeliveryAt'] ?? json['estimated_delivery_at'],
-      ),
+      estimatedDeliveryAt: shippingDate,
     );
   }
 
@@ -348,7 +371,7 @@ class OrderData {
     return switch (status) {
       OrderStatus.pending => 'Pending',
       OrderStatus.processing => 'Preparing',
-      OrderStatus.shipped => 'Ready',
+      OrderStatus.shipped => 'Shipment on the way',
       OrderStatus.delivered => 'Delivered',
       OrderStatus.cancelled => 'Cancelled',
     };
@@ -440,15 +463,31 @@ OrderDeliveryPriceStatus _deliveryPriceStatusFromJson(
 }
 
 OrderStatus _statusFromJson(Object? value) {
-  final name = value?.toString().toLowerCase();
-  if (name == 'confirmed' || name == 'under_preparation') {
-    return OrderStatus.processing;
+  final name = value?.toString().trim().toLowerCase();
+  return switch (name) {
+    'pending' => OrderStatus.pending,
+    'confirmed' || 'under_preparation' || 'assigned' => OrderStatus.processing,
+    'ready' || 'picked_up' || 'shipped' => OrderStatus.shipped,
+    'delivered' || 'completed' => OrderStatus.delivered,
+    'cancelled' || 'canceled' || 'failed_delivery' => OrderStatus.cancelled,
+    _ => OrderStatus.processing,
+  };
+}
+
+DateTime? _statusTransitionDate(
+  List<Map<String, dynamic>> history,
+  String status,
+) {
+  for (final event in history.reversed) {
+    if (event['to_status']?.toString().trim().toLowerCase() != status) {
+      continue;
+    }
+    final date = _dateFromJson(
+      event['created_at'] ?? event['changed_at'] ?? event['timestamp'],
+    );
+    if (date != null) return date;
   }
-  if (name == 'ready') return OrderStatus.shipped;
-  return OrderStatus.values.firstWhere(
-    (status) => status.name == name,
-    orElse: () => OrderStatus.processing,
-  );
+  return null;
 }
 
 DateTime? _dateFromJson(Object? value) {

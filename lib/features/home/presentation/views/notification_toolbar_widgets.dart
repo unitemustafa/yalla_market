@@ -63,6 +63,70 @@ class _MarkAllReadButton extends StatelessWidget {
   }
 }
 
+class _DeleteAllNotificationsButton extends StatelessWidget {
+  const _DeleteAllNotificationsButton({
+    required this.isDark,
+    required this.isLoading,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  final bool isDark;
+  final bool isLoading;
+  final bool enabled;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final isEnabled = enabled && !isLoading;
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    return Tooltip(
+      message: context.tr('Delete all notifications'),
+      child: Material(
+        color: isDark ? AppColors.darkCardColor : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: isEnabled ? onPressed : null,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            key: const ValueKey('delete-all-notifications'),
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.08)
+                    : Colors.black.withValues(alpha: 0.06),
+              ),
+            ),
+            alignment: Alignment.center,
+            child: isLoading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.error,
+                    ),
+                  )
+                : Icon(
+                    AppIcons.trash,
+                    size: 21,
+                    color: isEnabled
+                        ? AppColors.error
+                        : mutedColor.withValues(alpha: 0.45),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _NotificationSummary extends StatelessWidget {
   const _NotificationSummary({required this.isDark, required this.unreadCount});
 

@@ -226,6 +226,38 @@ void main() {
       );
     });
 
+    test('coalesces simultaneous classification consumers', () async {
+      final apiClient = FakeApiClient((request) {
+        expect(request.path, '/home/classifications/');
+        return {
+          'market_classifications': [
+            {'id': 7, 'name': 'Supermarket'},
+          ],
+        };
+      });
+      final repository = ProductRemoteRepositoryImpl(apiClient);
+
+      final categoriesFuture = repository.getCategories();
+      final brandsFuture = repository.getBrands();
+      final categoriesResult = await categoriesFuture;
+      final brandsResult = await brandsFuture;
+
+      categoriesResult.when(
+        success: (categories) => expect(categories, hasLength(1)),
+        failure: (failure) => fail(failure.message),
+      );
+      brandsResult.when(
+        success: (brands) => expect(brands, hasLength(1)),
+        failure: (failure) => fail(failure.message),
+      );
+      expect(
+        apiClient.requests.where(
+          (request) => request.path == '/home/classifications/',
+        ),
+        hasLength(1),
+      );
+    });
+
     test('maps backend product market and variant price range', () async {
       final apiClient = FakeApiClient((request) {
         expect(request.path, '/home/products/');

@@ -23,6 +23,11 @@ class _ProductGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+    final imageLogicalWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
+      1.0,
+      720.0,
+    );
     final backIcon = Directionality.of(context) == TextDirection.rtl
         ? AppIcons.arrow_right_3
         : AppIcons.arrow_left_2;
@@ -66,6 +71,8 @@ class _ProductGallery extends StatelessWidget {
                     source: currentImage,
                     fallbackType: AppImagePlaceholderType.product,
                     fit: BoxFit.cover,
+                    cacheWidth: (imageLogicalWidth * devicePixelRatio).round(),
+                    cacheHeight: (188 * devicePixelRatio).round(),
                   ),
                 ),
               ),

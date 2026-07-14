@@ -5,6 +5,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
+import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
@@ -114,101 +115,100 @@ class _ProfileViewState extends State<ProfileView> {
         child: ValueListenableBuilder<UserProfileController>(
           valueListenable: UserProfileController.instance,
           builder: (context, profile, _) {
-            return RefreshIndicator(
+            return AppRefreshIndicator(
               onRefresh: () => _loadProfile(showInlineProgress: false),
               child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
+                physics: AppRefreshIndicator.scrollPhysics,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
                 child: Column(
                   children: [
-                  const PageTopBar(
-                    title: 'Profile',
-                    subtitle: 'Edit personal details',
-                  ),
-                  if (_isRefreshingProfile &&
-                      _showInlineRefreshProgress) ...[
-                    const SizedBox(height: 10),
-                    const LinearProgressIndicator(minHeight: 2),
-                  ],
-                  if (_refreshProfileError != null) ...[
-                    const SizedBox(height: 10),
-                    _RefreshProfileError(message: _refreshProfileError!),
-                  ],
-                  const SizedBox(height: 18),
-                  _ProfileHeaderCard(
-                    isDark: isDark,
-                    profile: profile,
-                    isUploadingAvatar: _isUploadingProfilePhoto,
-                    onAvatarTap: () => _pickProfileImage(context),
-                    onMembershipTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const MembershipBenefitsView(),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 18),
-                  _ProfileInfoSection(
-                    title: context.tr('Profile Information'),
-                    isDark: isDark,
-                    children: [
-                      ProfileMenuTile(
-                        leadingIcon: AppIcons.user_edit,
-                        title: context.tr('Name'),
-                        value: profile.displayName,
-                        onTap: () =>
-                            _openEditor(context, EditableProfileField.name),
-                      ),
-                      ProfileMenuTile(
-                        leadingIcon: AppIcons.user_tag,
-                        title: context.tr('Username'),
-                        value: profile.username,
-                        onTap: () => _handleUsernameTap(context, profile),
-                      ),
+                    const PageTopBar(
+                      title: 'Profile',
+                      subtitle: 'Edit personal details',
+                    ),
+                    if (_isRefreshingProfile && _showInlineRefreshProgress) ...[
+                      const SizedBox(height: 10),
+                      const LinearProgressIndicator(minHeight: 2),
                     ],
-                  ),
-                  const SizedBox(height: 18),
-                  _ProfileInfoSection(
-                    title: context.tr('Personal Information'),
-                    isDark: isDark,
-                    children: [
-                      ProfileMenuTile(
-                        leadingIcon: AppIcons.sms,
-                        title: context.tr('E-mail'),
-                        value: profile.email,
-                        showTrailingIcon: false,
-                      ),
-                      ProfileMenuTile(
-                        leadingIcon: AppIcons.call,
-                        title: context.tr('Phone'),
-                        value: profile.phone.isEmpty
-                            ? context.tr('Not set')
-                            : profile.phone,
-                        onTap: () =>
-                            _openEditor(context, EditableProfileField.phone),
-                      ),
-                      ProfileMenuTile(
-                        leadingIcon: AppIcons.user,
-                        title: context.tr('Gender'),
-                        value: profile.gender.isEmpty
-                            ? context.tr('Not set')
-                            : context.tr(_genderLabel(profile.gender)),
-                        onTap: () =>
-                            _openEditor(context, EditableProfileField.gender),
-                      ),
-                      ProfileMenuTile(
-                        leadingIcon: AppIcons.calendar,
-                        title: context.tr('Birth Date'),
-                        value: _formatDate(profile.birthDate),
-                        onTap: () => _openEditor(
+                    if (_refreshProfileError != null) ...[
+                      const SizedBox(height: 10),
+                      _RefreshProfileError(message: _refreshProfileError!),
+                    ],
+                    const SizedBox(height: 18),
+                    _ProfileHeaderCard(
+                      isDark: isDark,
+                      profile: profile,
+                      isUploadingAvatar: _isUploadingProfilePhoto,
+                      onAvatarTap: () => _pickProfileImage(context),
+                      onMembershipTap: () {
+                        Navigator.push(
                           context,
-                          EditableProfileField.birthDate,
+                          MaterialPageRoute(
+                            builder: (_) => const MembershipBenefitsView(),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 18),
+                    _ProfileInfoSection(
+                      title: context.tr('Profile Information'),
+                      isDark: isDark,
+                      children: [
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.user_edit,
+                          title: context.tr('Name'),
+                          value: profile.displayName,
+                          onTap: () =>
+                              _openEditor(context, EditableProfileField.name),
                         ),
-                      ),
-                    ],
-                  ),
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.user_tag,
+                          title: context.tr('Username'),
+                          value: profile.username,
+                          onTap: () => _handleUsernameTap(context, profile),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    _ProfileInfoSection(
+                      title: context.tr('Personal Information'),
+                      isDark: isDark,
+                      children: [
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.sms,
+                          title: context.tr('E-mail'),
+                          value: profile.email,
+                          showTrailingIcon: false,
+                        ),
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.call,
+                          title: context.tr('Phone'),
+                          value: profile.phone.isEmpty
+                              ? context.tr('Not set')
+                              : profile.phone,
+                          onTap: () =>
+                              _openEditor(context, EditableProfileField.phone),
+                        ),
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.user,
+                          title: context.tr('Gender'),
+                          value: profile.gender.isEmpty
+                              ? context.tr('Not set')
+                              : context.tr(_genderLabel(profile.gender)),
+                          onTap: () =>
+                              _openEditor(context, EditableProfileField.gender),
+                        ),
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.calendar,
+                          title: context.tr('Birth Date'),
+                          value: _formatDate(profile.birthDate),
+                          onTap: () => _openEditor(
+                            context,
+                            EditableProfileField.birthDate,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),

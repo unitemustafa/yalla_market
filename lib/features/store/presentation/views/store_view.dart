@@ -7,6 +7,7 @@ import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../core/presentation/widgets/brands/brand_showcase.dart';
+import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -108,128 +109,132 @@ class _StoreViewState extends State<StoreView> {
             .toList(growable: false);
         final hasPopularMarkets = popularClassifications.isNotEmpty;
 
+        Widget buildStoreHeader() {
+          return ColoredBox(
+            color: backgroundColor,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _StoreTopBar(isDark: isDark),
+                  const SizedBox(height: 18),
+                  _StoreSearchField(isDark: isDark),
+                  const SizedBox(height: 22),
+                  if (featuredSlots.isNotEmpty) ...[
+                    SectionHeading(
+                      title: 'Featured Categories',
+                      titleFontSize: 18,
+                      showActionButton: showAllFeatured,
+                      onPressed: showAllFeatured
+                          ? () {
+                              Navigator.pushNamed(
+                                context,
+                                AppRoutes.categories,
+                              );
+                            }
+                          : null,
+                    ),
+                    const SizedBox(height: 12),
+                    GridLayout(
+                      itemCount: featuredSlots.length,
+                      mainAxisExtent: 92,
+                      itemBuilder: (_, index) {
+                        final category = featuredSlots[index];
+                        return BrandCard(
+                          showBorder: true,
+                          brand: category.name,
+                          productCount: category.marketCountLabel,
+                          logo: category.image,
+                          accentColor: Color(category.accentColorValue),
+                          onTap: () {
+                            Navigator.pushNamed(
+                              context,
+                              AppRoutes.brandProducts,
+                              arguments: BrandProductsRouteArgs(
+                                brand: category.name,
+                                logo: category.image,
+                                productCount: category.marketCountLabel,
+                                classificationId: category.id,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ],
+                  if (readyStore.latestMarkets.isNotEmpty) ...[
+                    const SizedBox(height: 22),
+                    const SectionHeading(
+                      title: 'Latest Stores',
+                      titleFontSize: 18,
+                      showActionButton: false,
+                    ),
+                    const SizedBox(height: 12),
+                    _LatestStoresSlider(markets: readyStore.latestMarkets),
+                  ],
+                ],
+              ),
+            ),
+          );
+        }
+
         Widget buildStoreScaffold() {
+          if (!hasPopularMarkets) {
+            return Scaffold(
+              backgroundColor: backgroundColor,
+              body: SafeArea(
+                child: AppRefreshIndicator(
+                  onRefresh: () =>
+                      context.read<StoreCubit>().loadStore(force: true),
+                  child: CustomScrollView(
+                    key: const ValueKey('store_without_popular_scroll'),
+                    physics: AppRefreshIndicator.scrollPhysics,
+                    slivers: [SliverToBoxAdapter(child: buildStoreHeader())],
+                  ),
+                ),
+              ),
+            );
+          }
+
           return Scaffold(
             backgroundColor: backgroundColor,
             body: SafeArea(
-              child: RefreshIndicator(
+              child: AppRefreshIndicator(
                 onRefresh: () =>
                     context.read<StoreCubit>().loadStore(force: true),
+                notificationPredicate: _storeRefreshNotificationPredicate,
                 child: NestedScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
+                  physics: AppRefreshIndicator.scrollPhysics,
                   headerSliverBuilder: (_, _) {
                     return [
-                      SliverToBoxAdapter(
-                        child: ColoredBox(
-                          color: backgroundColor,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 18),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _StoreTopBar(isDark: isDark),
-                                const SizedBox(height: 18),
-                                _StoreSearchField(isDark: isDark),
-                                const SizedBox(height: 22),
-                                if (featuredSlots.isNotEmpty) ...[
-                                  SectionHeading(
-                                    title: 'Featured Categories',
-                                    titleFontSize: 18,
-                                    showActionButton: showAllFeatured,
-                                    onPressed: showAllFeatured
-                                        ? () {
-                                            Navigator.pushNamed(
-                                              context,
-                                              AppRoutes.categories,
-                                            );
-                                          }
-                                        : null,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  GridLayout(
-                                    itemCount: featuredSlots.length,
-                                    mainAxisExtent: 92,
-                                    itemBuilder: (_, index) {
-                                      final category = featuredSlots[index];
-                                      return BrandCard(
-                                        showBorder: true,
-                                        brand: category.name,
-                                        productCount: category.marketCountLabel,
-                                        logo: category.image,
-                                        accentColor: Color(
-                                          category.accentColorValue,
-                                        ),
-                                        onTap: () {
-                                          Navigator.pushNamed(
-                                            context,
-                                            AppRoutes.brandProducts,
-                                            arguments: BrandProductsRouteArgs(
-                                              brand: category.name,
-                                              logo: category.image,
-                                              productCount:
-                                                  category.marketCountLabel,
-                                              classificationId: category.id,
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  ),
-                                ],
-                                if (readyStore.latestMarkets.isNotEmpty) ...[
-                                  const SizedBox(height: 22),
-                                  const SectionHeading(
-                                    title: 'Latest Stores',
-                                    titleFontSize: 18,
-                                    showActionButton: false,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _LatestStoresSlider(
-                                    markets: readyStore.latestMarkets,
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
+                      SliverToBoxAdapter(child: buildStoreHeader()),
+                      SliverPersistentHeader(
+                        pinned: true,
+                        delegate: _StoreTabsHeaderDelegate(
+                          backgroundColor: backgroundColor,
+                          isDark: isDark,
+                          labels: popularClassifications
+                              .map((category) => category.name)
+                              .toList(growable: false),
                         ),
                       ),
-                      if (hasPopularMarkets)
-                        SliverPersistentHeader(
-                          pinned: true,
-                          delegate: _StoreTabsHeaderDelegate(
-                            backgroundColor: backgroundColor,
-                            isDark: isDark,
-                            labels: popularClassifications
-                                .map((category) => category.name)
-                                .toList(growable: false),
-                          ),
-                        ),
                     ];
                   },
                   body: ColoredBox(
                     color: backgroundColor,
-                    child: hasPopularMarkets
-                        ? TabBarView(
-                            children: popularClassifications
-                                .map(
-                                  (classification) => _StoreMarketsTab(
-                                    classification: classification,
-                                    markets: readyStore.popularMarketsFor(
-                                      classification.id,
-                                    ),
-                                  ),
-                                )
-                                .toList(growable: false),
-                          )
-                        : const CustomScrollView(
-                            physics: AlwaysScrollableScrollPhysics(),
-                            slivers: [
-                              SliverFillRemaining(
-                                hasScrollBody: false,
-                                child: SizedBox.shrink(),
+                    child: TabBarView(
+                      children: popularClassifications
+                          .map(
+                            (classification) => _StoreMarketsTab(
+                              classification: classification,
+                              markets: readyStore.popularMarketsFor(
+                                classification.id,
                               ),
-                            ],
-                          ),
+                            ),
+                          )
+                          .toList(growable: false),
+                    ),
                   ),
                 ),
               ),
@@ -385,10 +390,10 @@ class _StorePlainScaffold extends StatelessWidget {
     return Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
+        child: AppRefreshIndicator(
           onRefresh: onRefresh,
           child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
+            physics: AppRefreshIndicator.scrollPhysics,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -426,6 +431,7 @@ class _StoreMarketsTab extends StatelessWidget {
     }
 
     return ListView.builder(
+      physics: AppRefreshIndicator.scrollPhysics,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
       itemCount: markets.length,
       itemBuilder: (_, index) {
@@ -456,6 +462,10 @@ class _StoreMarketsTab extends StatelessWidget {
       },
     );
   }
+}
+
+bool _storeRefreshNotificationPredicate(ScrollNotification notification) {
+  return notification.metrics.axis == Axis.vertical;
 }
 
 class _StoreTopBar extends StatelessWidget {

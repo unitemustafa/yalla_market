@@ -11,12 +11,15 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_client.dart';
 import '../session/account_inactive_notifier.dart';
 import '../session/account_restored_notifier.dart';
+import '../preferences/app_preferences_controller.dart';
 import '../storage/token_store.dart';
 
 const _pendingAccountDisabledKey = 'push.pending_account_disabled';
 const _lastRegisteredTokenKey = 'push.last_registered_token';
 const accountUpdatesChannelId = 'account_updates';
 const accountUpdatesChannelName = 'تحديثات الحساب';
+const orderUpdatesChannelId = 'order_updates';
+const orderUpdatesChannelName = 'تحديثات الطلبات';
 const deliveryUpdatesChannelId = 'delivery_updates';
 const deliveryUpdatesChannelName = 'تحديثات مناطق التوصيل';
 const storeUpdatesChannelId = 'store_updates';
@@ -87,6 +90,16 @@ class FlutterAccountNotificationPresenter
         enableVibration: true,
       );
 
+  static const AndroidNotificationChannel _orderChannel =
+      AndroidNotificationChannel(
+        orderUpdatesChannelId,
+        orderUpdatesChannelName,
+        description: 'إشعارات حالة طلبات العميل والتوصيل',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
   static const AndroidNotificationChannel _storeChannel =
       AndroidNotificationChannel(
         storeUpdatesChannelId,
@@ -138,6 +151,7 @@ class FlutterAccountNotificationPresenter
           AndroidFlutterLocalNotificationsPlugin
         >();
     await androidPlugin?.createNotificationChannel(_accountChannel);
+    await androidPlugin?.createNotificationChannel(_orderChannel);
     await androidPlugin?.createNotificationChannel(_deliveryChannel);
     await androidPlugin?.createNotificationChannel(_storeChannel);
     await androidPlugin?.createNotificationChannel(_productChannel);
@@ -364,6 +378,7 @@ class PushNotificationService {
   }
 
   Future<void> registerAuthenticatedDevice() async {
+    if (!AppPreferencesController.instance.mobileNotificationsEnabled) return;
     try {
       final tokens = await _tokenStore.read();
       if (tokens == null) return;
@@ -403,6 +418,7 @@ class PushNotificationService {
   }
 
   Future<void> _replaceToken(String token) async {
+    if (!AppPreferencesController.instance.mobileNotificationsEnabled) return;
     if (await _tokenStore.read() == null) return;
     final preferences = await SharedPreferences.getInstance();
     final previous = preferences.getString(_lastRegisteredTokenKey);

@@ -191,6 +191,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'ضيف منتجات للسلة قبل ما تكمل الدفع.',
     'Add new address': 'ضيف عنوان جديد',
     'Add to Bag': 'ضيف للسلة',
+    'Add to cart': 'إضافة للسلة',
     'Add products you like and review them here before checkout.':
         'ضيف المنتجات اللي عجبتك وراجعها هنا قبل الدفع.',
     'Add, remove products and move to checkout':
@@ -508,7 +509,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Package offer': 'عرض باكدج',
     'Offer price': 'سعر العرض',
     'Products, brands and categories': 'منتجات وبراندات وأقسام',
-    'Profile': 'البروفايل',
+    'Profile': 'الحساب',
     'Profile Information': 'بيانات البروفايل',
     'Profile photo updated': 'صورة البروفايل اتحدّثت',
     'Profile updated': 'تم تحديث بيانات الحساب.',
@@ -658,6 +659,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'We will verify it while creating your account.':
         'هنراجعه وإحنا بنعمل الحساب.',
     'Wishlist': 'المفضلة',
+    'Welcome': 'أهلاً بك',
     'X-Large': 'كبير جدًا',
     'Write a message...': 'اكتب رسالة...',
     'يلا ماركت Support': 'دعم يلا ماركت',

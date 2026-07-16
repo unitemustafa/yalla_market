@@ -358,7 +358,7 @@ class _PaymentSuccessAnimation extends StatelessWidget {
                         gradient: const LinearGradient(
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
-                          colors: [Color(0xFF6877FF), AppColors.primary],
+                          colors: [Color(0xFF07599B), AppColors.primary],
                         ),
                         boxShadow: [
                           BoxShadow(

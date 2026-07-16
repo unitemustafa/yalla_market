@@ -25,14 +25,14 @@ class AppAssets {
       '$_placeholdersPath/default_courier.webp';
 
   // Logos
-  static const String appIconLogo = '$_logosPath/yallamarket_blacklogo.webp';
-  static const String lightThemeLogo = '$_logosPath/yallamarket_whitelogo.webp';
-  static const String darkThemeLogo = '$_logosPath/yallamarket_blacklogo.webp';
-  static const String logo = lightThemeLogo;
+  static const String logo = '$_logosPath/yallamarket_logo.png';
+  static const String appIconLogo = logo;
+  static const String lightThemeLogo = logo;
+  static const String darkThemeLogo = logo;
   static const String defaultAvatar = appIconLogo;
 
   static String themedLogo({required bool isDarkMode}) {
-    return isDarkMode ? darkThemeLogo : lightThemeLogo;
+    return logo;
   }
 
   static String defaultAvatarForGender(String? gender) {

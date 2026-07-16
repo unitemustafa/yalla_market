@@ -46,6 +46,22 @@ void main() {
         find.byKey(const ValueKey('notification_bell_button')),
         findsOneWidget,
       );
+      expect(find.byKey(const ValueKey('home_brand_logo')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home_cart_button')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home_welcome_label')), findsOneWidget);
+      expect(find.byKey(const ValueKey('home_region_icon')), findsOneWidget);
+
+      final searchRect = tester.getRect(
+        find.byKey(const ValueKey('home_search_field')),
+      );
+      final notificationRect = tester.getRect(
+        find.byKey(const ValueKey('notification_bell_button')),
+      );
+      final cartRect = tester.getRect(
+        find.byKey(const ValueKey('home_cart_button')),
+      );
+      expect(searchRect.right, lessThanOrEqualTo(notificationRect.left));
+      expect(notificationRect.right, lessThanOrEqualTo(cartRect.left));
       expect(tester.takeException(), isNull);
     });
 

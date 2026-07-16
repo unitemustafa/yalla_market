@@ -303,7 +303,7 @@ List<String> _serviceCityNamesFromJson(Map<String, dynamic> json) {
 }
 
 int _accentColorFor(String seed) {
-  const colors = [0xFF4F60F6, 0xFF22C55E, 0xFFF59E0B, 0xFFEF4444];
+  const colors = [0xFF013C7E, 0xFF22C55E, 0xFFF59E0B, 0xFFEF4444];
   final index = seed.codeUnits.fold<int>(0, (sum, unit) => sum + unit);
   return colors[index % colors.length];
 }

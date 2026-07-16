@@ -260,7 +260,7 @@ class _AnimatedLogoMark extends StatelessWidget {
       },
       child: AppImage(
         source: logoAsset,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
         cacheWidth: 224,
         cacheHeight: 224,
       ),

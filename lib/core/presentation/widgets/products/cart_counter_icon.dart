@@ -7,10 +7,18 @@ import '../../../routing/app_routes.dart';
 import '../../../constants/app_colors.dart';
 
 class CartCounterIcon extends StatelessWidget {
-  const CartCounterIcon({super.key, this.onPressed, required this.iconColor});
+  const CartCounterIcon({
+    super.key,
+    this.onPressed,
+    required this.iconColor,
+    this.iconSize = 24,
+    this.buttonSize = 44,
+  });
 
   final VoidCallback? onPressed;
   final Color iconColor;
+  final double iconSize;
+  final double buttonSize;
 
   @override
   Widget build(BuildContext context) {
@@ -28,11 +36,15 @@ class CartCounterIcon extends StatelessWidget {
                     onPressed ??
                     () => Navigator.pushNamed(context, AppRoutes.cart),
                 padding: EdgeInsets.zero,
-                constraints: const BoxConstraints.tightFor(
-                  width: 44,
-                  height: 44,
+                constraints: BoxConstraints.tightFor(
+                  width: buttonSize,
+                  height: buttonSize,
                 ),
-                icon: Icon(AppIcons.shopping_bag, color: iconColor, size: 24),
+                icon: Icon(
+                  AppIcons.shopping_bag,
+                  color: iconColor,
+                  size: iconSize,
+                ),
               ),
             ),
             if (count > 0)

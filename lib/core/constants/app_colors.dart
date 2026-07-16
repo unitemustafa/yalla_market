@@ -4,14 +4,14 @@ class AppColors {
   AppColors._();
 
   // Brand
-  static const Color primary = Color(0xFF4F60F6);
+  static const Color primary = Color(0xFF013C7E);
   static const Color currency = success;
 
   // Feedback
   static const Color success = Color(0xFF22C55E);
   static const Color warning = Color(0xFFF59E0B);
   static const Color error = Color(0xFFEF4444);
-  static const Color info = Color(0xFF4F60F6);
+  static const Color info = primary;
   static const Color snackBarBackground = Color(0xFF121212);
   static const Color snackBarBorder = Color(0xFF2A2A2A);
 
@@ -26,7 +26,7 @@ class AppColors {
   static const Color darkBackground = Color(0xFF1A1A1A);
   static const Color darkAuthBackground = Color(0xFF292929);
   static const Color darkCardColor = Color(0xFF2A2A2A);
-  static const Color darkPrimaryButton = Color(0xFF5C6DFC);
+  static const Color darkPrimaryButton = primary;
   static const Color darkTextPrimary = Colors.white;
   static const Color darkTextSecondary = Colors.grey;
 }

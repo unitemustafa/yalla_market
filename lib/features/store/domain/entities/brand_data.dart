@@ -86,5 +86,5 @@ int _colorFromJson(Object? value) {
       return normalized.length <= 6 ? 0xFF000000 | parsed : parsed;
     }
   }
-  return 0xFF4F60F6;
+  return 0xFF013C7E;
 }

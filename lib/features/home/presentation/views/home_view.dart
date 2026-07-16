@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
+import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/errors/region_required_error.dart';
@@ -108,71 +109,98 @@ class _HomeViewState extends State<HomeView> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: AppRefreshIndicator(
-          onRefresh: () => _loadHomeData(force: true),
-          child: SingleChildScrollView(
-            physics: AppRefreshIndicator.scrollPhysics,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _HomeTopBar(isDark: isDark),
-                const SizedBox(height: 18),
-                _HomeSearchField(isDark: isDark),
-                const SizedBox(height: 22),
-                BlocConsumer<HomeCubit, HomeState>(
-                  listener: (context, homeState) {
-                    if (homeState is HomeFailure &&
-                        homeState.message == regionRequiredMessage) {
-                      _goToSelectCity();
-                    }
-                  },
-                  builder: (context, homeState) {
-                    final home = homeState.data;
-                    if (homeState is HomeFailure &&
-                        home == null &&
-                        homeState.message == addressRequiredMessage) {
-                      return AppStateView(
-                        icon: AppIcons.location_add,
-                        title: 'Delivery address needed',
-                        message: addressRequiredMessage,
-                        actionLabel: 'Review address',
-                        onAction: _openAddresses,
-                        showActionIcon: false,
-                      );
-                    }
-                    if (homeState is HomeFailure && home == null) {
-                      return AppErrorState(
-                        title: 'Home could not load',
-                        message: homeState.message,
-                        onRetry: () => _loadHomeData(force: true),
-                      );
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        PromoSlider(
-                          offers: home?.offers,
-                          focusOfferId: widget.focusOfferId,
-                        ),
-                        const SizedBox(height: 24),
-                        BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
-                          builder: (context, catalogState) {
-                            return HomeCatalogSections(
-                              home: home,
-                              catalogState: catalogState,
-                            );
-                          },
-                        ),
-                      ],
-                    );
-                  },
+      body: Stack(
+        children: [
+          PositionedDirectional(
+            top: 0,
+            start: 0,
+            end: 0,
+            height: 380,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppColors.primary,
+                    const Color(0xFF07599B),
+                    backgroundColor,
+                  ],
+                  stops: const [0, 0.52, 1],
                 ),
-              ],
+              ),
             ),
           ),
-        ),
+          SafeArea(
+            child: AppRefreshIndicator(
+              onRefresh: () => _loadHomeData(force: true),
+              child: SingleChildScrollView(
+                physics: AppRefreshIndicator.scrollPhysics,
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _HomeTopBar(isDark: isDark),
+                    const SizedBox(height: 18),
+                    _HomeSearchActionsRow(isDark: isDark),
+                    const SizedBox(height: 22),
+                    BlocConsumer<HomeCubit, HomeState>(
+                      listener: (context, homeState) {
+                        if (homeState is HomeFailure &&
+                            homeState.message == regionRequiredMessage) {
+                          _goToSelectCity();
+                        }
+                      },
+                      builder: (context, homeState) {
+                        final home = homeState.data;
+                        if (homeState is HomeFailure &&
+                            home == null &&
+                            homeState.message == addressRequiredMessage) {
+                          return AppStateView(
+                            icon: AppIcons.location_add,
+                            title: 'Delivery address needed',
+                            message: addressRequiredMessage,
+                            actionLabel: 'Review address',
+                            onAction: _openAddresses,
+                            showActionIcon: false,
+                          );
+                        }
+                        if (homeState is HomeFailure && home == null) {
+                          return AppErrorState(
+                            title: 'Home could not load',
+                            message: homeState.message,
+                            onRetry: () => _loadHomeData(force: true),
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            PromoSlider(
+                              offers: home?.offers,
+                              focusOfferId: widget.focusOfferId,
+                            ),
+                            const SizedBox(height: 24),
+                            BlocBuilder<
+                              ProductCatalogCubit,
+                              ProductCatalogState
+                            >(
+                              builder: (context, catalogState) {
+                                return HomeCatalogSections(
+                                  home: home,
+                                  catalogState: catalogState,
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -249,7 +277,7 @@ class HomeCatalogSections extends StatelessWidget {
           const SizedBox(height: 14),
           HomeProductsSlider(
             products: popularProducts,
-            limit: 6,
+            limit: 5,
             onViewAll: () {
               Navigator.pushNamed(
                 context,
@@ -273,7 +301,7 @@ class HomeCatalogSections extends StatelessWidget {
           HomeProductsSlider(
             products: latestProducts,
             mode: HomeProductsSliderMode.latest,
-            limit: 6,
+            limit: 5,
             onViewAll: () {
               Navigator.pushNamed(
                 context,
@@ -306,7 +334,7 @@ class _HomeTopBar extends StatelessWidget {
         return Row(
           children: [
             Material(
-              color: AppColors.primary.withValues(alpha: isDark ? 0.20 : 0.10),
+              color: Colors.white.withValues(alpha: isDark ? 0.12 : 0.18),
               borderRadius: BorderRadius.circular(8),
               child: InkWell(
                 onTap: () {
@@ -319,7 +347,7 @@ class _HomeTopBar extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.12),
+                      color: Colors.white.withValues(alpha: 0.24),
                     ),
                   ),
                   child: _TopProfileAvatar(profile: profile),
@@ -337,37 +365,20 @@ class _HomeTopBar extends StatelessWidget {
                 },
               ),
             ),
-            BlocBuilder<NotificationCubit, NotificationState>(
-              builder: (context, state) {
-                return _TopActionButton(
-                  key: const ValueKey('notification_bell_button'),
-                  isDark: isDark,
-                  icon: AppIcons.notification,
-                  badgeCount: state.unreadCount,
-                  onTap: () {
-                    Navigator.pushNamed(context, AppRoutes.notifications);
-                  },
-                );
-              },
-            ),
-            const SizedBox(width: 8),
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCardColor : Colors.white,
+            const SizedBox(width: 10),
+            SizedBox(
+              key: const ValueKey('home_brand_logo'),
+              width: 98,
+              height: 64,
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(
-                  color: isDark
-                      ? Colors.white.withValues(alpha: 0.08)
-                      : Colors.black.withValues(alpha: 0.06),
+                child: Image.asset(
+                  AppAssets.logo,
+                  fit: BoxFit.cover,
+                  alignment: const Alignment(0, 0.02),
+                  cacheWidth: 196,
+                  filterQuality: FilterQuality.medium,
                 ),
-              ),
-              child: CartCounterIcon(
-                onPressed: () {
-                  Navigator.pushNamed(context, AppRoutes.cart);
-                },
-                iconColor: isDark ? Colors.white : AppColors.lightTextPrimary,
               ),
             ),
           ],
@@ -389,97 +400,37 @@ class _HomeCustomerSummary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 46,
+      height: 64,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _AnimatedCustomerName(name: customerName),
+          Text(
+            context.tr('Welcome'),
+            key: const ValueKey('home_welcome_label'),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: Colors.white.withValues(alpha: 0.78),
+              fontSize: 11,
+              height: 1.1,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            customerName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: Colors.white,
+              fontSize: 14,
+              height: 1.05,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 1),
           _HomeRegionBadge(label: regionLabel),
         ],
       ),
-    );
-  }
-}
-
-class _AnimatedCustomerName extends StatefulWidget {
-  const _AnimatedCustomerName({required this.name});
-
-  final String name;
-
-  @override
-  State<_AnimatedCustomerName> createState() => _AnimatedCustomerNameState();
-}
-
-class _AnimatedCustomerNameState extends State<_AnimatedCustomerName>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<Color?> _colorAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 3200),
-    );
-    _colorAnimation = TweenSequence<Color?>([
-      TweenSequenceItem(
-        tween: ColorTween(
-          begin: AppColors.primary,
-          end: const Color(0xFF7583FF),
-        ),
-        weight: 25,
-      ),
-      TweenSequenceItem(
-        tween: ColorTween(
-          begin: const Color(0xFF7583FF),
-          end: const Color(0xFF3B82F6),
-        ),
-        weight: 25,
-      ),
-      TweenSequenceItem(
-        tween: ColorTween(
-          begin: const Color(0xFF3B82F6),
-          end: const Color(0xFF6366F1),
-        ),
-        weight: 25,
-      ),
-      TweenSequenceItem(
-        tween: ColorTween(
-          begin: const Color(0xFF6366F1),
-          end: AppColors.primary,
-        ),
-        weight: 25,
-      ),
-    ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
-    _controller.repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _controller,
-      builder: (context, _) {
-        return Text(
-          widget.name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: _colorAnimation.value,
-            fontSize: 14,
-            height: 1.05,
-            fontWeight: FontWeight.w900,
-          ),
-        );
-      },
     );
   }
 }
@@ -491,25 +442,32 @@ class _HomeRegionBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Material(
-      color: AppColors.warning.withValues(alpha: isDark ? 0.18 : 0.12),
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 180),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            AppIcons.location,
+            key: ValueKey('home_region_icon'),
             color: AppColors.warning,
-            fontSize: 11,
-            height: 1.2,
-            fontWeight: FontWeight.w600,
+            size: 14,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: Colors.white.withValues(alpha: 0.82),
+                fontSize: 11,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -560,14 +518,14 @@ class _TopActionButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          width: 42,
-          height: 42,
+          width: 46,
+          height: 46,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 46,
+                height: 46,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
@@ -576,7 +534,7 @@ class _TopActionButton extends StatelessWidget {
                         : Colors.black.withValues(alpha: 0.06),
                   ),
                 ),
-                child: Icon(icon, size: 21),
+                child: Icon(icon, size: 20),
               ),
               if (normalizedBadgeCount > 0)
                 PositionedDirectional(
@@ -585,10 +543,10 @@ class _TopActionButton extends StatelessWidget {
                   end: -6,
                   child: Container(
                     constraints: const BoxConstraints(
-                      minWidth: 20,
-                      minHeight: 20,
+                      minWidth: 18,
+                      minHeight: 18,
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
+                    padding: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
                       color: AppColors.error,
                       borderRadius: BorderRadius.circular(8),
@@ -604,7 +562,7 @@ class _TopActionButton extends StatelessWidget {
                           : '$normalizedBadgeCount',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Colors.white,
-                        fontSize: 10,
+                        fontSize: 9,
                         height: 1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -615,6 +573,59 @@ class _TopActionButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _HomeSearchActionsRow extends StatelessWidget {
+  const _HomeSearchActionsRow({required this.isDark});
+
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      textDirection: TextDirection.ltr,
+      children: [
+        Expanded(child: _HomeSearchField(isDark: isDark)),
+        const SizedBox(width: 8),
+        BlocBuilder<NotificationCubit, NotificationState>(
+          builder: (context, state) {
+            return _TopActionButton(
+              key: const ValueKey('notification_bell_button'),
+              isDark: isDark,
+              icon: AppIcons.notification,
+              badgeCount: state.unreadCount,
+              onTap: () {
+                Navigator.pushNamed(context, AppRoutes.notifications);
+              },
+            );
+          },
+        ),
+        const SizedBox(width: 8),
+        Container(
+          key: const ValueKey('home_cart_button'),
+          width: 46,
+          height: 46,
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.darkCardColor : Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.06),
+            ),
+          ),
+          child: CartCounterIcon(
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.cart);
+            },
+            iconColor: isDark ? Colors.white : AppColors.lightTextPrimary,
+            iconSize: 20,
+            buttonSize: 38,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -631,6 +642,7 @@ class _HomeSearchField extends StatelessWidget {
         : AppColors.lightTextSecondary;
 
     return Material(
+      key: const ValueKey('home_search_field'),
       color: isDark ? AppColors.darkCardColor : Colors.white,
       borderRadius: BorderRadius.circular(8),
       child: InkWell(

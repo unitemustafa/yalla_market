@@ -98,6 +98,44 @@ void main() {
       expect(find.byKey(const ValueKey('home_empty_products')), findsNothing);
     },
   );
+
+  testWidgets('caps both product sections at five then adds view all', (
+    tester,
+  ) async {
+    final popularProducts = List.generate(
+      6,
+      (index) => _product(id: 'popular-$index', isPopular: true),
+    );
+    final latestProducts = List.generate(
+      6,
+      (index) => _product(id: 'latest-$index', isPopular: false),
+    );
+
+    await _pumpSections(
+      tester,
+      home: HomeData(
+        location: null,
+        offers: const [],
+        categories: const [],
+        products: popularProducts,
+      ),
+      catalogState: ProductCatalogReady(latestProducts, city: _city),
+    );
+
+    final popularSlider = tester.widget<ListView>(
+      find.byKey(const ValueKey('popular_products_horizontal_slider')),
+    );
+    final latestSlider = tester.widget<ListView>(
+      find.byKey(const ValueKey('latest_products_horizontal_slider')),
+    );
+    expect(popularSlider.semanticChildCount, 6);
+    expect(latestSlider.semanticChildCount, 6);
+    expect(
+      find.byKey(const ValueKey('popular_product_popular-5')),
+      findsNothing,
+    );
+    expect(find.byKey(const ValueKey('latest_product_latest-5')), findsNothing);
+  });
 }
 
 Future<void> _pumpSections(

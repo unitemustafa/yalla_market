@@ -105,7 +105,7 @@ class ProductRepositoryImpl implements ProductRepository {
                 slug: _slugFrom(entry.key),
                 productCount: products.length,
                 image: firstProduct.image,
-                accentColorValue: 0xFF4F60F6,
+                accentColorValue: 0xFF013C7E,
                 keywords: [
                   entry.key,
                   ...products.expand((product) => product.tags),

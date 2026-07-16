@@ -187,7 +187,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                   top: Radius.circular(8),
                 ),
                 child: SizedBox(
-                  height: 108,
+                  height: 88,
                   child: ColoredBox(
                     color: imagePanelColor,
                     child: Stack(
@@ -242,6 +242,9 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                                 ),
                                 builder: (context, isFavorite) {
                                   return _ProductIconButton(
+                                    key: ValueKey(
+                                      'product_wishlist_$_resolvedProductId',
+                                    ),
                                     icon: isFavorite
                                         ? AppIcons.heart5
                                         : AppIcons.heart,
@@ -264,9 +267,13 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
               ),
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(10, 10, 10, 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       Text(
                         context.tr(widget.title),
@@ -275,11 +282,13 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                           height: 1.18,
                           fontWeight: FontWeight.w900,
                         ),
+                        textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
-                        maxLines: 2,
+                        maxLines: 1,
                       ),
                       const SizedBox(height: 5),
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Flexible(
                             child: Text(
@@ -289,6 +298,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                                     color: mutedColor,
                                     fontWeight: FontWeight.w700,
                                   ),
+                              textAlign: TextAlign.center,
                               overflow: TextOverflow.ellipsis,
                               maxLines: 1,
                             ),
@@ -301,42 +311,38 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                           ),
                         ],
                       ),
-                      const Spacer(),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _ProductPriceBlock(
-                              price: displayedPrice,
-                              oldPrice: originalPrice.isNotEmpty
-                                  ? originalPrice
-                                  : _formatPrice(widget.oldPrice),
-                              textColor: textColor,
-                              mutedColor: mutedColor,
+                      const SizedBox(height: 4),
+                      _ProductPriceBlock(
+                        price: displayedPrice,
+                        oldPrice: originalPrice.isNotEmpty
+                            ? originalPrice
+                            : _formatPrice(widget.oldPrice),
+                        textColor: textColor,
+                        mutedColor: mutedColor,
+                      ),
+                      const SizedBox(height: 4),
+                      BlocSelector<CartCubit, List<CartItemData>, int>(
+                        selector: (items) {
+                          final cartItem = items
+                              .where(
+                                (i) =>
+                                    (_resolvedVariantId != null &&
+                                        i.variantId == _resolvedVariantId) ||
+                                    i.productId == widget.productId ||
+                                    i.id == _resolvedCartItemId,
+                              )
+                              .firstOrNull;
+                          return cartItem?.quantity ?? 0;
+                        },
+                        builder: (context, currentQuantity) {
+                          return _AddToCartButton(
+                            key: ValueKey(
+                              'product_add_to_cart_$_resolvedProductId',
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          BlocSelector<CartCubit, List<CartItemData>, int>(
-                            selector: (items) {
-                              final cartItem = items
-                                  .where(
-                                    (i) =>
-                                        (_resolvedVariantId != null &&
-                                            i.variantId ==
-                                                _resolvedVariantId) ||
-                                        i.productId == widget.productId ||
-                                        i.id == _resolvedCartItemId,
-                                  )
-                                  .firstOrNull;
-                              return cartItem?.quantity ?? 0;
-                            },
-                            builder: (context, currentQuantity) {
-                              return _AddToCartButton(
-                                quantity: currentQuantity,
-                                onTap: () => _addToCart(context),
-                              );
-                            },
-                          ),
-                        ],
+                            quantity: currentQuantity,
+                            onTap: () => _addToCart(context),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -365,38 +371,26 @@ class _ProductPriceBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 20,
-          child: Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: GreenCurrencyPrice(
-                price: price,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: textColor,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w900,
-                ),
+    return SizedBox(
+      width: double.infinity,
+      height: 20,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            GreenCurrencyPrice(
+              price: price,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: textColor,
+                fontSize: 13,
+                fontWeight: FontWeight.w900,
               ),
             ),
-          ),
-        ),
-        if (oldPrice.isNotEmpty) ...[
-          const SizedBox(height: 2),
-          SizedBox(
-            width: double.infinity,
-            height: 16,
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: AlignmentDirectional.centerStart,
-              child: AppCurrencyText(
+            if (oldPrice.isNotEmpty) ...[
+              const SizedBox(width: 6),
+              AppCurrencyText(
                 text: oldPrice,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: mutedColor,
@@ -404,16 +398,17 @@ class _ProductPriceBlock extends StatelessWidget {
                   decoration: TextDecoration.lineThrough,
                 ),
               ),
-            ),
-          ),
-        ],
-      ],
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
 
 class _ProductIconButton extends StatelessWidget {
   const _ProductIconButton({
+    super.key,
     required this.icon,
     required this.iconColor,
     required this.isDark,
@@ -446,7 +441,11 @@ class _ProductIconButton extends StatelessWidget {
 }
 
 class _AddToCartButton extends StatelessWidget {
-  const _AddToCartButton({required this.quantity, required this.onTap});
+  const _AddToCartButton({
+    super.key,
+    required this.quantity,
+    required this.onTap,
+  });
 
   final int quantity;
   final VoidCallback onTap;
@@ -460,26 +459,30 @@ class _AddToCartButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          width: 36,
-          height: 36,
+          width: double.infinity,
+          height: 44,
           child: Center(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 160),
-              child: quantity == 0
-                  ? const Icon(
-                      AppIcons.add,
-                      key: ValueKey('add'),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    context.tr('Add to cart'),
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Colors.white,
-                      size: 19,
-                    )
-                  : Text(
-                      context.tr('$quantity'),
-                      key: ValueKey(quantity),
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                      ),
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
                     ),
+                  ),
+                  const SizedBox(width: 3),
+                  Icon(
+                    quantity == 0 ? AppIcons.add : Icons.check_rounded,
+                    color: Colors.white,
+                    size: 14,
+                  ),
+                ],
+              ),
             ),
           ),
         ),

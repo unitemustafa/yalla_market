@@ -6,7 +6,6 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/brands/brand_card.dart';
-import '../../../../core/presentation/widgets/brands/brand_showcase.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -16,6 +15,7 @@ import '../../../../core/routing/app_routes.dart';
 import '../../domain/entities/store_data.dart';
 import '../cubit/store_cubit.dart';
 import '../cubit/store_state.dart';
+import '../widgets/store_market_card.dart';
 
 class StoreView extends StatefulWidget {
   const StoreView({super.key});
@@ -25,6 +25,12 @@ class StoreView extends StatefulWidget {
 }
 
 class _StoreViewState extends State<StoreView> {
+  String? _selectedPopularClassificationId;
+
+  Future<void> _refreshStore() {
+    return context.read<StoreCubit>().loadStore(force: true);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -107,6 +113,19 @@ class _StoreViewState extends State<StoreView> {
             )
             .toList(growable: false);
         final hasPopularMarkets = popularClassifications.isNotEmpty;
+        StoreClassificationData? selectedPopularClassification;
+        if (hasPopularMarkets) {
+          selectedPopularClassification = popularClassifications.first;
+          for (final classification in popularClassifications) {
+            if (classification.id == _selectedPopularClassificationId) {
+              selectedPopularClassification = classification;
+              break;
+            }
+          }
+        }
+        final selectedPopularMarkets = selectedPopularClassification == null
+            ? const <StoreMarketData>[]
+            : readyStore.popularMarketsFor(selectedPopularClassification.id);
 
         Widget buildStoreHeader() {
           return ColoredBox(
@@ -137,96 +156,82 @@ class _StoreViewState extends State<StoreView> {
                     const SizedBox(height: 12),
                     _FeaturedCategoriesGrid(categories: featuredSlots),
                   ],
-                  if (readyStore.latestMarkets.isNotEmpty) ...[
-                    const SizedBox(height: 22),
-                    const SectionHeading(
-                      title: 'Latest Stores',
-                      titleFontSize: 18,
-                      showActionButton: false,
-                    ),
-                    const SizedBox(height: 12),
-                    _LatestStoresSlider(markets: readyStore.latestMarkets),
-                  ],
                 ],
               ),
             ),
           );
         }
 
-        Widget buildStoreScaffold() {
-          if (!hasPopularMarkets) {
-            return Scaffold(
-              backgroundColor: backgroundColor,
-              body: SafeArea(
-                child: AppRefreshIndicator(
-                  onRefresh: () =>
-                      context.read<StoreCubit>().loadStore(force: true),
-                  child: CustomScrollView(
-                    key: const ValueKey('store_without_popular_scroll'),
-                    physics: AppRefreshIndicator.scrollPhysics,
-                    slivers: [SliverToBoxAdapter(child: buildStoreHeader())],
-                  ),
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          body: SafeArea(
+            child: AppRefreshIndicator(
+              onRefresh: _refreshStore,
+              child: CustomScrollView(
+                key: ValueKey(
+                  hasPopularMarkets
+                      ? 'store_scroll'
+                      : 'store_without_popular_scroll',
                 ),
-              ),
-            );
-          }
-
-          return Scaffold(
-            backgroundColor: backgroundColor,
-            body: SafeArea(
-              child: AppRefreshIndicator(
-                onRefresh: () =>
-                    context.read<StoreCubit>().loadStore(force: true),
-                notificationPredicate: _storeRefreshNotificationPredicate,
-                child: NestedScrollView(
-                  physics: AppRefreshIndicator.scrollPhysics,
-                  headerSliverBuilder: (_, _) {
-                    return [
-                      SliverToBoxAdapter(child: buildStoreHeader()),
-                      SliverPersistentHeader(
-                        pinned: true,
-                        delegate: _StoreTabsHeaderDelegate(
-                          backgroundColor: backgroundColor,
-                          isDark: isDark,
-                          labels: popularClassifications
-                              .map((category) => category.name)
-                              .toList(growable: false),
-                        ),
+                physics: AppRefreshIndicator.scrollPhysics,
+                slivers: [
+                  SliverToBoxAdapter(child: buildStoreHeader()),
+                  if (selectedPopularClassification != null)
+                    SliverToBoxAdapter(
+                      child: _PopularStoresSection(
+                        classifications: popularClassifications,
+                        selectedClassification: selectedPopularClassification,
+                        markets: selectedPopularMarkets,
+                        onClassificationSelected: (classification) {
+                          if (classification.id ==
+                              selectedPopularClassification!.id) {
+                            return;
+                          }
+                          setState(() {
+                            _selectedPopularClassificationId =
+                                classification.id;
+                          });
+                        },
                       ),
-                    ];
-                  },
-                  body: ColoredBox(
-                    color: backgroundColor,
-                    child: TabBarView(
-                      children: popularClassifications
-                          .map(
-                            (classification) => _StoreMarketsTab(
-                              classification: classification,
-                              markets: readyStore.popularMarketsFor(
-                                classification.id,
-                              ),
-                            ),
-                          )
-                          .toList(growable: false),
                     ),
-                  ),
-                ),
+                  if (readyStore.latestMarkets.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: _LatestStoresSection(
+                        markets: readyStore.latestMarkets,
+                      ),
+                    ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 24)),
+                ],
               ),
             ),
-          );
-        }
-
-        final scaffold = buildStoreScaffold();
-        if (!hasPopularMarkets) return scaffold;
-
-        return DefaultTabController(
-          key: ValueKey(
-            popularClassifications.map((item) => item.id).join('|'),
           ),
-          length: popularClassifications.length,
-          child: scaffold,
         );
       },
+    );
+  }
+}
+
+class _LatestStoresSection extends StatelessWidget {
+  const _LatestStoresSection({required this.markets});
+
+  final List<StoreMarketData> markets;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SectionHeading(
+            title: 'Latest Stores',
+            titleFontSize: 18,
+            showActionButton: false,
+          ),
+          const SizedBox(height: 12),
+          _LatestStoresSlider(markets: markets),
+        ],
+      ),
     );
   }
 }
@@ -256,11 +261,11 @@ class _LatestStoresSlider extends StatelessWidget {
     final showViewAll = markets.length > visibleMarkets.length;
 
     return SizedBox(
-      height: 92,
+      height: StoreMarketCard.height,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final cardWidth = (constraints.maxWidth * 0.76)
-              .clamp(240.0, 310.0)
+          final cardWidth = (constraints.maxWidth * 0.82)
+              .clamp(246.0, 316.0)
               .toDouble();
 
           return ListView.separated(
@@ -278,12 +283,9 @@ class _LatestStoresSlider extends StatelessWidget {
               return SizedBox(
                 key: ValueKey('latest_store_${market.id}'),
                 width: cardWidth,
-                child: BrandCard(
-                  showBorder: true,
-                  brand: market.name,
-                  productCount: market.productCountLabel,
-                  logo: market.image,
-                  accentColor: Color(market.accentColorValue),
+                child: StoreMarketCard(
+                  market: market,
+                  keyPrefix: 'latest_store',
                   onTap: () => _openStore(context, market),
                 ),
               );
@@ -386,62 +388,267 @@ class _StorePlainScaffold extends StatelessWidget {
   }
 }
 
-class _StoreMarketsTab extends StatelessWidget {
-  const _StoreMarketsTab({required this.classification, required this.markets});
+class _PopularStoresSection extends StatelessWidget {
+  const _PopularStoresSection({
+    required this.classifications,
+    required this.selectedClassification,
+    required this.markets,
+    required this.onClassificationSelected,
+  });
 
-  final StoreClassificationData classification;
+  final List<StoreClassificationData> classifications;
+  final StoreClassificationData selectedClassification;
   final List<StoreMarketData> markets;
+  final ValueChanged<StoreClassificationData> onClassificationSelected;
 
-  @override
-  Widget build(BuildContext context) {
-    if (markets.isEmpty) {
-      return AppEmptyState(
-        title: context.tr('No stores available'),
-        message: context.tr(
-          'Stores will appear here when they cover your address.',
-        ),
-        icon: AppIcons.shop,
-      );
+  void _openStore(BuildContext context, StoreMarketData market) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.brandProducts,
+      arguments: BrandProductsRouteArgs(
+        brand: market.name,
+        logo: market.image,
+        productCount: market.productCountLabel,
+        classificationId: selectedClassification.id,
+        marketId: market.id,
+      ),
+    );
+  }
+
+  List<StoreClassificationData> get _visibleClassifications {
+    final visible = classifications.take(4).toList(growable: true);
+    final selectedIsVisible = visible.any(
+      (classification) => classification.id == selectedClassification.id,
+    );
+    if (!selectedIsVisible && visible.isNotEmpty) {
+      visible[visible.length - 1] = selectedClassification;
     }
+    return visible;
+  }
 
-    return ListView.builder(
-      physics: AppRefreshIndicator.scrollPhysics,
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-      itemCount: markets.length,
-      itemBuilder: (_, index) {
-        final market = markets[index];
-        return BrandShowcase(
-          brand: market.name,
-          productCount: market.productCountLabel,
-          logo: market.image,
-          accentColor: Color(market.accentColorValue),
-          images: market.products
-              .map((product) => product.image)
-              .take(3)
-              .toList(growable: false),
-          onTap: () {
-            Navigator.pushNamed(
-              context,
-              AppRoutes.brandProducts,
-              arguments: BrandProductsRouteArgs(
-                brand: market.name,
-                logo: market.image,
-                productCount: market.productCountLabel,
-                classificationId: classification.id,
-                marketId: market.id,
+  Future<void> _showAllClassifications(BuildContext context) {
+    return showModalBottomSheet<void>(
+      context: context,
+      useSafeArea: true,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) {
+        return FractionallySizedBox(
+          heightFactor: 0.72,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Text(
+                  context.tr('Popular Stores'),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+                ),
               ),
-            );
-          },
+              Expanded(
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
+                  itemCount: classifications.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 4),
+                  itemBuilder: (context, index) {
+                    final classification = classifications[index];
+                    final isSelected =
+                        classification.id == selectedClassification.id;
+                    return ListTile(
+                      key: ValueKey(
+                        'popular_store_all_category_${classification.id}',
+                      ),
+                      selected: isSelected,
+                      selectedColor: AppColors.primary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      title: Text(
+                        context.tr(classification.name),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_circle_rounded,
+                              color: AppColors.primary,
+                            )
+                          : null,
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+                        onClassificationSelected(classification);
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
         );
       },
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final visibleClassifications = _visibleClassifications;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SectionHeading(
+            title: 'Popular Stores',
+            titleFontSize: 18,
+            showActionButton: classifications.length > 4,
+            onPressed: classifications.length > 4
+                ? () => _showAllClassifications(context)
+                : null,
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 40,
+            child: ListView.separated(
+              key: const ValueKey('popular_store_category_selector'),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: visibleClassifications.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final classification = visibleClassifications[index];
+                return _PopularCategoryChip(
+                  key: ValueKey('popular_store_category_${classification.id}'),
+                  label: context.tr(classification.name),
+                  count: classification.id == selectedClassification.id
+                      ? markets.length
+                      : null,
+                  selected: classification.id == selectedClassification.id,
+                  onTap: () => onClassificationSelected(classification),
+                );
+              },
+            ),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth * 0.82)
+                  .clamp(246.0, 316.0)
+                  .toDouble();
+              return SizedBox(
+                height: StoreMarketCard.height,
+                child: ListView.separated(
+                  key: const ValueKey('popular_stores_horizontal_slider'),
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: markets.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final market = markets[index];
+                    return SizedBox(
+                      key: ValueKey('popular_store_${market.id}'),
+                      width: cardWidth,
+                      child: StoreMarketCard(
+                        market: market,
+                        keyPrefix: 'popular_store',
+                        onTap: () => _openStore(context, market),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-bool _storeRefreshNotificationPredicate(ScrollNotification notification) {
-  return notification.depth == 0 &&
-      notification.metrics.axis == Axis.vertical &&
-      notification.metrics.extentBefore <= 0;
+class _PopularCategoryChip extends StatelessWidget {
+  const _PopularCategoryChip({
+    super.key,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    this.count,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final int? count;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final borderColor = selected
+        ? AppColors.primary
+        : (isDark
+              ? Colors.white.withValues(alpha: 0.10)
+              : Colors.black.withValues(alpha: 0.07));
+    final foregroundColor = selected
+        ? Colors.white
+        : (isDark ? Colors.white : AppColors.lightTextPrimary);
+
+    return Material(
+      color: selected
+          ? AppColors.primary
+          : (isDark ? AppColors.darkCardColor : Colors.white),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 128,
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 13),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: foregroundColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (count != null) ...[
+                const SizedBox(width: 7),
+                Container(
+                  constraints: const BoxConstraints(minWidth: 20),
+                  padding: const EdgeInsets.symmetric(horizontal: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '$count',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: foregroundColor,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _FeaturedCategoriesGrid extends StatelessWidget {
@@ -527,6 +734,7 @@ class _StoreTopBar extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(width: 8),
         Container(
           width: 48,
           height: 48,
@@ -616,93 +824,5 @@ class _StoreSearchField extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-class _StoreTabsHeaderDelegate extends SliverPersistentHeaderDelegate {
-  const _StoreTabsHeaderDelegate({
-    required this.backgroundColor,
-    required this.isDark,
-    required this.labels,
-  });
-
-  final Color backgroundColor;
-  final bool isDark;
-  final List<String> labels;
-
-  @override
-  double get minExtent => 62;
-
-  @override
-  double get maxExtent => 62;
-
-  @override
-  Widget build(
-    BuildContext context,
-    double shrinkOffset,
-    bool overlapsContent,
-  ) {
-    final tabTextStyle = Theme.of(
-      context,
-    ).textTheme.labelLarge?.copyWith(fontWeight: FontWeight.w800);
-
-    return Material(
-      color: backgroundColor,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-        child: Container(
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkCardColor : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-            ),
-          ),
-          child: TabBar(
-            isScrollable: true,
-            tabAlignment: TabAlignment.start,
-            padding: const EdgeInsets.all(4),
-            labelPadding: const EdgeInsets.symmetric(horizontal: 14),
-            indicatorSize: TabBarIndicatorSize.tab,
-            indicator: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            dividerColor: Colors.transparent,
-            overlayColor: WidgetStateProperty.all(Colors.transparent),
-            unselectedLabelColor: isDark
-                ? AppColors.darkTextSecondary
-                : AppColors.lightTextSecondary,
-            labelColor: Colors.white,
-            labelStyle: tabTextStyle,
-            unselectedLabelStyle: tabTextStyle,
-            tabs: labels
-                .map(
-                  (label) => Tab(
-                    height: 34,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 180),
-                      child: Text(
-                        context.tr(label),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ),
-                )
-                .toList(growable: false),
-          ),
-        ),
-      ),
-    );
-  }
-
-  @override
-  bool shouldRebuild(covariant _StoreTabsHeaderDelegate oldDelegate) {
-    return oldDelegate.backgroundColor != backgroundColor ||
-        oldDelegate.isDark != isDark ||
-        oldDelegate.labels.length != labels.length;
   }
 }

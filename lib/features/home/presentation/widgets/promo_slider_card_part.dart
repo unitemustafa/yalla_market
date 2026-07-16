@@ -33,15 +33,17 @@ class _PromoOfferCard extends StatelessWidget {
             ),
             Positioned.fill(
               child: DecoratedBox(
+                key: const ValueKey('promo_offer_image_scrim'),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: AlignmentDirectional.centerStart,
                     end: AlignmentDirectional.centerEnd,
                     colors: [
-                      Colors.black.withValues(alpha: 0.56),
-                      Colors.black.withValues(alpha: 0.24),
-                      Colors.black.withValues(alpha: 0.66),
+                      Colors.black.withValues(alpha: 0.30),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.44),
                     ],
+                    stops: const [0, 0.48, 1],
                   ),
                 ),
               ),

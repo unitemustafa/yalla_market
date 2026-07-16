@@ -19,6 +19,28 @@ import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 
 void main() {
   group('PromoSlider offer cart items', () {
+    testWidgets('offer image keeps a clear center with a light scrim', (
+      tester,
+    ) async {
+      final cartCubit = _cartCubit();
+      await cartCubit.loadCartForUser('user-scrim');
+
+      await tester.pumpWidget(_Subject(cartCubit: cartCubit, offerId: '5'));
+      await tester.pump();
+
+      final scrim = tester.widget<DecoratedBox>(
+        find.byKey(const ValueKey('promo_offer_image_scrim')),
+      );
+      final gradient = (scrim.decoration as BoxDecoration).gradient!;
+      final colors = (gradient as LinearGradient).colors;
+      expect(colors[0].a, closeTo(0.30, 0.01));
+      expect(colors[1].a, 0);
+      expect(colors[2].a, closeTo(0.44, 0.01));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await cartCubit.close();
+    });
+
     testWidgets('offer details expose share and copy-link actions', (
       tester,
     ) async {

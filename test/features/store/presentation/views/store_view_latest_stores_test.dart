@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
+import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 import 'package:yalla_market/features/store/domain/repositories/store_repository.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_store_usecase.dart';
@@ -63,6 +66,30 @@ void main() {
     expect(tester.widget<ListView>(slider).semanticChildCount, 7);
     expect(find.byKey(const ValueKey('latest_store_market-1')), findsOneWidget);
     expect(find.byKey(const ValueKey('latest_store_market-7')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('latest_store_market-1_product_0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('latest_store_market-1_product_2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('latest_store_market-1_product_3')),
+      findsNothing,
+    );
+    final emptyStoreImage = tester.widget<AppImage>(
+      find.byKey(const ValueKey('latest_store_market-2_default_0')),
+    );
+    expect(emptyStoreImage.source, AppAssets.emptyStoreLight);
+    expect(
+      find.byKey(const ValueKey('latest_store_market-2_default_1')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('latest_store_market-2_default_2')),
+      findsOneWidget,
+    );
 
     await tester.drag(slider, const Offset(-2200, 0));
     await tester.pumpAndSettle();
@@ -74,72 +101,149 @@ void main() {
     expect(find.text('Latest stores'), findsOneWidget);
   });
 
-  testWidgets(
-    'popular store tabs stay scrollable and exclude empty categories',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(320, 760));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('popular stores use filters and one stable page scroll', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(320, 760));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final repository = _StoreRepository(_storeWithPopularMarkets());
-      final storeCubit = StoreCubit(GetStoreUseCase(repository));
-      final cartCubit = makeCartCubit();
-      addTearDown(storeCubit.close);
-      addTearDown(cartCubit.close);
+    final repository = _StoreRepository(_storeWithPopularMarkets());
+    final storeCubit = StoreCubit(GetStoreUseCase(repository));
+    final cartCubit = makeCartCubit();
+    addTearDown(storeCubit.close);
+    addTearDown(cartCubit.close);
 
-      await tester.pumpWidget(
-        MultiBlocProvider(
-          providers: [
-            BlocProvider<StoreCubit>.value(value: storeCubit),
-            BlocProvider<CartCubit>.value(value: cartCubit),
-          ],
-          child: const MaterialApp(home: StoreView()),
-        ),
-      );
-      await tester.pumpAndSettle();
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<StoreCubit>.value(value: storeCubit),
+          BlocProvider<CartCubit>.value(value: cartCubit),
+        ],
+        child: const MaterialApp(home: StoreView()),
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final tabBar = tester.widget<TabBar>(find.byType(TabBar));
-      expect(tabBar.isScrollable, isTrue);
-      expect(find.text('No popular stores here'), findsNothing);
-      expect(tester.takeException(), isNull);
+    expect(find.byType(TabBar), findsNothing);
+    expect(find.byType(TabBarView), findsNothing);
+    expect(find.byType(NestedScrollView), findsNothing);
+    expect(find.text('No popular stores here'), findsNothing);
+    final categorySelector = find.byKey(
+      const ValueKey('popular_store_category_selector'),
+    );
+    expect(categorySelector, findsOneWidget);
+    expect(tester.widget<ListView>(categorySelector).semanticChildCount, 4);
+    final firstCategorySize = tester.getSize(
+      find.byKey(const ValueKey('popular_store_category_popular-0')),
+    );
+    final secondCategorySize = tester.getSize(
+      find.byKey(const ValueKey('popular_store_category_popular-1')),
+    );
+    expect(firstCategorySize, const Size(128, 40));
+    expect(secondCategorySize, firstCategorySize);
+    expect(find.text('Popular picks for you'), findsNothing);
+    expect(
+      tester.widget<ListView>(categorySelector).scrollDirection,
+      Axis.horizontal,
+    );
+    final popularSlider = find.byKey(
+      const ValueKey('popular_stores_horizontal_slider'),
+    );
+    expect(popularSlider, findsOneWidget);
+    expect(
+      tester.widget<ListView>(popularSlider).scrollDirection,
+      Axis.horizontal,
+    );
+    expect(
+      find.byKey(const ValueKey('popular_store_popular-market-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('popular_store_popular-market-0_default_0')),
+      findsOneWidget,
+    );
 
-      final callsBeforeRefresh = repository.calls;
-      final popularStoresList = find.descendant(
-        of: find.byType(TabBarView),
-        matching: find.byType(ListView),
-      );
-      expect(popularStoresList, findsOneWidget);
+    await tester.drag(categorySelector, const Offset(-140, 0));
+    await tester.pumpAndSettle();
+    final secondCategory = find.byKey(
+      const ValueKey('popular_store_category_popular-1'),
+    );
+    await tester.tap(secondCategory);
+    await tester.pumpAndSettle();
 
-      await tester.fling(popularStoresList, const Offset(0, 500), 1000);
-      await tester.pump();
-      await tester.pump(const Duration(seconds: 1));
-      await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('popular_store_popular-market-0')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const ValueKey('popular_store_popular-market-1')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('store_refresh_button')), findsNothing);
+    final popularHeading = tester.widget<Text>(find.text('Popular Stores'));
+    final latestHeading = tester.widget<Text>(find.text('Latest Stores'));
+    expect(popularHeading.style?.fontSize, latestHeading.style?.fontSize);
+    expect(
+      tester.getTopLeft(find.text('Popular Stores')).dy,
+      lessThan(tester.getTopLeft(find.text('Latest Stores')).dy),
+    );
 
-      expect(repository.calls, callsBeforeRefresh);
-      expect(find.text('Content updated'), findsNothing);
+    final viewAll = find.text('View all');
+    await tester.ensureVisible(viewAll);
+    await tester.tap(viewAll);
+    await tester.pumpAndSettle();
+    final fifthCategory = find.byKey(
+      const ValueKey('popular_store_all_category_popular-4'),
+    );
+    expect(fifthCategory, findsOneWidget);
+    await tester.tap(fifthCategory);
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('popular_store_popular-market-4')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
 
-      final refreshIndicator = tester.widget<RefreshIndicator>(
-        find.byType(RefreshIndicator),
-      );
-      final notificationContext = tester.element(find.byType(NestedScrollView));
-      final innerMetrics = FixedScrollMetrics(
-        minScrollExtent: 0,
-        maxScrollExtent: 500,
-        pixels: 0,
-        viewportDimension: 500,
-        axisDirection: AxisDirection.down,
-        devicePixelRatio: 1,
-      );
-      final innerNotification = ScrollUpdateNotification(
-        metrics: innerMetrics,
-        context: notificationContext,
-        depth: 1,
-      );
-      expect(
-        refreshIndicator.notificationPredicate(innerNotification),
-        isFalse,
-      );
-    },
-  );
+    final pageScroll = find.byKey(const ValueKey('store_scroll'));
+    expect(pageScroll, findsOneWidget);
+    await tester.fling(pageScroll, const Offset(0, 2000), 2000);
+    await tester.pumpAndSettle();
+    final callsBeforeRefresh = repository.calls;
+    await tester.drag(pageScroll, const Offset(0, 500));
+    await tester.pump();
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(repository.calls, callsBeforeRefresh + 1);
+  });
+
+  testWidgets('empty latest store uses the compact dark placeholder', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 820));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final storeCubit = StoreCubit(GetStoreUseCase(_StoreRepository(_store())));
+    final cartCubit = makeCartCubit();
+    addTearDown(storeCubit.close);
+    addTearDown(cartCubit.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<StoreCubit>.value(value: storeCubit),
+          BlocProvider<CartCubit>.value(value: cartCubit),
+        ],
+        child: MaterialApp(theme: ThemeData.dark(), home: const StoreView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final emptyStoreImage = tester.widget<AppImage>(
+      find.byKey(const ValueKey('latest_store_market-2_default_0')),
+    );
+    expect(emptyStoreImage.source, AppAssets.emptyStoreDark);
+    expect(tester.takeException(), isNull);
+  });
 
   testWidgets('odd featured category fills the final row deliberately', (
     tester,
@@ -187,7 +291,9 @@ StoreData _store() {
       branch: '',
       status: 'active',
       classificationId: 'featured',
-      products: const [],
+      products: index == 0
+          ? List.generate(4, (productIndex) => _product(productIndex))
+          : const [],
       image: '',
       accentColorValue: 0xFF4F60F6,
       createdAt: DateTime.utc(2026, 7, 13).subtract(Duration(days: index)),
@@ -211,12 +317,25 @@ StoreData _store() {
   );
 }
 
+ProductData _product(int index) {
+  return ProductData(
+    id: 'product-$index',
+    image: AppAssets.defaultProduct,
+    title: 'Product $index',
+    brand: 'Market 1',
+    price: '100',
+    oldPrice: null,
+    discount: '',
+    tags: const [],
+  );
+}
+
 StoreData _storeWithPopularMarkets() {
   final classifications = List.generate(
-    4,
+    6,
     (index) => StoreClassificationData(
       id: 'popular-$index',
-      name: index == 3
+      name: index == 5
           ? 'No popular stores here'
           : 'A very long popular category name number $index',
       marketCount: 1,
@@ -227,7 +346,7 @@ StoreData _storeWithPopularMarkets() {
     ),
   );
   final markets = <String, List<StoreMarketData>>{
-    for (var index = 0; index < 3; index++)
+    for (var index = 0; index < 5; index++)
       'popular-$index': [
         StoreMarketData(
           id: 'popular-market-$index',
@@ -241,13 +360,13 @@ StoreData _storeWithPopularMarkets() {
           isPopular: true,
         ),
       ],
-    'popular-3': [
+    'popular-5': [
       const StoreMarketData(
         id: 'regular-market',
         name: 'Regular Market',
         branch: '',
         status: 'active',
-        classificationId: 'popular-3',
+        classificationId: 'popular-5',
         products: [],
         image: '',
         accentColorValue: 0xFF4F60F6,
@@ -259,6 +378,7 @@ StoreData _storeWithPopularMarkets() {
     commonClassifications: const [],
     classifications: classifications,
     marketsByClassificationId: markets,
+    latestMarkets: markets['popular-0']!,
   );
 }
 

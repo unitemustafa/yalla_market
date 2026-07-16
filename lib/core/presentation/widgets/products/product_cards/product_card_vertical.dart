@@ -476,10 +476,28 @@ class _AddToCartButton extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 3),
-                  Icon(
-                    quantity == 0 ? AppIcons.add : Icons.check_rounded,
-                    color: Colors.white,
-                    size: 14,
+                  SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: Center(
+                      child: quantity == 0
+                          ? const Icon(
+                              AppIcons.add,
+                              color: Colors.white,
+                              size: 14,
+                            )
+                          : Text(
+                              '$quantity',
+                              key: ValueKey('cart_quantity_$quantity'),
+                              style: Theme.of(context).textTheme.labelSmall
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: 11,
+                                    height: 1,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                    ),
                   ),
                 ],
               ),

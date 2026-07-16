@@ -39,6 +39,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'All notifications deleted': 'تم حذف كل الإشعارات',
     'Could not delete all notifications.': 'تعذر حذف كل الإشعارات.',
     'Refresh notifications': 'تحديث الإشعارات',
+    'Refresh': 'تحديث',
     'Account restored': 'تم استعادة حسابك',
     'Your account was restored by the Yalla Market team.':
         'تم استعادة الحساب بواسطة فريق دعم يلا ماركت.',
@@ -589,6 +590,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'State': 'المحافظة',
     'Stock': 'المخزون',
     'Store': 'المتجر',
+    'Popular Stores': 'المحلات الشائعة',
     'Loading store...': 'بنجهزلك المتجر...',
     'Address required': 'محتاجين عنوانك',
     'Store could not load': 'المتجر محمّلش',

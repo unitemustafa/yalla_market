@@ -71,6 +71,22 @@ void main() {
       find.descendant(of: addButton, matching: find.text('Add to cart')),
       findsOneWidget,
     );
+    expect(
+      find.descendant(
+        of: addButton,
+        matching: find.byKey(const ValueKey('cart_quantity_1')),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(addButton);
+    await tester.pump();
+    expect(
+      find.descendant(
+        of: addButton,
+        matching: find.byKey(const ValueKey('cart_quantity_2')),
+      ),
+      findsOneWidget,
+    );
     final marketRect = tester.getRect(find.text('Backend market'));
     final priceRect = tester.getRect(find.byType(GreenCurrencyPrice));
     final productRect = tester.getRect(find.byType(ProductCardVertical));

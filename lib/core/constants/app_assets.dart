@@ -23,6 +23,10 @@ class AppAssets {
   static const String defaultOffer = '$_placeholdersPath/default_offer.webp';
   static const String defaultCourier =
       '$_placeholdersPath/default_courier.webp';
+  static const String emptyStoreLight =
+      '$_placeholdersPath/empty_store_light.jpg';
+  static const String emptyStoreDark =
+      '$_placeholdersPath/empty_store_dark.jpg';
 
   // Logos
   static const String logo = '$_logosPath/yallamarket_logo.png';

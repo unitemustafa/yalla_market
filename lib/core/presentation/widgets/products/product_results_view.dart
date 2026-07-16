@@ -19,7 +19,7 @@ class ProductResultsView extends StatefulWidget {
     required this.products,
     this.status = ProductResultsStatus.ready,
     this.showSearch = true,
-    this.pageSize = 4,
+    this.pageSize = 10,
     this.initialSortOption = 'Name',
     this.initialQuery = '',
     this.emptyTitle = 'No products found',
@@ -28,7 +28,7 @@ class ProductResultsView extends StatefulWidget {
     this.errorTitle = 'Products could not load',
     this.errorMessage = 'Please check your connection and try again.',
     this.onRetry,
-  });
+  }) : assert(pageSize > 0);
 
   final List<ProductData> products;
   final ProductResultsStatus status;

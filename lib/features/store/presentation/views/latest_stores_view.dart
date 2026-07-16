@@ -4,14 +4,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
-import '../../../../core/presentation/widgets/brands/brand_card.dart';
-import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
 import '../../domain/entities/store_data.dart';
 import '../cubit/store_cubit.dart';
 import '../cubit/store_state.dart';
+import '../widgets/store_market_card.dart';
 
 class LatestStoresView extends StatefulWidget {
   const LatestStoresView({super.key});
@@ -85,20 +84,23 @@ class _LatestStoresViewState extends State<LatestStoresView> {
                       );
                     }
 
-                    return GridLayout(
-                      itemCount: stores.length.clamp(0, 15),
-                      mainAxisExtent: 92,
-                      itemBuilder: (_, index) {
-                        final market = stores[index];
-                        return BrandCard(
-                          showBorder: true,
-                          brand: market.name,
-                          productCount: market.productCountLabel,
-                          logo: market.image,
-                          accentColor: Color(market.accentColorValue),
-                          onTap: () => _openStore(market),
-                        );
-                      },
+                    return Column(
+                      children: stores
+                          .take(15)
+                          .map(
+                            (market) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: StoreMarketCard(
+                                key: ValueKey(
+                                  'latest_stores_page_${market.id}',
+                                ),
+                                market: market,
+                                keyPrefix: 'latest_stores_page',
+                                onTap: () => _openStore(market),
+                              ),
+                            ),
+                          )
+                          .toList(growable: false),
                     );
                   },
                 ),

@@ -10,7 +10,6 @@ import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
-import '../../../../../core/presentation/widgets/brands/brand_showcase.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -22,6 +21,7 @@ import '../../cubit/product_catalog_cubit.dart';
 import '../../cubit/product_catalog_state.dart';
 import '../../cubit/store_cubit.dart';
 import '../../cubit/store_state.dart';
+import '../../widgets/store_market_card.dart';
 
 part 'brand_products_widgets.dart';
 
@@ -267,28 +267,26 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           )
         else
           ...markets.map(
-            (market) => BrandShowcase(
-              brand: market.name,
-              productCount: market.productCountLabel,
-              logo: market.image,
-              accentColor: Color(market.accentColorValue),
-              images: market.products
-                  .map((product) => product.image)
-                  .take(3)
-                  .toList(growable: false),
-              onTap: () {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.brandProducts,
-                  arguments: BrandProductsRouteArgs(
-                    brand: market.name,
-                    logo: market.image,
-                    productCount: market.productCountLabel,
-                    classificationId: market.classificationId,
-                    marketId: market.id,
-                  ),
-                );
-              },
+            (market) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: StoreMarketCard(
+                key: ValueKey('classification_store_${market.id}'),
+                market: market,
+                keyPrefix: 'classification_store',
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.brandProducts,
+                    arguments: BrandProductsRouteArgs(
+                      brand: market.name,
+                      logo: market.image,
+                      productCount: market.productCountLabel,
+                      classificationId: market.classificationId,
+                      marketId: market.id,
+                    ),
+                  );
+                },
+              ),
             ),
           ),
       ],
@@ -317,7 +315,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         ProductResultsView(
           products: market.products,
           status: ProductResultsStatus.ready,
-          pageSize: 6,
           onRetry: () => context.read<StoreCubit>().loadStore(force: true),
           emptyTitle: 'No products available',
           emptyMessage: 'Products will appear here once this store is ready.',
@@ -424,7 +421,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         ProductResultsView(
           products: shop.products,
           status: ProductResultsStatus.ready,
-          pageSize: 6,
           emptyTitle: 'المنيو فاضي',
           emptyMessage: 'لسه مفيش منتجات متاحة من المحل ده.',
           loadingMessage: 'Loading menu...',
@@ -457,7 +453,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         ProductResultsView(
           products: products.cast<ProductData>(),
           status: ProductResultsStatus.ready,
-          pageSize: 4,
           onRetry: () =>
               context.read<ProductCatalogCubit>().loadProducts(force: true),
           emptyTitle: 'No ${widget.brand} items yet',

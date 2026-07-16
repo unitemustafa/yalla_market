@@ -83,7 +83,6 @@ class _AllProductsViewState extends State<AllProductsView> {
             errorMessage: state is HomeFailure
                 ? state.message
                 : 'Please check your connection and try again.',
-            pageSize: 4,
             emptyTitle: 'No products available',
             emptyMessage:
                 'Products will appear here once the catalog is ready.',
@@ -112,7 +111,6 @@ class _AllProductsViewState extends State<AllProductsView> {
               errorMessage: state is ProductCatalogFailure
                   ? state.message
                   : 'Please check your connection and try again.',
-              pageSize: 4,
               emptyTitle: 'No products available',
               emptyMessage: state is ProductCatalogNeedsCity
                   ? 'So we can show products available in your area.'

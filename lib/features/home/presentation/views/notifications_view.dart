@@ -6,6 +6,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
+import '../../../../core/presentation/widgets/dialogs/app_confirm_dialog.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/routing/app_route_arguments.dart';
@@ -60,25 +61,17 @@ class _NotificationsViewState extends State<NotificationsView> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
-        return AlertDialog(
-          title: Text(dialogContext.tr('Delete all notifications?')),
-          content: Text(
-            dialogContext.tr(
-              'This will permanently delete all your notifications.',
-            ),
+        return AppConfirmDialog(
+          title: dialogContext.tr('Delete all notifications?'),
+          message: dialogContext.tr(
+            'This will permanently delete all your notifications.',
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(dialogContext, false),
-              child: Text(dialogContext.tr('Cancel')),
-            ),
-            FilledButton(
-              key: const ValueKey('confirm-delete-all-notifications'),
-              onPressed: () => Navigator.pop(dialogContext, true),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.error),
-              child: Text(dialogContext.tr('Delete')),
-            ),
-          ],
+          cancelLabel: dialogContext.tr('Cancel'),
+          confirmLabel: dialogContext.tr('Delete'),
+          confirmKey: const ValueKey('confirm-delete-all-notifications'),
+          isDestructive: true,
+          onCancel: () => Navigator.pop(dialogContext, false),
+          onConfirm: () => Navigator.pop(dialogContext, true),
         );
       },
     );

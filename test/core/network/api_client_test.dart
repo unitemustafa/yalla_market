@@ -49,6 +49,43 @@ void main() {
     },
   );
 
+  test('proactive refresh network failure keeps the saved session', () async {
+    final now = DateTime.now().toUtc();
+    final current = _tokens(
+      now,
+      accessExpiresAt: now.add(const Duration(seconds: 30)),
+    );
+    final tokenStore = _CountingTokenStore(current);
+    final notifier = SessionExpiredNotifier();
+    var expiredEvents = 0;
+    notifier.addListener(() => expiredEvents += 1);
+    final refreshDio = Dio()
+      ..httpClientAdapter = _Adapter((options) {
+        throw DioException.connectionError(
+          requestOptions: options,
+          reason: 'offline',
+        );
+      });
+    final client = ApiClient(
+      dio: Dio()
+        ..httpClientAdapter = _Adapter(
+          (options) => _jsonResponse({'unexpected': true}),
+        ),
+      refreshDio: refreshDio,
+      tokenStore: tokenStore,
+      sessionExpiredNotifier: notifier,
+    );
+
+    await expectLater(
+      client.get<Map<String, dynamic>>('/protected'),
+      throwsA(isA<DioException>()),
+    );
+
+    expect(tokenStore.clearCount, 0);
+    expect(tokenStore.tokens, same(current));
+    expect(expiredEvents, 0);
+  });
+
   test('concurrent proactive requests share one refresh operation', () async {
     final now = DateTime.now().toUtc();
     final current = _tokens(
@@ -231,24 +268,19 @@ void main() {
       sessionExpiredNotifier: notifier,
     );
 
-    final requests = List.generate(
-      3,
-      (index) => client.get<Map<String, dynamic>>('/protected/$index'),
-    );
+    final requests = List<Future<Object?>>.generate(3, (index) async {
+      try {
+        await client.get<Map<String, dynamic>>('/protected/$index');
+        return null;
+      } catch (error) {
+        return error;
+      }
+    });
     await refreshStarted.future;
     refreshResponse.complete(
       _jsonResponse({'code': 'token_not_valid'}, statusCode: 401),
     );
-    final results = await Future.wait(
-      requests.map((request) async {
-        try {
-          await request;
-          return null;
-        } catch (error) {
-          return error;
-        }
-      }),
-    );
+    final results = await Future.wait(requests);
 
     expect(results, everyElement(isA<DioException>()));
     expect(refreshRequests, 1);

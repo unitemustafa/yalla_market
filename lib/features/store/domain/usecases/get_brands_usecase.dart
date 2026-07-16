@@ -7,7 +7,7 @@ class GetBrandsUseCase {
 
   final ProductRepository _repository;
 
-  Future<ApiResult<List<BrandData>>> call() {
-    return _repository.getBrands();
+  Future<ApiResult<List<BrandData>>> call({bool forceRefresh = false}) {
+    return _repository.getBrands(forceRefresh: forceRefresh);
   }
 }

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,9 +16,11 @@ import 'core/preferences/app_preferences_controller.dart';
 import 'core/presentation/widgets/offline_connection_banner.dart';
 import 'core/presentation/widgets/snackbars/custom_snackbar.dart';
 import 'core/routing/app_navigator.dart';
+import 'core/routing/app_route_observer.dart';
 import 'core/routing/app_route_arguments.dart';
 import 'core/routing/app_router.dart';
 import 'core/routing/app_routes.dart';
+import 'core/routing/shared_content_links.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/cubit/auth_cubit.dart';
 import 'features/auth/presentation/cubit/auth_state.dart';
@@ -111,9 +114,15 @@ class _AppCoordinator extends StatefulWidget {
 class _AppCoordinatorState extends State<_AppCoordinator>
     with WidgetsBindingObserver {
   StreamSubscription<PushEvent>? _pushSubscription;
+  StreamSubscription<Uri>? _deepLinkSubscription;
   bool _wasBackgrounded = false;
+  bool _deepLinkNavigationScheduled = false;
   late bool _mobileNotificationsEnabled;
   final ResumeRefreshGuard _resumeRefreshGuard = ResumeRefreshGuard();
+  late final AppRouteObserver _routeObserver = AppRouteObserver(
+    _schedulePendingDeepLink,
+  );
+  SharedContentDeepLink? _pendingDeepLink;
 
   @override
   void initState() {
@@ -126,6 +135,10 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     WidgetsBinding.instance.addObserver(this);
     final pushNotificationService = sl<PushNotificationService>();
     _pushSubscription = pushNotificationService.events.listen(_handlePushEvent);
+    _deepLinkSubscription = AppLinks().uriLinkStream.listen(
+      _handleDeepLink,
+      onError: (_) {},
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       for (final event
           in pushNotificationService.takePendingInitialOpenedEvents()) {
@@ -146,7 +159,62 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     );
     WidgetsBinding.instance.removeObserver(this);
     _pushSubscription?.cancel();
+    _deepLinkSubscription?.cancel();
     super.dispose();
+  }
+
+  void _handleDeepLink(Uri uri) {
+    final target = SharedContentDeepLink.tryParse(uri);
+    if (target == null) return;
+    _pendingDeepLink = target;
+    _schedulePendingDeepLink();
+  }
+
+  void _schedulePendingDeepLink() {
+    if (_deepLinkNavigationScheduled || _pendingDeepLink == null) return;
+    _deepLinkNavigationScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _deepLinkNavigationScheduled = false;
+      _openPendingDeepLink();
+    });
+  }
+
+  void _openPendingDeepLink() {
+    if (!mounted || _pendingDeepLink == null) return;
+    if (context.read<AuthCubit>().state is! AuthAuthenticated) return;
+    if (context.read<LocationCubit>().state.selectedCity == null) return;
+
+    final currentRoute = _routeObserver.currentRouteName;
+    if (currentRoute == null || _startupRoutes.contains(currentRoute)) return;
+    final navigator = AppNavigator.key.currentState;
+    if (navigator == null) return;
+
+    final target = _pendingDeepLink!;
+    _pendingDeepLink = null;
+    switch (target.type) {
+      case SharedContentType.product:
+        navigator.pushNamed(
+          AppRoutes.productDetail,
+          arguments: ProductDetailRouteArgs(
+            image: '',
+            title: '',
+            brand: '',
+            price: '',
+            productId: target.id,
+          ),
+        );
+        break;
+      case SharedContentType.offer:
+        navigator.pushNamedAndRemoveUntil(
+          AppRoutes.navigationMenu,
+          (route) => false,
+          arguments: NavigationMenuRouteArgs(
+            initialIndex: 0,
+            focusOfferId: target.id,
+          ),
+        );
+        break;
+    }
   }
 
   void _handleNotificationPreferenceChanged() {
@@ -386,6 +454,7 @@ class _AppCoordinatorState extends State<_AppCoordinator>
             context.read<WishlistCubit>().loadWishlistForUser(userKey);
             context.read<CartCubit>().loadCartForUser(userKey);
           }
+          _schedulePendingDeepLink();
         } else if (state is AuthAccountDisabled) {
           _clearPrivateSessionState(context);
           AppNavigator.goToLogin();
@@ -408,6 +477,7 @@ class _AppCoordinatorState extends State<_AppCoordinator>
               return MaterialApp(
                 navigatorKey: AppNavigator.key,
                 scaffoldMessengerKey: AppNavigator.scaffoldMessengerKey,
+                navigatorObservers: [_routeObserver],
                 debugShowCheckedModeBanner: false,
                 title: AppConstants.appName,
                 onGenerateTitle: (context) =>
@@ -423,7 +493,7 @@ class _AppCoordinatorState extends State<_AppCoordinator>
                       : TextDirection.ltr,
                   child: OfflineConnectionBanner(
                     message: context.tr(
-                      'No internet connection. Check your network to continue updates.',
+                      'You are offline. Showing saved content; checkout and updates need internet.',
                     ),
                     child: child ?? const SizedBox.shrink(),
                   ),
@@ -442,6 +512,20 @@ class _AppCoordinatorState extends State<_AppCoordinator>
       ),
     );
   }
+
+  static const _startupRoutes = <String>{
+    AppRoutes.splash,
+    AppRoutes.onboarding,
+    AppRoutes.login,
+    AppRoutes.signup,
+    AppRoutes.forgetPassword,
+    AppRoutes.resetPassword,
+    AppRoutes.passwordResetSent,
+    AppRoutes.verifyEmail,
+    AppRoutes.successAccount,
+    AppRoutes.selectCity,
+    AppRoutes.accountDisabled,
+  };
 
   String? _wishlistUserKey({required String id, required String email}) {
     if (id.trim().isNotEmpty) return id.trim();

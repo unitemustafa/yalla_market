@@ -7,7 +7,7 @@ class GetStoreUseCase {
 
   final StoreRepository _repository;
 
-  Future<ApiResult<StoreData>> call() {
-    return _repository.getStore();
+  Future<ApiResult<StoreData>> call({bool forceRefresh = false}) {
+    return _repository.getStore(forceRefresh: forceRefresh);
   }
 }

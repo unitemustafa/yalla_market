@@ -49,3 +49,6 @@ app.*.map.json
 # Android release signing
 android/key.properties
 *.jks
+
+# Supplied per Firebase/Apple deployment; Xcode references this path.
+/ios/Runner/GoogleService-Info.plist

@@ -7,7 +7,7 @@ class GetHomeUseCase {
 
   final HomeRepository _repository;
 
-  Future<ApiResult<HomeData>> call() {
-    return _repository.getHome();
+  Future<ApiResult<HomeData>> call({bool forceRefresh = false}) {
+    return _repository.getHome(forceRefresh: forceRefresh);
   }
 }

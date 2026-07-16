@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
@@ -17,6 +19,46 @@ import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 
 void main() {
   group('PromoSlider offer cart items', () {
+    testWidgets('offer details expose share and copy-link actions', (
+      tester,
+    ) async {
+      String? copiedText;
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copiedText =
+              (call.arguments as Map<Object?, Object?>)['text'] as String?;
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      final cartCubit = _cartCubit();
+      await cartCubit.loadCartForUser('user-share');
+
+      await tester.pumpWidget(_Subject(cartCubit: cartCubit, offerId: '5'));
+      await tester.tap(find.text('Fresh offer').first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(AppIcons.send_1));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Share offer'), findsOneWidget);
+      expect(find.text('Share'), findsOneWidget);
+      expect(find.text('Copy link'), findsOneWidget);
+
+      await tester.tap(find.text('Copy link'));
+      await tester.pumpAndSettle();
+
+      expect(copiedText, 'yallamarket://offers/5');
+      expect(find.text('Offer link copied'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(seconds: 1));
+      await cartCubit.close();
+    });
+
     testWidgets('add offer to cart keeps numeric offer id', (tester) async {
       final cartCubit = _cartCubit();
       await cartCubit.loadCartForUser('user-a');

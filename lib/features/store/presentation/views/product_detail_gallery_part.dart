@@ -7,6 +7,7 @@ class _ProductGallery extends StatelessWidget {
     required this.thumbnailImages,
     required this.isFavorite,
     required this.onBack,
+    required this.onShare,
     required this.onImageTap,
     required this.onWishlistTap,
     required this.onThumbnailTap,
@@ -17,6 +18,7 @@ class _ProductGallery extends StatelessWidget {
   final List<String> thumbnailImages;
   final bool isFavorite;
   final VoidCallback onBack;
+  final VoidCallback onShare;
   final VoidCallback onImageTap;
   final VoidCallback onWishlistTap;
   final ValueChanged<String> onThumbnailTap;
@@ -51,11 +53,23 @@ class _ProductGallery extends StatelessWidget {
                   isDark: isDark,
                   onTap: onBack,
                 ),
-                _CircleActionButton(
-                  icon: isFavorite ? AppIcons.heart5 : AppIcons.heart,
-                  color: isFavorite ? AppColors.error : null,
-                  isDark: isDark,
-                  onTap: onWishlistTap,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _CircleActionButton(
+                      icon: AppIcons.send_1,
+                      isDark: isDark,
+                      onTap: onShare,
+                      tooltip: 'Share product',
+                    ),
+                    const SizedBox(width: 8),
+                    _CircleActionButton(
+                      icon: isFavorite ? AppIcons.heart5 : AppIcons.heart,
+                      color: isFavorite ? AppColors.error : null,
+                      isDark: isDark,
+                      onTap: onWishlistTap,
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -109,16 +123,18 @@ class _CircleActionButton extends StatelessWidget {
     required this.isDark,
     required this.onTap,
     this.color,
+    this.tooltip,
   });
 
   final IconData icon;
   final bool isDark;
   final VoidCallback onTap;
   final Color? color;
+  final String? tooltip;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
+    final button = Material(
       color: isDark
           ? Colors.black.withValues(alpha: 0.22)
           : Colors.white.withValues(alpha: 0.92),
@@ -137,6 +153,9 @@ class _CircleActionButton extends StatelessWidget {
         ),
       ),
     );
+    final message = tooltip;
+    if (message == null) return button;
+    return Tooltip(message: context.tr(message), child: button);
   }
 }
 

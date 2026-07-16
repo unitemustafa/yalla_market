@@ -128,7 +128,8 @@ class ApiClient {
         options.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
       }
     } catch (error) {
-      if (!_accountInactiveNotifier.isInactive) {
+      if (!_accountInactiveNotifier.isInactive &&
+          !_isTransientSessionFailure(error)) {
         await _expireSession();
       }
       handler.reject(
@@ -194,7 +195,8 @@ class ApiClient {
       final retryResponse = await _dio.fetch<Object?>(request);
       handler.resolve(retryResponse);
     } catch (refreshError) {
-      if (!_accountInactiveNotifier.isInactive) {
+      if (!_accountInactiveNotifier.isInactive &&
+          !_isTransientSessionFailure(refreshError)) {
         await _expireSession();
       }
       handler.next(refreshError is DioException ? refreshError : error);
@@ -303,6 +305,12 @@ class ApiClient {
   bool _isAccountInactiveResponse(Object? data) {
     if (data is! Map) return false;
     return data['code']?.toString() == 'account_inactive';
+  }
+
+  bool _isTransientSessionFailure(Object error) {
+    if (error is! DioException) return false;
+    final status = error.response?.statusCode;
+    return error.response == null || (status != null && status >= 500);
   }
 
   T _unwrap<T>(Object? data) {

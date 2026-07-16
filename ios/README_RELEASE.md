@@ -1,12 +1,13 @@
 # Yalla Market iOS release handoff
 
 The iOS project is prepared for bundle identifier `com.yallamarket.app`, iOS
-13+, Firebase Messaging, profile-photo library access, and APNs entitlements.
+15+, Firebase Messaging, profile-photo library access, and APNs entitlements.
 
 On a Mac with Xcode and an Apple Developer account:
 
-1. Add the production `GoogleService-Info.plist` to `ios/Runner` and the Runner
-   target. It must belong to the Firebase iOS app `com.yallamarket.app`.
+1. Verify the deployment-specific `GoogleService-Info.plist` exists at
+   `ios/Runner/GoogleService-Info.plist`. The Runner target already references
+   it, and it must belong to the Firebase iOS app `com.yallamarket.app`.
 2. Run `flutter pub get`, then `cd ios && pod install`.
 3. Open `ios/Runner.xcworkspace` in Xcode.
 4. Select the Apple team and confirm the bundle identifier.

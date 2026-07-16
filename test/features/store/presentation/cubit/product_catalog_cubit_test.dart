@@ -128,7 +128,10 @@ class _FakeProductRepository implements ProductRepository {
   String? lastCitySlug;
 
   @override
-  Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) async {
+  Future<ApiResult<List<ProductData>>> getProducts({
+    String? citySlug,
+    bool forceRefresh = false,
+  }) async {
     loadCount += 1;
     lastCitySlug = citySlug;
 
@@ -157,12 +160,16 @@ class _FakeProductRepository implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<List<CategoryData>>> getCategories() async {
+  Future<ApiResult<List<CategoryData>>> getCategories({
+    bool forceRefresh = false,
+  }) async {
     return const ApiResult.success([sampleCategory]);
   }
 
   @override
-  Future<ApiResult<List<BrandData>>> getBrands() async {
+  Future<ApiResult<List<BrandData>>> getBrands({
+    bool forceRefresh = false,
+  }) async {
     return const ApiResult.success([sampleBrand]);
   }
 }

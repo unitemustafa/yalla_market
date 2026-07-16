@@ -33,7 +33,10 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
 
     emit(const ProductCatalogLoading());
 
-    final result = await _getProductsUseCase(citySlug: selectedCity.slug);
+    final result = await _getProductsUseCase(
+      citySlug: selectedCity.slug,
+      forceRefresh: force,
+    );
     if (!_isCurrent(generation)) return;
     result.when(
       success: (products) {

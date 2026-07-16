@@ -8,7 +8,10 @@ import '../../domain/repositories/product_repository.dart';
 
 class ProductRepositoryImpl implements ProductRepository {
   @override
-  Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) async {
+  Future<ApiResult<List<ProductData>>> getProducts({
+    String? citySlug,
+    bool forceRefresh = false,
+  }) async {
     try {
       return ApiResult.success(_filterByCity(DemoProducts.products, citySlug));
     } catch (_) {
@@ -67,7 +70,9 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<List<CategoryData>>> getCategories() async {
+  Future<ApiResult<List<CategoryData>>> getCategories({
+    bool forceRefresh = false,
+  }) async {
     try {
       return ApiResult.success(
         MarketCategories.all.map(_categoryFromDemo).toList(growable: false),
@@ -80,7 +85,9 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<List<BrandData>>> getBrands() async {
+  Future<ApiResult<List<BrandData>>> getBrands({
+    bool forceRefresh = false,
+  }) async {
     try {
       final brands = <String, List<ProductData>>{};
       for (final product in DemoProducts.products) {

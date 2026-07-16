@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
@@ -27,6 +28,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
+  static const _cachedUserKey = 'auth.cached_user.v1';
   static Options get _skipAuthOptions =>
       Options(extra: const {'skipAuth': true});
 
@@ -44,7 +46,15 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         throw const UnauthorizedFailure('Session expired.');
       }
 
-      final user = await _loadMe();
+      late final AuthUser user;
+      try {
+        user = await _loadMe();
+      } on DioException catch (error) {
+        if (!_canRestoreOffline(error)) rethrow;
+        final cachedUser = await _readCachedUser();
+        if (cachedUser == null) rethrow;
+        user = cachedUser;
+      }
       final currentTokens = await _tokenStore.read();
       if (currentTokens == null ||
           !await _sessionDeadlineController.activate(currentTokens)) {
@@ -176,7 +186,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
               'birth_date': ?_dateOnly(birthDate),
             },
           )
-          .then(_userFromPayload);
+          .then(_userFromPayloadAndCache);
     });
   }
 
@@ -191,7 +201,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       });
       return _apiClient
           .patch<Map<String, dynamic>>('/auth/client/profile/', data: formData)
-          .then(_userFromPayload);
+          .then(_userFromPayloadAndCache);
     });
   }
 
@@ -208,6 +218,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         }
       } finally {
         await _sessionDeadlineController.clearSession();
+        await _clearCachedUser();
       }
       return true;
     });
@@ -215,7 +226,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
 
   Future<AuthUser> _loadMe() async {
     final payload = await _apiClient.get<Map<String, dynamic>>('/auth/me');
-    return _userFromPayload(payload);
+    final user = _userFromPayload(payload);
+    await _cacheUser(user);
+    return user;
   }
 
   Future<AuthSession> _sessionFromPayload(Map<String, dynamic> payload) async {
@@ -224,7 +237,38 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     final tokens = tokensFromApiPayload(tokensPayload);
     await _tokenStore.save(tokens);
     await _sessionDeadlineController.activate(tokens);
+    await _cacheUser(user);
     return _authSession(user, tokens);
+  }
+
+  bool _canRestoreOffline(DioException error) {
+    final status = error.response?.statusCode;
+    return error.response == null || (status != null && status >= 500);
+  }
+
+  Future<void> _cacheUser(AuthUser user) async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_cachedUserKey, jsonEncode(user.toJson()));
+  }
+
+  Future<AuthUser?> _readCachedUser() async {
+    final preferences = await SharedPreferences.getInstance();
+    final encoded = preferences.getString(_cachedUserKey);
+    if (encoded == null || encoded.isEmpty) return null;
+    try {
+      final payload = jsonDecode(encoded);
+      if (payload is! Map) return null;
+      final user = AuthUser.fromJson(Map<String, dynamic>.from(payload));
+      return user.id.isEmpty ? null : user;
+    } catch (_) {
+      await preferences.remove(_cachedUserKey);
+      return null;
+    }
+  }
+
+  Future<void> _clearCachedUser() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.remove(_cachedUserKey);
   }
 
   AuthSession _authSession(AuthUser user, StoredAuthTokens tokens) {
@@ -388,6 +432,14 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   AuthUser _userFromPayload(Map<String, dynamic> payload) {
     final rawUser = payload['user'] ?? payload;
     return AuthUser.fromJson(_asJsonMap(rawUser) ?? const <String, dynamic>{});
+  }
+
+  Future<AuthUser> _userFromPayloadAndCache(
+    Map<String, dynamic> payload,
+  ) async {
+    final user = _userFromPayload(payload);
+    await _cacheUser(user);
+    return user;
   }
 
   StoredAuthTokens? _optionalTokensFromPayload(Map<String, dynamic> payload) {

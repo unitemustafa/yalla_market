@@ -211,7 +211,7 @@ Future<void> _pumpHome(
 
 class _EmptyHomeRepository implements HomeRepository {
   @override
-  Future<ApiResult<HomeData>> getHome() async {
+  Future<ApiResult<HomeData>> getHome({bool forceRefresh = false}) async {
     return const ApiResult.success(
       HomeData(location: null, offers: [], categories: [], products: []),
     );
@@ -228,7 +228,10 @@ class _BadgeHomeCubit extends HomeCubit {
 
 class _EmptyProductRepository implements ProductRepository {
   @override
-  Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) async {
+  Future<ApiResult<List<ProductData>>> getProducts({
+    String? citySlug,
+    bool forceRefresh = false,
+  }) async {
     return const ApiResult.success([]);
   }
 
@@ -246,19 +249,23 @@ class _EmptyProductRepository implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<List<CategoryData>>> getCategories() async {
+  Future<ApiResult<List<CategoryData>>> getCategories({
+    bool forceRefresh = false,
+  }) async {
     return const ApiResult.success([]);
   }
 
   @override
-  Future<ApiResult<List<BrandData>>> getBrands() async {
+  Future<ApiResult<List<BrandData>>> getBrands({
+    bool forceRefresh = false,
+  }) async {
     return const ApiResult.success([]);
   }
 }
 
 class _EmptyStoreRepository implements StoreRepository {
   @override
-  Future<ApiResult<StoreData>> getStore() async {
+  Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
     return const ApiResult.success(
       StoreData(
         commonClassifications: [],

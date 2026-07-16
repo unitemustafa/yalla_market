@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,73 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  testWidgets('shows product share actions and copies its unique link', (
+    tester,
+  ) async {
+    String? copiedText;
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        copiedText =
+            (call.arguments as Map<Object?, Object?>)['text'] as String?;
+      }
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    SharedPreferences.setMockInitialValues({});
+    final cartCubit = makeCartCubit();
+    final wishlistCubit = makeWishlistCubit();
+    await cartCubit.loadCartForUser('user-share');
+    if (sl.isRegistered<GetProductUseCase>()) {
+      await sl.unregister<GetProductUseCase>();
+    }
+    sl.registerLazySingleton<GetProductUseCase>(
+      () => GetProductUseCase(_FakeProductRepository()),
+    );
+    addTearDown(cartCubit.close);
+    addTearDown(wishlistCubit.close);
+    addTearDown(() async {
+      if (sl.isRegistered<GetProductUseCase>()) {
+        await sl.unregister<GetProductUseCase>();
+      }
+    });
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<CartCubit>.value(value: cartCubit),
+          BlocProvider<WishlistCubit>.value(value: wishlistCubit),
+        ],
+        child: const MaterialApp(
+          home: ProductDetailView(
+            productId: 'product_1',
+            image: AppAssets.temporaryMarketPlaceholder,
+            title: 'Share fallback title',
+            brand: 'Yalla',
+            price: '420.00',
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byIcon(AppIcons.send_1));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Share product'), findsOneWidget);
+    expect(find.text('Copy link'), findsOneWidget);
+    expect(find.text('Share'), findsOneWidget);
+
+    await tester.tap(find.text('Copy link'));
+    await tester.pumpAndSettle();
+
+    expect(copiedText, 'yallamarket://products/product_1');
+    expect(find.text('Product link copied'), findsOneWidget);
+  });
+
   testWidgets('renders backend variants and adds selected variant to cart', (
     tester,
   ) async {
@@ -504,8 +572,10 @@ List<Map<String, Object?>> _attributeValues({
 
 abstract class _EmptyProductRepository implements ProductRepository {
   @override
-  Future<ApiResult<List<ProductData>>> getProducts({String? citySlug}) async =>
-      const ApiResult.success([]);
+  Future<ApiResult<List<ProductData>>> getProducts({
+    String? citySlug,
+    bool forceRefresh = false,
+  }) async => const ApiResult.success([]);
 
   @override
   Future<ApiResult<List<ProductData>>> searchProducts(
@@ -514,12 +584,14 @@ abstract class _EmptyProductRepository implements ProductRepository {
   }) async => const ApiResult.success([]);
 
   @override
-  Future<ApiResult<List<CategoryData>>> getCategories() async =>
-      const ApiResult.success([]);
+  Future<ApiResult<List<CategoryData>>> getCategories({
+    bool forceRefresh = false,
+  }) async => const ApiResult.success([]);
 
   @override
-  Future<ApiResult<List<BrandData>>> getBrands() async =>
-      const ApiResult.success([]);
+  Future<ApiResult<List<BrandData>>> getBrands({
+    bool forceRefresh = false,
+  }) async => const ApiResult.success([]);
 }
 
 class _StaticProductRepository extends _EmptyProductRepository {

@@ -31,7 +31,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(tester.getSize(find.byType(AppImage)), const Size(52, 52));
+    expect(tester.getSize(find.byType(AppImage)), const Size(56, 56));
   });
 
   testWidgets('popular category gives the image a clear visible area', (

@@ -1,12 +1,63 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/core/cache/persistent_json_cache.dart';
 import 'package:yalla_market/core/errors/address_required_error.dart';
 import 'package:yalla_market/features/store/data/repositories/product_remote_repository_impl.dart';
 
 import '../../../../helpers/fake_api_client.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   group('ProductRemoteRepositoryImpl', () {
+    test('falls back to the city-scoped product cache while offline', () async {
+      const cache = PersistentJsonCache();
+      final online = ProductRemoteRepositoryImpl(
+        FakeApiClient(
+          (_) => {
+            'products': [_backendProduct()],
+          },
+        ),
+        cache: cache,
+      );
+      await online.getProducts(citySlug: 'cairo', forceRefresh: true);
+
+      final offline = ProductRemoteRepositoryImpl(
+        FakeApiClient((_) => throw _offlineException('/home/products/')),
+        cache: cache,
+      );
+      final result = await offline.getProducts(
+        citySlug: 'cairo',
+        forceRefresh: true,
+      );
+
+      result.when(
+        success: (products) => expect(products.single.id, '42'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
+    test('offline search filters the last cached product list', () async {
+      const cache = PersistentJsonCache();
+      await cache.write('products.cairo', {
+        'products': [_backendProduct()],
+      });
+      final repository = ProductRemoteRepositoryImpl(
+        FakeApiClient((_) => throw _offlineException('/home/search/')),
+        cache: cache,
+      );
+
+      final result = await repository.searchProducts(
+        'Red Apple',
+        citySlug: 'cairo',
+      );
+
+      result.when(
+        success: (products) => expect(products.single.title, 'Red Apple'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
     test(
       'loads full product details from the customer detail endpoint',
       () async {
@@ -318,6 +369,13 @@ void main() {
       );
     });
   });
+}
+
+DioException _offlineException(String path) {
+  return DioException(
+    requestOptions: RequestOptions(path: path),
+    type: DioExceptionType.connectionError,
+  );
 }
 
 DioException _addressRequiredException(String path) {

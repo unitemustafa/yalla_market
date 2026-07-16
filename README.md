@@ -1,7 +1,8 @@
 # Yalla Market
 
-Production-oriented Flutter marketplace app for Android, iOS, Web, Windows,
-macOS, and Linux.
+Production-oriented Flutter marketplace app with official Android and iOS
+support. Web, Windows, macOS, and Linux builds run without Firebase Messaging;
+push notifications are enabled only on Android and iOS.
 
 ## Runtime configuration
 
@@ -10,7 +11,6 @@ run time:
 
 ```bash
 flutter run --dart-define=API_BASE_URL=https://yalla-backend-ecjct.ondigitalocean.app
-flutter build web --dart-define-from-file=env/production.json
 flutter build appbundle --dart-define-from-file=env/production.json
 ```
 
@@ -46,6 +46,5 @@ in source control; the real `android/key.properties` must stay private.
 ```bash
 flutter analyze
 flutter test --coverage
-flutter build web --dart-define-from-file=env/production.json
 flutter build apk --release --dart-define-from-file=env/production.json
 ```

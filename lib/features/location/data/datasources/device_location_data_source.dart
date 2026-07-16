@@ -22,6 +22,7 @@ abstract class DeviceLocationDataSource {
 class GeolocatorLocationDataSource implements DeviceLocationDataSource {
   static const _currentPositionTimeout = Duration(seconds: 12);
   static const _reverseGeocodeTimeout = Duration(seconds: 8);
+  late final Geocoding _geocoding = Geocoding();
 
   @override
   Future<String?> resolveCurrentCityName({
@@ -106,10 +107,9 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
 
   Future<List<Placemark>> _resolvePlacemarks(Position position) async {
     try {
-      return await placemarkFromCoordinates(
-        position.latitude,
-        position.longitude,
-      ).timeout(_reverseGeocodeTimeout);
+      return await _geocoding
+          .placemarkFromCoordinates(position.latitude, position.longitude)
+          .timeout(_reverseGeocodeTimeout);
     } on TimeoutException {
       return const [];
     } catch (_) {

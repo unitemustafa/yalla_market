@@ -192,6 +192,48 @@ void main() {
       },
     );
 
+    test(
+      'restoreSavedSession uses the last trusted user while offline',
+      () async {
+        final tokenStore = InMemoryTokenStore();
+        await tokenStore.save(_storedTokens(remembered: true));
+        final onlineRepository = AuthRemoteRepositoryImpl(
+          FakeApiClient((request) {
+            expect(request.path, '/auth/me');
+            return {'user': _userPayload};
+          }),
+          tokenStore,
+        );
+        final onlineResult = await onlineRepository.restoreSavedSession();
+        onlineResult.when(
+          success: (session) => expect(session, isNotNull),
+          failure: (failure) => fail(failure.message),
+        );
+
+        final offlineRepository = AuthRemoteRepositoryImpl(
+          FakeApiClient((request) {
+            throw DioException.connectionError(
+              requestOptions: RequestOptions(path: request.path),
+              reason: 'offline',
+            );
+          }),
+          tokenStore,
+        );
+
+        final offlineResult = await offlineRepository.restoreSavedSession();
+
+        offlineResult.when(
+          success: (session) {
+            expect(session, isNotNull);
+            expect(session?.user.email, 'm@example.com');
+            expect(session?.refreshToken, 'refresh-token');
+          },
+          failure: (failure) => fail(failure.message),
+        );
+        expect(await tokenStore.read(), isNotNull);
+      },
+    );
+
     test('verifyEmail posts the code and stores session-only tokens', () async {
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {

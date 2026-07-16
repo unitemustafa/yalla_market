@@ -4,7 +4,10 @@ import '../entities/category_data.dart';
 import '../entities/product_data.dart';
 
 abstract class ProductRepository {
-  Future<ApiResult<List<ProductData>>> getProducts({String? citySlug});
+  Future<ApiResult<List<ProductData>>> getProducts({
+    String? citySlug,
+    bool forceRefresh = false,
+  });
 
   Future<ApiResult<ProductData>> getProduct(String idOrSlug);
 
@@ -13,7 +16,9 @@ abstract class ProductRepository {
     String? citySlug,
   });
 
-  Future<ApiResult<List<CategoryData>>> getCategories();
+  Future<ApiResult<List<CategoryData>>> getCategories({
+    bool forceRefresh = false,
+  });
 
-  Future<ApiResult<List<BrandData>>> getBrands();
+  Future<ApiResult<List<BrandData>>> getBrands({bool forceRefresh = false});
 }

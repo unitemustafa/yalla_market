@@ -8,7 +8,7 @@ import '../demo/demo_shops.dart';
 
 class StoreRepositoryImpl implements StoreRepository {
   @override
-  Future<ApiResult<StoreData>> getStore() async {
+  Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
     try {
       final classifications = _demoClassifications();
       final marketsByClassificationId = <String, List<StoreMarketData>>{};

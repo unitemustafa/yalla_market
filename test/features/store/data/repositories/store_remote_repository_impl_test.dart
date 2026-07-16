@@ -1,12 +1,50 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/core/cache/persistent_json_cache.dart';
 import 'package:yalla_market/core/errors/address_required_error.dart';
 import 'package:yalla_market/features/store/data/repositories/store_remote_repository_impl.dart';
 
 import '../../../../helpers/fake_api_client.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
+
   group('StoreRemoteRepositoryImpl', () {
+    test('falls back to the cached store while offline', () async {
+      const payload = {
+        'common_market_classifications': [
+          {'id': 1},
+        ],
+        'market_classifications': [
+          {
+            'id': 1,
+            'name': 'Cached category',
+            'classification_type': 'featured',
+            'markets': [],
+          },
+        ],
+        'latest_markets': [],
+      };
+      const cache = PersistentJsonCache();
+      final online = StoreRemoteRepositoryImpl(
+        FakeApiClient((_) => payload),
+        cache: cache,
+      );
+      await online.getStore(forceRefresh: true);
+
+      final offline = StoreRemoteRepositoryImpl(
+        FakeApiClient((_) => throw _offlineStoreException()),
+        cache: cache,
+      );
+      final result = await offline.getStore(forceRefresh: true);
+
+      result.when(
+        success: (store) =>
+            expect(store.classifications.single.name, 'Cached category'),
+        failure: (failure) => fail(failure.message),
+      );
+    });
     test(
       'loads classifications, markets, and hydrated market products',
       () async {
@@ -99,6 +137,13 @@ void main() {
       },
     );
   });
+}
+
+DioException _offlineStoreException() {
+  return DioException(
+    requestOptions: RequestOptions(path: '/home/classifications/'),
+    type: DioExceptionType.connectionError,
+  );
 }
 
 DioException _addressRequiredException() {

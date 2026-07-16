@@ -114,10 +114,68 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       await tester.pumpAndSettle();
 
-      expect(repository.calls, callsBeforeRefresh + 1);
-      expect(find.text('Content updated'), findsOneWidget);
+      expect(repository.calls, callsBeforeRefresh);
+      expect(find.text('Content updated'), findsNothing);
+
+      final refreshIndicator = tester.widget<RefreshIndicator>(
+        find.byType(RefreshIndicator),
+      );
+      final notificationContext = tester.element(find.byType(NestedScrollView));
+      final innerMetrics = FixedScrollMetrics(
+        minScrollExtent: 0,
+        maxScrollExtent: 500,
+        pixels: 0,
+        viewportDimension: 500,
+        axisDirection: AxisDirection.down,
+        devicePixelRatio: 1,
+      );
+      final innerNotification = ScrollUpdateNotification(
+        metrics: innerMetrics,
+        context: notificationContext,
+        depth: 1,
+      );
+      expect(
+        refreshIndicator.notificationPredicate(innerNotification),
+        isFalse,
+      );
     },
   );
+
+  testWidgets('odd featured category fills the final row deliberately', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(400, 820));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final storeCubit = StoreCubit(
+      GetStoreUseCase(_StoreRepository(_storeWithThreeFeaturedCategories())),
+    );
+    final cartCubit = makeCartCubit();
+    addTearDown(storeCubit.close);
+    addTearDown(cartCubit.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<StoreCubit>.value(value: storeCubit),
+          BlocProvider<CartCubit>.value(value: cartCubit),
+        ],
+        child: const MaterialApp(home: StoreView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final first = tester.getSize(
+      find.byKey(const ValueKey('featured_category_featured-0')),
+    );
+    final last = tester.getSize(
+      find.byKey(const ValueKey('featured_category_featured-2')),
+    );
+    expect(last.width, greaterThan(first.width * 1.9));
+    expect(first.height, 92);
+    expect(last.height, 92);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 StoreData _store() {
@@ -204,6 +262,26 @@ StoreData _storeWithPopularMarkets() {
   );
 }
 
+StoreData _storeWithThreeFeaturedCategories() {
+  final classifications = List.generate(
+    3,
+    (index) => StoreClassificationData(
+      id: 'featured-$index',
+      name: 'Featured category number $index with a long name',
+      marketCount: index + 1,
+      products: const [],
+      image: '',
+      accentColorValue: 0xFF4F60F6,
+      classificationType: 'featured',
+    ),
+  );
+  return StoreData(
+    commonClassifications: classifications,
+    classifications: classifications,
+    marketsByClassificationId: const {},
+  );
+}
+
 class _StoreRepository implements StoreRepository {
   _StoreRepository(this.store);
 
@@ -211,7 +289,7 @@ class _StoreRepository implements StoreRepository {
   int calls = 0;
 
   @override
-  Future<ApiResult<StoreData>> getStore() async {
+  Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
     calls++;
     return ApiResult.success(store);
   }

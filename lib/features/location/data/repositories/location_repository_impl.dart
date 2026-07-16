@@ -1,3 +1,5 @@
+import 'package:dio/dio.dart';
+
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_result.dart';
@@ -67,6 +69,13 @@ class LocationRepositoryImpl implements LocationRepository, LocationUserScope {
       final selection = RegionSelection.fromJson(current);
       await _cacheSelectedCity(selection.city);
       return ApiResult.success(selection.city);
+    } on DioException catch (error) {
+      if (_canUseCachedSelection(error)) {
+        return _getCachedSelectedCity();
+      }
+      return const ApiResult.failure(
+        UnknownFailure('Could not load your selected city.'),
+      );
     } catch (_) {
       return const ApiResult.failure(
         UnknownFailure('Could not load your selected city.'),
@@ -273,6 +282,11 @@ class LocationRepositoryImpl implements LocationRepository, LocationUserScope {
       city.name,
       source: city.source.storageValue,
     );
+  }
+
+  bool _canUseCachedSelection(DioException error) {
+    final status = error.response?.statusCode;
+    return error.response == null || (status != null && status >= 500);
   }
 
   double _roundCoordinate(double value) {

@@ -1,5 +1,6 @@
 import 'package:get_it/get_it.dart';
 
+import '../../../core/cache/persistent_json_cache.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
@@ -34,7 +35,11 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
     sl.registerLazySingleton<ProductRepository>(
       () => useDemo
           ? ProductRepositoryImpl()
-          : ProductRemoteRepositoryImpl(sl<ApiClient>()),
+          : ProductRemoteRepositoryImpl(
+              sl<ApiClient>(),
+              cache: sl<PersistentJsonCache>(),
+              getSelectedCity: sl<GetSelectedCityUseCase>(),
+            ),
     );
   }
   if (!sl.isRegistered<GetProductsUseCase>()) {
@@ -60,7 +65,11 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
     sl.registerLazySingleton<StoreRepository>(
       () => useDemo
           ? StoreRepositoryImpl()
-          : StoreRemoteRepositoryImpl(sl<ApiClient>()),
+          : StoreRemoteRepositoryImpl(
+              sl<ApiClient>(),
+              cache: sl<PersistentJsonCache>(),
+              getSelectedCity: sl<GetSelectedCityUseCase>(),
+            ),
     );
   }
   if (!sl.isRegistered<GetStoreUseCase>()) {

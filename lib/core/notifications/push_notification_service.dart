@@ -13,6 +13,7 @@ import '../session/account_inactive_notifier.dart';
 import '../session/account_restored_notifier.dart';
 import '../preferences/app_preferences_controller.dart';
 import '../storage/token_store.dart';
+import '../../firebase_options.dart';
 
 const _pendingAccountDisabledKey = 'push.pending_account_disabled';
 const _lastRegisteredTokenKey = 'push.last_registered_token';
@@ -31,10 +32,18 @@ const offerUpdatesChannelName = 'العروض الجديدة';
 const accountRestoredTitle = 'تم استعادة حسابك';
 const accountRestoredMessage = 'تم استعادة حسابك بواسطة فريق دعم يلا ماركت.';
 
+bool get pushNotificationsSupported {
+  if (kIsWeb) return false;
+  return defaultTargetPlatform == TargetPlatform.android ||
+      defaultTargetPlatform == TargetPlatform.iOS;
+}
+
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
   } catch (error, stackTrace) {
     _debugPushError('background initialization', error, stackTrace);
   }
@@ -179,6 +188,11 @@ class FlutterAccountNotificationPresenter
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.requestNotificationsPermission();
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >()
+        ?.requestPermissions(alert: true, badge: true, sound: true);
   }
 
   @override
@@ -399,9 +413,12 @@ class PushNotificationService {
       await preferences.remove(_pendingAccountDisabledKey);
       await _disableAccount();
     }
+    if (!pushNotificationsSupported) return;
     try {
       FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-      await Firebase.initializeApp();
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
       try {
         await _accountNotificationPresenter.initialize(
           (data) => handleDataForTesting(data, opened: true),
@@ -430,6 +447,7 @@ class PushNotificationService {
   }
 
   Future<void> registerAuthenticatedDevice() async {
+    if (!pushNotificationsSupported) return;
     if (!AppPreferencesController.instance.mobileNotificationsEnabled) return;
     try {
       final tokens = await _tokenStore.read();

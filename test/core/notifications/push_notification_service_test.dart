@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/notifications/push_notification_service.dart';
@@ -14,6 +15,22 @@ void main() {
     SharedPreferences.setMockInitialValues({});
     AppPreferencesController.instance.value = const AppPreferences();
   });
+  test('desktop platforms skip Firebase Messaging initialization', () async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    final presenter = FakeAccountNotificationPresenter();
+    final service = PushNotificationService(
+      FakeApiClient((_) => null),
+      InMemoryTokenStore(),
+      accountNotificationPresenter: presenter,
+    );
+
+    await service.initialize();
+
+    expect(pushNotificationsSupported, isFalse);
+    expect(presenter.initializeCalls, 0);
+  });
+
   test('account_disabled data clears tokens before notifying auth', () async {
     final tokenStore = InMemoryTokenStore();
     await tokenStore.save(_tokens());
@@ -302,11 +319,13 @@ class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   final List<Map<String, dynamic>> marketsShown = [];
   final List<Map<String, dynamic>> productsShown = [];
   final List<Map<String, dynamic>> offersShown = [];
+  int initializeCalls = 0;
 
   @override
   Future<void> initialize(
     Future<void> Function(Map<String, dynamic> data) onTap,
   ) async {
+    initializeCalls++;
     _onTap = onTap;
   }
 

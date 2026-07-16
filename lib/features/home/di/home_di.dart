@@ -1,7 +1,9 @@
 import 'package:get_it/get_it.dart';
 
+import '../../../core/cache/persistent_json_cache.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
+import '../../location/domain/usecases/location_usecases.dart';
 import '../data/repositories/home_remote_repository_impl.dart';
 import '../data/repositories/home_repository_impl.dart';
 import '../data/repositories/notification_remote_repository_impl.dart';
@@ -16,7 +18,11 @@ void registerHomeDependencies(GetIt sl) {
     sl.registerLazySingleton<HomeRepository>(
       () => AppEnvironment.useDemoRepositories
           ? HomeRepositoryImpl()
-          : HomeRemoteRepositoryImpl(sl<ApiClient>()),
+          : HomeRemoteRepositoryImpl(
+              sl<ApiClient>(),
+              cache: sl<PersistentJsonCache>(),
+              getSelectedCity: sl<GetSelectedCityUseCase>(),
+            ),
     );
   }
   if (!sl.isRegistered<NotificationRepository>()) {

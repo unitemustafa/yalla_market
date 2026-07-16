@@ -17,7 +17,7 @@ class StoreCubit extends Cubit<StoreState> {
 
     emit(StoreLoading(previousData: state.data));
 
-    final result = await _getStoreUseCase();
+    final result = await _getStoreUseCase(forceRefresh: force);
     if (generation != _generation || isClosed) return;
     result.when(
       success: (store) => emit(StoreReady(store)),

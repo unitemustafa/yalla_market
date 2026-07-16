@@ -64,9 +64,12 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         ),
       );
 
-      final productsFuture = _getProducts(citySlug: selectedCity.slug);
-      final categoriesFuture = _getCategories();
-      final brandsFuture = _getBrands();
+      final productsFuture = _getProducts(
+        citySlug: selectedCity.slug,
+        forceRefresh: force,
+      );
+      final categoriesFuture = _getCategories(forceRefresh: force);
+      final brandsFuture = _getBrands(forceRefresh: force);
       final productsResult = await productsFuture;
       final categoriesResult = await categoriesFuture;
       final brandsResult = await brandsFuture;

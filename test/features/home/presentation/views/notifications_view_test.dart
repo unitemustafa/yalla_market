@@ -7,6 +7,7 @@ import 'package:yalla_market/features/home/presentation/formatters/notification_
 import 'package:yalla_market/features/home/presentation/views/notifications_view.dart';
 import 'package:yalla_market/core/routing/app_route_arguments.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/core/presentation/widgets/dialogs/app_confirm_dialog.dart';
 
 import '../../helpers/notification_test_helpers.dart';
 
@@ -193,6 +194,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Delete all notifications?'), findsOneWidget);
+      expect(find.byType(AppConfirmDialog), findsOneWidget);
       expect(cubit.deleteAllCalls, 0);
 
       await tester.tap(

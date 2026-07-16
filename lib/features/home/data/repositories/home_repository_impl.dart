@@ -9,7 +9,7 @@ class HomeRepositoryImpl implements HomeRepository {
   final ProductRepositoryImpl _productsRepository;
 
   @override
-  Future<ApiResult<HomeData>> getHome() async {
+  Future<ApiResult<HomeData>> getHome({bool forceRefresh = false}) async {
     final productsResult = await _productsRepository.getProducts();
     final categoriesResult = await _productsRepository.getCategories();
 

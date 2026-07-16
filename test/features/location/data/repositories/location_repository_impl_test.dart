@@ -106,6 +106,36 @@ void main() {
       );
     });
 
+    test('uses the saved city when the region API is offline', () async {
+      final preferences = LocationPreferences();
+      await preferences.activateUser('7');
+      await preferences.setSelectedCity(
+        'cairo',
+        'Cairo',
+        source: RegionSource.manual.storageValue,
+      );
+      final repository = LocationRepositoryImpl(
+        preferences,
+        const _FakeDeviceLocationDataSource(),
+        FakeApiClient((request) {
+          throw DioException.connectionError(
+            requestOptions: RequestOptions(path: request.path),
+            reason: 'offline',
+          );
+        }),
+      );
+
+      final result = await repository.getSelectedCity();
+
+      result.when(
+        success: (city) {
+          expect(city?.slug, 'cairo');
+          expect(city?.source, RegionSource.manual);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
+
     test('patches general region through backend', () async {
       late Object? sentData;
       final repository = LocationRepositoryImpl(

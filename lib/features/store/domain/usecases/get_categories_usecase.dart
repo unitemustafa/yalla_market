@@ -7,7 +7,7 @@ class GetCategoriesUseCase {
 
   final ProductRepository _repository;
 
-  Future<ApiResult<List<CategoryData>>> call() {
-    return _repository.getCategories();
+  Future<ApiResult<List<CategoryData>>> call({bool forceRefresh = false}) {
+    return _repository.getCategories(forceRefresh: forceRefresh);
   }
 }

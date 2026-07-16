@@ -67,7 +67,6 @@ class BrandShowcase extends StatelessWidget {
                     Container(
                       width: 44,
                       height: 44,
-                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
                         color: isDark
                             ? Colors.white.withValues(alpha: 0.06)
@@ -77,7 +76,8 @@ class BrandShowcase extends StatelessWidget {
                       child: AppImage(
                         source: logo,
                         fallbackType: AppImagePlaceholderType.store,
-                        fit: BoxFit.contain,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(8),
                         cacheWidth: 88,
                         cacheHeight: 88,
                       ),
@@ -186,7 +186,6 @@ class _BrandTopProductImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 104,
-      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: isDark
             ? Colors.white.withValues(alpha: 0.06)
@@ -196,7 +195,8 @@ class _BrandTopProductImage extends StatelessWidget {
       child: AppImage(
         source: image,
         fallbackType: AppImagePlaceholderType.product,
-        fit: BoxFit.contain,
+        fit: BoxFit.cover,
+        borderRadius: BorderRadius.circular(8),
         cacheWidth: 220,
         cacheHeight: 208,
       ),

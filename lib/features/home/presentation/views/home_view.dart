@@ -9,6 +9,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
+import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -54,7 +55,7 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      _loadHomeData();
+      _loadHomeData(force: widget.focusOfferId?.trim().isNotEmpty == true);
     });
   }
 
@@ -77,9 +78,10 @@ class _HomeViewState extends State<HomeView> {
         offers.every((offer) => offer.id != focusOfferId) &&
         !_reportedMissingOffer) {
       _reportedMissingOffer = true;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('هذا العرض لم يعد متاحًا')));
+      CustomSnackBar.showWarning(
+        context: context,
+        title: 'This offer is not available in your city right now.',
+      );
     }
     await context.read<ProductCatalogCubit>().loadProducts(force: force);
   }

@@ -51,7 +51,6 @@ class BrandCard extends StatelessWidget {
               Container(
                 width: 56,
                 height: 56,
-                padding: const EdgeInsets.all(2),
                 decoration: BoxDecoration(
                   color: logoBackground,
                   borderRadius: BorderRadius.circular(8),
@@ -60,7 +59,7 @@ class BrandCard extends StatelessWidget {
                   source: logo,
                   fallbackType: AppImagePlaceholderType.store,
                   fit: BoxFit.cover,
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   cacheWidth: 112,
                   cacheHeight: 112,
                   filterQuality: FilterQuality.medium,

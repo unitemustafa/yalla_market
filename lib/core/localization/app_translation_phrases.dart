@@ -2,6 +2,29 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Share product': 'مشاركة المنتج',
+    'Share': 'مشاركة',
+    'Copy link': 'نسخ الرابط',
+    'Send this product or copy its link.': 'ابعت المنتج لحد أو انسخ رابطه.',
+    'Copy product link': 'نسخ رابط المنتج',
+    'Share with...': 'مشاركة عبر...',
+    'Product link copied': 'تم نسخ رابط المنتج',
+    'You can share it with anyone.': 'تقدر تبعته لأي حد دلوقتي.',
+    'Could not share product': 'تعذر مشاركة المنتج',
+    'This offer is not available in your city right now.':
+        'هذا العرض غير متاح في مدينتك حاليًا.',
+    'Share offer': 'مشاركة العرض',
+    'Send this offer or copy its link.': 'ابعت العرض لحد أو انسخ رابطه.',
+    'Offer link copied': 'تم نسخ رابط العرض',
+    'Could not share offer': 'تعذر مشاركة العرض',
+    'Retry': 'حاول تاني',
+    'Variant': 'الاختيار',
+    'Choose a saved address': 'اختار عنوان محفوظ',
+    'Enter the 6-digit verification code.':
+        'اكتب كود التحقق المكوّن من 6 أرقام.',
+    'Passwords do not match.': 'كلمتا السر مش متطابقتين.',
+    'You are offline. Showing saved content; checkout and updates need internet.':
+        'إنت أوفلاين. بنعرض آخر محتوى محفوظ، والدفع والتحديث محتاجين إنترنت.',
     'Disabled': 'معطلة',
     'Not supported here': 'غير مدعومة هنا',
     'Delivery is no longer available for this address':

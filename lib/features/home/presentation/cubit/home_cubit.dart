@@ -17,7 +17,7 @@ class HomeCubit extends Cubit<HomeState> {
 
     emit(HomeLoading(previousData: state.data));
 
-    final result = await _getHomeUseCase();
+    final result = await _getHomeUseCase(forceRefresh: force);
     if (generation != _generation || isClosed) return;
     result.when(
       success: (home) => emit(HomeReady(home)),

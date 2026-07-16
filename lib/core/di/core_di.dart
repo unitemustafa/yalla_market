@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 
+import '../cache/persistent_json_cache.dart';
 import '../network/api_client.dart';
 import '../network/dio_factory.dart';
 import '../session/session_deadline_controller.dart';
@@ -8,6 +9,9 @@ import '../storage/token_store.dart';
 import '../notifications/push_notification_service.dart';
 
 void registerCoreDependencies(GetIt sl) {
+  if (!sl.isRegistered<PersistentJsonCache>()) {
+    sl.registerLazySingleton<PersistentJsonCache>(PersistentJsonCache.new);
+  }
   // [Dio singleton] — shared across all regular API calls.
   // ApiClient internally creates a private _refreshDio instance for token-refresh
   // requests so that the auth interceptor is NOT triggered on refresh calls,

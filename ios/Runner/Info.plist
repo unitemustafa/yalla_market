@@ -14,6 +14,19 @@
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.yallamarket.app.shared-content</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>yallamarket</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleName</key>
 	<string>يلا ماركت</string>
 	<key>CFBundlePackageType</key>

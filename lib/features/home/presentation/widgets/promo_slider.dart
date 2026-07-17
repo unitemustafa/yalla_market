@@ -451,7 +451,7 @@ class _PromoSliderState extends State<PromoSlider> {
       children: [
         RepaintBoundary(
           child: SizedBox(
-            height: 154,
+            height: 160,
             child: PageView.builder(
               controller: _pageController,
               itemCount: offers.length,

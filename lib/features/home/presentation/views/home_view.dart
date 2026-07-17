@@ -29,6 +29,7 @@ import '../../../store/domain/entities/product_data.dart';
 import '../../../store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../store/presentation/cubit/product_catalog_state.dart';
 import '../widgets/home_categories.dart';
+import '../widgets/home_benefits_strip.dart';
 import '../widgets/home_popular_products_slider.dart';
 import '../widgets/promo_slider.dart';
 
@@ -143,7 +144,9 @@ class _HomeViewState extends State<HomeView> {
                     _HomeTopBar(isDark: isDark),
                     const SizedBox(height: 18),
                     _HomeSearchActionsRow(isDark: isDark),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 12),
+                    const HomeBenefitsStrip(),
+                    const SizedBox(height: 12),
                     BlocConsumer<HomeCubit, HomeState>(
                       listener: (context, homeState) {
                         if (homeState is HomeFailure &&
@@ -259,10 +262,17 @@ class HomeCatalogSections extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (categories.isNotEmpty) ...[
-          const SectionHeading(
+          SectionHeading(
             title: 'Popular Categories',
-            showActionButton: false,
-            titleFontSize: 18,
+            showActionButton: categories.length > 4,
+            titleFontSize: 17,
+            onPressed: categories.length > 4
+                ? () => Navigator.pushNamed(
+                    context,
+                    AppRoutes.categories,
+                    arguments: CategoriesRouteArgs(categories: categories),
+                  )
+                : null,
           ),
           const SizedBox(height: 12),
           HomeCategories(categories: categories),
@@ -271,7 +281,7 @@ class HomeCatalogSections extends StatelessWidget {
           if (categories.isNotEmpty) const SizedBox(height: 22),
           const SectionHeading(
             title: 'Popular Products',
-            titleFontSize: 18,
+            titleFontSize: 17,
             showActionButton: false,
           ),
           const SizedBox(height: 14),
@@ -294,7 +304,7 @@ class HomeCatalogSections extends StatelessWidget {
             const SizedBox(height: 22),
           const SectionHeading(
             title: 'Latest Products',
-            titleFontSize: 18,
+            titleFontSize: 17,
             showActionButton: false,
           ),
           const SizedBox(height: 14),
@@ -410,7 +420,7 @@ class _HomeCustomerSummary extends StatelessWidget {
             key: const ValueKey('home_welcome_label'),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Colors.white.withValues(alpha: 0.78),
-              fontSize: 11,
+              fontSize: 10,
               height: 1.1,
               fontWeight: FontWeight.w600,
             ),
@@ -422,7 +432,7 @@ class _HomeCustomerSummary extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: Colors.white,
-              fontSize: 14,
+              fontSize: 13,
               height: 1.05,
               fontWeight: FontWeight.w900,
             ),
@@ -459,7 +469,7 @@ class _HomeRegionBadge extends StatelessWidget {
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white.withValues(alpha: 0.82),
-                fontSize: 11,
+                fontSize: 10,
                 height: 1.2,
                 fontWeight: FontWeight.w600,
               ),
@@ -651,8 +661,8 @@ class _HomeSearchField extends StatelessWidget {
         },
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          height: 54,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
@@ -663,13 +673,14 @@ class _HomeSearchField extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(AppIcons.search_normal, color: mutedColor, size: 20),
-              const SizedBox(width: 12),
+              Icon(AppIcons.search_normal, color: mutedColor, size: 18),
+              const SizedBox(width: 9),
               Expanded(
                 child: Text(
                   context.tr('Search products and categories...'),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: mutedColor,
+                    fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,
@@ -677,8 +688,8 @@ class _HomeSearchField extends StatelessWidget {
                 ),
               ),
               Container(
-                width: 34,
-                height: 34,
+                width: 30,
+                height: 30,
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(
                     alpha: isDark ? 0.20 : 0.10,
@@ -688,7 +699,7 @@ class _HomeSearchField extends StatelessWidget {
                 child: const Icon(
                   AppIcons.filter_search,
                   color: AppColors.primary,
-                  size: 18,
+                  size: 16,
                 ),
               ),
             ],

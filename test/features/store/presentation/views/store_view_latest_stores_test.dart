@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
+import 'package:yalla_market/core/routing/app_route_arguments.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/product_data.dart';
@@ -132,7 +133,7 @@ void main() {
       const ValueKey('popular_store_category_selector'),
     );
     expect(categorySelector, findsOneWidget);
-    expect(tester.widget<ListView>(categorySelector).semanticChildCount, 4);
+    expect(tester.widget<ListView>(categorySelector).semanticChildCount, 5);
     final firstCategorySize = tester.getSize(
       find.byKey(const ValueKey('popular_store_category_popular-0')),
     );
@@ -141,6 +142,18 @@ void main() {
     );
     expect(firstCategorySize, const Size(128, 40));
     expect(secondCategorySize, firstCategorySize);
+    final firstChip = find.byKey(
+      const ValueKey('popular_store_category_popular-0'),
+    );
+    final firstLabel = find.descendant(
+      of: firstChip,
+      matching: find.text('A very long popular category name number 0'),
+    );
+    final firstCount = find.descendant(of: firstChip, matching: find.text('1'));
+    expect(
+      tester.getCenter(firstLabel).dx,
+      lessThan(tester.getCenter(firstCount).dx),
+    );
     expect(find.text('Popular picks for you'), findsNothing);
     expect(
       tester.widget<ListView>(categorySelector).scrollDirection,
@@ -188,12 +201,10 @@ void main() {
       lessThan(tester.getTopLeft(find.text('Latest Stores')).dy),
     );
 
-    final viewAll = find.text('View all');
-    await tester.ensureVisible(viewAll);
-    await tester.tap(viewAll);
+    await tester.drag(categorySelector, const Offset(-500, 0));
     await tester.pumpAndSettle();
     final fifthCategory = find.byKey(
-      const ValueKey('popular_store_all_category_popular-4'),
+      const ValueKey('popular_store_category_popular-4'),
     );
     expect(fifthCategory, findsOneWidget);
     await tester.tap(fifthCategory);
@@ -279,6 +290,50 @@ void main() {
     expect(first.height, 92);
     expect(last.height, 92);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('featured View all passes every displayed category', (
+    tester,
+  ) async {
+    final store = _storeWithFeaturedOverflow();
+    final storeCubit = StoreCubit(GetStoreUseCase(_StoreRepository(store)));
+    final cartCubit = makeCartCubit();
+    RouteSettings? capturedSettings;
+    addTearDown(storeCubit.close);
+    addTearDown(cartCubit.close);
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<StoreCubit>.value(value: storeCubit),
+          BlocProvider<CartCubit>.value(value: cartCubit),
+        ],
+        child: MaterialApp(
+          onGenerateRoute: (settings) {
+            capturedSettings = settings;
+            return MaterialPageRoute<void>(
+              settings: settings,
+              builder: (_) => const Scaffold(body: Text('Categories route')),
+            );
+          },
+          home: const StoreView(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('View all'));
+    await tester.pumpAndSettle();
+
+    expect(capturedSettings?.name, AppRoutes.categories);
+    final args = capturedSettings?.arguments as CategoriesRouteArgs;
+    expect(args.categories.map((category) => category.id), [
+      'featured-0',
+      'featured-1',
+      'featured-2',
+      'featured-3',
+      'normal-4',
+    ]);
   });
 }
 
@@ -393,6 +448,26 @@ StoreData _storeWithThreeFeaturedCategories() {
       image: '',
       accentColorValue: 0xFF4F60F6,
       classificationType: 'featured',
+    ),
+  );
+  return StoreData(
+    commonClassifications: classifications,
+    classifications: classifications,
+    marketsByClassificationId: const {},
+  );
+}
+
+StoreData _storeWithFeaturedOverflow() {
+  final classifications = List.generate(
+    5,
+    (index) => StoreClassificationData(
+      id: index == 4 ? 'normal-4' : 'featured-$index',
+      name: 'Category $index',
+      marketCount: index + 1,
+      products: const [],
+      image: '',
+      accentColorValue: 0xFF4F60F6,
+      classificationType: index == 4 ? 'normal' : 'featured',
     ),
   );
   return StoreData(

@@ -206,12 +206,15 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         ),
                         if (discount != null)
                           PositionedDirectional(
-                            top: 8,
-                            start: 8,
+                            top: 6,
+                            start: 6,
                             child: Container(
+                              key: ValueKey(
+                                'product_discount_badge_${widget.productId}',
+                              ),
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 5,
+                                horizontal: 6,
+                                vertical: 3,
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.warning,
@@ -221,7 +224,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                                 discount,
                                 style: const TextStyle(
                                   color: Colors.black,
-                                  fontSize: 12,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),

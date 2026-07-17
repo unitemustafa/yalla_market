@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../icons/app_icons.dart';
 import '../../../localization/app_translations.dart';
 
 class SectionHeading extends StatelessWidget {
@@ -40,12 +41,31 @@ class SectionHeading extends StatelessWidget {
         if (showActionButton)
           TextButton(
             onPressed: onPressed,
-            child: Text(
-              context.tr(buttonTitle),
-              style: const TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w800,
-              ),
+            style: TextButton.styleFrom(
+              minimumSize: Size.zero,
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  context.tr(buttonTitle),
+                  style: const TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Icon(
+                  context.isArabicLanguage
+                      ? AppIcons.arrow_left_2
+                      : AppIcons.arrow_right_3,
+                  color: AppColors.primary,
+                  size: 13,
+                ),
+              ],
             ),
           ),
       ],

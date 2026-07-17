@@ -196,7 +196,7 @@ class _ProductsTopBar extends StatelessWidget {
               Text(
                 context.tr(title),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.w900,
                 ),
                 maxLines: 1,

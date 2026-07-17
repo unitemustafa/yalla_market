@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
+import 'package:yalla_market/core/routing/app_route_arguments.dart';
+import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/home/domain/entities/home_data.dart';
 import 'package:yalla_market/features/home/presentation/views/home_view.dart';
@@ -50,10 +52,57 @@ void main() {
     );
 
     expect(find.text('Popular Categories'), findsOneWidget);
+    expect(find.text('View all'), findsNothing);
     expect(find.text('Category'), findsOneWidget);
     expect(find.text('Popular Products'), findsNothing);
     expect(find.text('Latest Products'), findsNothing);
     expect(find.byKey(const ValueKey('home_empty_products')), findsNothing);
+  });
+
+  testWidgets('shows View all when popular categories exceed four', (
+    tester,
+  ) async {
+    RouteSettings? capturedSettings;
+    await _pumpSections(
+      tester,
+      home: HomeData(
+        location: null,
+        offers: const [],
+        categories: List.generate(5, _categoryFor),
+        products: const [],
+      ),
+      catalogState: const ProductCatalogReady([], city: _city),
+      onGenerateRoute: (settings) {
+        capturedSettings = settings;
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => const Scaffold(body: Text('All categories route')),
+        );
+      },
+    );
+
+    expect(find.text('Popular Categories'), findsOneWidget);
+    expect(find.text('View all'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('popular_categories_list')),
+        matching: find.byType(GestureDetector),
+      ),
+      findsNWidgets(4),
+    );
+
+    await tester.tap(find.text('View all'));
+    await tester.pumpAndSettle();
+
+    expect(capturedSettings?.name, AppRoutes.categories);
+    final args = capturedSettings?.arguments as CategoriesRouteArgs;
+    expect(args.categories.map((category) => category.id), [
+      'category-0',
+      'category-1',
+      'category-2',
+      'category-3',
+      'category-4',
+    ]);
   });
 
   testWidgets('shows latest products only when popular products are empty', (
@@ -142,6 +191,7 @@ Future<void> _pumpSections(
   WidgetTester tester, {
   required HomeData home,
   required ProductCatalogState catalogState,
+  RouteFactory? onGenerateRoute,
 }) async {
   final cartCubit = makeCartCubit();
   final wishlistCubit = makeWishlistCubit();
@@ -155,6 +205,7 @@ Future<void> _pumpSections(
         BlocProvider<WishlistCubit>.value(value: wishlistCubit),
       ],
       child: MaterialApp(
+        onGenerateRoute: onGenerateRoute,
         home: Scaffold(
           body: SingleChildScrollView(
             child: HomeCatalogSections(home: home, catalogState: catalogState),
@@ -174,6 +225,16 @@ const _category = CategoryData(
   productCount: 1,
   image: AppAssets.defaultCategory,
   galleryImages: [],
+  accentColorValue: 0xFF5568FE,
+);
+
+CategoryData _categoryFor(int index) => CategoryData(
+  id: 'category-$index',
+  name: 'Category $index',
+  slug: 'category-$index',
+  productCount: index + 1,
+  image: AppAssets.defaultCategory,
+  galleryImages: const [],
   accentColorValue: 0xFF5568FE,
 );
 

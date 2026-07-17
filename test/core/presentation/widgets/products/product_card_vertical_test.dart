@@ -153,6 +153,15 @@ void main() {
     );
 
     expect(find.text('خصم 50%'), findsOneWidget);
+    final discountText = tester.widget<Text>(find.text('خصم 50%'));
+    expect(discountText.style?.fontSize, 10);
+    final discountBadge = tester.widget<Container>(
+      find.byKey(const ValueKey('product_discount_badge_discounted-product')),
+    );
+    expect(
+      discountBadge.padding,
+      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+    );
     expect(tester.widget<AppImage>(find.byType(AppImage)).fit, BoxFit.cover);
     final priceTexts = tester
         .widgetList<RichText>(find.byType(RichText))

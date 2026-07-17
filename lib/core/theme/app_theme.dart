@@ -10,43 +10,43 @@ class AppTheme {
   static TextTheme get _lightTextTheme => const TextTheme(
     headlineLarge: TextStyle(
       color: AppColors.lightTextPrimary,
-      fontSize: 28,
+      fontSize: 27,
       fontWeight: FontWeight.bold,
     ),
     titleLarge: TextStyle(
       color: AppColors.lightTextPrimary,
-      fontSize: 24,
+      fontSize: 23,
       fontWeight: FontWeight.bold,
     ),
     titleMedium: TextStyle(
       color: AppColors.lightTextPrimary,
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: FontWeight.w600,
     ),
-    bodyLarge: TextStyle(color: AppColors.lightTextPrimary, fontSize: 16),
-    bodyMedium: TextStyle(color: AppColors.lightTextSecondary, fontSize: 14),
-    bodySmall: TextStyle(color: AppColors.lightTextSecondary, fontSize: 12),
+    bodyLarge: TextStyle(color: AppColors.lightTextPrimary, fontSize: 15),
+    bodyMedium: TextStyle(color: AppColors.lightTextSecondary, fontSize: 13),
+    bodySmall: TextStyle(color: AppColors.lightTextSecondary, fontSize: 11),
   ).apply(fontFamily: fontFamily);
 
   static TextTheme get _darkTextTheme => const TextTheme(
     headlineLarge: TextStyle(
       color: AppColors.darkTextPrimary,
-      fontSize: 28,
+      fontSize: 27,
       fontWeight: FontWeight.bold,
     ),
     titleLarge: TextStyle(
       color: AppColors.darkTextPrimary,
-      fontSize: 24,
+      fontSize: 23,
       fontWeight: FontWeight.bold,
     ),
     titleMedium: TextStyle(
       color: AppColors.darkTextPrimary,
-      fontSize: 18,
+      fontSize: 17,
       fontWeight: FontWeight.w600,
     ),
-    bodyLarge: TextStyle(color: AppColors.darkTextPrimary, fontSize: 16),
-    bodyMedium: TextStyle(color: AppColors.darkTextSecondary, fontSize: 14),
-    bodySmall: TextStyle(color: AppColors.darkTextSecondary, fontSize: 12),
+    bodyLarge: TextStyle(color: AppColors.darkTextPrimary, fontSize: 15),
+    bodyMedium: TextStyle(color: AppColors.darkTextSecondary, fontSize: 13),
+    bodySmall: TextStyle(color: AppColors.darkTextSecondary, fontSize: 11),
   ).apply(fontFamily: fontFamily);
 
   static DatePickerThemeData _datePickerTheme({required bool isDark}) {
@@ -156,7 +156,7 @@ class AppTheme {
         elevation: 0,
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -169,7 +169,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -186,7 +186,7 @@ class AppTheme {
       floatingLabelBehavior: FloatingLabelBehavior.never,
       labelStyle: TextStyle(
         color: Colors.grey[600],
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w600,
       ),
       enabledBorder: OutlineInputBorder(
@@ -237,7 +237,7 @@ class AppTheme {
         elevation: 0,
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -250,7 +250,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         textStyle: const TextStyle(
           fontFamily: fontFamily,
-          fontSize: 16,
+          fontSize: 15,
           fontWeight: FontWeight.bold,
         ),
       ),
@@ -267,7 +267,7 @@ class AppTheme {
       floatingLabelBehavior: FloatingLabelBehavior.never,
       labelStyle: TextStyle(
         color: Colors.grey[400],
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w600,
       ),
       enabledBorder: OutlineInputBorder(

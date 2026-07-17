@@ -1,3 +1,5 @@
+import '../../features/store/domain/entities/category_data.dart';
+
 class NavigationMenuRouteArgs {
   const NavigationMenuRouteArgs({this.initialIndex = 0, this.focusOfferId});
 
@@ -25,6 +27,12 @@ class AllProductsRouteArgs {
   final String subtitle;
   final ProductCollectionType collection;
   final int? maxItems;
+}
+
+class CategoriesRouteArgs {
+  const CategoriesRouteArgs({required this.categories});
+
+  final List<CategoryData> categories;
 }
 
 class AddressesRouteArgs {

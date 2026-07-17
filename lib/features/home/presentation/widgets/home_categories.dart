@@ -19,30 +19,51 @@ class HomeCategories extends StatelessWidget {
     final visibleCategories = _visibleCategories();
     if (visibleCategories.isEmpty) return const SizedBox.shrink();
 
-    return SizedBox(
-      height: 92,
-      child: ListView.builder(
-        itemExtent: 112,
-        itemCount: visibleCategories.length,
-        scrollDirection: Axis.horizontal,
-        itemBuilder: (_, index) {
-          final category = visibleCategories[index];
-          return GestureDetector(
-            onTap: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.brandProducts,
-                arguments: BrandProductsRouteArgs(
-                  brand: category.name,
-                  logo: category.image,
-                  productCount: category.productCountLabel,
-                  classificationId: category.id,
-                ),
-              );
-            },
-            child: _HomeCategoryChip(data: category),
+    Widget buildCategory(_HomeCategoryViewData category) {
+      return GestureDetector(
+        key: ValueKey('home_category_${category.id}'),
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.brandProducts,
+            arguments: BrandProductsRouteArgs(
+              brand: category.name,
+              logo: category.image,
+              productCount: category.productCountLabel,
+              classificationId: category.id,
+            ),
           );
         },
+        child: _HomeCategoryChip(data: category),
+      );
+    }
+
+    return SizedBox(
+      height: 78,
+      child: Row(
+        key: const ValueKey('popular_categories_list'),
+        children: visibleCategories.length > 1
+            ? List.generate(visibleCategories.length, (index) {
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsetsDirectional.only(
+                      end: index == visibleCategories.length - 1 ? 0 : 6,
+                    ),
+                    child: buildCategory(visibleCategories[index]),
+                  ),
+                );
+              })
+            : List.generate(visibleCategories.length, (index) {
+                return Padding(
+                  padding: EdgeInsetsDirectional.only(
+                    end: index == visibleCategories.length - 1 ? 0 : 6,
+                  ),
+                  child: SizedBox(
+                    width: 74,
+                    child: buildCategory(visibleCategories[index]),
+                  ),
+                );
+              }),
       ),
     );
   }
@@ -51,7 +72,7 @@ class HomeCategories extends StatelessWidget {
     final apiCategories = categories;
     if (apiCategories != null && apiCategories.isNotEmpty) {
       return apiCategories
-          .take(8)
+          .take(4)
           .map(
             (category) => _HomeCategoryViewData(
               id: category.id,
@@ -98,9 +119,8 @@ class _HomeCategoryChip extends StatelessWidget {
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
 
     return Container(
-      width: 104,
-      margin: const EdgeInsetsDirectional.only(end: 8),
-      padding: const EdgeInsets.all(6),
+      width: double.infinity,
+      padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
         color: panelColor,
         borderRadius: BorderRadius.circular(8),
@@ -114,7 +134,7 @@ class _HomeCategoryChip extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            height: 52,
+            height: 42,
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: data.color.withValues(alpha: isDark ? 0.20 : 0.10),
@@ -137,7 +157,7 @@ class _HomeCategoryChip extends StatelessWidget {
             context.tr(data.name),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: textColor,
-              fontSize: 12,
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
             maxLines: 1,

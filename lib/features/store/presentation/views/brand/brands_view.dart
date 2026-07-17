@@ -20,8 +20,20 @@ List<CategoryData> normalCategoriesForAllCategories(
       .toList(growable: false);
 }
 
+@visibleForTesting
+List<CategoryData> categoriesForAllCategories({
+  Iterable<CategoryData>? routedCategories,
+  required Iterable<CategoryData> discoveryCategories,
+}) {
+  final routed = routedCategories?.toList(growable: false) ?? const [];
+  if (routed.isNotEmpty) return routed;
+  return normalCategoriesForAllCategories(discoveryCategories);
+}
+
 class BrandsView extends StatelessWidget {
-  const BrandsView({super.key});
+  const BrandsView({super.key, this.categories});
+
+  final List<CategoryData>? categories;
 
   @override
   Widget build(BuildContext context) {
@@ -47,49 +59,67 @@ class BrandsView extends StatelessWidget {
                 showActionButton: false,
               ),
               const SizedBox(height: 16),
-              BlocBuilder<ProductDiscoveryCubit, ProductDiscoveryState>(
-                builder: (context, state) {
-                  if (state is ProductDiscoveryLoading &&
-                      state.categories.isEmpty) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
+              if (categories?.isNotEmpty == true)
+                _AllCategoriesGrid(categories: categories!)
+              else
+                BlocBuilder<ProductDiscoveryCubit, ProductDiscoveryState>(
+                  builder: (context, state) {
+                    if (state is ProductDiscoveryLoading &&
+                        state.categories.isEmpty) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-                  final visibleCategories = normalCategoriesForAllCategories(
-                    state.categories,
-                  );
-
-                  return GridLayout(
-                    itemCount: visibleCategories.length,
-                    mainAxisExtent: 92,
-                    itemBuilder: (context, index) {
-                      final category = visibleCategories[index];
-                      return BrandCard(
-                        showBorder: true,
-                        brand: category.name,
-                        productCount: category.marketCountLabel,
-                        logo: category.image,
-                        accentColor: Color(category.accentColorValue),
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.brandProducts,
-                            arguments: BrandProductsRouteArgs(
-                              brand: category.name,
-                              productCount: category.marketCountLabel,
-                              logo: category.image,
-                              classificationId: category.id,
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  );
-                },
-              ),
+                    return _AllCategoriesGrid(
+                      categories: categoriesForAllCategories(
+                        discoveryCategories: state.categories,
+                      ),
+                    );
+                  },
+                ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _AllCategoriesGrid extends StatelessWidget {
+  const _AllCategoriesGrid({required this.categories});
+
+  final List<CategoryData> categories;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridLayout(
+      itemCount: categories.length,
+      mainAxisExtent: 92,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        final countLabel = category.marketCount == null
+            ? category.productCountLabel
+            : category.marketCountLabel;
+        return BrandCard(
+          key: ValueKey('all_category_${category.id}'),
+          showBorder: true,
+          brand: category.name,
+          productCount: countLabel,
+          logo: category.image,
+          accentColor: Color(category.accentColorValue),
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.brandProducts,
+              arguments: BrandProductsRouteArgs(
+                brand: category.name,
+                productCount: countLabel,
+                logo: category.image,
+                classificationId: category.id,
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

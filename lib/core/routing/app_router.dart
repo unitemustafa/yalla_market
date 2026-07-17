@@ -166,7 +166,8 @@ class AppRouter {
         );
 
       case AppRoutes.categories:
-        return _buildRoute(const BrandsView(), settings);
+        final args = settings.arguments as CategoriesRouteArgs?;
+        return _buildRoute(BrandsView(categories: args?.categories), settings);
 
       case AppRoutes.latestStores:
         return _buildRoute(const LatestStoresView(), settings);

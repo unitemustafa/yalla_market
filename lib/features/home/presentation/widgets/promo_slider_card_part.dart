@@ -9,20 +9,23 @@ class _PromoOfferCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final titleColor = Colors.white;
-    final bodyColor = Colors.white.withValues(alpha: 0.82);
     final endsAt = offer.endsAt;
+    final actionLabel = offer.hasExternalLink
+        ? offer.action(context).trim()
+        : (context.isArabicLanguage ? 'اشتري الآن' : 'Buy now');
 
     return Material(
       color: isDark ? AppColors.darkCardColor : Colors.white,
       borderRadius: BorderRadius.circular(8),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
+        key: const ValueKey('promo_offer_card'),
         onTap: onTap,
         child: Stack(
           children: [
             Positioned.fill(
               child: AppImage(
+                key: const ValueKey('promo_offer_background'),
                 source: offer.image,
                 fallbackType: AppImagePlaceholderType.offer,
                 fit: BoxFit.cover,
@@ -66,74 +69,58 @@ class _PromoOfferCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                padding: const EdgeInsets.fromLTRB(10, 9, 10, 10),
-                child: Column(
-                  children: [
-                    Row(
-                      textDirection: TextDirection.ltr,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final contentWidth = (constraints.maxWidth * 0.46)
+                        .clamp(142.0, 174.0)
+                        .toDouble();
+
+                    return Stack(
                       children: [
-                        Flexible(
-                          fit: FlexFit.loose,
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 116),
-                              child: _OfferOverlayBadge(offer: offer),
-                            ),
-                          ),
-                        ),
-                        if (endsAt != null) ...[
-                          Flexible(
-                            fit: FlexFit.loose,
-                            child: Align(
-                              alignment: Alignment.centerRight,
-                              child: _OfferCountdownChip(
-                                endsAt: endsAt,
-                                color: offer.color,
+                        Positioned(
+                          left: 10,
+                          top: 8,
+                          bottom: 8,
+                          width: contentWidth,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: ConstrainedBox(
+                                  constraints: const BoxConstraints(
+                                    maxWidth: 142,
+                                  ),
+                                  child: _OfferOverlayBadge(offer: offer),
+                                ),
                               ),
+                              const Spacer(),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: _OfferBuyButton(
+                                  onTap: onTap,
+                                  label: actionLabel.isEmpty
+                                      ? (context.isArabicLanguage
+                                            ? 'فتح الإعلان'
+                                            : 'Open ad')
+                                      : actionLabel,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (endsAt != null)
+                          Positioned(
+                            right: 10,
+                            bottom: 8,
+                            child: _OfferCountdownChip(
+                              endsAt: endsAt,
+                              color: offer.color,
                             ),
                           ),
-                        ],
                       ],
-                    ),
-                    const Spacer(),
-                    Align(
-                      alignment: AlignmentDirectional.bottomStart,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 270),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              offer.title(context),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: Theme.of(context).textTheme.titleLarge
-                                  ?.copyWith(
-                                    color: titleColor,
-                                    fontSize: 21,
-                                    height: 1.08,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                            ),
-                            const SizedBox(height: 6),
-                            _OfferDescriptionTicker(
-                              text: offer.outsideDescription(context),
-                              style: Theme.of(context).textTheme.bodySmall
-                                  ?.copyWith(
-                                    color: bodyColor,
-                                    fontSize: 12,
-                                    height: 1.35,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),
@@ -156,7 +143,7 @@ class _OfferOverlayBadge extends StatelessWidget {
         : offer.discountRate(context);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
         color: offer.color.withValues(alpha: 0.92),
         borderRadius: BorderRadius.circular(8),
@@ -171,8 +158,8 @@ class _OfferOverlayBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(offer.icon, color: Colors.white, size: 13),
-          const SizedBox(width: 4),
+          Icon(offer.icon, color: Colors.white, size: 10),
+          const SizedBox(width: 3),
           Flexible(
             child: Text(
               discountRate == null
@@ -182,7 +169,7 @@ class _OfferOverlayBadge extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white,
-                fontSize: 10,
+                fontSize: 8,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -193,119 +180,41 @@ class _OfferOverlayBadge extends StatelessWidget {
   }
 }
 
-class _OfferDescriptionTicker extends StatefulWidget {
-  const _OfferDescriptionTicker({required this.text, required this.style});
+class _OfferBuyButton extends StatelessWidget {
+  const _OfferBuyButton({required this.onTap, required this.label});
 
-  final String text;
-  final TextStyle? style;
-
-  @override
-  State<_OfferDescriptionTicker> createState() =>
-      _OfferDescriptionTickerState();
-}
-
-class _OfferDescriptionTickerState extends State<_OfferDescriptionTicker> {
-  final ScrollController _controller = ScrollController();
-  Timer? _delayTimer;
-  Completer<bool>? _delayCompleter;
-  int _runId = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _restartTicker());
-  }
-
-  @override
-  void didUpdateWidget(covariant _OfferDescriptionTicker oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.text != widget.text) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _restartTicker());
-    }
-  }
-
-  @override
-  void dispose() {
-    _runId++;
-    _cancelDelay();
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _restartTicker() {
-    if (!mounted) return;
-    _runId++;
-    _cancelDelay();
-    if (_controller.hasClients) {
-      _controller.jumpTo(0);
-    }
-    unawaited(_runTicker(_runId));
-  }
-
-  Future<void> _runTicker(int runId) async {
-    if (!await _wait(const Duration(milliseconds: 800))) return;
-    while (mounted && _controller.hasClients && runId == _runId) {
-      final maxExtent = _controller.position.maxScrollExtent;
-      if (maxExtent <= 1) return;
-
-      final forwardMs = (maxExtent * 38).clamp(1400, 5200).round();
-      await _controller.animateTo(
-        maxExtent,
-        duration: Duration(milliseconds: forwardMs),
-        curve: Curves.linear,
-      );
-      if (!await _wait(const Duration(milliseconds: 650))) return;
-      if (!mounted || !_controller.hasClients || runId != _runId) return;
-
-      await _controller.animateTo(
-        0,
-        duration: const Duration(milliseconds: 850),
-        curve: Curves.easeOut,
-      );
-      if (!await _wait(const Duration(milliseconds: 900))) return;
-    }
-  }
-
-  Future<bool> _wait(Duration duration) {
-    _cancelDelay();
-    final completer = Completer<bool>();
-    _delayCompleter = completer;
-    _delayTimer = Timer(duration, () {
-      _delayTimer = null;
-      if (identical(_delayCompleter, completer)) {
-        _delayCompleter = null;
-      }
-      if (!completer.isCompleted) {
-        completer.complete(true);
-      }
-    });
-    return completer.future;
-  }
-
-  void _cancelDelay() {
-    _delayTimer?.cancel();
-    _delayTimer = null;
-
-    final completer = _delayCompleter;
-    _delayCompleter = null;
-    if (completer != null && !completer.isCompleted) {
-      completer.complete(false);
-    }
-  }
+  final VoidCallback onTap;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRect(
-      child: SingleChildScrollView(
-        controller: _controller,
-        scrollDirection: Axis.horizontal,
-        physics: const NeverScrollableScrollPhysics(),
-        child: Text(
-          widget.text,
-          maxLines: 1,
-          softWrap: false,
-          overflow: TextOverflow.visible,
-          style: widget.style,
+    return SizedBox(
+      key: const ValueKey('promo_offer_buy_button'),
+      width: 112,
+      height: 28,
+      child: Semantics(
+        button: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(7),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                maxLines: 1,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: Colors.white,
+                  fontSize: 11,
+                  height: 1,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
@@ -346,8 +255,9 @@ class _OfferCountdownChipState extends State<_OfferCountdownChip> {
     final duration = remaining.isNegative ? Duration.zero : remaining;
 
     return Container(
-      constraints: const BoxConstraints(maxWidth: 150),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
+      key: const ValueKey('promo_offer_countdown'),
+      constraints: const BoxConstraints(maxWidth: 108),
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
         borderRadius: BorderRadius.circular(8),

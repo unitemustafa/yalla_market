@@ -19,7 +19,7 @@ import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 
 void main() {
   group('PromoSlider offer cart items', () {
-    testWidgets('offer image keeps a clear center with a light scrim', (
+    testWidgets('offer image stays clear behind dynamic content', (
       tester,
     ) async {
       final cartCubit = _cartCubit();
@@ -36,6 +36,83 @@ void main() {
       expect(colors[0].a, closeTo(0.30, 0.01));
       expect(colors[1].a, 0);
       expect(colors[2].a, closeTo(0.44, 0.01));
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await cartCubit.close();
+    });
+
+    testWidgets('offer card follows the compact reference layout', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 260));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final cartCubit = _cartCubit();
+      await cartCubit.loadCartForUser('user-layout');
+
+      await tester.pumpWidget(
+        _Subject(
+          cartCubit: cartCubit,
+          offerId: '5',
+          endsAt: DateTime.now().add(const Duration(days: 1)),
+        ),
+      );
+      await tester.pump();
+
+      final badge = find.text('Discount - 15% off');
+      final countdownLabel = find.text('day');
+      final buyButton = find.byKey(const ValueKey('promo_offer_buy_button'));
+      final countdown = find.byKey(const ValueKey('promo_offer_countdown'));
+      expect(find.text('Buy now'), findsOneWidget);
+      expect(find.text('Fresh offer'), findsNothing);
+      expect(find.text('Daily discount'), findsNothing);
+      expect(find.text('EGP 78'), findsNothing);
+      expect(find.text('EGP 92'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('promo_offer_background')),
+        findsOneWidget,
+      );
+      expect(badge, findsOneWidget);
+      expect(countdownLabel, findsOneWidget);
+      expect(buyButton, findsOneWidget);
+      expect(countdown, findsOneWidget);
+      expect(
+        tester.getRect(buyButton).overlaps(tester.getRect(countdown)),
+        isFalse,
+      );
+      expect(
+        tester.getTopLeft(countdownLabel).dy,
+        greaterThan(tester.getTopLeft(badge).dy),
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      await tester.pump();
+      await tester.tap(find.text('Buy now'));
+      await tester.pumpAndSettle();
+      expect(find.text('Fresh offer'), findsOneWidget);
+      expect(find.text('Daily discount'), findsOneWidget);
+      await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+      await tester.pumpAndSettle();
+      expect(find.text('After discount'), findsOneWidget);
+      expect(find.text('Checkout'), findsOneWidget);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await cartCubit.close();
+    });
+
+    testWidgets('announcement card uses its CTA instead of buy now', (
+      tester,
+    ) async {
+      final cartCubit = _cartCubit();
+      await cartCubit.loadCartForUser('user-announcement');
+
+      await tester.pumpWidget(
+        _Subject(cartCubit: cartCubit, offerId: '9', announcement: true),
+      );
+      await tester.pump();
+
+      expect(find.text('Watch campaign'), findsOneWidget);
+      expect(find.text('Buy now'), findsNothing);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await cartCubit.close();
@@ -61,7 +138,7 @@ void main() {
       await cartCubit.loadCartForUser('user-share');
 
       await tester.pumpWidget(_Subject(cartCubit: cartCubit, offerId: '5'));
-      await tester.tap(find.text('Fresh offer').first);
+      await tester.tap(find.byKey(const ValueKey('promo_offer_card')));
       await tester.pumpAndSettle();
       await tester.tap(find.byIcon(AppIcons.send_1));
       await tester.pumpAndSettle();
@@ -86,7 +163,7 @@ void main() {
       await cartCubit.loadCartForUser('user-a');
 
       await tester.pumpWidget(_Subject(cartCubit: cartCubit, offerId: '5'));
-      await tester.tap(find.text('Fresh offer').first);
+      await tester.tap(find.byKey(const ValueKey('promo_offer_card')));
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.text('Checkout').last);
@@ -117,7 +194,7 @@ void main() {
         await cartCubit.loadCartForUser('user-a');
 
         await tester.pumpWidget(_Subject(cartCubit: cartCubit, offerId: 'bad'));
-        await tester.tap(find.text('Fresh offer').first);
+        await tester.tap(find.byKey(const ValueKey('promo_offer_card')));
         await tester.pumpAndSettle();
 
         await tester.ensureVisible(find.text('Checkout').last);
@@ -139,10 +216,17 @@ void main() {
 }
 
 class _Subject extends StatelessWidget {
-  const _Subject({required this.cartCubit, required this.offerId});
+  const _Subject({
+    required this.cartCubit,
+    required this.offerId,
+    this.endsAt,
+    this.announcement = false,
+  });
 
   final CartCubit cartCubit;
   final String offerId;
+  final DateTime? endsAt;
+  final bool announcement;
 
   @override
   Widget build(BuildContext context) {
@@ -157,23 +241,31 @@ class _Subject extends StatelessWidget {
         routes: {
           AppRoutes.checkout: (_) => const Scaffold(body: Text('Checkout')),
         },
-        home: Scaffold(body: PromoSlider(offers: [_offer(offerId)])),
+        home: Scaffold(
+          body: PromoSlider(
+            offers: [
+              _offer(offerId, endsAt: endsAt, announcement: announcement),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-HomeOfferData _offer(String id) {
+HomeOfferData _offer(String id, {DateTime? endsAt, bool announcement = false}) {
   return HomeOfferData(
     id: id,
     title: 'Fresh offer',
     description: 'Daily discount',
     image: '',
-    type: 'discount',
+    type: announcement ? 'announcement' : 'discount',
     discount: '15',
     startsAt: null,
-    endsAt: null,
+    endsAt: endsAt,
     marketName: 'Fresh Market',
+    announcementUrl: announcement ? 'https://example.com/campaign' : '',
+    announcementCtaLabel: announcement ? 'Watch campaign' : '',
     products: const [
       ProductData(
         id: '7',

@@ -339,7 +339,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Elite training football': 'كورة تدريب احترافية',
     'Email updates': 'تنبيهات الإيميل',
     'Egypt': 'مصر',
-    'Egyptian Pound': 'EGP',
+    'Egyptian Pound': 'جنيه',
     'Everyday training jacket': 'جاكيت تدريب يومي',
     'Explore products': 'استكشف المنتجات',
     'Explore trusted stores': 'استكشف متاجر موثوقة',
@@ -600,6 +600,14 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'No stores available': 'مفيش محلات متاحة دلوقتي',
     'Stores will appear here when they cover your address.':
         'المحلات هتظهر هنا لما التوصيل يبقى متاح لعنوانك.',
+    'Store unavailable': 'المحل غير متاح',
+    'This store is not available for your current address.':
+        'المحل ده مش متاح لعنوانك الحالي.',
+    'Products will appear here once this store is ready.':
+        'المنتجات هتظهر هنا أول ما المحل يجهزها.',
+    'Browse all curated products': 'تصفح كل المنتجات المختارة',
+    'Loading stores...': 'جاري تحميل المحلات...',
+    'Loading products...': 'جاري تحميل المنتجات...',
     'Street': 'الشارع',
     'Start Shopping': 'ابدأ التسوق',
     'Subtotal': 'الإجمالي الفرعي',
@@ -792,7 +800,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Offers, order updates, and account alerts':
         'العروض وتحديثات الطلب وتنبيهات الحساب',
     'Hide age-restricted products': 'إخفاء المنتجات المقيّدة حسب العمر',
-    'EGP': 'EGP',
+    'EGP': 'جنيه',
     'Keep your account information accurate and protect your password.':
         'خلي بيانات حسابك دقيقة واحمي كلمة السر.',
     'Keep delivery details fresh': 'حدّث تفاصيل التوصيل',
@@ -822,6 +830,10 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Server error.': 'في مشكلة في السيرفر.',
     'Prefer not to say': 'أفضل عدم الإفصاح',
     'Popular Categories': 'الفئات الشائعة',
+    'Delivery within': 'توصيل خلال',
+    'minutes': 'دقيقة',
+    'Discounts up to': 'خصومات حتى',
+    'Pay cash': 'ادفع كاش',
     'Popular Products': 'المنتجات الشائعة',
     'Latest Products': 'أحدث المنتجات',
     'Browse the latest products': 'تصفح أحدث المنتجات',

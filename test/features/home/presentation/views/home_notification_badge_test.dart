@@ -60,6 +60,7 @@ void main() {
       final cartRect = tester.getRect(
         find.byKey(const ValueKey('home_cart_button')),
       );
+      expect(searchRect.height, 48);
       expect(searchRect.right, lessThanOrEqualTo(notificationRect.left));
       expect(notificationRect.right, lessThanOrEqualTo(cartRect.left));
       expect(tester.takeException(), isNull);

@@ -142,13 +142,21 @@ class _StoreViewState extends State<StoreView> {
                   if (featuredSlots.isNotEmpty) ...[
                     SectionHeading(
                       title: 'Featured Categories',
-                      titleFontSize: 18,
+                      titleFontSize: 17,
                       showActionButton: showAllFeatured,
                       onPressed: showAllFeatured
                           ? () {
                               Navigator.pushNamed(
                                 context,
                                 AppRoutes.categories,
+                                arguments: CategoriesRouteArgs(
+                                  categories: readyStore.featuredCandidates
+                                      .map(
+                                        (classification) =>
+                                            classification.toCategoryData(),
+                                      )
+                                      .toList(growable: false),
+                                ),
                               );
                             }
                           : null,
@@ -180,6 +188,12 @@ class _StoreViewState extends State<StoreView> {
                     SliverToBoxAdapter(
                       child: _PopularStoresSection(
                         classifications: popularClassifications,
+                        marketCounts: {
+                          for (final classification in popularClassifications)
+                            classification.id: readyStore
+                                .popularMarketsFor(classification.id)
+                                .length,
+                        },
                         selectedClassification: selectedPopularClassification,
                         markets: selectedPopularMarkets,
                         onClassificationSelected: (classification) {
@@ -225,7 +239,7 @@ class _LatestStoresSection extends StatelessWidget {
         children: [
           const SectionHeading(
             title: 'Latest Stores',
-            titleFontSize: 18,
+            titleFontSize: 17,
             showActionButton: false,
           ),
           const SizedBox(height: 12),
@@ -391,12 +405,14 @@ class _StorePlainScaffold extends StatelessWidget {
 class _PopularStoresSection extends StatelessWidget {
   const _PopularStoresSection({
     required this.classifications,
+    required this.marketCounts,
     required this.selectedClassification,
     required this.markets,
     required this.onClassificationSelected,
   });
 
   final List<StoreClassificationData> classifications;
+  final Map<String, int> marketCounts;
   final StoreClassificationData selectedClassification;
   final List<StoreMarketData> markets;
   final ValueChanged<StoreClassificationData> onClassificationSelected;
@@ -415,99 +431,17 @@ class _PopularStoresSection extends StatelessWidget {
     );
   }
 
-  List<StoreClassificationData> get _visibleClassifications {
-    final visible = classifications.take(4).toList(growable: true);
-    final selectedIsVisible = visible.any(
-      (classification) => classification.id == selectedClassification.id,
-    );
-    if (!selectedIsVisible && visible.isNotEmpty) {
-      visible[visible.length - 1] = selectedClassification;
-    }
-    return visible;
-  }
-
-  Future<void> _showAllClassifications(BuildContext context) {
-    return showModalBottomSheet<void>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      isScrollControlled: true,
-      builder: (sheetContext) {
-        return FractionallySizedBox(
-          heightFactor: 0.72,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Text(
-                  context.tr('Popular Stores'),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
-                ),
-              ),
-              Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 20),
-                  itemCount: classifications.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 4),
-                  itemBuilder: (context, index) {
-                    final classification = classifications[index];
-                    final isSelected =
-                        classification.id == selectedClassification.id;
-                    return ListTile(
-                      key: ValueKey(
-                        'popular_store_all_category_${classification.id}',
-                      ),
-                      selected: isSelected,
-                      selectedColor: AppColors.primary,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      title: Text(
-                        context.tr(classification.name),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontWeight: FontWeight.w800),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.check_circle_rounded,
-                              color: AppColors.primary,
-                            )
-                          : null,
-                      onTap: () {
-                        Navigator.pop(sheetContext);
-                        onClassificationSelected(classification);
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final visibleClassifications = _visibleClassifications;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeading(
+          const SectionHeading(
             title: 'Popular Stores',
-            titleFontSize: 18,
-            showActionButton: classifications.length > 4,
-            onPressed: classifications.length > 4
-                ? () => _showAllClassifications(context)
-                : null,
+            titleFontSize: 17,
+            showActionButton: false,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -516,16 +450,14 @@ class _PopularStoresSection extends StatelessWidget {
               key: const ValueKey('popular_store_category_selector'),
               scrollDirection: Axis.horizontal,
               physics: const BouncingScrollPhysics(),
-              itemCount: visibleClassifications.length,
+              itemCount: classifications.length,
               separatorBuilder: (_, _) => const SizedBox(width: 8),
               itemBuilder: (context, index) {
-                final classification = visibleClassifications[index];
+                final classification = classifications[index];
                 return _PopularCategoryChip(
                   key: ValueKey('popular_store_category_${classification.id}'),
                   label: context.tr(classification.name),
-                  count: classification.id == selectedClassification.id
-                      ? markets.length
-                      : null,
+                  count: marketCounts[classification.id] ?? 0,
                   selected: classification.id == selectedClassification.id,
                   onTap: () => onClassificationSelected(classification),
                 );
@@ -611,7 +543,6 @@ class _PopularCategoryChip extends StatelessWidget {
             border: Border.all(color: borderColor),
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
                 child: Text(
@@ -625,19 +556,21 @@ class _PopularCategoryChip extends StatelessWidget {
                 ),
               ),
               if (count != null) ...[
-                const SizedBox(width: 7),
+                const Spacer(),
                 Container(
                   constraints: const BoxConstraints(minWidth: 20),
                   padding: const EdgeInsets.symmetric(horizontal: 5),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
+                    color: selected
+                        ? Colors.white
+                        : AppColors.warning.withValues(alpha: 0.14),
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: Text(
                     '$count',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: foregroundColor,
+                      color: AppColors.warning,
                       fontWeight: FontWeight.w900,
                     ),
                   ),

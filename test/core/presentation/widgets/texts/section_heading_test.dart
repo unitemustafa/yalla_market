@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/presentation/widgets/texts/section_heading.dart';
@@ -38,5 +39,38 @@ void main() {
         expect(tester.takeException(), isNull);
       },
     );
+  }
+
+  for (final brightness in Brightness.values) {
+    testWidgets('View all has a visible action color in ${brightness.name}', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: ThemeData(brightness: brightness),
+          supportedLocales: AppTranslations.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: SectionHeading(title: 'Section', onPressed: () {}),
+          ),
+        ),
+      );
+
+      final expectedColor = brightness == Brightness.dark
+          ? AppColors.darkAction
+          : AppColors.primary;
+      expect(
+        tester.widget<Text>(find.text('View all')).style?.color,
+        expectedColor,
+      );
+      expect(
+        tester.widget<Icon>(find.byIcon(AppIcons.arrow_right_3)).color,
+        expectedColor,
+      );
+    });
   }
 }

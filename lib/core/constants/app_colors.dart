@@ -27,6 +27,7 @@ class AppColors {
   static const Color darkAuthBackground = Color(0xFF292929);
   static const Color darkCardColor = Color(0xFF2A2A2A);
   static const Color darkPrimaryButton = primary;
+  static const Color darkAction = Color(0xFF78B7FF);
   static const Color darkTextPrimary = Colors.white;
   static const Color darkTextSecondary = Colors.grey;
 }

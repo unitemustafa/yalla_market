@@ -24,6 +24,9 @@ class SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final actionColor = isDark ? AppColors.darkAction : AppColors.primary;
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -52,8 +55,8 @@ class SectionHeading extends StatelessWidget {
               children: [
                 Text(
                   context.tr(buttonTitle),
-                  style: const TextStyle(
-                    color: AppColors.primary,
+                  style: TextStyle(
+                    color: actionColor,
                     fontSize: AppFontSizes.label,
                     fontWeight: FontWeight.w800,
                   ),
@@ -63,7 +66,7 @@ class SectionHeading extends StatelessWidget {
                   context.isArabicLanguage
                       ? AppIcons.arrow_left_2
                       : AppIcons.arrow_right_3,
-                  color: AppColors.primary,
+                  color: actionColor,
                   size: 13,
                 ),
               ],

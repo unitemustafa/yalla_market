@@ -50,11 +50,11 @@ class AppAssets {
   // brand, banner, and category artwork should come from the API/database.
   // Onboarding artwork
   static const String onboardingProducts =
-      '$_imagesPath/onboarding/onboarding_products.png';
+      '$_imagesPath/onboarding/onboarding_products.webp';
   static const String onboardingCashOnDelivery =
-      '$_imagesPath/onboarding/onboarding_cash_on_delivery.png';
+      '$_imagesPath/onboarding/onboarding_cash_on_delivery.webp';
   static const String onboardingFastDelivery =
-      '$_imagesPath/onboarding/onboarding_fast_delivery.png';
+      '$_imagesPath/onboarding/onboarding_fast_delivery.webp';
 
   // Banners
   static const String promoBanner1 = temporaryMarketPlaceholder;

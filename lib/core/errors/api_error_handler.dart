@@ -55,11 +55,14 @@ abstract final class ApiErrorHandler {
     }
 
     if (statusCode == 429) {
-      return OtpCooldownFailure(
-        message,
-        retryAfterSeconds:
-            _intFromResponse(response, 'retry_after_seconds') ?? 0,
-      );
+      final retryAfterSeconds = _retryAfterSeconds(response);
+      if (_stringFromResponse(response, 'code') == 'otp_cooldown') {
+        return OtpCooldownFailure(
+          message,
+          retryAfterSeconds: retryAfterSeconds,
+        );
+      }
+      return RateLimitFailure(message, retryAfterSeconds: retryAfterSeconds);
     }
 
     return switch (statusCode) {
@@ -110,6 +113,22 @@ abstract final class ApiErrorHandler {
       if (value is String) return int.tryParse(value);
     }
     return null;
+  }
+
+  static String? _stringFromResponse(Response<dynamic>? response, String key) {
+    final data = response?.data;
+    if (data is Map<String, dynamic>) {
+      final value = data[key]?.toString().trim();
+      return value == null || value.isEmpty ? null : value;
+    }
+    return null;
+  }
+
+  static int _retryAfterSeconds(Response<dynamic>? response) {
+    final bodyValue = _intFromResponse(response, 'retry_after_seconds');
+    if (bodyValue != null && bodyValue > 0) return bodyValue;
+    final headerValue = response?.headers.value('retry-after');
+    return int.tryParse(headerValue ?? '') ?? 0;
   }
 
   static String? _firstString(Object? value) {

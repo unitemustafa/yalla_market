@@ -35,6 +35,49 @@ void main() {
       expect(failure.message, 'Please sign in again.');
     });
 
+    test('maps general 429 responses to rate limit failure', () {
+      final options = RequestOptions(path: '/orders/create');
+      final error = DioException(
+        requestOptions: options,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 429,
+          data: const {
+            'code': 'rate_limited',
+            'detail': 'Too many requests. Try again later.',
+            'retry_after_seconds': 42,
+          },
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final failure = ApiErrorHandler.handle(error);
+
+      expect(failure, isA<RateLimitFailure>());
+      expect((failure as RateLimitFailure).retryAfterSeconds, 42);
+    });
+
+    test('keeps OTP cooldown distinct and reads Retry-After header', () {
+      final options = RequestOptions(path: '/auth/resend-verification');
+      final error = DioException(
+        requestOptions: options,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 429,
+          data: const {'code': 'otp_cooldown'},
+          headers: Headers.fromMap({
+            'retry-after': ['30'],
+          }),
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final failure = ApiErrorHandler.handle(error);
+
+      expect(failure, isA<OtpCooldownFailure>());
+      expect((failure as OtpCooldownFailure).retryAfterSeconds, 30);
+    });
+
     test('maps non-Dio errors to unknown failure', () {
       final failure = ApiErrorHandler.handle(Exception('boom'));
 

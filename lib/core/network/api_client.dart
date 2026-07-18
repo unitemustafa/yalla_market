@@ -15,12 +15,14 @@ class ApiClient {
     SessionExpiredNotifier? sessionExpiredNotifier,
     AccountInactiveNotifier? accountInactiveNotifier,
     SessionDeadlineController? sessionDeadlineController,
+    Future<void> Function(Duration duration)? delay,
     required TokenStore tokenStore,
   }) : _dio = dio ?? DioFactory.create(),
        _tokenStore = tokenStore,
        _accountInactiveNotifier =
            accountInactiveNotifier ?? AccountInactiveNotifier.instance,
        _refreshDio = refreshDio ?? Dio(DioFactory.baseOptions()),
+       _delay = delay ?? ((duration) => Future<void>.delayed(duration)),
        _sessionDeadlineController =
            sessionDeadlineController ??
            SessionDeadlineController(
@@ -38,6 +40,7 @@ class ApiClient {
   final TokenStore _tokenStore;
   final AccountInactiveNotifier _accountInactiveNotifier;
   final SessionDeadlineController _sessionDeadlineController;
+  final Future<void> Function(Duration duration) _delay;
   Future<StoredAuthTokens>? _refreshInFlight;
 
   Future<T> get<T>(
@@ -235,7 +238,7 @@ class ApiClient {
       throw StateError('Session expired.');
     }
 
-    late final Response<Object?> response;
+    late Response<Object?> response;
     try {
       response = await _refreshDio.post<Object?>(
         ApiEndpoints.refreshToken,
@@ -246,7 +249,17 @@ class ApiClient {
       if (_isAccountInactiveResponse(error.response?.data)) {
         await _disableAccount();
       }
-      rethrow;
+      if (error.response?.statusCode != 429) rethrow;
+      final retryAfter = _rateLimitRetryAfter(error.response);
+      await _delay(Duration(seconds: retryAfter.clamp(1, 60).toInt()));
+      if (!await _sessionDeadlineController.activate(current)) {
+        throw StateError('Session expired.');
+      }
+      response = await _refreshDio.post<Object?>(
+        ApiEndpoints.refreshToken,
+        data: {'refreshToken': current.refreshToken},
+        options: Options(extra: const {'skipAuth': true}),
+      );
     }
 
     final payload = _unwrap<Map<String, dynamic>>(response.data);
@@ -310,7 +323,20 @@ class ApiClient {
   bool _isTransientSessionFailure(Object error) {
     if (error is! DioException) return false;
     final status = error.response?.statusCode;
-    return error.response == null || (status != null && status >= 500);
+    return error.response == null ||
+        status == 429 ||
+        (status != null && status >= 500);
+  }
+
+  int _rateLimitRetryAfter(Response<dynamic>? response) {
+    final data = response?.data;
+    if (data is Map) {
+      final value = data['retry_after_seconds'];
+      if (value is num && value > 0) return value.ceil();
+      final parsed = int.tryParse(value?.toString() ?? '');
+      if (parsed != null && parsed > 0) return parsed;
+    }
+    return int.tryParse(response?.headers.value('retry-after') ?? '') ?? 1;
   }
 
   T _unwrap<T>(Object? data) {

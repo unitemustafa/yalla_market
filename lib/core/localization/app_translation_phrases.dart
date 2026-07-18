@@ -2,6 +2,8 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Too many requests. Try again later.':
+        'طلبات كتير في وقت قصير. استنى شوية وحاول تاني.',
     'Share product': 'مشاركة المنتج',
     'Share': 'مشاركة',
     'Copy link': 'نسخ الرابط',

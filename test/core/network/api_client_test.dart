@@ -86,6 +86,45 @@ void main() {
     expect(expiredEvents, 0);
   });
 
+  test('429 refresh waits once, retries, and keeps the session', () async {
+    final now = DateTime.now().toUtc();
+    final current = _tokens(
+      now,
+      accessExpiresAt: now.add(const Duration(seconds: 30)),
+    );
+    final tokenStore = _CountingTokenStore(current);
+    var refreshRequests = 0;
+    final delays = <Duration>[];
+    final refreshDio = Dio()
+      ..httpClientAdapter = _Adapter((options) {
+        refreshRequests += 1;
+        if (refreshRequests == 1) {
+          return _jsonResponse({
+            'code': 'rate_limited',
+            'retry_after_seconds': 2,
+          }, statusCode: 429);
+        }
+        return _jsonResponse(_refreshPayload(current, now));
+      });
+    final client = ApiClient(
+      dio: Dio()
+        ..httpClientAdapter = _Adapter(
+          (options) => _jsonResponse({'ok': true}),
+        ),
+      refreshDio: refreshDio,
+      tokenStore: tokenStore,
+      delay: (duration) async => delays.add(duration),
+    );
+
+    final payload = await client.get<Map<String, dynamic>>('/protected');
+
+    expect(payload['ok'], isTrue);
+    expect(refreshRequests, 2);
+    expect(delays, [const Duration(seconds: 2)]);
+    expect(tokenStore.clearCount, 0);
+    expect(tokenStore.saveCount, 1);
+  });
+
   test('concurrent proactive requests share one refresh operation', () async {
     final now = DateTime.now().toUtc();
     final current = _tokens(

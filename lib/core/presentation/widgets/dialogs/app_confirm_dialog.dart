@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
@@ -77,7 +78,7 @@ class AppConfirmDialog extends StatelessWidget {
                 title,
                 textAlign: TextAlign.center,
                 style: theme.textTheme.titleLarge?.copyWith(
-                  fontSize: 19,
+                  fontSize: AppFontSizes.subtitle,
                   fontWeight: FontWeight.w900,
                 ),
               ),

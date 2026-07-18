@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
@@ -43,7 +44,7 @@ class PageTopBar extends StatelessWidget {
               Text(
                 context.tr(title),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 20,
+                  fontSize: AppFontSizes.pageTitle,
                   fontWeight: FontWeight.w900,
                 ),
                 maxLines: 1,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../store/data/demo/demo_categories.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -157,7 +158,7 @@ class _HomeCategoryChip extends StatelessWidget {
             context.tr(data.name),
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
               color: textColor,
-              fontSize: 10,
+              fontSize: AppFontSizes.caption,
               fontWeight: FontWeight.w800,
             ),
             maxLines: 1,

@@ -271,7 +271,7 @@ class _OfferSheetHeader extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                   color: textColor,
-                  fontSize: 22,
+                  fontSize: AppFontSizes.title,
                   fontWeight: FontWeight.w900,
                 ),
               ),

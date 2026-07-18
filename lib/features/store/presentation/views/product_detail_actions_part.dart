@@ -412,7 +412,7 @@ extension _ProductDetailChoiceBuilder on _ProductDetailViewState {
                     color: isSelected
                         ? Colors.white
                         : (isDark ? Colors.white : AppColors.lightTextPrimary),
-                    fontSize: 13,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

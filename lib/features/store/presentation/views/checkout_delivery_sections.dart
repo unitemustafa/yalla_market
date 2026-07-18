@@ -42,7 +42,7 @@ class _PaymentMethodCard extends StatelessWidget {
                   context.tr('Cash on Delivery'),
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 14,
+                    fontSize: AppFontSizes.bodyLarge,
                     fontWeight: FontWeight.w900,
                   ),
                 ),
@@ -51,7 +51,7 @@ class _PaymentMethodCard extends StatelessWidget {
                   context.tr('Pay when your order arrives'),
                   style: TextStyle(
                     color: mutedColor,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.label,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -129,7 +129,7 @@ class _SavedAddressCheckoutCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: mutedColor,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.label,
                     height: 1.35,
                     fontWeight: FontWeight.w600,
                   ),
@@ -337,7 +337,7 @@ class _ShippingAddressCard extends StatelessWidget {
                       ),
                       style: TextStyle(
                         color: mutedColor,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.label,
                         height: 1.35,
                         fontWeight: FontWeight.w600,
                       ),
@@ -391,7 +391,7 @@ class _CollapsedAddressSummary extends StatelessWidget {
                 : text,
             style: TextStyle(
               color: mutedColor,
-              fontSize: 13,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w700,
             ),
             maxLines: 1,
@@ -467,7 +467,7 @@ class _ShippingNote extends StatelessWidget {
               color: isDark
                   ? AppColors.darkTextSecondary
                   : AppColors.lightTextSecondary,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               height: 1.35,
               fontWeight: FontWeight.w700,
             ),
@@ -718,7 +718,7 @@ class _CityOptionTile extends StatelessWidget {
                       subtitle,
                       style: TextStyle(
                         color: mutedColor,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.label,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -799,7 +799,7 @@ class _SectionCard extends StatelessWidget {
                     minimumSize: const Size(0, 34),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     textStyle: const TextStyle(
-                      fontSize: 12,
+                      fontSize: AppFontSizes.label,
                       fontWeight: FontWeight.w800,
                     ),
                   ),

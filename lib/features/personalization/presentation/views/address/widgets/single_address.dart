@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -263,7 +264,7 @@ class _UnavailableNotice extends StatelessWidget {
             context.tr(message ?? 'Not available in the current region'),
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -373,7 +374,7 @@ class _AddressActionButton extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: color,
-                      fontSize: 13,
+                      fontSize: AppFontSizes.body,
                       fontWeight: FontWeight.w900,
                     ),
                   ),

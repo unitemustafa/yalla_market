@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -564,7 +565,7 @@ class _ProfileBadge extends StatelessWidget {
               label,
               style: TextStyle(
                 color: effectiveColor,
-                fontSize: 12,
+                fontSize: AppFontSizes.label,
                 fontWeight: FontWeight.w800,
               ),
               maxLines: 1,
@@ -610,7 +611,7 @@ class _ProfileInfoSection extends StatelessWidget {
           child: Text(
             context.tr(title),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontSize: 18,
+              fontSize: AppFontSizes.subtitle,
               fontWeight: FontWeight.w900,
             ),
           ),

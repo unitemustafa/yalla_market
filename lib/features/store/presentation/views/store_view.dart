@@ -278,8 +278,8 @@ class _LatestStoresSlider extends StatelessWidget {
       height: StoreMarketCard.height,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final cardWidth = (constraints.maxWidth * 0.82)
-              .clamp(246.0, 316.0)
+          final cardWidth = (constraints.maxWidth * 0.76)
+              .clamp(226.0, 286.0)
               .toDouble();
 
           return ListView.separated(
@@ -323,7 +323,7 @@ class _LatestStoresViewAllCard extends StatelessWidget {
 
     return SizedBox(
       key: const ValueKey('latest_stores_view_all'),
-      width: 92,
+      width: 84,
       child: Material(
         color: isDark ? AppColors.darkCardColor : Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -445,7 +445,7 @@ class _PopularStoresSection extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           SizedBox(
-            height: 40,
+            height: 44,
             child: ListView.separated(
               key: const ValueKey('popular_store_category_selector'),
               scrollDirection: Axis.horizontal,
@@ -467,8 +467,8 @@ class _PopularStoresSection extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final cardWidth = (constraints.maxWidth * 0.82)
-                  .clamp(246.0, 316.0)
+              final cardWidth = (constraints.maxWidth * 0.76)
+                  .clamp(226.0, 286.0)
                   .toDouble();
               return SizedBox(
                 height: StoreMarketCard.height,
@@ -530,19 +530,20 @@ class _PopularCategoryChip extends StatelessWidget {
       color: selected
           ? AppColors.primary
           : (isDark ? AppColors.darkCardColor : Colors.white),
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(22),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(22),
         child: Container(
-          width: 128,
-          height: 40,
-          padding: const EdgeInsets.symmetric(horizontal: 13),
+          constraints: const BoxConstraints(maxWidth: 180),
+          height: 44,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(color: borderColor),
           ),
           child: Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
                 child: Text(
@@ -556,7 +557,7 @@ class _PopularCategoryChip extends StatelessWidget {
                 ),
               ),
               if (count != null) ...[
-                const Spacer(),
+                const SizedBox(width: 7),
                 Container(
                   constraints: const BoxConstraints(minWidth: 20),
                   padding: const EdgeInsets.symmetric(horizontal: 5),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
@@ -154,13 +155,13 @@ void main() {
 
     expect(find.text('خصم 50%'), findsOneWidget);
     final discountText = tester.widget<Text>(find.text('خصم 50%'));
-    expect(discountText.style?.fontSize, 10);
+    expect(discountText.style?.fontSize, AppFontSizes.micro);
     final discountBadge = tester.widget<Container>(
       find.byKey(const ValueKey('product_discount_badge_discounted-product')),
     );
     expect(
       discountBadge.padding,
-      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     );
     expect(tester.widget<AppImage>(find.byType(AppImage)).fit, BoxFit.cover);
     final priceTexts = tester
@@ -218,7 +219,7 @@ void main() {
     final addButtonRect = tester.getRect(
       find.byKey(const ValueKey('product_add_to_cart_iphone-product')),
     );
-    expect(addButtonRect.height, 44);
+    expect(addButtonRect.height, 34);
     expect(cardRect.bottom - addButtonRect.bottom, lessThanOrEqualTo(8));
     expect(tester.takeException(), isNull);
   });

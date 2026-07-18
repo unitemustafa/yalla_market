@@ -111,7 +111,7 @@ class _OrderSummaryCard extends StatelessWidget {
                     context.tr('Order Total'),
                     style: TextStyle(
                       color: textColor,
-                      fontSize: 15,
+                      fontSize: AppFontSizes.bodyLarge,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -129,7 +129,7 @@ class _OrderSummaryCard extends StatelessWidget {
                           textAlign: TextAlign.end,
                           style: const TextStyle(
                             color: AppColors.primary,
-                            fontSize: 20,
+                            fontSize: AppFontSizes.subtitle,
                             fontWeight: FontWeight.w900,
                           ),
                           maxLines: 1,

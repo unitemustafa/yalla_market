@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -214,7 +215,7 @@ class _ActivationCard extends StatelessWidget {
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.62)
                         : Colors.black.withValues(alpha: 0.50),
-                    fontSize: 16,
+                    fontSize: AppFontSizes.bodyLarge,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

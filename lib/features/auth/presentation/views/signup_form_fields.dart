@@ -27,7 +27,7 @@ extension _SignupFormFields on _SignupViewState {
       AppTranslations.of(context).createYourAccount,
       style: theme.textTheme.headlineLarge?.copyWith(
         color: isDarkMode ? Colors.white : AppColors.lightTextPrimary,
-        fontSize: 30,
+        fontSize: AppFontSizes.pageTitle,
         height: 1.1,
         fontWeight: FontWeight.w800,
       ),
@@ -222,9 +222,10 @@ extension _SignupFormFields on _SignupViewState {
           LengthLimitingTextInputFormatter(13),
         ],
         cursorColor: theme.colorScheme.primary,
+        onTapOutside: (_) {},
         style: theme.textTheme.bodyMedium?.copyWith(
           color: textColor,
-          fontSize: 15,
+          fontSize: AppFontSizes.bodyLarge,
           fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
@@ -237,14 +238,14 @@ extension _SignupFormFields on _SignupViewState {
           ),
           labelStyle: TextStyle(
             color: iconColor,
-            fontSize: 14,
+            fontSize: AppFontSizes.bodyLarge,
             fontWeight: FontWeight.w700,
           ),
           prefixIcon: Icon(AppIcons.call, color: iconColor, size: 21),
           hintText: '01xxxxxxxxx',
           hintStyle: TextStyle(
             color: iconColor,
-            fontSize: 14,
+            fontSize: AppFontSizes.bodyLarge,
             fontWeight: FontWeight.w700,
           ),
           suffixIcon: _buildAvailabilityStatusSuffix(

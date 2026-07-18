@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -240,6 +241,8 @@ class _SignupViewState extends State<SignupView> {
                   );
 
                   return SingleChildScrollView(
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.manual,
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
                     child: ConstrainedBox(
                       constraints: BoxConstraints(minHeight: minHeight),

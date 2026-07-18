@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
+import '../../../constants/app_constants.dart';
 import '../../../icons/app_icons.dart';
 import '../../../localization/app_translations.dart';
 
@@ -53,7 +54,7 @@ class SectionHeading extends StatelessWidget {
                   context.tr(buttonTitle),
                   style: const TextStyle(
                     color: AppColors.primary,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.label,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

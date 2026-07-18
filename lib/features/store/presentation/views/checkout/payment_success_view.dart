@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'package:yalla_market/core/constants/app_constants.dart';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -183,7 +184,7 @@ class _PaymentSuccessViewState extends State<PaymentSuccessView>
                             context.tr('Continue Shopping'),
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 16,
+                              fontSize: AppFontSizes.bodyLarge,
                               fontWeight: FontWeight.w700,
                             ),
                           ),

@@ -216,7 +216,7 @@ class _OfferCheckoutBar extends StatelessWidget {
                     text: offer.total,
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: textColor,
-                      fontSize: 22,
+                      fontSize: AppFontSizes.title,
                       fontWeight: FontWeight.w900,
                     ),
                   ),

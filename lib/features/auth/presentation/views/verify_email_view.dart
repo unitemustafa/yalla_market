@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -17,6 +18,7 @@ import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../widgets/auth_status_artwork.dart';
 import '../widgets/auth_top_bar.dart';
+import '../widgets/fixed_auth_page_layout.dart';
 
 class VerifyEmailView extends StatefulWidget {
   const VerifyEmailView({super.key, required this.email});
@@ -264,60 +266,45 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       body: DecoratedBox(
         decoration: _buildBackgroundDecoration(isDarkMode),
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final minHeight = (constraints.maxHeight - 20).clamp(
-                0.0,
-                double.infinity,
-              );
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: minHeight),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 430),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          AuthTopBar(
-                            showBack: true,
-                            onBack: () {
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                AppRoutes.signup,
-                                (route) => false,
-                              );
-                            },
-                          ),
-                          const SizedBox(height: 24),
-                          AuthStatusArtwork(
-                            icon: AppIcons.sms_tracking,
-                            isDark: isDarkMode,
-                          ),
-                          const SizedBox(height: 28),
-                          _buildMessage(context, theme, isDarkMode),
-                          const SizedBox(height: 26),
-                          _buildCodeInput(theme, isDarkMode),
-                          const SizedBox(height: 24),
-                          _buildConfirmButton(context),
-                          const SizedBox(height: 12),
-                          _buildResendButton(theme, isDarkMode),
-                        ],
-                      ),
-                    ),
-                  ),
+          child: FixedAuthPageLayout(
+            isKeyboardVisible: isKeyboardVisible,
+            nonScrollingMinHeight: 700,
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                AuthTopBar(
+                  showBack: true,
+                  onBack: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      AppRoutes.signup,
+                      (route) => false,
+                    );
+                  },
                 ),
-              );
-            },
+                const SizedBox(height: 24),
+                AuthStatusArtwork(
+                  icon: AppIcons.sms_tracking,
+                  isDark: isDarkMode,
+                ),
+                const SizedBox(height: 28),
+                _buildMessage(context, theme, isDarkMode),
+                const SizedBox(height: 26),
+                _buildCodeInput(theme, isDarkMode),
+                const SizedBox(height: 24),
+                _buildConfirmButton(context),
+                const SizedBox(height: 12),
+                _buildResendButton(theme, isDarkMode),
+              ],
+            ),
           ),
         ),
       ),
@@ -359,7 +346,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge?.copyWith(
             color: titleColor,
-            fontSize: 28,
+            fontSize: AppFontSizes.pageTitle,
             height: 1.12,
             fontWeight: FontWeight.w900,
           ),
@@ -374,7 +361,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: subtitleColor,
-            fontSize: 14.5,
+            fontSize: AppFontSizes.bodyLarge,
             height: 1.55,
             fontWeight: FontWeight.w600,
           ),
@@ -424,7 +411,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: textColor,
-                      fontSize: 14.5,
+                      fontSize: AppFontSizes.bodyLarge,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -503,6 +490,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                         autofocus: true,
                         showCursor: false,
                         enableInteractiveSelection: false,
+                        onTapOutside: (_) {},
+                        onTapUpOutside: (_) {},
                         keyboardType: TextInputType.number,
                         textInputAction: TextInputAction.done,
                         inputFormatters: [
@@ -661,7 +650,7 @@ class _CodeDigitBox extends StatelessWidget {
           digit,
           style: theme.textTheme.titleLarge?.copyWith(
             color: textColor,
-            fontSize: 22,
+            fontSize: AppFontSizes.title,
             fontWeight: FontWeight.w900,
           ),
         ),

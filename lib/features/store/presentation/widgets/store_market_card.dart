@@ -15,7 +15,7 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 206;
+  static const double height = 184;
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -60,7 +60,7 @@ class StoreMarketCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: borderColor),
@@ -78,8 +78,8 @@ class StoreMarketCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 42,
-                      height: 42,
+                      width: 38,
+                      height: 38,
                       decoration: BoxDecoration(
                         color: accentColor.withValues(
                           alpha: isDark ? 0.18 : 0.10,
@@ -91,11 +91,11 @@ class StoreMarketCard extends StatelessWidget {
                         fallbackType: AppImagePlaceholderType.store,
                         fit: BoxFit.cover,
                         borderRadius: BorderRadius.circular(9),
-                        cacheWidth: 84,
-                        cacheHeight: 84,
+                        cacheWidth: 76,
+                        cacheHeight: 76,
                       ),
                     ),
-                    const SizedBox(width: 9),
+                    const SizedBox(width: 8),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,8 +137,8 @@ class StoreMarketCard extends StatelessWidget {
                       ),
                     ),
                     Container(
-                      width: 30,
-                      height: 30,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
                         color: AppColors.primary.withValues(
                           alpha: isDark ? 0.18 : 0.10,
@@ -148,12 +148,12 @@ class StoreMarketCard extends StatelessWidget {
                       child: Icon(
                         forwardIcon,
                         color: AppColors.primary,
-                        size: 17,
+                        size: 16,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 8),
                 Expanded(
                   child: Row(
                     children: [
@@ -166,7 +166,7 @@ class StoreMarketCard extends StatelessWidget {
                           keyPrefix: keyPrefix,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 5),
                       Expanded(
                         flex: 4,
                         child: Column(
@@ -179,7 +179,7 @@ class StoreMarketCard extends StatelessWidget {
                                 keyPrefix: keyPrefix,
                               ),
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 5),
                             Expanded(
                               child: _StoreImageSlot(
                                 marketId: market.id,

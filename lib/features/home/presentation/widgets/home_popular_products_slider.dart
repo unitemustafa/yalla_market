@@ -76,11 +76,12 @@ class HomeProductsSlider extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 220,
+      height: 188,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final cardWidth = (constraints.maxWidth * 0.44)
-              .clamp(142.0, 158.0)
+          const spacing = 8.0;
+          final cardWidth = ((constraints.maxWidth - (spacing * 2)) / 3)
+              .clamp(88.0, 112.0)
               .toDouble();
 
           return ListView.separated(
@@ -88,7 +89,7 @@ class HomeProductsSlider extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
             itemCount: visibleProducts.length + (showViewAll ? 1 : 0),
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            separatorBuilder: (_, _) => const SizedBox(width: spacing),
             itemBuilder: (context, index) {
               if (showViewAll && index == visibleProducts.length) {
                 return _ViewAllProductsCard(

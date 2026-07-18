@@ -140,7 +140,8 @@ void main() {
     final secondCategorySize = tester.getSize(
       find.byKey(const ValueKey('popular_store_category_popular-1')),
     );
-    expect(firstCategorySize, const Size(128, 40));
+    expect(firstCategorySize.height, 44);
+    expect(firstCategorySize.width, greaterThan(128));
     expect(secondCategorySize, firstCategorySize);
     final firstChip = find.byKey(
       const ValueKey('popular_store_category_popular-0'),

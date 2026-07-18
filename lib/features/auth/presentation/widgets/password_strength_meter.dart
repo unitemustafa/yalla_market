@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -21,43 +22,20 @@ class PasswordStrengthMeter extends StatelessWidget {
         final requirements = _requirementsFor(context, password);
 
         return Padding(
-          padding: const EdgeInsets.only(bottom: 16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= 390) {
-                return Row(
-                  children: [
-                    for (final requirement in requirements)
-                      Expanded(
-                        child: Center(
-                          child: _PasswordRequirementRow(
-                            label: requirement.label,
-                            isMet: requirement.isMet,
-                            isDark: isDark,
-                            maxLabelWidth: 108,
-                          ),
-                        ),
-                      ),
-                  ],
-                );
-              }
-
-              return Wrap(
-                alignment: WrapAlignment.center,
-                runAlignment: WrapAlignment.center,
-                spacing: 14,
-                runSpacing: 8,
-                children: [
-                  for (final requirement in requirements)
-                    _PasswordRequirementRow(
+          padding: const EdgeInsets.only(bottom: 10),
+          child: Row(
+            children: [
+              for (final requirement in requirements)
+                Expanded(
+                  child: Center(
+                    child: _PasswordRequirementRow(
                       label: requirement.label,
                       isMet: requirement.isMet,
                       isDark: isDark,
-                      maxLabelWidth: 128,
                     ),
-                ],
-              );
-            },
+                  ),
+                ),
+            ],
           ),
         );
       },
@@ -101,13 +79,11 @@ class _PasswordRequirementRow extends StatelessWidget {
     required this.label,
     required this.isMet,
     required this.isDark,
-    required this.maxLabelWidth,
   });
 
   final String label;
   final bool isMet;
   final bool isDark;
-  final double maxLabelWidth;
 
   @override
   Widget build(BuildContext context) {
@@ -117,35 +93,37 @@ class _PasswordRequirementRow extends StatelessWidget {
         : Colors.black.withValues(alpha: 0.44);
     final color = isMet ? AppColors.success : inactiveColor;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 160),
-          child: Icon(
-            isMet ? AppIcons.tick_circle : AppIcons.record_circle,
-            key: ValueKey('${label}_$isMet'),
-            size: 15,
-            color: color,
-          ),
-        ),
-        const SizedBox(width: 5),
-        ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxLabelWidth),
-          child: Text(
-            label,
-            softWrap: true,
-            textAlign: TextAlign.center,
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: color,
-              fontSize: 10.5,
-              height: 1.25,
-              fontWeight: FontWeight.w800,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 2),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              child: Icon(
+                isMet ? AppIcons.tick_circle : AppIcons.record_circle,
+                key: ValueKey('${label}_$isMet'),
+                size: 13,
+                color: color,
+              ),
             ),
-          ),
+            const SizedBox(width: 3),
+            Text(
+              label,
+              maxLines: 1,
+              softWrap: false,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: color,
+                fontSize: AppFontSizes.caption,
+                height: 1.1,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

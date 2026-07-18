@@ -169,7 +169,7 @@ class _OfferOverlayBadge extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white,
-                fontSize: 8,
+                fontSize: AppFontSizes.micro,
                 fontWeight: FontWeight.w900,
               ),
             ),
@@ -208,7 +208,7 @@ class _OfferBuyButton extends StatelessWidget {
                 maxLines: 1,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: AppFontSizes.small,
                   height: 1,
                   fontWeight: FontWeight.w900,
                 ),
@@ -452,7 +452,9 @@ class _CountdownUnitCell extends StatelessWidget {
               maxLines: 1,
               style: Theme.of(context).textTheme.labelLarge?.copyWith(
                 color: numberColor,
-                fontSize: isCompact ? 10 : 14,
+                fontSize: isCompact
+                    ? AppFontSizes.caption
+                    : AppFontSizes.bodyLarge,
                 height: 1,
                 fontWeight: FontWeight.w900,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -467,7 +469,7 @@ class _CountdownUnitCell extends StatelessWidget {
               maxLines: 1,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: color,
-                fontSize: isCompact ? 7 : 10,
+                fontSize: isCompact ? AppFontSizes.micro : AppFontSizes.caption,
                 height: 1,
                 fontWeight: FontWeight.w900,
               ),

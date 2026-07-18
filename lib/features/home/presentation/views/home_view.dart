@@ -4,6 +4,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/errors/region_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
@@ -138,67 +139,72 @@ class _HomeViewState extends State<HomeView> {
               child: SingleChildScrollView(
                 physics: AppRefreshIndicator.scrollPhysics,
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _HomeTopBar(isDark: isDark),
-                    const SizedBox(height: 18),
-                    _HomeSearchActionsRow(isDark: isDark),
-                    const SizedBox(height: 12),
-                    const HomeBenefitsStrip(),
-                    const SizedBox(height: 12),
-                    BlocConsumer<HomeCubit, HomeState>(
-                      listener: (context, homeState) {
-                        if (homeState is HomeFailure &&
-                            homeState.message == regionRequiredMessage) {
-                          _goToSelectCity();
-                        }
-                      },
-                      builder: (context, homeState) {
-                        final home = homeState.data;
-                        if (homeState is HomeFailure &&
-                            home == null &&
-                            homeState.message == addressRequiredMessage) {
-                          return AppStateView(
-                            icon: AppIcons.location_add,
-                            title: 'Delivery address needed',
-                            message: addressRequiredMessage,
-                            actionLabel: 'Review address',
-                            onAction: _openAddresses,
-                            showActionIcon: false,
-                          );
-                        }
-                        if (homeState is HomeFailure && home == null) {
-                          return AppErrorState(
-                            title: 'Home could not load',
-                            message: homeState.message,
-                            onRetry: () => _loadHomeData(force: true),
-                          );
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            PromoSlider(
-                              offers: home?.offers,
-                              focusOfferId: widget.focusOfferId,
-                            ),
-                            const SizedBox(height: 24),
-                            BlocBuilder<
-                              ProductCatalogCubit,
-                              ProductCatalogState
-                            >(
-                              builder: (context, catalogState) {
-                                return HomeCatalogSections(
-                                  home: home,
-                                  catalogState: catalogState,
-                                );
-                              },
-                            ),
-                          ],
-                        );
-                      },
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 720),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _HomeTopBar(isDark: isDark),
+                        const SizedBox(height: 18),
+                        _HomeSearchActionsRow(isDark: isDark),
+                        const SizedBox(height: 12),
+                        const HomeBenefitsStrip(),
+                        const SizedBox(height: 12),
+                        BlocConsumer<HomeCubit, HomeState>(
+                          listener: (context, homeState) {
+                            if (homeState is HomeFailure &&
+                                homeState.message == regionRequiredMessage) {
+                              _goToSelectCity();
+                            }
+                          },
+                          builder: (context, homeState) {
+                            final home = homeState.data;
+                            if (homeState is HomeFailure &&
+                                home == null &&
+                                homeState.message == addressRequiredMessage) {
+                              return AppStateView(
+                                icon: AppIcons.location_add,
+                                title: 'Delivery address needed',
+                                message: addressRequiredMessage,
+                                actionLabel: 'Review address',
+                                onAction: _openAddresses,
+                                showActionIcon: false,
+                              );
+                            }
+                            if (homeState is HomeFailure && home == null) {
+                              return AppErrorState(
+                                title: 'Home could not load',
+                                message: homeState.message,
+                                onRetry: () => _loadHomeData(force: true),
+                              );
+                            }
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                PromoSlider(
+                                  offers: home?.offers,
+                                  focusOfferId: widget.focusOfferId,
+                                ),
+                                const SizedBox(height: 24),
+                                BlocBuilder<
+                                  ProductCatalogCubit,
+                                  ProductCatalogState
+                                >(
+                                  builder: (context, catalogState) {
+                                    return HomeCatalogSections(
+                                      home: home,
+                                      catalogState: catalogState,
+                                    );
+                                  },
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -265,7 +271,7 @@ class HomeCatalogSections extends StatelessWidget {
           SectionHeading(
             title: 'Popular Categories',
             showActionButton: categories.length > 4,
-            titleFontSize: 17,
+            titleFontSize: AppFontSizes.sectionTitle,
             onPressed: categories.length > 4
                 ? () => Navigator.pushNamed(
                     context,
@@ -281,7 +287,7 @@ class HomeCatalogSections extends StatelessWidget {
           if (categories.isNotEmpty) const SizedBox(height: 22),
           const SectionHeading(
             title: 'Popular Products',
-            titleFontSize: 17,
+            titleFontSize: AppFontSizes.sectionTitle,
             showActionButton: false,
           ),
           const SizedBox(height: 14),
@@ -304,7 +310,7 @@ class HomeCatalogSections extends StatelessWidget {
             const SizedBox(height: 22),
           const SectionHeading(
             title: 'Latest Products',
-            titleFontSize: 17,
+            titleFontSize: AppFontSizes.sectionTitle,
             showActionButton: false,
           ),
           const SizedBox(height: 14),
@@ -378,12 +384,12 @@ class _HomeTopBar extends StatelessWidget {
             const SizedBox(width: 10),
             SizedBox(
               key: const ValueKey('home_brand_logo'),
-              width: 98,
+              width: 112,
               height: 64,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: Image.asset(
-                  AppAssets.logo,
+                  AppAssets.homeBrandLogo,
                   fit: BoxFit.cover,
                   alignment: const Alignment(0, 0.02),
                   cacheWidth: 196,
@@ -420,7 +426,7 @@ class _HomeCustomerSummary extends StatelessWidget {
             key: const ValueKey('home_welcome_label'),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
               color: Colors.white.withValues(alpha: 0.78),
-              fontSize: 10,
+              fontSize: AppFontSizes.caption,
               height: 1.1,
               fontWeight: FontWeight.w600,
             ),
@@ -432,7 +438,7 @@ class _HomeCustomerSummary extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.labelLarge?.copyWith(
               color: Colors.white,
-              fontSize: 13,
+              fontSize: AppFontSizes.body,
               height: 1.05,
               fontWeight: FontWeight.w900,
             ),
@@ -469,7 +475,7 @@ class _HomeRegionBadge extends StatelessWidget {
               label,
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: Colors.white.withValues(alpha: 0.82),
-                fontSize: 10,
+                fontSize: AppFontSizes.caption,
                 height: 1.2,
                 fontWeight: FontWeight.w600,
               ),
@@ -572,7 +578,7 @@ class _TopActionButton extends StatelessWidget {
                           : '$normalizedBadgeCount',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                         color: Colors.white,
-                        fontSize: 9,
+                        fontSize: AppFontSizes.caption,
                         height: 1,
                         fontWeight: FontWeight.w900,
                       ),
@@ -680,7 +686,7 @@ class _HomeSearchField extends StatelessWidget {
                   context.tr('Search products and categories...'),
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: mutedColor,
-                    fontSize: 11,
+                    fontSize: AppFontSizes.small,
                     fontWeight: FontWeight.w600,
                   ),
                   maxLines: 1,

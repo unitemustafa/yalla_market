@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:yalla_market/core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -399,7 +400,7 @@ class _FilterBar extends StatelessWidget {
                     style: TextStyle(
                       color: isSelected ? Colors.white : AppColors.primary,
                       fontWeight: FontWeight.w900,
-                      fontSize: 13,
+                      fontSize: AppFontSizes.body,
                     ),
                   ),
                 ),

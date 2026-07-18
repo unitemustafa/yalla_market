@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -196,7 +197,7 @@ class _ProductsTopBar extends StatelessWidget {
               Text(
                 context.tr(title),
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontSize: 20,
+                  fontSize: AppFontSizes.subtitle,
                   fontWeight: FontWeight.w900,
                 ),
                 maxLines: 1,

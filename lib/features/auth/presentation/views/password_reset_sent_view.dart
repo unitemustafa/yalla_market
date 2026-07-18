@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -160,7 +161,7 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge?.copyWith(
             color: titleColor,
-            fontSize: 24,
+            fontSize: AppFontSizes.pageTitle,
             height: 1.18,
             fontWeight: FontWeight.w800,
           ),
@@ -173,7 +174,7 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: subtitleColor,
-            fontSize: 14.5,
+            fontSize: AppFontSizes.bodyLarge,
             height: 1.55,
             fontWeight: FontWeight.w500,
           ),
@@ -217,7 +218,7 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: textColor,
-                    fontSize: 14.5,
+                    fontSize: AppFontSizes.bodyLarge,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

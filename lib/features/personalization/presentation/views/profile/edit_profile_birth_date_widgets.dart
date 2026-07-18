@@ -62,7 +62,7 @@ class _BirthDateHeader extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: AppFontSizes.title,
                     height: 1.22,
                     fontWeight: FontWeight.w900,
                   ),

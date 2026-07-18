@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -397,7 +398,7 @@ class _StatusChip extends StatelessWidget {
         context.tr(status),
         style: TextStyle(
           color: statusColor,
-          fontSize: 12,
+          fontSize: AppFontSizes.label,
           fontWeight: FontWeight.w900,
         ),
       ),

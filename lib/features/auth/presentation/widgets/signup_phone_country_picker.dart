@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -117,7 +118,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                     context.tr('Select country'),
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: textColor,
-                      fontSize: 20,
+                      fontSize: AppFontSizes.subtitle,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
@@ -198,7 +199,7 @@ class _CountryPickerSheetState extends State<CountryPickerSheet> {
                                   color: isSelected
                                       ? AppColors.primary
                                       : textColor.withValues(alpha: 0.72),
-                                  fontSize: 12,
+                                  fontSize: AppFontSizes.label,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
@@ -275,7 +276,7 @@ class PhoneCountryPrefix extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w900,
                   ),
                 ),

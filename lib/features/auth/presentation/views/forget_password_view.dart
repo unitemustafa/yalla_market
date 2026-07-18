@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:yalla_market/core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -17,6 +18,7 @@ import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
+import '../widgets/fixed_auth_page_layout.dart';
 
 class ForgetPasswordView extends StatefulWidget {
   const ForgetPasswordView({
@@ -208,57 +210,42 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       body: DecoratedBox(
         decoration: _buildBackgroundDecoration(isDarkMode),
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final minHeight = (constraints.maxHeight - 20).clamp(
-                0.0,
-                double.infinity,
-              );
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: minHeight),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 430),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const AuthTopBar(showClose: true),
-                            const SizedBox(height: 34),
-                            _buildHeader(context, theme, isDarkMode),
-                            const SizedBox(height: 30),
-                            CustomTextField(
-                              controller: _emailController,
-                              labelText: AppStrings.email,
-                              prefixIcon: AppIcons.direct_right,
-                              keyboardType: TextInputType.emailAddress,
-                              inputFormatters: [_noWhitespaceInputFormatter],
-                              errorText: _activeEmailErrorText(),
-                              suffix: _buildEmailStatusSuffix(isDarkMode),
-                              validator: _validateEmail,
-                            ),
-                            const SizedBox(height: 14),
-                            _buildCooldownNotice(theme, isDarkMode),
-                            _buildSubmitButton(),
-                          ],
-                        ),
-                      ),
-                    ),
+          child: FixedAuthPageLayout(
+            isKeyboardVisible: isKeyboardVisible,
+            nonScrollingMinHeight: 440,
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AuthTopBar(showBack: true),
+                  const SizedBox(height: 24),
+                  _buildHeader(context, theme, isDarkMode),
+                  const SizedBox(height: 24),
+                  CustomTextField(
+                    controller: _emailController,
+                    labelText: AppStrings.email,
+                    prefixIcon: AppIcons.direct_right,
+                    keyboardType: TextInputType.emailAddress,
+                    inputFormatters: [_noWhitespaceInputFormatter],
+                    errorText: _activeEmailErrorText(),
+                    suffix: _buildEmailStatusSuffix(isDarkMode),
+                    validator: _validateEmail,
+                    compact: true,
                   ),
-                ),
-              );
-            },
+                  const SizedBox(height: 8),
+                  _buildCooldownNotice(theme, isDarkMode),
+                  _buildSubmitButton(),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -300,6 +287,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
+          key: const ValueKey('auth_lock_artwork'),
           width: 58,
           height: 58,
           decoration: BoxDecoration(
@@ -320,7 +308,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
           strings.forgetPasswordTitle,
           style: theme.textTheme.headlineLarge?.copyWith(
             color: titleColor,
-            fontSize: 30,
+            fontSize: AppFontSizes.pageTitle,
             height: 1.1,
             fontWeight: FontWeight.w800,
           ),
@@ -330,7 +318,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
           strings.forgetPasswordDesc,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: subtitleColor,
-            fontSize: 14.5,
+            fontSize: AppFontSizes.bodyLarge,
             height: 1.55,
             fontWeight: FontWeight.w500,
           ),

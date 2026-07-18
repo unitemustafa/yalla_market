@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -185,7 +186,7 @@ class ProductSortButton extends StatelessWidget {
                                 textAlign: TextAlign.end,
                                 style: Theme.of(context).textTheme.titleLarge
                                     ?.copyWith(
-                                      fontSize: 20,
+                                      fontSize: AppFontSizes.subtitle,
                                       fontWeight: FontWeight.w900,
                                     ),
                               ),

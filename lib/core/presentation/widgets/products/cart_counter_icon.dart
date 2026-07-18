@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../constants/app_constants.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../features/cart/domain/entities/cart_item.dart';
@@ -72,7 +74,7 @@ class CartCounterIcon extends StatelessWidget {
                     count > 99 ? '99+' : count.toString(),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Colors.white,
-                      fontSize: 10,
+                      fontSize: AppFontSizes.caption,
                       height: 1,
                       fontWeight: FontWeight.w900,
                     ),

@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../constants/app_assets.dart';
@@ -89,7 +90,7 @@ class BrandCard extends StatelessWidget {
                             softWrap: true,
                             style: Theme.of(context).textTheme.titleMedium
                                 ?.copyWith(
-                                  fontSize: 14,
+                                  fontSize: AppFontSizes.bodyLarge,
                                   height: 1.08,
                                   fontWeight: FontWeight.w900,
                                 ),

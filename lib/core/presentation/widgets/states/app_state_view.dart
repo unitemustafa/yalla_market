@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -53,7 +54,7 @@ class AppStateView extends StatelessWidget {
           Text(
             context.tr(title),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontSize: 22,
+              fontSize: AppFontSizes.title,
               fontWeight: FontWeight.w900,
             ),
             textAlign: TextAlign.center,

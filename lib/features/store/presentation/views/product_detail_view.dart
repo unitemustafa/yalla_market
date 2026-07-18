@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -401,7 +402,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                     context.tr(_productTitle),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       color: textColor,
-                      fontSize: 23,
+                      fontSize: AppFontSizes.title,
                       height: 1.12,
                       fontWeight: FontWeight.w900,
                     ),

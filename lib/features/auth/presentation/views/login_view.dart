@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -114,6 +115,7 @@ class _LoginViewState extends State<LoginView> {
         }
       },
       builder: (context, authState) {
+        final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
         return Scaffold(
           body: DecoratedBox(
             decoration: _buildBackgroundDecoration(isDarkMode),
@@ -135,6 +137,8 @@ class _LoginViewState extends State<LoginView> {
                     clipBehavior: Clip.none,
                     children: [
                       SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.manual,
                         padding: EdgeInsets.fromLTRB(
                           horizontalPadding,
                           languageSwitcherTopPadding,
@@ -205,12 +209,31 @@ class _LoginViewState extends State<LoginView> {
                         ),
                       ),
                       Positioned(
+                        key: const ValueKey('login_language_switcher'),
                         top: 14,
                         right: horizontalPadding,
-                        child: _buildLanguageSwitcher(
-                          theme,
-                          isDarkMode,
-                          strings,
+                        child: IgnorePointer(
+                          ignoring: isKeyboardVisible,
+                          child: AnimatedSlide(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            offset: isKeyboardVisible
+                                ? const Offset(0, -0.18)
+                                : Offset.zero,
+                            child: AnimatedOpacity(
+                              key: const ValueKey(
+                                'login_language_switcher_visibility',
+                              ),
+                              duration: const Duration(milliseconds: 160),
+                              curve: Curves.easeOut,
+                              opacity: isKeyboardVisible ? 0 : 1,
+                              child: _buildLanguageSwitcher(
+                                theme,
+                                isDarkMode,
+                                strings,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],
@@ -311,7 +334,7 @@ class _LoginViewState extends State<LoginView> {
                             : TextDirection.ltr,
                         style: TextStyle(
                           color: textColor,
-                          fontSize: 12.5,
+                          fontSize: AppFontSizes.body,
                           fontWeight: FontWeight.w900,
                           height: 1,
                         ),
@@ -379,7 +402,7 @@ class _LoginViewState extends State<LoginView> {
           strings.welcomeBack,
           style: theme.textTheme.headlineLarge?.copyWith(
             color: titleColor,
-            fontSize: 31,
+            fontSize: AppFontSizes.pageTitle,
             height: 1.08,
             fontWeight: FontWeight.w800,
           ),
@@ -389,7 +412,7 @@ class _LoginViewState extends State<LoginView> {
           strings.loginSubtitle,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: subtitleColor,
-            fontSize: 14.5,
+            fontSize: AppFontSizes.bodyLarge,
             height: 1.55,
             fontWeight: FontWeight.w500,
           ),
@@ -438,7 +461,7 @@ class _LoginViewState extends State<LoginView> {
                     strings.rememberMe,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: AppFontSizes.body,
                       color: textColor,
                       fontWeight: FontWeight.w700,
                     ),
@@ -462,7 +485,7 @@ class _LoginViewState extends State<LoginView> {
             strings.forgetPasswordLink,
             style: TextStyle(
               color: theme.colorScheme.primary,
-              fontSize: 14,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w800,
             ),
           ),

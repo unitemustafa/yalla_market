@@ -89,7 +89,7 @@ class _CheckoutActionBar extends StatelessWidget {
                             softWrap: false,
                             textAlign: TextAlign.center,
                             style: const TextStyle(
-                              fontSize: 13,
+                              fontSize: AppFontSizes.body,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
@@ -143,7 +143,7 @@ class _ActionBarTotal extends StatelessWidget {
           context.tr('Total'),
           style: TextStyle(
             color: mutedColor,
-            fontSize: 12,
+            fontSize: AppFontSizes.label,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -176,7 +176,7 @@ class _ActionBarTotal extends StatelessWidget {
                 deliveryTypeLabel: label,
                 style: const TextStyle(
                   color: AppColors.error,
-                  fontSize: 13,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -212,7 +212,7 @@ class _SummaryRow extends StatelessWidget {
             context.tr(label),
             style: TextStyle(
               color: mutedColor,
-              fontSize: 13,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -228,7 +228,7 @@ class _SummaryRow extends StatelessWidget {
                   textAlign: TextAlign.end,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 14,
+                    fontSize: AppFontSizes.bodyLarge,
                     fontWeight: FontWeight.w900,
                   ),
                   maxLines: 1,
@@ -271,7 +271,7 @@ class _InlineSummaryValue extends StatelessWidget {
                 textAlign: TextAlign.end,
                 style: TextStyle(
                   color: primaryColor,
-                  fontSize: 14,
+                  fontSize: AppFontSizes.bodyLarge,
                   fontWeight: FontWeight.w900,
                 ),
                 maxLines: 1,
@@ -284,7 +284,7 @@ class _InlineSummaryValue extends StatelessWidget {
                 textDirection: TextDirection.ltr,
                 style: TextStyle(
                   color: secondaryColor,
-                  fontSize: 12,
+                  fontSize: AppFontSizes.label,
                   fontWeight: FontWeight.w900,
                 ),
                 maxLines: 1,
@@ -350,7 +350,7 @@ class _CheckoutNotice extends StatelessWidget {
         context.tr(message),
         style: TextStyle(
           color: isBlocking ? color : AppColors.primary,
-          fontSize: 13,
+          fontSize: AppFontSizes.body,
           fontWeight: FontWeight.w800,
           height: 1.35,
         ),
@@ -409,7 +409,7 @@ class _SoftBadge extends StatelessWidget {
             context.tr(label),
             style: const TextStyle(
               color: AppColors.primary,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -441,7 +441,7 @@ class _QuantityPill extends StatelessWidget {
         context.tr('Qty $quantity'),
         style: TextStyle(
           color: isDark ? Colors.white70 : Colors.black54,
-          fontSize: 12,
+          fontSize: AppFontSizes.label,
           fontWeight: FontWeight.w800,
         ),
       ),
@@ -485,7 +485,7 @@ class _EmptyCheckoutState extends StatelessWidget {
             Text(
               context.tr('No items to review'),
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontSize: 22,
+                fontSize: AppFontSizes.title,
                 fontWeight: FontWeight.w900,
               ),
               textAlign: TextAlign.center,

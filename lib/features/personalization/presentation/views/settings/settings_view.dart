@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -300,7 +301,7 @@ class _AccountHero extends StatelessWidget {
                         profile.displayName,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           color: Colors.white,
-                          fontSize: 20,
+                          fontSize: AppFontSizes.subtitle,
                           fontWeight: FontWeight.w900,
                         ),
                         maxLines: 1,
@@ -422,7 +423,7 @@ class _ConnectionStatusBadgeContent extends StatelessWidget {
             label,
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -451,7 +452,7 @@ class _SettingsSection extends StatelessWidget {
         Text(
           context.tr(title),
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-            fontSize: 18,
+            fontSize: AppFontSizes.subtitle,
             fontWeight: FontWeight.w900,
           ),
         ),

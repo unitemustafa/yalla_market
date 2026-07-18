@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/routing/app_routes.dart';
@@ -34,7 +35,7 @@ class AccountDisabledView extends StatelessWidget {
                             : 'تم تعطيل حسابك. تواصل مع الدعم.',
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: AppFontSizes.subtitle,
                           fontWeight: FontWeight.w800,
                         ),
                       ),

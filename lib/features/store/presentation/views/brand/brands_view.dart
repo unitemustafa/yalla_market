@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../../core/presentation/widgets/layouts/grid_layout.dart';
@@ -57,6 +58,7 @@ class BrandsView extends StatelessWidget {
               const SectionHeading(
                 title: 'All Categories',
                 showActionButton: false,
+                titleFontSize: AppFontSizes.pageTitle,
               ),
               const SizedBox(height: 16),
               if (categories?.isNotEmpty == true)
@@ -94,6 +96,9 @@ class _AllCategoriesGrid extends StatelessWidget {
     return GridLayout(
       itemCount: categories.length,
       mainAxisExtent: 92,
+      minimumCardWidth: 150,
+      minCrossAxisCount: 1,
+      maxCrossAxisCount: 4,
       itemBuilder: (context, index) {
         final category = categories[index];
         final countLabel = category.marketCount == null

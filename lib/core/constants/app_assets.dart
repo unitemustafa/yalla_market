@@ -30,6 +30,7 @@ class AppAssets {
 
   // Logos
   static const String logo = '$_logosPath/yallamarket_logo.png';
+  static const String homeBrandLogo = '$_logosPath/yallamarket_home_logo.png';
   static const String appIconLogo = logo;
   static const String lightThemeLogo = logo;
   static const String darkThemeLogo = logo;
@@ -48,18 +49,12 @@ class AppAssets {
   // Demo image aliases intentionally share one bundled placeholder. Product,
   // brand, banner, and category artwork should come from the API/database.
   // Onboarding artwork
-  static const String onboardingProductsLight =
-      '$_imagesPath/onboarding/light/onboarding_products_light.webp';
-  static const String onboardingCashOnDeliveryLight =
-      '$_imagesPath/onboarding/light/onboarding_cash_on_delivery_light.webp';
-  static const String onboardingFastDeliveryLight =
-      '$_imagesPath/onboarding/light/onboarding_fast_delivery_light.webp';
-  static const String onboardingProductsDark =
-      '$_imagesPath/onboarding/dark/onboarding_products_dark.webp';
-  static const String onboardingCashOnDeliveryDark =
-      '$_imagesPath/onboarding/dark/onboarding_cash_on_delivery_dark.webp';
-  static const String onboardingFastDeliveryDark =
-      '$_imagesPath/onboarding/dark/onboarding_fast_delivery_dark.webp';
+  static const String onboardingProducts =
+      '$_imagesPath/onboarding/onboarding_products.png';
+  static const String onboardingCashOnDelivery =
+      '$_imagesPath/onboarding/onboarding_cash_on_delivery.png';
+  static const String onboardingFastDelivery =
+      '$_imagesPath/onboarding/onboarding_fast_delivery.png';
 
   // Banners
   static const String promoBanner1 = temporaryMarketPlaceholder;

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../../../../../../core/constants/app_colors.dart';
@@ -249,13 +250,13 @@ class _DateSelectionCard extends StatelessWidget {
             ?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w900,
-              fontSize: compact ? 12.0 : null,
+              fontSize: compact ? AppFontSizes.label : null,
             );
     final valueStyle =
         (compact ? theme.textTheme.titleSmall : theme.textTheme.titleMedium)
             ?.copyWith(
               fontWeight: FontWeight.w900,
-              fontSize: compact ? 13.0 : null,
+              fontSize: compact ? AppFontSizes.body : null,
             );
 
     return InkWell(

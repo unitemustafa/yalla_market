@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -398,7 +399,9 @@ class _LocationIntro extends StatelessWidget {
               Text(
                 context.tr('Choose your city'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontSize: compact ? 21 : 24,
+                  fontSize: compact
+                      ? AppFontSizes.subtitle
+                      : AppFontSizes.title,
                   fontWeight: FontWeight.w900,
                 ),
               ),

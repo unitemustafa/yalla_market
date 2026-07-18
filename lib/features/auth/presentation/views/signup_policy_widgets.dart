@@ -8,8 +8,8 @@ extension _SignupPolicyWidgets on _SignupViewState {
     final linkColor = isDarkMode ? Colors.white : AppColors.lightTextPrimary;
     final textStyle = theme.textTheme.bodySmall?.copyWith(
       color: mutedColor,
-      fontSize: 12,
-      height: 1.35,
+      fontSize: AppFontSizes.caption,
+      height: 1.15,
       fontWeight: FontWeight.w600,
     );
     final linkStyle = textStyle?.copyWith(
@@ -37,41 +37,45 @@ extension _SignupPolicyWidgets on _SignupViewState {
                   onChanged: _setPrivacyAgreement,
                 ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 6),
               Expanded(
-                child: Wrap(
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  runSpacing: 2,
-                  children: [
-                    Text(context.tr(AppStrings.iAgreeTo), style: textStyle),
-                    PolicyLink(
-                      text: context.tr(AppStrings.privacyPolicy),
-                      style: linkStyle,
-                      onTap: () => _showPolicySheet(
-                        title: AppStrings.privacyPolicy,
-                        icon: AppIcons.shield_tick,
-                        points: const [
-                          'We use your account details to secure your profile and personalize shopping.',
-                          'Your email and phone number help with verification, delivery updates, and recovery.',
-                          'Payment and sensitive data should only be entered on trusted checkout screens.',
-                        ],
+                child: FittedBox(
+                  key: const ValueKey('signup_policy_single_line'),
+                  fit: BoxFit.scaleDown,
+                  alignment: AlignmentDirectional.centerStart,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(context.tr(AppStrings.iAgreeTo), style: textStyle),
+                      PolicyLink(
+                        text: context.tr(AppStrings.privacyPolicy),
+                        style: linkStyle,
+                        onTap: () => _showPolicySheet(
+                          title: AppStrings.privacyPolicy,
+                          icon: AppIcons.shield_tick,
+                          points: const [
+                            'We use your account details to secure your profile and personalize shopping.',
+                            'Your email and phone number help with verification, delivery updates, and recovery.',
+                            'Payment and sensitive data should only be entered on trusted checkout screens.',
+                          ],
+                        ),
                       ),
-                    ),
-                    Text(context.tr(AppStrings.and), style: textStyle),
-                    PolicyLink(
-                      text: context.tr(AppStrings.termsOfUse),
-                      style: linkStyle,
-                      onTap: () => _showPolicySheet(
-                        title: AppStrings.termsOfUse,
-                        icon: AppIcons.document_text,
-                        points: const [
-                          'Keep your account information accurate and protect your password.',
-                          'Orders, returns, and cancellations follow the store policies shown at checkout.',
-                          'Misuse of offers, accounts, or payment methods may limit access to the app.',
-                        ],
+                      Text(context.tr(AppStrings.and), style: textStyle),
+                      PolicyLink(
+                        text: context.tr(AppStrings.termsOfUse),
+                        style: linkStyle,
+                        onTap: () => _showPolicySheet(
+                          title: AppStrings.termsOfUse,
+                          icon: AppIcons.document_text,
+                          points: const [
+                            'Keep your account information accurate and protect your password.',
+                            'Orders, returns, and cancellations follow the store policies shown at checkout.',
+                            'Misuse of offers, accounts, or payment methods may limit access to the app.',
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -83,7 +87,7 @@ extension _SignupPolicyWidgets on _SignupViewState {
             context.tr('Please accept the Privacy Policy and Terms of use.'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: AppColors.error,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               height: 1.3,
               fontWeight: FontWeight.w700,
             ),
@@ -160,7 +164,7 @@ extension _SignupPolicyWidgets on _SignupViewState {
                         context.tr(title),
                         style: theme.textTheme.titleLarge?.copyWith(
                           color: textColor,
-                          fontSize: 22,
+                          fontSize: AppFontSizes.title,
                           fontWeight: FontWeight.w900,
                         ),
                       ),

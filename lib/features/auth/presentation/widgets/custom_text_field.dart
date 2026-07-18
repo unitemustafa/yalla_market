@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -21,6 +22,7 @@ class CustomTextField extends StatelessWidget {
   final String? errorText;
   final AutovalidateMode? autovalidateMode;
   final bool enabled;
+  final bool compact;
 
   const CustomTextField({
     super.key,
@@ -41,6 +43,7 @@ class CustomTextField extends StatelessWidget {
     this.errorText,
     this.autovalidateMode,
     this.enabled = true,
+    this.compact = false,
   });
 
   @override
@@ -59,7 +62,7 @@ class CustomTextField extends StatelessWidget {
     final textColor = isDarkMode ? Colors.white : const Color(0xFF17181C);
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16.0),
+      padding: EdgeInsets.only(bottom: compact ? 10 : 16),
       child: TextFormField(
         key: fieldKey,
         controller: controller,
@@ -69,12 +72,13 @@ class CustomTextField extends StatelessWidget {
         autovalidateMode: autovalidateMode,
         validator: validator,
         enabled: enabled,
+        onTapOutside: (_) {},
         onChanged: onChanged,
         inputFormatters: inputFormatters,
         cursorColor: theme.colorScheme.primary,
         style: theme.textTheme.bodyMedium?.copyWith(
           color: textColor,
-          fontSize: 15,
+          fontSize: AppFontSizes.bodyLarge,
           fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
@@ -82,13 +86,13 @@ class CustomTextField extends StatelessWidget {
           errorText: errorText == null ? null : context.tr(errorText!),
           filled: true,
           fillColor: fillColor,
-          contentPadding: const EdgeInsets.symmetric(
+          contentPadding: EdgeInsets.symmetric(
             horizontal: 18,
-            vertical: 18,
+            vertical: compact ? 14 : 18,
           ),
           labelStyle: TextStyle(
             color: iconColor,
-            fontSize: 14,
+            fontSize: AppFontSizes.bodyLarge,
             fontWeight: FontWeight.w700,
           ),
           prefixIcon: Icon(prefixIcon, size: 21, color: iconColor),

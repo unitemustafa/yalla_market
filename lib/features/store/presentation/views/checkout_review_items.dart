@@ -271,7 +271,7 @@ class _CheckoutItemCard extends StatelessWidget {
                         context.tr(item.brand),
                         style: TextStyle(
                           color: mutedColor,
-                          fontSize: 12,
+                          fontSize: AppFontSizes.label,
                           fontWeight: FontWeight.w800,
                         ),
                         maxLines: 1,
@@ -291,7 +291,7 @@ class _CheckoutItemCard extends StatelessWidget {
                   context.tr(item.title),
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 14,
+                    fontSize: AppFontSizes.bodyLarge,
                     height: 1.25,
                     fontWeight: FontWeight.w900,
                   ),
@@ -304,7 +304,7 @@ class _CheckoutItemCard extends StatelessWidget {
                     text: TextSpan(
                       style: TextStyle(
                         color: mutedColor,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.label,
                         height: 1.2,
                       ),
                       children: _attributeSpans(context, item.attributes),
@@ -322,7 +322,7 @@ class _CheckoutItemCard extends StatelessWidget {
                       text: _formatMoney(item.price * item.quantity),
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 16,
+                        fontSize: AppFontSizes.bodyLarge,
                         fontWeight: FontWeight.w900,
                       ),
                     ),

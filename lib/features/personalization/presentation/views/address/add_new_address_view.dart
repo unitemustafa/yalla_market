@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -547,7 +548,7 @@ class _ServiceCityFields extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 color: _secondaryTextColor(context),
-                                fontSize: 12,
+                                fontSize: AppFontSizes.label,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
@@ -825,7 +826,7 @@ class _DeliveryAreaOptionTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: mutedColor,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.label,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -995,7 +996,7 @@ class _DeliveryNote extends StatelessWidget {
             text,
             style: TextStyle(
               color: color,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               height: 1.35,
               fontWeight: FontWeight.w700,
             ),

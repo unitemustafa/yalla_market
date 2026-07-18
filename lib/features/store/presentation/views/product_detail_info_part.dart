@@ -67,7 +67,7 @@ class _PriceHeader extends StatelessWidget {
                       child: GreenCurrencyPrice(
                         price: price,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          fontSize: 21,
+                          fontSize: AppFontSizes.subtitle,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -131,7 +131,7 @@ class _PriceDiscountBadge extends StatelessWidget {
           discount,
           style: const TextStyle(
             color: Colors.black,
-            fontSize: 12,
+            fontSize: AppFontSizes.label,
             fontWeight: FontWeight.w900,
           ),
         ),
@@ -165,7 +165,7 @@ class _StatusPill extends StatelessWidget {
           context.tr(label),
           style: TextStyle(
             color: color,
-            fontSize: 12,
+            fontSize: AppFontSizes.label,
             fontWeight: FontWeight.w900,
           ),
         ),

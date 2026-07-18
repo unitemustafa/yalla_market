@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -149,7 +150,7 @@ class _CartViewState extends State<CartView> {
             context.tr('Cart'),
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
               color: isDark ? Colors.white : Colors.black,
-              fontSize: 22,
+              fontSize: AppFontSizes.title,
               fontWeight: FontWeight.w900,
             ),
             maxLines: 1,
@@ -229,7 +230,7 @@ class _CartViewState extends State<CartView> {
                         context.tr(item.brand),
                         style: TextStyle(
                           color: mutedColor,
-                          fontSize: 12,
+                          fontSize: AppFontSizes.label,
                           fontWeight: FontWeight.w700,
                         ),
                         maxLines: 1,
@@ -249,7 +250,7 @@ class _CartViewState extends State<CartView> {
                   context.tr(item.title),
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 14,
+                    fontSize: AppFontSizes.bodyLarge,
                     height: 1.25,
                     fontWeight: FontWeight.w800,
                   ),
@@ -278,7 +279,7 @@ class _CartViewState extends State<CartView> {
                         _formatMoney(item.price * item.quantity),
                       ),
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: AppFontSizes.bodyLarge,
                         fontWeight: FontWeight.w900,
                         color: textColor,
                       ),
@@ -360,7 +361,7 @@ class _CartViewState extends State<CartView> {
                       context.tr(item.brand),
                       style: TextStyle(
                         color: AppColors.primary,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.label,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -371,7 +372,7 @@ class _CartViewState extends State<CartView> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 16,
+                        fontSize: AppFontSizes.bodyLarge,
                         fontWeight: FontWeight.w900,
                       ),
                     ),
@@ -380,7 +381,7 @@ class _CartViewState extends State<CartView> {
                       context.productCount(productCount),
                       style: TextStyle(
                         color: mutedColor,
-                        fontSize: 12,
+                        fontSize: AppFontSizes.label,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -425,7 +426,7 @@ class _CartViewState extends State<CartView> {
                 context.tr('Offer price'),
                 style: TextStyle(
                   color: textColor,
-                  fontSize: 13,
+                  fontSize: AppFontSizes.body,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -434,7 +435,7 @@ class _CartViewState extends State<CartView> {
                 text: _formatMoney(item.price),
                 style: const TextStyle(
                   color: AppColors.success,
-                  fontSize: 17,
+                  fontSize: AppFontSizes.sectionTitle,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -481,7 +482,7 @@ class _CartViewState extends State<CartView> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 13,
+                    fontSize: AppFontSizes.body,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -493,7 +494,7 @@ class _CartViewState extends State<CartView> {
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: mutedColor,
-                      fontSize: 11,
+                      fontSize: AppFontSizes.small,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -506,7 +507,7 @@ class _CartViewState extends State<CartView> {
             '×${product.quantity}',
             style: TextStyle(
               color: mutedColor,
-              fontSize: 12,
+              fontSize: AppFontSizes.label,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -515,7 +516,7 @@ class _CartViewState extends State<CartView> {
             text: _formatMoney(product.price * product.quantity),
             style: TextStyle(
               color: textColor,
-              fontSize: 13,
+              fontSize: AppFontSizes.body,
               fontWeight: FontWeight.w900,
             ),
           ),
@@ -532,11 +533,17 @@ class _CartViewState extends State<CartView> {
       for (final attribute in attributes) ...[
         TextSpan(
           text: '${context.tr(attribute.label)} ',
-          style: const TextStyle(color: Colors.grey, fontSize: 12),
+          style: const TextStyle(
+            color: Colors.grey,
+            fontSize: AppFontSizes.label,
+          ),
         ),
         TextSpan(
           text: '${context.tr(attribute.value)} ',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: AppFontSizes.label,
+          ),
         ),
       ],
     ];
@@ -573,7 +580,7 @@ class _CartCountBadge extends StatelessWidget {
             style: TextStyle(
               color: isDark ? Colors.white : AppColors.lightTextPrimary,
               fontWeight: FontWeight.w800,
-              fontSize: 13,
+              fontSize: AppFontSizes.body,
             ),
           ),
         ],
@@ -622,7 +629,7 @@ class _QuantityStepper extends StatelessWidget {
               item.quantity.toString(),
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 15,
+                fontSize: AppFontSizes.bodyLarge,
                 fontWeight: FontWeight.w800,
                 color: isDark ? Colors.white : AppColors.lightTextPrimary,
               ),
@@ -750,7 +757,7 @@ class _CheckoutSummary extends StatelessWidget {
                         context.productCount(itemCount),
                         style: TextStyle(
                           color: mutedColor,
-                          fontSize: 12,
+                          fontSize: AppFontSizes.label,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -759,7 +766,7 @@ class _CheckoutSummary extends StatelessWidget {
                         text: context.tr(_formatMoney(total)),
                         style: TextStyle(
                           color: textColor,
-                          fontSize: 22,
+                          fontSize: AppFontSizes.title,
                           fontWeight: FontWeight.w900,
                         ),
                       ),
@@ -815,7 +822,7 @@ class _SummaryRow extends StatelessWidget {
           context.tr(label),
           style: TextStyle(
             color: mutedColor,
-            fontSize: 13,
+            fontSize: AppFontSizes.body,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -824,7 +831,7 @@ class _SummaryRow extends StatelessWidget {
           text: context.tr(value),
           style: TextStyle(
             color: valueColor ?? textColor,
-            fontSize: 13,
+            fontSize: AppFontSizes.body,
             fontWeight: FontWeight.w800,
           ),
         ),

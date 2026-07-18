@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -158,7 +159,7 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                             style: Theme.of(context).textTheme.headlineMedium
                                 ?.copyWith(
                                   color: textColor,
-                                  fontSize: 32,
+                                  fontSize: AppFontSizes.display,
                                   fontWeight: FontWeight.w900,
                                   letterSpacing: 0,
                                 ),

@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
@@ -85,7 +86,9 @@ class AppCurrencyText extends StatelessWidget {
 
     return numberStyle.copyWith(
       color: currencyColor,
-      fontSize: fontSize == null || fontSize <= 12 ? fontSize : fontSize * 0.82,
+      fontSize: fontSize == null || fontSize <= AppFontSizes.label
+          ? fontSize
+          : fontSize * 0.82,
       fontWeight: FontWeight.w900,
     );
   }

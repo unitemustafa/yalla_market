@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/features/home/presentation/widgets/home_benefits_strip.dart';
 
@@ -18,9 +19,12 @@ void main() {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: const Scaffold(
-              body: Center(
-                child: SizedBox(width: 320, child: HomeBenefitsStrip()),
+            home: MediaQuery(
+              data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+              child: const Scaffold(
+                body: Center(
+                  child: SizedBox(width: 320, child: HomeBenefitsStrip()),
+                ),
               ),
             ),
           ),
@@ -49,7 +53,7 @@ void main() {
         final paymentLabel = tester.widget<Text>(
           find.text(locale.languageCode == 'ar' ? 'ادفع كاش' : 'Pay cash'),
         );
-        expect(paymentLabel.style?.fontSize, 8.5);
+        expect(paymentLabel.style?.fontSize, AppFontSizes.micro);
         expect(paymentLabel.maxLines, 1);
         expect(paymentLabel.softWrap, isFalse);
         for (final richText in tester.widgetList<Text>(find.byType(Text))) {

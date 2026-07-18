@@ -12,6 +12,7 @@ import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/views/forget_password_view.dart';
+import 'package:yalla_market/features/auth/presentation/widgets/auth_top_bar.dart';
 
 import '../../../../helpers/auth_widget_fakes.dart';
 
@@ -22,6 +23,82 @@ void main() {
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     AppLanguageController.instance.value = AppLanguage.english;
+  });
+
+  testWidgets('uses a fixed layout and the same back button as signup', (
+    tester,
+  ) async {
+    for (final size in const [Size(320, 480), Size(360, 600), Size(600, 900)]) {
+      await _pumpForgetPassword(
+        tester,
+        repository: FakeAuthRepository(),
+        surfaceSize: size,
+        textScale: size.height == 480 ? 1.5 : 1,
+      );
+
+      final fixedScroll = tester.widget<SingleChildScrollView>(
+        find.byKey(const ValueKey('fixed_auth_page_scroll')),
+      );
+      expect(fixedScroll.physics, isA<NeverScrollableScrollPhysics>());
+      final topBar = tester.widget<AuthTopBar>(find.byType(AuthTopBar));
+      expect(topBar.showBack, isTrue);
+      expect(topBar.showClose, isFalse);
+      final artwork = tester.widget<Container>(
+        find.byKey(const ValueKey('auth_lock_artwork')),
+      );
+      expect(artwork.constraints?.maxWidth, 58);
+      expect(artwork.constraints?.maxHeight, 58);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  });
+
+  testWidgets('enables scrolling only while the keyboard is visible', (
+    tester,
+  ) async {
+    await _pumpForgetPassword(
+      tester,
+      repository: FakeAuthRepository(),
+      surfaceSize: const Size(360, 600),
+    );
+    expect(
+      tester
+          .widget<SingleChildScrollView>(
+            find.byKey(const ValueKey('fixed_auth_page_scroll')),
+          )
+          .physics,
+      isA<NeverScrollableScrollPhysics>(),
+    );
+
+    await tester.showKeyboard(find.byType(TextFormField).first);
+    await tester.pump();
+    final editableFinder = find.byType(EditableText).first;
+    final focusNode = tester.widget<EditableText>(editableFinder).focusNode;
+    expect(focusNode.hasFocus, isTrue);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+
+    final keyboardScroll = tester.widget<SingleChildScrollView>(
+      find.byKey(const ValueKey('fixed_auth_page_scroll')),
+    );
+    expect(keyboardScroll.physics, isA<ClampingScrollPhysics>());
+    expect(
+      keyboardScroll.keyboardDismissBehavior,
+      ScrollViewKeyboardDismissBehavior.manual,
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('fixed_auth_page_scroll')),
+      const Offset(0, -80),
+    );
+    await tester.pump();
+    expect(
+      tester.widget<EditableText>(editableFinder).focusNode,
+      same(focusNode),
+    );
+    expect(focusNode.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('without cooldown shows Send button', (tester) async {
@@ -295,8 +372,10 @@ Future<void> _pumpForgetPassword(
   List<NavigatorObserver> navigatorObservers = const [],
   OtpCooldownStore? cooldownStore,
   DateTime Function()? now,
+  Size surfaceSize = const Size(430, 850),
+  double textScale = 1,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(430, 850));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
 
   final authCubit = AuthCubit(authUseCases(repository));
@@ -306,6 +385,12 @@ Future<void> _pumpForgetPassword(
     BlocProvider.value(
       value: authCubit,
       child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/localization/app_translations.dart';
 
@@ -100,7 +101,7 @@ class _BenefitItem extends StatelessWidget {
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
     final baseStyle = Theme.of(context).textTheme.labelSmall?.copyWith(
       color: textColor,
-      fontSize: 8.5,
+      fontSize: AppFontSizes.micro,
       height: 1.25,
       fontWeight: FontWeight.w700,
     );

@@ -90,7 +90,9 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('falls back to centered wrap on narrow width', (tester) async {
+  testWidgets('keeps every requirement on one row at narrow width', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(320, 600));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     final controller = TextEditingController();
@@ -102,14 +104,27 @@ void main() {
       ),
     );
 
-    final wrap = tester.widget<Wrap>(
+    expect(
       find.descendant(
         of: find.byType(PasswordStrengthMeter),
         matching: find.byType(Wrap),
       ),
+      findsNothing,
     );
-    expect(wrap.alignment, WrapAlignment.center);
-    expect(wrap.runAlignment, WrapAlignment.center);
+    expect(
+      find.descendant(
+        of: find.byType(PasswordStrengthMeter),
+        matching: find.byType(FittedBox),
+      ),
+      findsNWidgets(3),
+    );
+    final labels = tester.widgetList<Text>(
+      find.descendant(
+        of: find.byType(PasswordStrengthMeter),
+        matching: find.byType(Text),
+      ),
+    );
+    expect(labels.every((label) => label.maxLines == 1), isTrue);
     expect(find.text('8+ characters'), findsOneWidget);
     expect(find.text('Upper & lowercase'), findsOneWidget);
     expect(find.text('Number & symbol'), findsOneWidget);

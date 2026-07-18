@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' show PointerDeviceKind;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -12,6 +13,7 @@ import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/views/verify_email_view.dart';
+import 'package:yalla_market/features/auth/presentation/widgets/auth_top_bar.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 
 import '../../../../helpers/auth_widget_fakes.dart';
@@ -53,13 +55,118 @@ void main() {
   });
 
   testWidgets('does not overflow at narrow and wider widths', (tester) async {
-    for (final width in [320.0, 430.0]) {
-      await tester.binding.setSurfaceSize(Size(width, 850));
-      await _pumpVerifyEmail(tester);
+    for (final size in const [
+      Size(320, 480),
+      Size(360, 600),
+      Size(430, 850),
+      Size(600, 900),
+    ]) {
+      await _pumpVerifyEmail(
+        tester,
+        surfaceSize: size,
+        textScale: size.height == 480 ? 1.5 : 1,
+      );
+      final fixedScroll = tester.widget<SingleChildScrollView>(
+        find.byKey(const ValueKey('fixed_auth_page_scroll')),
+      );
+      expect(
+        fixedScroll.physics,
+        size.height < 700
+            ? isA<ClampingScrollPhysics>()
+            : isA<NeverScrollableScrollPhysics>(),
+      );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     }
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+  });
+
+  testWidgets('does not overflow around iPhone safe areas', (tester) async {
+    const cases = <({Size size, FakeViewPadding padding, bool scrolls})>[
+      (size: Size(320, 568), padding: FakeViewPadding(top: 20), scrolls: true),
+      (
+        size: Size(390, 844),
+        padding: FakeViewPadding(top: 47, bottom: 34),
+        scrolls: false,
+      ),
+      (
+        size: Size(430, 932),
+        padding: FakeViewPadding(top: 59, bottom: 34),
+        scrolls: false,
+      ),
+      (
+        size: Size(844, 390),
+        padding: FakeViewPadding(left: 47, right: 47, bottom: 21),
+        scrolls: true,
+      ),
+    ];
+
+    for (final testCase in cases) {
+      await _pumpVerifyEmail(
+        tester,
+        surfaceSize: testCase.size,
+        viewPadding: testCase.padding,
+      );
+      final scroll = tester.widget<SingleChildScrollView>(
+        find.byKey(const ValueKey('fixed_auth_page_scroll')),
+      );
+      expect(
+        scroll.physics,
+        testCase.scrolls
+            ? isA<ClampingScrollPhysics>()
+            : isA<NeverScrollableScrollPhysics>(),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  });
+
+  testWidgets('enables scrolling when the OTP keyboard is visible', (
+    tester,
+  ) async {
+    await _pumpVerifyEmail(tester, surfaceSize: const Size(430, 850));
+    expect(
+      tester
+          .widget<SingleChildScrollView>(
+            find.byKey(const ValueKey('fixed_auth_page_scroll')),
+          )
+          .physics,
+      isA<NeverScrollableScrollPhysics>(),
+    );
+
+    final editableFinder = find.descendant(
+      of: find.byKey(const ValueKey('otp_code_field')),
+      matching: find.byType(EditableText),
+    );
+    await tester.showKeyboard(find.byKey(const ValueKey('otp_code_field')));
+    await tester.pump();
+    final focusNode = tester.widget<EditableText>(editableFinder).focusNode;
+    expect(focusNode.hasFocus, isTrue);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+
+    final keyboardScroll = tester.widget<SingleChildScrollView>(
+      find.byKey(const ValueKey('fixed_auth_page_scroll')),
+    );
+    expect(keyboardScroll.physics, isA<ClampingScrollPhysics>());
+    expect(
+      keyboardScroll.keyboardDismissBehavior,
+      ScrollViewKeyboardDismissBehavior.manual,
+    );
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byType(AuthTopBar)),
+      kind: PointerDeviceKind.unknown,
+    );
+    await gesture.moveBy(const Offset(0, -100));
+    await gesture.up();
+    await tester.pump();
+    expect(
+      tester.widget<EditableText>(editableFinder).focusNode,
+      same(focusNode),
+    );
+    expect(focusNode.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('confirm button is disabled before six digits', (tester) async {
@@ -141,9 +248,14 @@ void main() {
 Future<void> _pumpVerifyEmail(
   WidgetTester tester, {
   FakeAuthRepository? repository,
+  Size surfaceSize = const Size(430, 850),
+  FakeViewPadding viewPadding = FakeViewPadding.zero,
+  double textScale = 1,
 }) async {
-  await tester.binding.setSurfaceSize(const Size(430, 850));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
+  tester.view.padding = viewPadding;
+  addTearDown(tester.view.resetPadding);
   final authRepository = repository ?? FakeAuthRepository();
   final authCubit = AuthCubit(authUseCases(authRepository));
   await authCubit.signup(
@@ -166,15 +278,21 @@ Future<void> _pumpVerifyEmail(
         BlocProvider.value(value: authCubit),
         BlocProvider.value(value: locationCubit),
       ],
-      child: const MaterialApp(
-        localizationsDelegates: [
+      child: MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppTranslations.supportedLocales,
-        locale: Locale('en'),
-        home: VerifyEmailView(email: 'manual@example.com'),
+        locale: const Locale('en'),
+        home: const VerifyEmailView(email: 'manual@example.com'),
       ),
     ),
   );

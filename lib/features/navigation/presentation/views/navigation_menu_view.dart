@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -334,7 +335,7 @@ class _RegionSwitchDialog extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     color: textColor,
-                    fontSize: 17,
+                    fontSize: AppFontSizes.sectionTitle,
                     fontWeight: FontWeight.w900,
                     height: 1.25,
                   ),
@@ -349,7 +350,7 @@ class _RegionSwitchDialog extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: mutedColor,
-                    fontSize: 12,
+                    fontSize: AppFontSizes.label,
                     fontWeight: FontWeight.w600,
                     height: 1.45,
                   ),
@@ -383,7 +384,7 @@ class _RegionSwitchDialog extends StatelessWidget {
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
                                 color: textColor,
-                                fontSize: 11,
+                                fontSize: AppFontSizes.small,
                                 fontWeight: FontWeight.w700,
                                 height: 1.35,
                               ),
@@ -402,7 +403,7 @@ class _RegionSwitchDialog extends StatelessWidget {
                         icon: AppIcons.tick_circle,
                         onPressed: onChangeRegion,
                         textStyle: const TextStyle(
-                          fontSize: 11.5,
+                          fontSize: AppFontSizes.label,
                           fontWeight: FontWeight.w700,
                         ),
                         horizontalPadding: 6,
@@ -419,7 +420,7 @@ class _RegionSwitchDialog extends StatelessWidget {
                         variant: AppActionButtonVariant.outlined,
                         onPressed: onKeepCurrent,
                         textStyle: const TextStyle(
-                          fontSize: 11.5,
+                          fontSize: AppFontSizes.label,
                           fontWeight: FontWeight.w700,
                         ),
                         horizontalPadding: 6,
@@ -542,7 +543,7 @@ class _NavigationBarItem extends StatelessWidget {
                 context.tr(item.label),
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: labelColor,
-                  fontSize: 11,
+                  fontSize: AppFontSizes.small,
                   fontWeight: isSelected ? FontWeight.w900 : FontWeight.w700,
                 ),
                 maxLines: 1,

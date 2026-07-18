@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import '../../domain/entities/onboarding_model.dart';
 
@@ -81,7 +82,7 @@ class OnboardingPageItem extends StatelessWidget {
                                 isCompactHeight ? 18 : 28,
                               ),
                               child: Image.asset(
-                                model.imageFor(context),
+                                model.imagePath,
                                 fit: BoxFit.contain,
                                 cacheWidth: 760,
                                 cacheHeight: 760,
@@ -117,11 +118,7 @@ class OnboardingPageItem extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: theme.textTheme.headlineLarge?.copyWith(
                               color: textColor,
-                              fontSize: isVeryCompactHeight
-                                  ? 22
-                                  : isCompactHeight
-                                  ? 24
-                                  : 28,
+                              fontSize: AppFontSizes.pageTitle,
                               height: 1.16,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0,
@@ -139,7 +136,7 @@ class OnboardingPageItem extends StatelessWidget {
                               textAlign: TextAlign.center,
                               style: theme.textTheme.bodyMedium?.copyWith(
                                 color: mutedColor,
-                                fontSize: isVeryCompactHeight ? 14 : 15,
+                                fontSize: AppFontSizes.bodyLarge,
                                 height: 1.5,
                                 letterSpacing: 0,
                               ),

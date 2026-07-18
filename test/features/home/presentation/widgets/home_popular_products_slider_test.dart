@@ -11,6 +11,50 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  testWidgets('fits common screen widths with enlarged text', (tester) async {
+    final cartCubit = makeCartCubit();
+    final wishlistCubit = makeWishlistCubit();
+    addTearDown(cartCubit.close);
+    addTearDown(wishlistCubit.close);
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    for (final width in const [320.0, 390.0, 600.0, 800.0]) {
+      await tester.binding.setSurfaceSize(Size(width, 800));
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<CartCubit>.value(value: cartCubit),
+            BlocProvider<WishlistCubit>.value(value: wishlistCubit),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(1.5)),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.all(16),
+                child: HomeProductsSlider(
+                  products: List.generate(5, _product),
+                  onViewAll: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(
+        tester.takeException(),
+        isNull,
+        reason: 'Home product slider overflowed at ${width}px',
+      );
+    }
+  });
+
   testWidgets('uses five scrollable vertical cards then view all', (
     tester,
   ) async {
@@ -62,6 +106,17 @@ void main() {
     );
 
     final firstCard = find.byKey(const ValueKey('popular_product_product-1'));
+    final secondCard = find.byKey(const ValueKey('popular_product_product-2'));
+    final thirdCard = find.byKey(const ValueKey('popular_product_product-3'));
+    final sliderRect = tester.getRect(sliderFinder);
+    final firstCardRect = tester.getRect(firstCard);
+    final secondCardRect = tester.getRect(secondCard);
+    final thirdCardRect = tester.getRect(thirdCard);
+    expect(firstCardRect.width, closeTo((sliderRect.width - 16) / 3, 0.01));
+    expect(firstCardRect.right, lessThanOrEqualTo(secondCardRect.left));
+    expect(secondCardRect.right, lessThanOrEqualTo(thirdCardRect.left));
+    expect(thirdCardRect.right, lessThanOrEqualTo(sliderRect.right));
+
     final imageCenter = tester.getCenter(
       find.descendant(of: firstCard, matching: find.byType(AppImage)),
     );

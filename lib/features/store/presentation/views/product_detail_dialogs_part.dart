@@ -132,7 +132,7 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                             context.tr('Additions'),
                             style: theme.textTheme.titleLarge?.copyWith(
                               color: textColor,
-                              fontSize: 22,
+                              fontSize: AppFontSizes.title,
                               fontWeight: FontWeight.w900,
                             ),
                           ),

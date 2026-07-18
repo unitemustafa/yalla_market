@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -95,7 +96,7 @@ class SuccessAccountView extends StatelessWidget {
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge?.copyWith(
             color: titleColor,
-            fontSize: 24,
+            fontSize: AppFontSizes.pageTitle,
             height: 1.18,
             fontWeight: FontWeight.w800,
           ),
@@ -106,7 +107,7 @@ class SuccessAccountView extends StatelessWidget {
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: subtitleColor,
-            fontSize: 14.5,
+            fontSize: AppFontSizes.bodyLarge,
             height: 1.55,
             fontWeight: FontWeight.w500,
           ),

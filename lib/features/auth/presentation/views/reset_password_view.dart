@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:yalla_market/core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -16,6 +17,7 @@ import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
 import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
+import '../widgets/fixed_auth_page_layout.dart';
 import '../widgets/password_strength_meter.dart';
 
 class ResetPasswordView extends StatefulWidget {
@@ -220,111 +222,93 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
+    final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
     return Scaffold(
       body: DecoratedBox(
         decoration: _buildBackgroundDecoration(isDarkMode),
         child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final minHeight = (constraints.maxHeight - 20).clamp(
-                0.0,
-                double.infinity,
-              );
-
-              return SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 30),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: minHeight),
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 430),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const AuthTopBar(showClose: true),
-                            const SizedBox(height: 34),
-                            _buildHeader(theme, isDarkMode),
-                            const SizedBox(height: 30),
-                            CustomTextField(
-                              controller: _codeController,
-                              labelText: _copy(
-                                ar: 'كود التأكيد',
-                                en: 'Verification code',
-                              ),
-                              prefixIcon: AppIcons.sms,
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                                LengthLimitingTextInputFormatter(6),
-                              ],
-                              validator: _validateCode,
-                            ),
-                            CustomTextField(
-                              controller: _passwordController,
-                              labelText: _copy(
-                                ar: 'كلمة السر الجديدة',
-                                en: 'New password',
-                              ),
-                              prefixIcon: AppIcons.password_check,
-                              obscureText: _obscurePassword,
-                              suffixIcon: _obscurePassword
-                                  ? AppIcons.eye_slash
-                                  : AppIcons.eye,
-                              onSuffixIconPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
-                              inputFormatters: [_noWhitespaceInputFormatter],
-                              validator: Validators.password,
-                            ),
-                            PasswordStrengthMeter(
-                              controller: _passwordController,
-                            ),
-                            const SizedBox(height: 10),
-                            CustomTextField(
-                              controller: _confirmPasswordController,
-                              labelText: _copy(
-                                ar: 'تأكيد كلمة السر',
-                                en: 'Confirm password',
-                              ),
-                              prefixIcon: AppIcons.password_check,
-                              obscureText: _obscureConfirmPassword,
-                              suffixIcon: _obscureConfirmPassword
-                                  ? AppIcons.eye_slash
-                                  : AppIcons.eye,
-                              onSuffixIconPressed: () {
-                                setState(() {
-                                  _obscureConfirmPassword =
-                                      !_obscureConfirmPassword;
-                                });
-                              },
-                              inputFormatters: [_noWhitespaceInputFormatter],
-                              validator: _validateConfirmPassword,
-                            ),
-                            const SizedBox(height: 18),
-                            AppActionButton(
-                              label: _copy(
-                                ar: 'تغيير كلمة السر',
-                                en: 'Reset password',
-                              ),
-                              isLoading: _isSubmitting,
-                              onPressed: _isSubmitting ? null : _onSubmit,
-                            ),
-                            const SizedBox(height: 10),
-                            _buildResendButton(theme, isDarkMode),
-                          ],
-                        ),
-                      ),
+          child: FixedAuthPageLayout(
+            isKeyboardVisible: isKeyboardVisible,
+            nonScrollingMinHeight: 650,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const AuthTopBar(showBack: true),
+                  const SizedBox(height: 24),
+                  _buildHeader(theme, isDarkMode),
+                  const SizedBox(height: 16),
+                  CustomTextField(
+                    controller: _codeController,
+                    labelText: _copy(
+                      ar: 'كود التأكيد',
+                      en: 'Verification code',
                     ),
+                    prefixIcon: AppIcons.sms,
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly,
+                      LengthLimitingTextInputFormatter(6),
+                    ],
+                    validator: _validateCode,
+                    compact: true,
                   ),
-                ),
-              );
-            },
+                  CustomTextField(
+                    controller: _passwordController,
+                    labelText: _copy(
+                      ar: 'كلمة السر الجديدة',
+                      en: 'New password',
+                    ),
+                    prefixIcon: AppIcons.password_check,
+                    obscureText: _obscurePassword,
+                    suffixIcon: _obscurePassword
+                        ? AppIcons.eye_slash
+                        : AppIcons.eye,
+                    onSuffixIconPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                    inputFormatters: [_noWhitespaceInputFormatter],
+                    validator: Validators.password,
+                    compact: true,
+                  ),
+                  PasswordStrengthMeter(controller: _passwordController),
+                  CustomTextField(
+                    controller: _confirmPasswordController,
+                    labelText: _copy(
+                      ar: 'تأكيد كلمة السر',
+                      en: 'Confirm password',
+                    ),
+                    prefixIcon: AppIcons.password_check,
+                    obscureText: _obscureConfirmPassword,
+                    suffixIcon: _obscureConfirmPassword
+                        ? AppIcons.eye_slash
+                        : AppIcons.eye,
+                    onSuffixIconPressed: () {
+                      setState(() {
+                        _obscureConfirmPassword = !_obscureConfirmPassword;
+                      });
+                    },
+                    inputFormatters: [_noWhitespaceInputFormatter],
+                    validator: _validateConfirmPassword,
+                    compact: true,
+                  ),
+                  const SizedBox(height: 6),
+                  AppActionButton(
+                    label: _copy(ar: 'تغيير كلمة السر', en: 'Reset password'),
+                    isLoading: _isSubmitting,
+                    onPressed: _isSubmitting ? null : _onSubmit,
+                  ),
+                  const SizedBox(height: 4),
+                  _buildResendButton(theme, isDarkMode),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -362,6 +346,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
+          key: const ValueKey('auth_lock_artwork'),
           width: 58,
           height: 58,
           decoration: BoxDecoration(
@@ -384,7 +369,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
           _copy(ar: 'غيّر كلمة السر', en: 'Reset password'),
           style: theme.textTheme.headlineLarge?.copyWith(
             color: titleColor,
-            fontSize: 30,
+            fontSize: AppFontSizes.pageTitle,
             height: 1.1,
             fontWeight: FontWeight.w800,
           ),
@@ -392,17 +377,60 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         const SizedBox(height: 12),
         Text(
           _copy(
-            ar: 'اكتب كود التأكيد وكلمة السر الجديدة لحساب ${widget.email}.',
-            en: 'Enter the verification code and new password for ${widget.email}.',
+            ar: 'اكتب كود التأكيد وكلمة السر الجديدة للحساب التالي:',
+            en: 'Enter the verification code and new password for this account:',
           ),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: subtitleColor,
-            fontSize: 14.5,
+            fontSize: AppFontSizes.bodyLarge,
             height: 1.55,
             fontWeight: FontWeight.w500,
           ),
         ),
+        const SizedBox(height: 10),
+        _buildEmailBadge(theme, isDarkMode),
       ],
+    );
+  }
+
+  Widget _buildEmailBadge(ThemeData theme, bool isDarkMode) {
+    final backgroundColor = AppColors.primary.withValues(
+      alpha: isDarkMode ? 0.16 : 0.09,
+    );
+    final borderColor = AppColors.primary.withValues(
+      alpha: isDarkMode ? 0.30 : 0.20,
+    );
+
+    return Container(
+      key: const ValueKey('reset_password_email_badge'),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor),
+      ),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          children: [
+            Icon(AppIcons.sms, size: 18, color: theme.colorScheme.primary),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                widget.email.trim(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                  fontSize: AppFontSizes.bodyLarge,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

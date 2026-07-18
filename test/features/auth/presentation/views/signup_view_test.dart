@@ -18,6 +18,54 @@ void main() {
     AppLanguageController.instance.value = AppLanguage.english;
   });
 
+  testWidgets('keeps the policy agreement on one line on a narrow screen', (
+    tester,
+  ) async {
+    await _pumpSignup(tester, surfaceSize: const Size(320, 900));
+
+    final policyLine = find.byKey(const ValueKey('signup_policy_single_line'));
+    expect(policyLine, findsOneWidget);
+    expect(tester.widget<FittedBox>(policyLine).fit, BoxFit.scaleDown);
+    expect(tester.getSize(policyLine).height, lessThanOrEqualTo(24));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('keeps field focus when the keyboard resizes signup', (
+    tester,
+  ) async {
+    await _pumpSignup(tester, surfaceSize: const Size(360, 700));
+    await tester.showKeyboard(find.byType(TextFormField).first);
+    await tester.pump();
+
+    final editableFinder = find.byType(EditableText).first;
+    final focusNode = tester.widget<EditableText>(editableFinder).focusNode;
+    expect(focusNode.hasFocus, isTrue);
+
+    tester.view.viewInsets = const FakeViewPadding(bottom: 280);
+    addTearDown(tester.view.resetViewInsets);
+    await tester.pump();
+
+    expect(
+      tester.widget<EditableText>(editableFinder).focusNode,
+      same(focusNode),
+    );
+    expect(focusNode.hasFocus, isTrue);
+    final scroll = tester.widget<SingleChildScrollView>(
+      find.byType(SingleChildScrollView).first,
+    );
+    expect(
+      scroll.keyboardDismissBehavior,
+      ScrollViewKeyboardDismissBehavior.manual,
+    );
+    await tester.drag(
+      find.byType(SingleChildScrollView).first,
+      const Offset(0, -100),
+    );
+    await tester.pump();
+    expect(focusNode.hasFocus, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('required errors clear while typing valid names', (tester) async {
     await _pumpSignup(tester);
 
@@ -294,8 +342,9 @@ Future<void> _pumpSignup(
   WidgetTester tester, {
   FakeAuthRepository? repository,
   Locale locale = const Locale('en'),
+  Size surfaceSize = const Size(430, 900),
 }) async {
-  await tester.binding.setSurfaceSize(const Size(430, 900));
+  await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
   AppLanguageController.instance.value = AppLanguage.fromCode(
     locale.languageCode,

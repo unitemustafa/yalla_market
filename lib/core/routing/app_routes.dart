@@ -29,5 +29,7 @@ class AppRoutes {
   static const String addresses = '/addresses';
   static const String orders = '/orders';
   static const String appPreferences = '/app-preferences';
+  static const String aboutApp = '/about-app';
+  static const String partnerApplication = '/partner-application';
   static const String changePassword = '/change-password';
 }

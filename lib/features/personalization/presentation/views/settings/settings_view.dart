@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/connectivity/internet_status_controller.dart';
 import '../../../../../core/presentation/widgets/images/app_avatar.dart';
+import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/routing/app_routes.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../controllers/user_profile_controller.dart';
@@ -14,6 +17,9 @@ import '../../widgets/settings_menu_tile.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
+
+  static const _whatsAppColor = Color(0xFF25D366);
+  static const _whatsAppNumber = '201016487371';
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +30,16 @@ class SettingsView extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: backgroundColor,
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'account-whatsapp',
+        onPressed: () => _openWhatsApp(context),
+        tooltip: context.tr('WhatsApp'),
+        backgroundColor: _whatsAppColor,
+        foregroundColor: Colors.white,
+        elevation: 5,
+        shape: const CircleBorder(),
+        child: const FaIcon(FontAwesomeIcons.whatsapp, size: 29),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -75,19 +91,23 @@ class SettingsView extends StatelessWidget {
                     accentColor: AppColors.warning,
                     onTap: () => Navigator.pushNamed(context, AppRoutes.orders),
                   ),
-                ],
-              ),
-              const SizedBox(height: 18),
-              _SettingsSection(
-                title: 'App Settings',
-                isDark: isDark,
-                children: [
                   SettingsMenuTile(
-                    icon: AppIcons.messages,
-                    title: 'Support chat',
-                    subTitle: 'Support chat will be available soon',
+                    icon: AppIcons.info_circle,
+                    title: 'About the app',
+                    subTitle: 'Learn more about Yalla Market',
                     accentColor: AppColors.primary,
-                    trailing: const _ComingSoonBadge(),
+                    onTap: () =>
+                        Navigator.pushNamed(context, AppRoutes.aboutApp),
+                  ),
+                  SettingsMenuTile(
+                    icon: AppIcons.shop,
+                    title: 'Register as a partner',
+                    subTitle: 'Join Yalla Market as a store or service partner',
+                    accentColor: AppColors.success,
+                    onTap: () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.partnerApplication,
+                    ),
                   ),
                 ],
               ),
@@ -97,6 +117,30 @@ class SettingsView extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _openWhatsApp(BuildContext context, {String? message}) async {
+    final uri = Uri.https(
+      'wa.me',
+      '/$_whatsAppNumber',
+      message == null ? null : {'text': message},
+    );
+
+    try {
+      final didLaunch = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (didLaunch || !context.mounted) return;
+    } catch (_) {
+      if (!context.mounted) return;
+    }
+
+    CustomSnackBar.showError(
+      context: context,
+      title: 'Could not open WhatsApp',
+      message: 'Please try again.',
     );
   }
 
@@ -151,30 +195,6 @@ class SettingsView extends StatelessWidget {
           ],
         );
       },
-    );
-  }
-}
-
-class _ComingSoonBadge extends StatelessWidget {
-  const _ComingSoonBadge();
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: AppColors.warning.withValues(alpha: isDark ? 0.18 : 0.12),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        context.tr('Coming soon'),
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-          color: AppColors.warning,
-          fontWeight: FontWeight.w900,
-        ),
-      ),
     );
   }
 }

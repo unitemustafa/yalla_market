@@ -7,9 +7,11 @@ import '../../../features/personalization/data/repositories/address_repository_i
 import '../../../features/personalization/data/repositories/delivery_area_remote_repository_impl.dart';
 import '../../../features/personalization/data/repositories/delivery_area_repository_impl.dart';
 import '../../../features/personalization/data/repositories/profile_image_repository_impl.dart';
+import '../../../features/personalization/data/repositories/partner_application_remote_repository_impl.dart';
 import '../../../features/personalization/domain/repositories/address_repository.dart';
 import '../../../features/personalization/domain/repositories/delivery_area_repository.dart';
 import '../../../features/personalization/domain/repositories/profile_image_repository.dart';
+import '../../../features/personalization/domain/repositories/partner_application_repository.dart';
 import '../../../features/personalization/domain/usecases/address_usecases.dart';
 import '../../../features/personalization/domain/usecases/delivery_area_usecases.dart';
 import '../../../features/personalization/domain/usecases/pick_profile_image_usecase.dart';
@@ -76,6 +78,11 @@ void registerPersonalizationDependencies(GetIt sl) {
   if (!sl.isRegistered<ProfileImageRepository>()) {
     sl.registerLazySingleton<ProfileImageRepository>(
       ProfileImageRepositoryImpl.new,
+    );
+  }
+  if (!sl.isRegistered<PartnerApplicationRepository>()) {
+    sl.registerLazySingleton<PartnerApplicationRepository>(
+      () => PartnerApplicationRemoteRepositoryImpl(sl<ApiClient>()),
     );
   }
   if (!sl.isRegistered<PickProfileImageUseCase>()) {

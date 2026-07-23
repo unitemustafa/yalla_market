@@ -16,6 +16,8 @@ import '../../features/personalization/presentation/views/address/addresses_view
 import '../../features/personalization/presentation/views/profile/profile_view.dart';
 import '../../features/personalization/presentation/views/profile/change_password_otp_view.dart';
 import '../../features/personalization/presentation/views/settings/app_preferences_view.dart';
+import '../../features/personalization/presentation/views/settings/about_app_view.dart';
+import '../../features/personalization/presentation/views/settings/partner_application_view.dart';
 import '../../features/splash/presentation/views/splash_view.dart';
 import '../../features/navigation/presentation/views/navigation_menu_view.dart';
 import '../../features/store/presentation/views/all_products/all_products_view.dart';
@@ -57,6 +59,8 @@ class AppRouter {
     AppRoutes.addresses,
     AppRoutes.orders,
     AppRoutes.appPreferences,
+    AppRoutes.aboutApp,
+    AppRoutes.partnerApplication,
     AppRoutes.changePassword,
     AppRoutes.selectCity,
   };
@@ -210,6 +214,12 @@ class AppRouter {
 
       case AppRoutes.appPreferences:
         return _buildRoute(const AppPreferencesView(), settings);
+
+      case AppRoutes.aboutApp:
+        return _buildRoute(const AboutAppView(), settings);
+
+      case AppRoutes.partnerApplication:
+        return _buildRoute(const PartnerApplicationView(), settings);
 
       case AppRoutes.changePassword:
         return _buildRoute(const ChangePasswordOtpView(), settings);

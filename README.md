@@ -4,6 +4,18 @@ Production-oriented Flutter marketplace app with official Android and iOS
 support. Web, Windows, macOS, and Linux builds run without Firebase Messaging;
 push notifications are enabled only on Android and iOS.
 
+## Google Maps native key
+
+The address picker reads the key at native build time; no key is committed.
+
+- Android: set the `GOOGLE_MAPS_API_KEY` environment variable, or add the same
+  property to your uncommitted Gradle user properties.
+- iOS: copy `ios/Flutter/GoogleMaps.xcconfig.example` to
+  `ios/Flutter/GoogleMaps.xcconfig` and set the restricted iOS key.
+
+Enable Maps SDK for Android and Maps SDK for iOS on the matching Google Cloud
+project, and restrict each key to the app package/bundle identifier.
+
 ## Runtime configuration
 
 The app expects a REST backend under `/api/v1`. Pass the API origin at build or

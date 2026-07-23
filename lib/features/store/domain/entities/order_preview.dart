@@ -4,6 +4,10 @@ class OrderPreviewData {
     this.selectedAddress,
     this.serviceCity,
     this.orderScope = '',
+    this.fulfillmentType = '',
+    this.externalShippingStatus = '',
+    this.etaMinMinutes,
+    this.etaMaxMinutes,
     this.isMultiMarket = false,
     this.marketCount = 0,
     this.marketNamesSummary = '',
@@ -15,6 +19,10 @@ class OrderPreviewData {
   final Map<String, dynamic>? selectedAddress;
   final Map<String, dynamic>? serviceCity;
   final String orderScope;
+  final String fulfillmentType;
+  final String externalShippingStatus;
+  final int? etaMinMinutes;
+  final int? etaMaxMinutes;
   final bool isMultiMarket;
   final int marketCount;
   final String marketNamesSummary;
@@ -35,6 +43,11 @@ class OrderPreviewData {
       selectedAddress: _nullableMapFromJson(json['selected_address']),
       serviceCity: _nullableMapFromJson(json['service_city']),
       orderScope: json['order_scope']?.toString() ?? '',
+      fulfillmentType: json['fulfillment_type']?.toString() ?? '',
+      externalShippingStatus:
+          json['external_shipping_status']?.toString() ?? '',
+      etaMinMinutes: _intFromJson(json['eta_min_minutes']),
+      etaMaxMinutes: _intFromJson(json['eta_max_minutes']),
       isMultiMarket: _boolFromJson(json['is_multi_market']) ?? false,
       marketCount:
           _intFromJson(json['market_count']) ??
@@ -54,6 +67,10 @@ class OrderPreviewMarketGroupData {
     this.serviceCity = const {},
     this.deliveryArea = const {},
     this.deliveryType = '',
+    this.fulfillmentType = '',
+    this.externalShippingStatus = '',
+    this.etaMinMinutes,
+    this.etaMaxMinutes,
     this.deliveryPrice,
     this.deliveryMessage = '',
     required this.deliveryAvailable,
@@ -66,6 +83,10 @@ class OrderPreviewMarketGroupData {
   final Map<String, dynamic> serviceCity;
   final Map<String, dynamic> deliveryArea;
   final String deliveryType;
+  final String fulfillmentType;
+  final String externalShippingStatus;
+  final int? etaMinMinutes;
+  final int? etaMaxMinutes;
   final double? deliveryPrice;
   final String deliveryMessage;
   final bool deliveryAvailable;
@@ -76,6 +97,12 @@ class OrderPreviewMarketGroupData {
   bool get isFixedAreaDelivery => deliveryType == 'fixed_area';
 
   bool get isPendingDeliveryQuote {
+    if (externalShippingStatus.isNotEmpty) {
+      return externalShippingStatus == 'pending_quote';
+    }
+    if (fulfillmentType.isNotEmpty) {
+      return fulfillmentType == 'external_shipping';
+    }
     return deliveryType == 'delivery' || deliveryType == 'manual_quote';
   }
 
@@ -90,6 +117,13 @@ class OrderPreviewMarketGroupData {
       deliveryArea: _mapFromJson(json['delivery_area']),
       deliveryType:
           json['delivery_type']?.toString().trim().toLowerCase() ?? '',
+      fulfillmentType:
+          json['fulfillment_type']?.toString().trim().toLowerCase() ?? '',
+      externalShippingStatus:
+          json['external_shipping_status']?.toString().trim().toLowerCase() ??
+          '',
+      etaMinMinutes: _intFromJson(json['eta_min_minutes']),
+      etaMaxMinutes: _intFromJson(json['eta_max_minutes']),
       deliveryPrice: _nullableDoubleFromJson(json['delivery_price']),
       deliveryMessage: json['delivery_message']?.toString() ?? '',
       deliveryAvailable: _boolFromJson(json['delivery_available']) ?? false,

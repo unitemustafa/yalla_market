@@ -15,6 +15,7 @@ import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_display_text.dart';
 import 'address_region_matcher.dart';
+import 'address_map_picker_view.dart';
 import 'add_new_address_view.dart';
 import 'widgets/single_address.dart';
 import '../../../../location/presentation/cubit/location_cubit.dart';
@@ -58,11 +59,20 @@ class _AddressesViewState extends State<AddressesView>
     BuildContext context, {
     AddressData? address,
   }) async {
+    final locatedAddress = await Navigator.push<AddressData>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddressMapPickerView(initialAddress: address),
+      ),
+    );
+    if (locatedAddress == null || !context.mounted) return;
+
     await Navigator.push<AddressData>(
       context,
       MaterialPageRoute(
         builder: (_) => AddNewAddressView(
-          address: address,
+          address: locatedAddress,
+          isCreating: address == null,
           locationDataSource: sl<DeviceLocationDataSource>(),
           getDeliveryAreas: sl<GetDeliveryAreasUseCase>(),
         ),

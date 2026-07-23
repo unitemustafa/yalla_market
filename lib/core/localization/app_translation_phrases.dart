@@ -20,6 +20,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Offer link copied': 'تم نسخ رابط العرض',
     'Could not share offer': 'تعذر مشاركة العرض',
     'Retry': 'حاول تاني',
+    'Direct delivery': 'توصيل مباشر',
+    'External shipping': 'شحن خارجي',
     'Variant': 'الاختيار',
     'Choose a saved address': 'اختار عنوان محفوظ',
     'Enter the 6-digit verification code.':

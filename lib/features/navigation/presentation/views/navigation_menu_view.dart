@@ -34,7 +34,8 @@ class NavigationMenuView extends StatefulWidget {
   State<NavigationMenuView> createState() => _NavigationMenuViewState();
 }
 
-class _NavigationMenuViewState extends State<NavigationMenuView> {
+class _NavigationMenuViewState extends State<NavigationMenuView>
+    with WidgetsBindingObserver {
   late int selectedIndex;
 
   static const _items = [
@@ -65,12 +66,26 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _screens = List<Widget?>.filled(_items.length, null);
     selectedIndex = widget.initialIndex.clamp(0, _items.length - 1).toInt();
     _screens[selectedIndex] = _screenAt(selectedIndex);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _runOneTimeGpsSuggestion();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    context.read<LocationCubit>().beginGpsSuggestionSession();
+    _runOneTimeGpsSuggestion();
   }
 
   Future<void> _runOneTimeGpsSuggestion() async {

@@ -24,11 +24,15 @@ void main() {
     await tester.pumpAndSettle();
 
     final fields = find.byType(TextFormField);
-    expect(fields, findsNWidgets(5));
-    await tester.enterText(fields.at(0), 'Home');
-    await tester.enterText(fields.at(2), '12 Tahrir St');
-    await tester.enterText(fields.at(3), 'Mansoura');
-    await tester.enterText(fields.at(4), 'University District');
+    expect(fields, findsNWidgets(10));
+    await tester.enterText(fields.at(0), 'Ahmed Ali');
+    await tester.enterText(fields.at(1), 'Home');
+    await tester.enterText(fields.at(3), '12 Tahrir St');
+    await tester.enterText(fields.at(4), 'Building 5');
+    await tester.enterText(fields.at(5), '12');
+    await tester.enterText(fields.at(6), '3');
+    await tester.enterText(fields.at(8), 'Mansoura');
+    await tester.enterText(fields.at(9), 'University District');
 
     await tester.ensureVisible(find.text('Save'));
     await tester.tap(find.text('Save'));

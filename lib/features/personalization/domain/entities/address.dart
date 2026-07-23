@@ -22,6 +22,20 @@ class AddressData {
     this.deliveryAreaPrice,
     this.deliveryAreaIsActive,
     this.deliveryType,
+    this.addressType = 'apartment',
+    this.recipientName = '',
+    this.buildingName = '',
+    this.apartmentNumber = '',
+    this.floor = '',
+    this.companyName = '',
+    this.additionalInstructions = '',
+    this.label = '',
+    this.formattedAddress = '',
+    this.placeId = '',
+    this.governorate = '',
+    this.fulfillmentType,
+    this.etaMinMinutes,
+    this.etaMaxMinutes,
   });
 
   final String id;
@@ -47,6 +61,20 @@ class AddressData {
   final double? deliveryAreaPrice;
   final bool? deliveryAreaIsActive;
   final String? deliveryType;
+  final String addressType;
+  final String recipientName;
+  final String buildingName;
+  final String apartmentNumber;
+  final String floor;
+  final String companyName;
+  final String additionalInstructions;
+  final String label;
+  final String formattedAddress;
+  final String placeId;
+  final String governorate;
+  final String? fulfillmentType;
+  final int? etaMinMinutes;
+  final int? etaMaxMinutes;
 
   factory AddressData.fromJson(Map<String, dynamic> json) {
     return AddressData(
@@ -119,6 +147,29 @@ class AddressData {
         _nestedValue(json['delivery_area'], 'is_active'),
       ),
       deliveryType: _stringOrNull(json['delivery_type']),
+      addressType: json['address_type']?.toString() ?? 'apartment',
+      recipientName:
+          json['recipient_name']?.toString() ??
+          json['fullName']?.toString() ??
+          '',
+      buildingName: json['building_name']?.toString() ?? '',
+      apartmentNumber: json['apartment_number']?.toString() ?? '',
+      floor: json['floor']?.toString() ?? '',
+      companyName: json['company_name']?.toString() ?? '',
+      additionalInstructions: json['additional_instructions']?.toString() ?? '',
+      label: json['label']?.toString() ?? json['name']?.toString() ?? '',
+      formattedAddress: json['formatted_address']?.toString() ?? '',
+      placeId: json['place_id']?.toString() ?? '',
+      governorate: json['governorate']?.toString() ?? '',
+      fulfillmentType: _stringOrNull(json['fulfillment_type']),
+      etaMinMinutes: _intFromJson(
+        json['eta_min_minutes'] ??
+            _nestedValue(json['delivery_area'], 'eta_min_minutes'),
+      ),
+      etaMaxMinutes: _intFromJson(
+        json['eta_max_minutes'] ??
+            _nestedValue(json['delivery_area'], 'eta_max_minutes'),
+      ),
     );
   }
 
@@ -162,6 +213,20 @@ class AddressData {
       'deliveryAreaPrice': deliveryAreaPrice,
       'deliveryAreaIsActive': deliveryAreaIsActive,
       'deliveryType': deliveryType,
+      'addressType': addressType,
+      'recipientName': recipientName,
+      'buildingName': buildingName,
+      'apartmentNumber': apartmentNumber,
+      'floor': floor,
+      'companyName': companyName,
+      'additionalInstructions': additionalInstructions,
+      'label': label,
+      'formattedAddress': formattedAddress,
+      'placeId': placeId,
+      'governorate': governorate,
+      'fulfillmentType': fulfillmentType,
+      'etaMinMinutes': etaMinMinutes,
+      'etaMaxMinutes': etaMaxMinutes,
     };
   }
 
@@ -174,6 +239,22 @@ class AddressData {
       'manual_city': manualCity,
       'manual_area': manualArea,
       'is_default': isDefault,
+      'latitude': latitude,
+      'longitude': longitude,
+      'address_type': addressType,
+      'recipient_name': recipientName.isEmpty ? name : recipientName,
+      'recipient_phone': phoneNumber,
+      'street': street,
+      'building_name': buildingName,
+      'apartment_number': apartmentNumber,
+      'floor': floor,
+      'company_name': companyName,
+      'additional_instructions': additionalInstructions,
+      'label': label.isEmpty ? name : label,
+      'formatted_address': formattedAddress,
+      'place_id': placeId,
+      'governorate': governorate,
+      'district': district,
     };
   }
 
@@ -200,6 +281,20 @@ class AddressData {
     double? deliveryAreaPrice,
     bool? deliveryAreaIsActive,
     String? deliveryType,
+    String? addressType,
+    String? recipientName,
+    String? buildingName,
+    String? apartmentNumber,
+    String? floor,
+    String? companyName,
+    String? additionalInstructions,
+    String? label,
+    String? formattedAddress,
+    String? placeId,
+    String? governorate,
+    String? fulfillmentType,
+    int? etaMinMinutes,
+    int? etaMaxMinutes,
   }) {
     return AddressData(
       id: id ?? this.id,
@@ -224,6 +319,21 @@ class AddressData {
       deliveryAreaPrice: deliveryAreaPrice ?? this.deliveryAreaPrice,
       deliveryAreaIsActive: deliveryAreaIsActive ?? this.deliveryAreaIsActive,
       deliveryType: deliveryType ?? this.deliveryType,
+      addressType: addressType ?? this.addressType,
+      recipientName: recipientName ?? this.recipientName,
+      buildingName: buildingName ?? this.buildingName,
+      apartmentNumber: apartmentNumber ?? this.apartmentNumber,
+      floor: floor ?? this.floor,
+      companyName: companyName ?? this.companyName,
+      additionalInstructions:
+          additionalInstructions ?? this.additionalInstructions,
+      label: label ?? this.label,
+      formattedAddress: formattedAddress ?? this.formattedAddress,
+      placeId: placeId ?? this.placeId,
+      governorate: governorate ?? this.governorate,
+      fulfillmentType: fulfillmentType ?? this.fulfillmentType,
+      etaMinMinutes: etaMinMinutes ?? this.etaMinMinutes,
+      etaMaxMinutes: etaMaxMinutes ?? this.etaMaxMinutes,
     );
   }
 }

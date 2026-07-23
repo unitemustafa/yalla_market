@@ -4,13 +4,7 @@ import '../../../domain/entities/address.dart';
 bool isAddressAvailableForCity(AddressData address, CityData? selectedCity) {
   if (!isAddressDeliverable(address)) return false;
   if (selectedCity == null) return false;
-  if (selectedCity.isGeneral) {
-    final deliveryType = address.deliveryType?.trim().toLowerCase();
-    return address.serviceCityId == null &&
-        (deliveryType == null ||
-            deliveryType.isEmpty ||
-            deliveryType == 'delivery');
-  }
+  if (selectedCity.isGeneral) return true;
 
   final serviceCityId = selectedCity.serviceCityId;
   if (serviceCityId == null) return false;

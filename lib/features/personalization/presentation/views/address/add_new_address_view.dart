@@ -19,16 +19,19 @@ import '../../controllers/user_profile_controller.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_entry.dart';
+import 'address_map_picker_view.dart';
 
 class AddNewAddressView extends StatefulWidget {
   const AddNewAddressView({
     super.key,
     this.address,
+    this.isCreating = false,
     this.locationDataSource,
     this.getDeliveryAreas,
   });
 
   final AddressEntry? address;
+  final bool isCreating;
   final DeviceLocationDataSource? locationDataSource;
   final GetDeliveryAreasUseCase? getDeliveryAreas;
 
@@ -38,11 +41,19 @@ class AddNewAddressView extends StatefulWidget {
 
 class _AddNewAddressViewState extends State<AddNewAddressView> {
   final _formKey = GlobalKey<FormState>();
+  late AddressData? _addressSeed;
   late final TextEditingController _nameController;
   late final TextEditingController _phoneController;
   late final TextEditingController _detailsController;
+  late final TextEditingController _recipientNameController;
+  late final TextEditingController _buildingController;
+  late final TextEditingController _apartmentController;
+  late final TextEditingController _floorController;
+  late final TextEditingController _companyController;
+  late final TextEditingController _instructionsController;
   late final TextEditingController _manualCityController;
   late final TextEditingController _manualAreaController;
+  String _addressType = 'apartment';
   GetDeliveryAreasUseCase? _getDeliveryAreas;
   bool _isSaving = false;
   bool _isLoadingAreas = false;
@@ -51,12 +62,13 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
   int? _selectedDeliveryAreaId;
   bool _usesManualArea = false;
 
-  bool get _isEditing => widget.address != null;
+  bool get _isEditing => widget.address != null && !widget.isCreating;
 
   @override
   void initState() {
     super.initState();
-    final address = widget.address;
+    _addressSeed = widget.address;
+    final address = _addressSeed;
     final profilePhone = UserProfileController.instance.phone;
 
     _nameController = TextEditingController(text: address?.name ?? '');
@@ -64,6 +76,25 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       text: profilePhone.isNotEmpty ? profilePhone : address?.phoneNumber ?? '',
     );
     _detailsController = TextEditingController(text: address?.details ?? '');
+    _recipientNameController = TextEditingController(
+      text: address?.recipientName.isNotEmpty == true
+          ? address!.recipientName
+          : address?.name ?? '',
+    );
+    _buildingController = TextEditingController(
+      text: address?.buildingName ?? '',
+    );
+    _apartmentController = TextEditingController(
+      text: address?.apartmentNumber ?? '',
+    );
+    _floorController = TextEditingController(text: address?.floor ?? '');
+    _companyController = TextEditingController(
+      text: address?.companyName ?? '',
+    );
+    _instructionsController = TextEditingController(
+      text: address?.additionalInstructions ?? '',
+    );
+    _addressType = address?.addressType ?? 'apartment';
     _manualCityController = TextEditingController(
       text: address?.manualCity ?? '',
     );
@@ -88,13 +119,19 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     _nameController.dispose();
     _phoneController.dispose();
     _detailsController.dispose();
+    _recipientNameController.dispose();
+    _buildingController.dispose();
+    _apartmentController.dispose();
+    _floorController.dispose();
+    _companyController.dispose();
+    _instructionsController.dispose();
     _manualCityController.dispose();
     _manualAreaController.dispose();
     super.dispose();
   }
 
   _AddressRegion _region(BuildContext context) {
-    final address = widget.address;
+    final address = _addressSeed;
     CityData? city;
     try {
       city = context.read<LocationCubit>().state.selectedCity;
@@ -125,7 +162,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     if (!mounted) return;
 
     final region = _region(context);
-    final address = widget.address;
+    final address = _addressSeed;
     if (address == null) return;
 
     if (!region.isServiceCity) {
@@ -152,6 +189,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
 
   Future<void> _loadAreasIfNeeded() async {
     if (!mounted) return;
+    if (_hasResolvedLocation) return;
     final region = _region(context);
     if (!region.isServiceCity) return;
     final getDeliveryAreas = _getDeliveryAreas ??=
@@ -193,7 +231,8 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
     if (!(_formKey.currentState?.validate() ?? false) || _isSaving) return;
 
     final region = _region(context);
-    if (region.isServiceCity &&
+    if (!_hasResolvedLocation &&
+        region.isServiceCity &&
         !_usesManualArea &&
         _selectedDeliveryAreaId == null) {
       CustomSnackBar.showError(
@@ -231,7 +270,26 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
   }
 
   AddressData _addressFromForm(_AddressRegion region) {
-    final existingAddress = widget.address;
+    final existingAddress = _addressSeed;
+    if (_hasResolvedLocation && existingAddress != null) {
+      return existingAddress.copyWith(
+        name: _nameController.text.trim(),
+        label: _nameController.text.trim(),
+        recipientName: _recipientNameController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+        street: _detailsController.text.trim(),
+        buildingName: _buildingController.text.trim(),
+        apartmentNumber: _addressType == 'apartment'
+            ? _apartmentController.text.trim()
+            : '',
+        floor: _addressType == 'apartment' ? _floorController.text.trim() : '',
+        companyName: _addressType == 'office'
+            ? _companyController.text.trim()
+            : '',
+        additionalInstructions: _instructionsController.text.trim(),
+        addressType: _addressType,
+      );
+    }
     final selectedArea = _selectedArea;
     final serviceCityId = region.serviceCityId;
     final isServiceCity = region.isServiceCity;
@@ -270,7 +328,31 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       deliveryAreaName: selectedDeliveryAreaName,
       deliveryAreaPrice: selectedDeliveryAreaPrice,
       deliveryType: 'delivery',
+      addressType: _addressType,
+      recipientName: _recipientNameController.text.trim(),
+      buildingName: _buildingController.text.trim(),
+      apartmentNumber: _apartmentController.text.trim(),
+      floor: _floorController.text.trim(),
+      companyName: _companyController.text.trim(),
+      additionalInstructions: _instructionsController.text.trim(),
+      label: _nameController.text.trim(),
     );
+  }
+
+  bool get _hasResolvedLocation =>
+      _addressSeed?.latitude != null &&
+      _addressSeed?.longitude != null &&
+      _addressSeed?.fulfillmentType != null;
+
+  Future<void> _editLocation() async {
+    final updated = await Navigator.push<AddressData>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddressMapPickerView(initialAddress: _addressSeed),
+      ),
+    );
+    if (updated == null || !mounted) return;
+    setState(() => _addressSeed = updated);
   }
 
   DeliveryArea? get _selectedArea {
@@ -335,9 +417,27 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                         _AddressFormCard(
                           isDark: isDark,
                           children: [
+                            if (_hasResolvedLocation)
+                              _ResolvedLocationTile(
+                                address: _addressSeed!,
+                                onEdit: _editLocation,
+                              ),
+                            _AddressTypeSelector(
+                              value: _addressType,
+                              onChanged: (value) {
+                                setState(() => _addressType = value);
+                              },
+                            ),
+                            _AddressTextField(
+                              controller: _recipientNameController,
+                              icon: AppIcons.user,
+                              label: 'Recipient name',
+                              validator: _requiredField,
+                              textInputAction: TextInputAction.next,
+                            ),
                             _AddressTextField(
                               controller: _nameController,
-                              icon: AppIcons.user,
+                              icon: AppIcons.location,
                               label: 'Address name',
                               hintText: 'Home, Work, Other address',
                               validator: _requiredField,
@@ -353,12 +453,52 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                             _AddressTextField(
                               controller: _detailsController,
                               icon: AppIcons.building_31,
-                              label: 'Address details',
-                              hintText: 'Street, building, floor, landmark',
+                              label: 'Street',
+                              hintText: 'Street name',
                               validator: _requiredField,
                               textInputAction: TextInputAction.next,
                             ),
-                            if (region.isServiceCity)
+                            _AddressTextField(
+                              controller: _buildingController,
+                              icon: AppIcons.building,
+                              label: _addressType == 'house'
+                                  ? 'House / villa number'
+                                  : 'Building name or number',
+                              validator: _requiredField,
+                              textInputAction: TextInputAction.next,
+                            ),
+                            if (_addressType == 'apartment') ...[
+                              _AddressTextField(
+                                controller: _apartmentController,
+                                icon: AppIcons.building,
+                                label: 'Apartment number',
+                                validator: _requiredField,
+                                textInputAction: TextInputAction.next,
+                              ),
+                              _AddressTextField(
+                                controller: _floorController,
+                                icon: AppIcons.building,
+                                label: 'Floor',
+                                validator: _requiredField,
+                                textInputAction: TextInputAction.next,
+                              ),
+                            ],
+                            if (_addressType == 'office')
+                              _AddressTextField(
+                                controller: _companyController,
+                                icon: AppIcons.building,
+                                label: 'Company name',
+                                validator: _requiredField,
+                                textInputAction: TextInputAction.next,
+                              ),
+                            _AddressTextField(
+                              controller: _instructionsController,
+                              icon: AppIcons.edit_2,
+                              label: 'Additional instructions (optional)',
+                              hintText: 'Landmark, entrance, or delivery note',
+                              textInputAction: TextInputAction.done,
+                            ),
+                            if (!_hasResolvedLocation && region.isServiceCity)
                               _ServiceCityFields(
                                 regionName: region.name,
                                 areas: _deliveryAreas,
@@ -383,7 +523,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                                   });
                                 },
                               )
-                            else
+                            else if (!_hasResolvedLocation)
                               _GeneralRegionFields(
                                 manualCityController: _manualCityController,
                                 manualAreaController: _manualAreaController,
@@ -407,6 +547,96 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
           },
         ),
       ),
+    );
+  }
+}
+
+class _ResolvedLocationTile extends StatelessWidget {
+  const _ResolvedLocationTile({required this.address, required this.onEdit});
+
+  final AddressData address;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDirect = address.fulfillmentType == 'direct';
+    final price = address.deliveryAreaPrice;
+    final eta = address.etaMinMinutes;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: (isDirect ? Colors.green : Colors.orange).withValues(
+          alpha: 0.09,
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: (isDirect ? Colors.green : Colors.orange).withValues(
+            alpha: 0.35,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            isDirect ? Icons.delivery_dining : Icons.local_shipping_outlined,
+            color: isDirect ? Colors.green.shade700 : Colors.orange.shade800,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isDirect
+                      ? 'توصيل مباشر إلى ${address.deliveryAreaName ?? address.cityLabel}'
+                      : 'شحن خارجي إلى هذا الموقع',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+                if (isDirect && (price != null || eta != null))
+                  Text(
+                    [
+                      if (price != null) '${price.toStringAsFixed(0)} ج.م',
+                      if (eta != null)
+                        '$eta-${address.etaMaxMinutes ?? eta} دقيقة',
+                    ].join(' • '),
+                  ),
+              ],
+            ),
+          ),
+          TextButton(onPressed: onEdit, child: const Text('تعديل')),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddressTypeSelector extends StatelessWidget {
+  const _AddressTypeSelector({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const options = [
+      ('apartment', 'شقة', Icons.apartment),
+      ('house', 'منزل', Icons.home_outlined),
+      ('office', 'مكتب', Icons.work_outline),
+    ];
+    return Row(
+      children: [
+        for (var index = 0; index < options.length; index++) ...[
+          if (index > 0) const SizedBox(width: 8),
+          Expanded(
+            child: ChoiceChip(
+              selected: value == options[index].$1,
+              onSelected: (_) => onChanged(options[index].$1),
+              avatar: Icon(options[index].$3, size: 18),
+              label: Text(options[index].$2),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

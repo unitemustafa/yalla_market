@@ -59,6 +59,7 @@ dependencies:
   web: ^1.1.1
   font_awesome_flutter: ^11.0.0
   package_info_plus: ^10.2.1
+  google_maps_flutter: ^2.18.0
 
 dev_dependencies:
   flutter_test:

@@ -18,6 +18,12 @@ val hasReleaseKeystore = keystorePropertiesFile.exists()
 val requestedReleaseBuild = gradle.startParameter.taskNames.any {
     it.contains("release", ignoreCase = true)
 }
+val googleMapsApiKey = providers.gradleProperty("GOOGLE_MAPS_API_KEY")
+    .orElse(providers.environmentVariable("GOOGLE_MAPS_API_KEY"))
+    .orElse("")
+val allowLocalCleartext = providers.gradleProperty("LOCAL_TEST_RELEASE")
+    .map { it.toBoolean() }
+    .orElse(false)
 
 if (requestedReleaseBuild && !hasReleaseKeystore) {
     throw GradleException(
@@ -52,6 +58,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        manifestPlaceholders["GOOGLE_MAPS_API_KEY"] = googleMapsApiKey.get()
+        manifestPlaceholders["USES_CLEARTEXT_TRAFFIC"] = allowLocalCleartext.get().toString()
     }
 
     signingConfigs {

@@ -513,9 +513,16 @@ String _notSpecifiedLabel(BuildContext context) {
 }
 
 String _deliveryTypeLabel(BuildContext context, OrderPreviewData? preview) {
-  final deliveryType = preview?.marketGroups.isEmpty ?? true
-      ? ''
-      : preview!.marketGroups.first.deliveryType;
+  final group = preview?.marketGroups.isEmpty ?? true
+      ? null
+      : preview!.marketGroups.first;
+  if (group?.fulfillmentType == 'direct') {
+    return context.tr('Direct delivery');
+  }
+  if (group?.fulfillmentType == 'external_shipping') {
+    return context.tr('External shipping');
+  }
+  final deliveryType = group?.deliveryType ?? '';
 
   return switch (deliveryType) {
     'fixed_area' => context.tr('Delivery'),

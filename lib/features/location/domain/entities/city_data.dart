@@ -50,6 +50,10 @@ class CityData {
     this.nameAr,
     this.serviceCityId,
     this.source = RegionSource.manual,
+    this.boundaryGeojson,
+    this.boundaryBbox,
+    this.centerLatitude,
+    this.centerLongitude,
   });
 
   final String name;
@@ -57,6 +61,10 @@ class CityData {
   final String? nameAr;
   final int? serviceCityId;
   final RegionSource source;
+  final Map<String, dynamic>? boundaryGeojson;
+  final List<double>? boundaryBbox;
+  final double? centerLatitude;
+  final double? centerLongitude;
 
   static const generalSlug = 'general';
 
@@ -100,6 +108,10 @@ class CityData {
       nameAr: nameAr,
       serviceCityId: serviceCityId,
       source: source,
+      boundaryGeojson: boundaryGeojson,
+      boundaryBbox: boundaryBbox,
+      centerLatitude: centerLatitude,
+      centerLongitude: centerLongitude,
     );
   }
 
@@ -136,6 +148,10 @@ class CityData {
       name: name,
       slug: id?.toString() ?? _customSlug(name),
       serviceCityId: id,
+      boundaryGeojson: _mapFromJson(json['boundary_geojson']),
+      boundaryBbox: _doubleListFromJson(json['boundary_bbox']),
+      centerLatitude: _doubleFromJson(json['center_latitude']),
+      centerLongitude: _doubleFromJson(json['center_longitude']),
     );
   }
 
@@ -555,4 +571,22 @@ int? _intFromJson(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
   return null;
+}
+
+double? _doubleFromJson(Object? value) {
+  if (value is num) return value.toDouble();
+  return double.tryParse(value?.toString() ?? '');
+}
+
+Map<String, dynamic>? _mapFromJson(Object? value) {
+  return value is Map<String, dynamic> ? value : null;
+}
+
+List<double>? _doubleListFromJson(Object? value) {
+  if (value is! List) return null;
+  final result = value
+      .map(_doubleFromJson)
+      .whereType<double>()
+      .toList(growable: false);
+  return result.length == value.length ? result : null;
 }

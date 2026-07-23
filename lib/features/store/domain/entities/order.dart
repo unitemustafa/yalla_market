@@ -256,6 +256,10 @@ class OrderData {
     this.deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
     this.customDeliveryArea = '',
     this.deliveryLabel = '',
+    this.fulfillmentType = '',
+    this.externalShippingStatus = '',
+    this.etaMinMinutes,
+    this.etaMaxMinutes,
     this.reviewStatus = '',
     this.marketCount = 1,
     this.isMultiMarket = false,
@@ -281,6 +285,10 @@ class OrderData {
   final OrderDeliveryPriceStatus deliveryPriceStatus;
   final String customDeliveryArea;
   final String deliveryLabel;
+  final String fulfillmentType;
+  final String externalShippingStatus;
+  final int? etaMinMinutes;
+  final int? etaMaxMinutes;
   final String reviewStatus;
   final int marketCount;
   final bool isMultiMarket;
@@ -341,11 +349,16 @@ class OrderData {
       shippingFee: _doubleFromJson(rawDeliveryPrice),
       deliveryType: deliveryType,
       deliveryPriceStatus: _deliveryPriceStatusFromJson(
-        json['delivery_price_status'],
+        json['delivery_price_status'] ?? json['external_shipping_status'],
         deliveryType: deliveryType,
       ),
       customDeliveryArea: json['custom_delivery_area']?.toString() ?? '',
       deliveryLabel: json['delivery_label']?.toString() ?? '',
+      fulfillmentType: json['fulfillment_type']?.toString() ?? '',
+      externalShippingStatus:
+          json['external_shipping_status']?.toString() ?? '',
+      etaMinMinutes: _intFromJson(json['eta_min_minutes']),
+      etaMaxMinutes: _intFromJson(json['eta_max_minutes']),
       reviewStatus: json['review_status']?.toString() ?? '',
       marketCount:
           _intFromJson(json['market_count']) ??
@@ -423,6 +436,10 @@ class OrderData {
       'deliveryPriceStatus': deliveryPriceStatus.name,
       'customDeliveryArea': customDeliveryArea,
       'deliveryLabel': deliveryLabel,
+      'fulfillmentType': fulfillmentType,
+      'externalShippingStatus': externalShippingStatus,
+      'etaMinMinutes': etaMinMinutes,
+      'etaMaxMinutes': etaMaxMinutes,
       'reviewStatus': reviewStatus,
       'marketCount': marketCount,
       'isMultiMarket': isMultiMarket,
@@ -453,6 +470,9 @@ OrderDeliveryPriceStatus _deliveryPriceStatusFromJson(
   final name = value?.toString().trim().toLowerCase();
   if (name == 'pending_quote' || name == 'pending') {
     return OrderDeliveryPriceStatus.pendingQuote;
+  }
+  if (name == 'quoted' || name == 'not_required') {
+    return OrderDeliveryPriceStatus.fixed;
   }
   if (deliveryType == OrderDeliveryType.delivery ||
       deliveryType == OrderDeliveryType.manualQuote) {

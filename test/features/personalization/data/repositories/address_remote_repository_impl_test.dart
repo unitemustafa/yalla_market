@@ -40,15 +40,15 @@ void main() {
         sampleAddress.copyWith(id: ''),
       );
 
-      expect(body, {
-        'name': sampleAddress.name,
-        'details': sampleAddress.street,
-        'service_city_id': null,
-        'delivery_area_id': null,
-        'manual_city': null,
-        'manual_area': null,
-        'is_default': sampleAddress.isDefault,
-      });
+      expect(body, containsPair('name', sampleAddress.name));
+      expect(body, containsPair('details', sampleAddress.street));
+      expect(body, containsPair('latitude', sampleAddress.latitude));
+      expect(body, containsPair('longitude', sampleAddress.longitude));
+      expect(body, containsPair('address_type', 'apartment'));
+      expect(body, containsPair('recipient_name', sampleAddress.name));
+      expect(body, containsPair('recipient_phone', sampleAddress.phoneNumber));
+      expect(body, containsPair('street', sampleAddress.street));
+      expect(body, containsPair('is_default', sampleAddress.isDefault));
       result.when(
         success: (addresses) => expect(addresses.single.id, 'address_1'),
         failure: (failure) => fail(failure.message),

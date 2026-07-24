@@ -1,11 +1,14 @@
+import 'dart:math' as math;
+
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geocoding/geocoding.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:maplibre/maplibre.dart';
 
 import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/network/api_client.dart';
+import '../../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../location/data/datasources/device_location_data_source.dart';
 import '../../../../location/domain/entities/city_data.dart';
 import '../../../../location/presentation/cubit/location_cubit.dart';
@@ -21,10 +24,12 @@ class AddressMapPickerView extends StatefulWidget {
 }
 
 class _AddressMapPickerViewState extends State<AddressMapPickerView> {
-  GoogleMapController? _mapController;
+  static const _mapStyleUrl = 'https://tiles.openfreemap.org/styles/liberty';
+
+  MapController? _mapController;
   final TextEditingController _searchController = TextEditingController();
   final Geocoding _geocoding = Geocoding();
-  late LatLng _target;
+  late Geographic _target;
   PointResolution? _resolution;
   bool _isResolving = false;
   bool _isSearching = false;
@@ -34,25 +39,41 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
   String _district = '';
   int _requestSerial = 0;
 
-  CityData get _selectedCity =>
-      context.read<LocationCubit>().state.selectedCity ?? CityData.general;
+  CityData get _selectedCity {
+    final state = context.read<LocationCubit>().state;
+    final selected = state.selectedCity ?? CityData.general;
+    for (final city in state.availableCities) {
+      if (selected.serviceCityId != null &&
+          city.serviceCityId == selected.serviceCityId) {
+        return city.withSource(selected.source);
+      }
+    }
+    return selected;
+  }
 
   @override
   void initState() {
     super.initState();
     final address = widget.initialAddress;
-    _target = LatLng(
-      address?.latitude ?? 30.0444,
-      address?.longitude ?? 31.2357,
+    _target = Geographic(
+      lon: address?.longitude ?? 31.2357,
+      lat: address?.latitude ?? 30.0444,
     );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        final city = _selectedCity;
-        if (address?.latitude == null &&
-            city.centerLatitude != null &&
-            city.centerLongitude != null) {
-          _target = LatLng(city.centerLatitude!, city.centerLongitude!);
-          _mapController?.moveCamera(CameraUpdate.newLatLng(_target));
+        var city = _selectedCity;
+        if (!city.isGeneral &&
+            city.centerLatitude == null &&
+            city.boundaryBbox == null) {
+          await context.read<LocationCubit>().loadAvailableCities();
+          if (!mounted) return;
+          city = _selectedCity;
+          setState(() {});
+        }
+        final cityCenter = _cityCenter(city);
+        if (address?.latitude == null && cityCenter != null) {
+          _target = cityCenter;
+          _mapController?.moveCamera(center: _target);
         }
         _resolveTarget();
       }
@@ -62,7 +83,6 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
   @override
   void dispose() {
     _searchController.dispose();
-    _mapController?.dispose();
     super.dispose();
   }
 
@@ -76,23 +96,35 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
       appBar: AppBar(title: const Text('تأكيد الموقع')),
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _target,
-              zoom: city.isGeneral ? 6.2 : 12,
+          MapLibreMap(
+            options: MapOptions(
+              initStyle: _mapStyleUrl,
+              initCenter: _target,
+              initZoom: city.isGeneral ? 6.2 : 12,
+              minZoom: city.isGeneral ? 5.5 : 9,
+              maxZoom: 20,
+              maxBounds: mapBounds,
+              androidTextureMode: true,
+              androidForegroundLoadColor: Theme.of(
+                context,
+              ).scaffoldBackgroundColor,
             ),
-            cameraTargetBounds: CameraTargetBounds(mapBounds),
-            minMaxZoomPreference: MinMaxZoomPreference(
-              city.isGeneral ? 5.5 : 9,
-              20,
-            ),
-            polygons: polygons,
-            myLocationButtonEnabled: false,
-            myLocationEnabled: true,
-            zoomControlsEnabled: false,
-            onMapCreated: (controller) => _mapController = controller,
-            onCameraMove: (position) => _target = position.target,
-            onCameraIdle: _resolveTarget,
+            onMapCreated: _onMapCreated,
+            onEvent: _onMapEvent,
+            layers: [
+              if (polygons.isNotEmpty)
+                PolygonLayer(
+                  polygons: polygons,
+                  color: const Color(0x1A5B8DEF),
+                  outlineColor: const Color(0xFF4477CC),
+                ),
+            ],
+            children: const [
+              SourceAttribution(
+                showMapLibre: true,
+                padding: EdgeInsets.only(right: 8, bottom: 180),
+              ),
+            ],
           ),
           const IgnorePointer(
             child: Center(
@@ -171,17 +203,14 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
             bottom: 24,
             child: SafeArea(
               top: false,
-              child: FilledButton(
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(58),
-                  backgroundColor: const Color(0xFFFF5A00),
-                ),
+              child: AppActionButton(
+                label: 'أدخل العنوان بالكامل',
                 onPressed: _resolution?.allowed == true && !_isResolving
                     ? _confirm
                     : null,
-                child: const Text(
-                  'أدخل العنوان بالكامل',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                textStyle: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),
@@ -200,7 +229,7 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
     try {
       final data = await sl<ApiClient>().post<Map<String, dynamic>>(
         '/locations/resolve-point/',
-        data: {'latitude': _target.latitude, 'longitude': _target.longitude},
+        data: {'latitude': _target.lat, 'longitude': _target.lon},
       );
       if (!mounted || serial != _requestSerial) return;
       setState(() {
@@ -240,10 +269,9 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
       if (!mounted || results.isEmpty) return;
       final result = results.first;
       await _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(
-          LatLng(result.latitude, result.longitude),
-          16,
-        ),
+        center: Geographic(lon: result.longitude, lat: result.latitude),
+        zoom: 16,
+        nativeDuration: const Duration(milliseconds: 600),
       );
     } catch (_) {
       if (!mounted) return;
@@ -258,8 +286,8 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
   Future<void> _reverseGeocodeTarget(int serial) async {
     try {
       final results = await _geocoding.placemarkFromCoordinates(
-        _target.latitude,
-        _target.longitude,
+        _target.lat,
+        _target.lon,
         locale: const Locale('ar', 'EG'),
       );
       if (!mounted || serial != _requestSerial || results.isEmpty) return;
@@ -284,9 +312,14 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
     try {
       final coordinates = await sl<DeviceLocationDataSource>()
           .resolveCurrentCoordinates();
-      final target = LatLng(coordinates.latitude, coordinates.longitude);
+      final target = Geographic(
+        lon: coordinates.longitude,
+        lat: coordinates.latitude,
+      );
       await _mapController?.animateCamera(
-        CameraUpdate.newLatLngZoom(target, _selectedCity.isGeneral ? 14 : 16),
+        center: target,
+        zoom: _selectedCity.isGeneral ? 14 : 16,
+        nativeDuration: const Duration(milliseconds: 600),
       );
     } on LocationSelectionException catch (error) {
       if (!mounted) return;
@@ -314,8 +347,8 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
             (_district.isNotEmpty ? _district : existing?.district ?? ''),
         state: existing?.state ?? '',
         country: existing?.country ?? 'Egypt',
-        latitude: _target.latitude,
-        longitude: _target.longitude,
+        latitude: _target.lat,
+        longitude: _target.lon,
         isDefault: existing?.isDefault ?? false,
         manualCity: resolution.serviceCityId == null
             ? existing?.manualCity
@@ -351,23 +384,102 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
     );
   }
 
-  LatLngBounds _mapBounds(CityData city) {
+  void _onMapCreated(MapController controller) async {
+    _mapController = controller;
+    await controller.moveCamera(center: _target);
+    if (!MapController.userLocationIsSupported) return;
+    try {
+      await controller.enableLocation();
+    } catch (_) {
+      // The custom location button still handles denied permissions.
+    }
+  }
+
+  void _onMapEvent(MapEvent event) {
+    if (event is MapEventMoveCamera) {
+      _target = event.camera.center;
+    } else if (event is MapEventCameraIdle) {
+      _resolveTarget();
+    }
+  }
+
+  LngLatBounds _mapBounds(CityData city) {
     final bbox = city.boundaryBbox;
     if (bbox != null && bbox.length == 4) {
-      return LatLngBounds(
-        southwest: LatLng(bbox[1], bbox[0]),
-        northeast: LatLng(bbox[3], bbox[2]),
+      return LngLatBounds(
+        longitudeWest: bbox[0],
+        latitudeSouth: bbox[1],
+        longitudeEast: bbox[2],
+        latitudeNorth: bbox[3],
       );
     }
-    return LatLngBounds(
-      southwest: const LatLng(21.5, 22),
-      northeast: const LatLng(31.8, 37),
+    if (city.centerLatitude != null &&
+        city.centerLongitude != null &&
+        city.radiusKm != null) {
+      final latitudeDelta = city.radiusKm! / 111.32;
+      final longitudeDelta =
+          city.radiusKm! /
+          (111.32 *
+              math.max(
+                math.cos(city.centerLatitude! * math.pi / 180).abs(),
+                0.01,
+              ));
+      return LngLatBounds(
+        longitudeWest: city.centerLongitude! - longitudeDelta,
+        latitudeSouth: city.centerLatitude! - latitudeDelta,
+        longitudeEast: city.centerLongitude! + longitudeDelta,
+        latitudeNorth: city.centerLatitude! + latitudeDelta,
+      );
+    }
+    return const LngLatBounds(
+      longitudeWest: 22,
+      latitudeSouth: 21.5,
+      longitudeEast: 37,
+      latitudeNorth: 31.8,
     );
   }
 
-  Set<Polygon> _cityPolygons(CityData city) {
+  Geographic? _cityCenter(CityData city) {
+    if (city.centerLatitude != null && city.centerLongitude != null) {
+      return Geographic(lon: city.centerLongitude!, lat: city.centerLatitude!);
+    }
+    final bbox = city.boundaryBbox;
+    if (bbox == null || bbox.length != 4) return null;
+    return Geographic(
+      lon: (bbox[0] + bbox[2]) / 2,
+      lat: (bbox[1] + bbox[3]) / 2,
+    );
+  }
+
+  List<Feature<Polygon>> _cityPolygons(CityData city) {
     final geojson = city.boundaryGeojson;
-    if (geojson == null) return const {};
+    if (geojson == null) {
+      final centerLatitude = city.centerLatitude;
+      final centerLongitude = city.centerLongitude;
+      final radiusKm = city.radiusKm;
+      if (centerLatitude == null ||
+          centerLongitude == null ||
+          radiusKm == null ||
+          radiusKm <= 0) {
+        return const [];
+      }
+      final longitudeScale = math.max(
+        math.cos(centerLatitude * math.pi / 180).abs(),
+        0.01,
+      );
+      final coordinates = List.generate(65, (index) {
+        final angle = 2 * math.pi * index / 64;
+        return Geographic(
+          lon:
+              centerLongitude +
+              (radiusKm / (111.32 * longitudeScale)) * math.cos(angle),
+          lat: centerLatitude + (radiusKm / 111.32) * math.sin(angle),
+        );
+      });
+      return [
+        Feature(geometry: Polygon.from([coordinates])),
+      ];
+    }
     final type = geojson['type'];
     final rawCoordinates = geojson['coordinates'];
     final rings = <List<dynamic>>[];
@@ -383,25 +495,28 @@ class _AddressMapPickerViewState extends State<AddressMapPickerView> {
         }
       }
     }
-    return {
-      for (var index = 0; index < rings.length; index++)
-        Polygon(
-          polygonId: PolygonId('city-$index'),
-          points: rings[index]
-              .whereType<List>()
-              .where((coordinate) => coordinate.length >= 2)
-              .map(
-                (coordinate) => LatLng(
-                  (coordinate[1] as num).toDouble(),
-                  (coordinate[0] as num).toDouble(),
-                ),
-              )
-              .toList(growable: false),
-          fillColor: const Color(0x1A5B8DEF),
-          strokeColor: const Color(0xFF4477CC),
-          strokeWidth: 2,
-        ),
-    };
+    return rings
+        .map(_polygonFeature)
+        .whereType<Feature<Polygon>>()
+        .toList(growable: false);
+  }
+
+  Feature<Polygon>? _polygonFeature(List<dynamic> ring) {
+    final coordinates = ring
+        .whereType<List>()
+        .where((coordinate) => coordinate.length >= 2)
+        .map(
+          (coordinate) => Geographic(
+            lon: (coordinate[0] as num).toDouble(),
+            lat: (coordinate[1] as num).toDouble(),
+          ),
+        )
+        .toList();
+    if (coordinates.length < 3) return null;
+    if (coordinates.first != coordinates.last) {
+      coordinates.add(coordinates.first);
+    }
+    return Feature(geometry: Polygon.from([coordinates]));
   }
 }
 

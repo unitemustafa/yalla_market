@@ -231,7 +231,7 @@ class AddressData {
   }
 
   Map<String, Object?> toApiJson() {
-    return {
+    final payload = <String, Object?>{
       'name': name,
       'details': street,
       'service_city_id': serviceCityId,
@@ -256,6 +256,12 @@ class AddressData {
       'governorate': governorate,
       'district': district,
     };
+    if (latitude == null || longitude == null) {
+      payload
+        ..remove('latitude')
+        ..remove('longitude');
+    }
+    return payload;
   }
 
   AddressData copyWith({

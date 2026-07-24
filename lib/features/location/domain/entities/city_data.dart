@@ -54,6 +54,7 @@ class CityData {
     this.boundaryBbox,
     this.centerLatitude,
     this.centerLongitude,
+    this.radiusKm,
   });
 
   final String name;
@@ -65,6 +66,7 @@ class CityData {
   final List<double>? boundaryBbox;
   final double? centerLatitude;
   final double? centerLongitude;
+  final double? radiusKm;
 
   static const generalSlug = 'general';
 
@@ -112,6 +114,7 @@ class CityData {
       boundaryBbox: boundaryBbox,
       centerLatitude: centerLatitude,
       centerLongitude: centerLongitude,
+      radiusKm: radiusKm,
     );
   }
 
@@ -152,6 +155,7 @@ class CityData {
       boundaryBbox: _doubleListFromJson(json['boundary_bbox']),
       centerLatitude: _doubleFromJson(json['center_latitude']),
       centerLongitude: _doubleFromJson(json['center_longitude']),
+      radiusKm: _doubleFromJson(json['radius_km']),
     );
   }
 

@@ -24,11 +24,13 @@ class AddNewAddressView extends StatefulWidget {
   const AddNewAddressView({
     super.key,
     this.address,
+    this.initialCoordinates,
     this.locationDataSource,
     this.getDeliveryAreas,
   });
 
   final AddressEntry? address;
+  final DeviceCoordinates? initialCoordinates;
   final DeviceLocationDataSource? locationDataSource;
   final GetDeliveryAreasUseCase? getDeliveryAreas;
 
@@ -259,8 +261,10 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       city: isServiceCity ? region.name : manualCity ?? '',
       state: '',
       country: '',
-      latitude: existingAddress?.latitude,
-      longitude: existingAddress?.longitude,
+      latitude:
+          existingAddress?.latitude ?? widget.initialCoordinates?.latitude,
+      longitude:
+          existingAddress?.longitude ?? widget.initialCoordinates?.longitude,
       isDefault: existingAddress?.isDefault ?? false,
       manualCity: manualCity,
       manualArea: manualArea,

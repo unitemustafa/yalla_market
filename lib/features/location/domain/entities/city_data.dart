@@ -49,6 +49,9 @@ class CityData {
     required this.slug,
     this.nameAr,
     this.serviceCityId,
+    this.centerLatitude,
+    this.centerLongitude,
+    this.radiusKm,
     this.source = RegionSource.manual,
   });
 
@@ -56,6 +59,9 @@ class CityData {
   final String slug;
   final String? nameAr;
   final int? serviceCityId;
+  final double? centerLatitude;
+  final double? centerLongitude;
+  final double? radiusKm;
   final RegionSource source;
 
   static const generalSlug = 'general';
@@ -99,6 +105,9 @@ class CityData {
       slug: slug,
       nameAr: nameAr,
       serviceCityId: serviceCityId,
+      centerLatitude: centerLatitude,
+      centerLongitude: centerLongitude,
+      radiusKm: radiusKm,
       source: source,
     );
   }
@@ -108,6 +117,9 @@ class CityData {
       name: name,
       slug: generalSlug,
       nameAr: nameAr,
+      centerLatitude: centerLatitude,
+      centerLongitude: centerLongitude,
+      radiusKm: radiusKm,
       source: RegionSource.general,
     );
   }
@@ -126,6 +138,9 @@ class CityData {
       nameAr: (json['name_ar'] as String?)?.trim(),
       slug: (json['slug'] as String? ?? '').trim().toLowerCase(),
       serviceCityId: _intFromJson(json['id'] ?? json['service_city_id']),
+      centerLatitude: _doubleFromJson(json['center_latitude']),
+      centerLongitude: _doubleFromJson(json['center_longitude']),
+      radiusKm: _doubleFromJson(json['radius_km']),
     );
   }
 
@@ -136,6 +151,9 @@ class CityData {
       name: name,
       slug: id?.toString() ?? _customSlug(name),
       serviceCityId: id,
+      centerLatitude: _doubleFromJson(json['center_latitude']),
+      centerLongitude: _doubleFromJson(json['center_longitude']),
+      radiusKm: _doubleFromJson(json['radius_km']),
     );
   }
 
@@ -554,5 +572,11 @@ int? _intFromJson(Object? value) {
   if (value is int) return value;
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
+  return null;
+}
+
+double? _doubleFromJson(Object? value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
   return null;
 }

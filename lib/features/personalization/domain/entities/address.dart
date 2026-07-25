@@ -166,7 +166,7 @@ class AddressData {
   }
 
   Map<String, Object?> toApiJson() {
-    return {
+    final payload = <String, Object?>{
       'name': name,
       'details': street,
       'service_city_id': serviceCityId,
@@ -175,6 +175,15 @@ class AddressData {
       'manual_area': manualArea,
       'is_default': isDefault,
     };
+    if (latitude != null && longitude != null) {
+      payload['latitude'] = _coordinateForApi(latitude!);
+      payload['longitude'] = _coordinateForApi(longitude!);
+    }
+    return payload;
+  }
+
+  static String _coordinateForApi(double value) {
+    return value.toStringAsFixed(7);
   }
 
   AddressData copyWith({

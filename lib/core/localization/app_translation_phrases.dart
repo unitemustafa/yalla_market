@@ -2,6 +2,13 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Confirm delivery location': 'تأكيد موقع التوصيل',
+    'Continue with this location': 'كمّل بالموقع ده',
+    'Your current location is selected. Move the map to adjust it.':
+        'موقعك الحالي متحدد. حرّك الخريطة لو محتاج تعدّله.',
+    'Location selected manually.': 'تم تحديد الموقع يدويًا.',
+    'Current location is unavailable. Move the map to choose it manually.':
+        'تعذر تحديد موقعك الحالي. حرّك الخريطة وحدده يدويًا.',
     'Too many requests. Try again later.':
         'طلبات كتير في وقت قصير. استنى شوية وحاول تاني.',
     'Share product': 'مشاركة المنتج',

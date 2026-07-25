@@ -10,10 +10,12 @@ import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../domain/entities/address.dart';
 import '../../../../location/data/datasources/device_location_data_source.dart';
+import '../../../../location/domain/entities/city_data.dart';
 import '../../../domain/usecases/delivery_area_usecases.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_display_text.dart';
+import 'address_location_picker_view.dart';
 import 'address_region_matcher.dart';
 import 'add_new_address_view.dart';
 import 'widgets/single_address.dart';
@@ -58,16 +60,46 @@ class _AddressesViewState extends State<AddressesView>
     BuildContext context, {
     AddressData? address,
   }) async {
+    DeviceCoordinates? coordinates;
+    if (address == null) {
+      final selectedCity = context.read<LocationCubit>().state.selectedCity;
+      coordinates = await Navigator.push<DeviceCoordinates>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AddressLocationPickerView(
+            locationDataSource: sl<DeviceLocationDataSource>(),
+            fallbackCoordinates: _fallbackCoordinates(selectedCity),
+          ),
+        ),
+      );
+      if (coordinates == null || !context.mounted) return;
+    }
+
     await Navigator.push<AddressData>(
       context,
       MaterialPageRoute(
         builder: (_) => AddNewAddressView(
           address: address,
+          initialCoordinates: coordinates,
           locationDataSource: sl<DeviceLocationDataSource>(),
           getDeliveryAreas: sl<GetDeliveryAreasUseCase>(),
         ),
       ),
     );
+  }
+
+  DeviceCoordinates _fallbackCoordinates(CityData? city) {
+    final latitude = city?.centerLatitude;
+    final longitude = city?.centerLongitude;
+    if (latitude != null &&
+        longitude != null &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180) {
+      return DeviceCoordinates(latitude, longitude);
+    }
+    return const DeviceCoordinates(30.0444, 31.2357);
   }
 
   Future<void> _deleteAddress(BuildContext context, AddressData address) async {

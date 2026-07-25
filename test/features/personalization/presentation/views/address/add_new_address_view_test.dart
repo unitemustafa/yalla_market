@@ -7,6 +7,7 @@ import 'package:yalla_market/features/personalization/domain/repositories/addres
 import 'package:yalla_market/features/personalization/domain/usecases/address_usecases.dart';
 import 'package:yalla_market/features/personalization/presentation/cubit/address_cubit.dart';
 import 'package:yalla_market/features/personalization/presentation/views/address/add_new_address_view.dart';
+import 'package:yalla_market/features/location/data/datasources/device_location_data_source.dart';
 
 void main() {
   testWidgets('saves a general address without GPS coordinates', (
@@ -42,6 +43,36 @@ void main() {
     expect(saved.deliveryAreaId, isNull);
     expect(saved.manualCity, 'Mansoura');
     expect(saved.manualArea, 'University District');
+  });
+
+  testWidgets('saves a new address with the confirmed map coordinates', (
+    tester,
+  ) async {
+    final repository = _FakeAddressRepository();
+    await tester.pumpWidget(
+      MaterialApp(
+        home: BlocProvider(
+          create: (_) => AddressCubit(_addressUseCases(repository)),
+          child: const AddNewAddressView(
+            initialCoordinates: DeviceCoordinates(30.0444, 31.2357),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextFormField);
+    await tester.enterText(fields.at(0), 'Home');
+    await tester.enterText(fields.at(2), '12 Tahrir St');
+    await tester.enterText(fields.at(3), 'Cairo');
+    await tester.enterText(fields.at(4), 'Downtown');
+
+    await tester.ensureVisible(find.text('Save'));
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(repository.lastSavedAddress?.latitude, 30.0444);
+    expect(repository.lastSavedAddress?.longitude, 31.2357);
   });
 }
 

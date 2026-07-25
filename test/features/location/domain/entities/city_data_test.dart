@@ -45,6 +45,22 @@ void main() {
       expect(CityData.fromCustomName('')?.slug, isNull);
     });
 
+    test('parses service city map fallback coordinates', () {
+      final city = CityData.fromServiceCityJson({
+        'id': 12,
+        'name': 'Mansoura',
+        'center_latitude': '31.0409000',
+        'center_longitude': 31.3785,
+        'radius_km': '18.50',
+      });
+
+      expect(city.serviceCityId, 12);
+      expect(city.centerLatitude, 31.0409);
+      expect(city.centerLongitude, 31.3785);
+      expect(city.radiusKm, 18.5);
+      expect(city.withSource(RegionSource.gps).centerLatitude, 31.0409);
+    });
+
     test('cleans governorate suffixes from display names', () {
       expect(CityData.cleanRegionName('Dakahlia Governorate'), 'Dakahlia');
       expect(CityData.cleanRegionName('محافظة الدقهلية'), 'الدقهلية');

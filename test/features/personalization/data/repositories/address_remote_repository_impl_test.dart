@@ -48,6 +48,8 @@ void main() {
         'manual_city': null,
         'manual_area': null,
         'is_default': sampleAddress.isDefault,
+        'latitude': '30.0444000',
+        'longitude': '31.2357000',
       });
       result.when(
         success: (addresses) => expect(addresses.single.id, 'address_1'),
@@ -83,6 +85,31 @@ void main() {
       );
       expect(body.containsKey('latitude'), isFalse);
       expect(body.containsKey('longitude'), isFalse);
+    });
+
+    test('rounds GPS coordinates to the backend precision', () async {
+      late Map<String, Object?> body;
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'POST');
+        body = request.data! as Map<String, Object?>;
+        return [_apiAddressPayload];
+      });
+      final repository = AddressRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.saveAddress(
+        sampleAddress.copyWith(
+          id: '',
+          latitude: 30.123456789123,
+          longitude: 31.987654321987,
+        ),
+      );
+
+      result.when(
+        success: (addresses) => expect(addresses, isNotEmpty),
+        failure: (failure) => fail(failure.message),
+      );
+      expect(body['latitude'], '30.1234568');
+      expect(body['longitude'], '31.9876543');
     });
 
     test(

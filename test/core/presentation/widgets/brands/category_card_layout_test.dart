@@ -59,7 +59,7 @@ void main() {
     );
 
     expect(tester.takeException(), isNull);
-    expect(tester.getSize(find.byType(AppImage)), const Size(58, 38));
+    expect(tester.getSize(find.byType(AppImage)), const Size(64, 72));
   });
 
   testWidgets('four popular categories fit fully on a narrow screen', (

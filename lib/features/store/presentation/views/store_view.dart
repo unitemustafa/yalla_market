@@ -5,8 +5,9 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
-import '../../../../core/presentation/widgets/brands/brand_card.dart';
+import '../../../../core/presentation/widgets/brands/category_tile.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
+import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
@@ -592,42 +593,32 @@ class _FeaturedCategoriesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const spacing = 12.0;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final halfWidth = (constraints.maxWidth - spacing) / 2;
-        return Wrap(
-          spacing: spacing,
-          runSpacing: spacing,
-          children: List.generate(categories.length, (index) {
-            final category = categories[index];
-            final isOddLast =
-                categories.length.isOdd && index == categories.length - 1;
-            return SizedBox(
-              key: ValueKey('featured_category_${category.id}'),
-              width: isOddLast ? constraints.maxWidth : halfWidth,
-              height: 92,
-              child: BrandCard(
-                showBorder: true,
+    return GridLayout(
+      itemCount: categories.length,
+      mainAxisExtent: 148,
+      minimumCardWidth: 94,
+      minCrossAxisCount: 3,
+      maxCrossAxisCount: 5,
+      itemBuilder: (context, index) {
+        final category = categories[index];
+        return CategoryTile(
+          key: ValueKey('featured_category_${category.id}'),
+          name: category.name,
+          countLabel: category.marketCountLabel,
+          image: category.image,
+          accentColor: Color(category.accentColorValue),
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.brandProducts,
+              arguments: BrandProductsRouteArgs(
                 brand: category.name,
-                productCount: category.marketCountLabel,
                 logo: category.image,
-                accentColor: Color(category.accentColorValue),
-                onTap: () {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.brandProducts,
-                    arguments: BrandProductsRouteArgs(
-                      brand: category.name,
-                      logo: category.image,
-                      productCount: category.marketCountLabel,
-                      classificationId: category.id,
-                    ),
-                  );
-                },
+                productCount: category.marketCountLabel,
+                classificationId: category.id,
               ),
             );
-          }),
+          },
         );
       },
     );

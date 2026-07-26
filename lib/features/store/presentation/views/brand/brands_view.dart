@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
-import '../../../../../core/presentation/widgets/brands/brand_card.dart';
+import '../../../../../core/presentation/widgets/brands/category_tile.dart';
 import '../../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
@@ -95,21 +95,20 @@ class _AllCategoriesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridLayout(
       itemCount: categories.length,
-      mainAxisExtent: 92,
-      minimumCardWidth: 150,
-      minCrossAxisCount: 1,
-      maxCrossAxisCount: 4,
+      mainAxisExtent: 148,
+      minimumCardWidth: 94,
+      minCrossAxisCount: 3,
+      maxCrossAxisCount: 5,
       itemBuilder: (context, index) {
         final category = categories[index];
         final countLabel = category.marketCount == null
             ? category.productCountLabel
             : category.marketCountLabel;
-        return BrandCard(
+        return CategoryTile(
           key: ValueKey('all_category_${category.id}'),
-          showBorder: true,
-          brand: category.name,
-          productCount: countLabel,
-          logo: category.image,
+          name: category.name,
+          countLabel: countLabel,
+          image: category.image,
           accentColor: Color(category.accentColorValue),
           onTap: () {
             Navigator.pushNamed(

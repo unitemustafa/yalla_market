@@ -144,6 +144,27 @@ void main() {
       expect(product.attributes.single.options.single.value, 'رجالي');
     });
 
+    test('parses the assigned store subcategory and translations', () {
+      final product = ProductData.fromJson({
+        'id': 7,
+        'name': 'Juice',
+        'subcategory': {
+          'id': 12,
+          'name_ar': 'مشروبات',
+          'name_en': 'Drinks',
+          'description_ar': 'كل المشروبات',
+          'description_en': '',
+          'is_active': false,
+        },
+      });
+
+      expect(product.subcategoryId, '12');
+      expect(product.subcategory?.localizedName('ar'), 'مشروبات');
+      expect(product.subcategory?.localizedName('en'), 'Drinks');
+      expect(product.subcategory?.localizedDescription('en'), 'كل المشروبات');
+      expect(product.toJson()['subcategoryId'], '12');
+    });
+
     test('parses flat Django product detail variant attributes', () {
       final variant = ProductVariantData.fromJson({
         'id': 14,

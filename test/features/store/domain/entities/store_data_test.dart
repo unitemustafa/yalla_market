@@ -20,6 +20,31 @@ void main() {
         'image': '/media/markets/fresh-market.webp',
         'is_popular': true,
         'created_at': '2026-07-13T12:00:00Z',
+        'subcategories': [
+          {
+            'id': 2,
+            'name_ar': 'مشروبات',
+            'name_en': 'Drinks',
+            'description_ar': 'باردة وساخنة',
+            'description_en': '',
+            'sort_order': 2,
+            'is_active': true,
+          },
+          {
+            'id': 1,
+            'name_ar': 'مخبوزات',
+            'name_en': 'Bakery',
+            'sort_order': 1,
+            'is_active': true,
+          },
+          {
+            'id': 3,
+            'name_ar': 'مخفية',
+            'name_en': 'Hidden',
+            'sort_order': 0,
+            'is_active': false,
+          },
+        ],
         'products': [_marketProduct()],
       });
 
@@ -36,6 +61,12 @@ void main() {
       expect(market.products.single.title, 'Red Apple');
       expect(market.products.single.brand, 'Fresh Market');
       expect(market.products.single.marketId, '9');
+      expect(market.subcategories.map((item) => item.id), ['1', '2']);
+      expect(market.subcategories.last.localizedName('en'), 'Drinks');
+      expect(
+        market.subcategories.last.localizedDescription('en'),
+        'باردة وساخنة',
+      );
     });
 
     test('gives featured categories priority in the four display slots', () {

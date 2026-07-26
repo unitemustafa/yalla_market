@@ -126,6 +126,7 @@ class StoreMarketData {
     required this.status,
     required this.classificationId,
     required this.products,
+    this.subcategories = const [],
     required this.image,
     required this.accentColorValue,
     this.isPopular = false,
@@ -138,6 +139,7 @@ class StoreMarketData {
   final String status;
   final String classificationId;
   final List<ProductData> products;
+  final List<StoreSubcategoryData> subcategories;
   final String image;
   final int accentColorValue;
   final bool isPopular;
@@ -151,6 +153,15 @@ class StoreMarketData {
         .map((product) => _productFromMarketJson(product, json))
         .map(ProductData.fromJson)
         .toList(growable: false);
+    final subcategories =
+        _jsonList(json['subcategories'])
+            .map(StoreSubcategoryData.fromJson)
+            .where((item) => item.id.isNotEmpty && item.isActive)
+            .toList(growable: false)
+          ..sort((first, second) {
+            final order = first.sortOrder.compareTo(second.sortOrder);
+            return order != 0 ? order : first.id.compareTo(second.id);
+          });
 
     return StoreMarketData(
       id: id,
@@ -159,6 +170,7 @@ class StoreMarketData {
       status: json['status']?.toString() ?? '',
       classificationId: classificationId,
       products: products,
+      subcategories: List.unmodifiable(subcategories),
       image: _resolveImage(json['image']),
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
       isPopular: json['is_popular'] == true,
@@ -174,6 +186,7 @@ class StoreMarketData {
       status: status,
       classificationId: classificationId,
       products: products,
+      subcategories: subcategories,
       image: image,
       accentColorValue: accentColorValue,
       isPopular: isPopular,

@@ -28,7 +28,7 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
 
   @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
-    final key = 'store.${await _scope()}';
+    final key = 'store.v2.${await _scope()}';
     final cached = await _cache?.read(key);
     final cachedStore = _storeFromCache(cached);
 

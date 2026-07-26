@@ -133,6 +133,66 @@ class ProductAdditionData {
   }
 }
 
+class StoreSubcategoryData {
+  const StoreSubcategoryData({
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    this.descriptionAr = '',
+    this.descriptionEn = '',
+    this.image = '',
+    this.isActive = true,
+    this.sortOrder = 0,
+  });
+
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String descriptionAr;
+  final String descriptionEn;
+  final String image;
+  final bool isActive;
+  final int sortOrder;
+
+  factory StoreSubcategoryData.fromJson(Map<String, dynamic> json) {
+    return StoreSubcategoryData(
+      id: json['id']?.toString() ?? '',
+      nameAr: json['name_ar']?.toString().trim() ?? '',
+      nameEn: json['name_en']?.toString().trim() ?? '',
+      descriptionAr: json['description_ar']?.toString().trim() ?? '',
+      descriptionEn: json['description_en']?.toString().trim() ?? '',
+      image: _resolveImage(json['image'], fallback: false),
+      isActive: _boolFromJson(json['is_active']) ?? true,
+      sortOrder: _intFromJson(json['sort_order']) ?? 0,
+    );
+  }
+
+  String localizedName(String languageCode) {
+    if (languageCode.toLowerCase().startsWith('ar')) {
+      return nameAr.isNotEmpty ? nameAr : nameEn;
+    }
+    return nameEn.isNotEmpty ? nameEn : nameAr;
+  }
+
+  String localizedDescription(String languageCode) {
+    if (languageCode.toLowerCase().startsWith('ar')) {
+      return descriptionAr.isNotEmpty ? descriptionAr : descriptionEn;
+    }
+    return descriptionEn.isNotEmpty ? descriptionEn : descriptionAr;
+  }
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name_ar': nameAr,
+    'name_en': nameEn,
+    'description_ar': descriptionAr,
+    'description_en': descriptionEn,
+    'image': image,
+    'is_active': isActive,
+    'sort_order': sortOrder,
+  };
+}
+
 class ProductData {
   const ProductData({
     required this.id,
@@ -155,6 +215,8 @@ class ProductData {
     this.regionSlugs = const [],
     this.regionNames = const [],
     this.categoryId,
+    this.subcategoryId,
+    this.subcategory,
     this.marketId,
     this.marketClassificationId,
     this.variants = const [],
@@ -187,6 +249,8 @@ class ProductData {
   final List<String> regionSlugs;
   final List<String> regionNames;
   final String? categoryId;
+  final String? subcategoryId;
+  final StoreSubcategoryData? subcategory;
   final String? marketId;
   final String? marketClassificationId;
   final List<ProductVariantData> variants;
@@ -230,6 +294,7 @@ class ProductData {
   factory ProductData.fromJson(Map<String, dynamic> json) {
     final tags = _stringList(json['tags']);
     final category = _mapFromJson(json['category']);
+    final subcategory = _mapFromJson(json['subcategory']);
     final market = _mapFromJson(json['market']);
     final variants = json['variants'] is List
         ? json['variants'] as List
@@ -280,6 +345,13 @@ class ProductData {
           json['categoryId']?.toString() ??
           json['category_id']?.toString() ??
           category?['id']?.toString(),
+      subcategoryId:
+          json['subcategoryId']?.toString() ??
+          json['subcategory_id']?.toString() ??
+          subcategory?['id']?.toString(),
+      subcategory: subcategory == null
+          ? null
+          : StoreSubcategoryData.fromJson(subcategory),
       marketId:
           json['marketId']?.toString() ??
           json['market_id']?.toString() ??
@@ -337,6 +409,8 @@ class ProductData {
       'regionSlugs': regionSlugs,
       'regionNames': regionNames,
       'categoryId': categoryId,
+      'subcategoryId': subcategoryId,
+      'subcategory': subcategory?.toJson(),
       'marketId': marketId,
       'marketClassificationId': marketClassificationId,
       'variants': variants.map((variant) => variant.toJson()).toList(),

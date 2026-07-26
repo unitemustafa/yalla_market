@@ -25,6 +25,17 @@ import '../../widgets/store_market_card.dart';
 
 part 'brand_products_widgets.dart';
 
+List<ProductData> productsForStoreSubcategory(
+  List<ProductData> products,
+  String? subcategoryId,
+) {
+  final selected = subcategoryId?.trim() ?? '';
+  if (selected.isEmpty) return List.unmodifiable(products);
+  return products
+      .where((product) => product.subcategoryId == selected)
+      .toList(growable: false);
+}
+
 class BrandProductsView extends StatefulWidget {
   const BrandProductsView({
     super.key,
@@ -48,12 +59,22 @@ class BrandProductsView extends StatefulWidget {
 }
 
 class _BrandProductsViewState extends State<BrandProductsView> {
+  String? _selectedSubcategoryId;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) context.read<StoreCubit>().loadStore();
     });
+  }
+
+  @override
+  void didUpdateWidget(covariant BrandProductsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.marketId != widget.marketId) {
+      _selectedSubcategoryId = null;
+    }
   }
 
   Future<void> _refreshContent() async {
@@ -303,6 +324,19 @@ class _BrandProductsViewState extends State<BrandProductsView> {
       if (classification != null) classification.name,
       if (market.branch.trim().isNotEmpty) market.branch,
     ].join(' • ');
+    final languageCode = Localizations.localeOf(context).languageCode;
+    final categories = market.subcategories;
+    final selectedId =
+        categories.any((category) => category.id == _selectedSubcategoryId)
+        ? _selectedSubcategoryId
+        : null;
+    final products = productsForStoreSubcategory(market.products, selectedId);
+    final selectedCategory = selectedId == null
+        ? null
+        : categories.firstWhere((category) => category.id == selectedId);
+    final categoryDescription = selectedCategory?.localizedDescription(
+      languageCode,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -312,12 +346,103 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           subtitle: subtitle.isEmpty ? market.productCountLabel : subtitle,
         ),
         const SizedBox(height: 18),
+        if (categories.isNotEmpty) ...[
+          SizedBox(
+            height: 78,
+            child: ListView.separated(
+              key: const ValueKey('store_subcategory_rail'),
+              scrollDirection: Axis.horizontal,
+              itemCount: categories.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final category = index == 0 ? null : categories[index - 1];
+                final isSelected = category?.id == selectedId;
+                final label = category == null
+                    ? (languageCode.startsWith('ar') ? 'الكل' : 'All')
+                    : category.localizedName(languageCode);
+                return InkWell(
+                  key: ValueKey(
+                    category == null
+                        ? 'store_subcategory_all'
+                        : 'store_subcategory_${category.id}',
+                  ),
+                  borderRadius: BorderRadius.circular(14),
+                  onTap: () =>
+                      setState(() => _selectedSubcategoryId = category?.id),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 108,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? AppColors.primary
+                          : Theme.of(context).cardColor,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: isSelected
+                            ? AppColors.primary
+                            : Theme.of(context).dividerColor,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        if (category?.image.isNotEmpty == true) ...[
+                          AppImage(
+                            source: category!.image,
+                            width: 28,
+                            height: 28,
+                            borderRadius: BorderRadius.circular(8),
+                            fallbackType: AppImagePlaceholderType.category,
+                          ),
+                          const SizedBox(width: 7),
+                        ],
+                        Flexible(
+                          child: Text(
+                            label,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: isSelected ? Colors.white : null,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          if (categoryDescription?.isNotEmpty == true) ...[
+            const SizedBox(height: 8),
+            Text(
+              categoryDescription!,
+              key: const ValueKey('store_subcategory_description'),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          const SizedBox(height: 14),
+        ],
         ProductResultsView(
-          products: market.products,
+          key: ValueKey('store_products_${selectedId ?? 'all'}'),
+          products: products,
           status: ProductResultsStatus.ready,
           onRetry: () => context.read<StoreCubit>().loadStore(force: true),
-          emptyTitle: 'No products available',
-          emptyMessage: 'Products will appear here once this store is ready.',
+          emptyTitle: selectedCategory == null
+              ? 'No products available'
+              : 'No products in this section',
+          emptyMessage: selectedCategory == null
+              ? 'Products will appear here once this store is ready.'
+              : 'Try another section or choose All.',
         ),
       ],
     );

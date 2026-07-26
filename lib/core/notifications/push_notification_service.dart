@@ -29,6 +29,8 @@ const productUpdatesChannelId = 'product_updates';
 const productUpdatesChannelName = 'المنتجات الجديدة';
 const offerUpdatesChannelId = 'offer_updates';
 const offerUpdatesChannelName = 'العروض الجديدة';
+const partnerUpdatesChannelId = 'partner_updates';
+const partnerUpdatesChannelName = 'تحديثات الشراكة';
 const accountRestoredTitle = 'تم استعادة حسابك';
 const accountRestoredMessage = 'تم استعادة حسابك بواسطة فريق دعم يلا ماركت.';
 
@@ -76,6 +78,8 @@ abstract interface class AccountNotificationPresenter {
   Future<void> showProductCreated(Map<String, dynamic> data);
 
   Future<void> showOfferCreated(Map<String, dynamic> data);
+
+  Future<void> showPartnerApplicationApproved(Map<String, dynamic> data);
 }
 
 class FlutterAccountNotificationPresenter
@@ -143,6 +147,16 @@ class FlutterAccountNotificationPresenter
         enableVibration: true,
       );
 
+  static const AndroidNotificationChannel _partnerChannel =
+      AndroidNotificationChannel(
+        partnerUpdatesChannelId,
+        partnerUpdatesChannelName,
+        description: 'إشعارات الموافقة على طلبات الشراكة',
+        importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
+      );
+
   @override
   Future<void> initialize(
     Future<void> Function(Map<String, dynamic> data) onTap,
@@ -179,6 +193,7 @@ class FlutterAccountNotificationPresenter
     await androidPlugin?.createNotificationChannel(_storeChannel);
     await androidPlugin?.createNotificationChannel(_productChannel);
     await androidPlugin?.createNotificationChannel(_offerChannel);
+    await androidPlugin?.createNotificationChannel(_partnerChannel);
   }
 
   @override
@@ -361,6 +376,43 @@ class FlutterAccountNotificationPresenter
       payload: jsonEncode(data),
     );
   }
+
+  @override
+  Future<void> showPartnerApplicationApproved(Map<String, dynamic> data) async {
+    final notificationId = int.tryParse(
+      data['notification_id']?.toString() ?? '',
+    );
+    final title = data['title']?.toString().trim() ?? '';
+    final message = data['message']?.toString().trim() ?? '';
+    if (title.isEmpty && message.isEmpty) return;
+
+    await _plugin.show(
+      id:
+          notificationId ??
+          Object.hash(title, message, data['partner_application_id']) &
+              0x7fffffff,
+      title: title.isEmpty ? 'تم قبول طلب الشراكة' : title,
+      body: message.isEmpty ? null : message,
+      notificationDetails: const NotificationDetails(
+        android: AndroidNotificationDetails(
+          partnerUpdatesChannelId,
+          partnerUpdatesChannelName,
+          channelDescription: 'إشعارات الموافقة على طلبات الشراكة',
+          importance: Importance.high,
+          priority: Priority.high,
+          icon: 'ic_notification',
+          playSound: true,
+          enableVibration: true,
+        ),
+        iOS: DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
+      ),
+      payload: jsonEncode(data),
+    );
+  }
 }
 
 class PushNotificationService {
@@ -391,6 +443,7 @@ class PushNotificationService {
   final Set<String> _displayedMarketNotifications = <String>{};
   final Set<String> _displayedProductNotifications = <String>{};
   final Set<String> _displayedOfferNotifications = <String>{};
+  final Set<String> _displayedPartnerNotifications = <String>{};
   final List<PushEvent> _pendingInitialOpenedEvents = <PushEvent>[];
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   StreamSubscription<RemoteMessage>? _openedMessageSubscription;
@@ -595,6 +648,18 @@ class PushNotificationService {
         }
       }
     }
+    if (event == 'partner_application_approved' && !opened) {
+      final key = _partnerNotificationKey(data);
+      if (_displayedPartnerNotifications.add(key)) {
+        try {
+          await _accountNotificationPresenter.showPartnerApplicationApproved(
+            data,
+          );
+        } catch (error, stackTrace) {
+          _debugPushError('partner-approved display', error, stackTrace);
+        }
+      }
+    }
     _events.add(PushEvent(data, opened: opened));
   }
 
@@ -620,6 +685,18 @@ class PushNotificationService {
       return 'message:$messageId';
     }
     return 'product:${data['product_id']}:${data['dispatch_id']}';
+  }
+
+  String _partnerNotificationKey(Map<String, dynamic> data) {
+    final notificationId = data['notification_id']?.toString().trim();
+    if (notificationId != null && notificationId.isNotEmpty) {
+      return 'notification:$notificationId';
+    }
+    final messageId = data['_fcm_message_id']?.toString().trim();
+    if (messageId != null && messageId.isNotEmpty) {
+      return 'message:$messageId';
+    }
+    return 'partner:${data['partner_application_id']}:${data['status']}';
   }
 
   String _marketNotificationKey(Map<String, dynamic> data) {

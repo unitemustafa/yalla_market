@@ -296,6 +296,15 @@ class _AppCoordinatorState extends State<_AppCoordinator>
       await notifications.refreshNotifications();
     }
 
+    if (event == 'partner_application_approved') {
+      if (pushEvent.opened) {
+        AppNavigator.key.currentState?.pushNamed(AppRoutes.notifications);
+      } else {
+        await _showForegroundBanner(data);
+      }
+      return;
+    }
+
     if (event == 'delivery_area_created') {
       await presentDeliveryAreaCreatedFeedback(
         pushEvent: pushEvent,

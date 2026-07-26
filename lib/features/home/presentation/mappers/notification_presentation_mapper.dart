@@ -78,6 +78,13 @@ class NotificationPresentationMapper {
           icon: AppIcons.shop,
           color: AppColors.success,
         );
+      case 'partner_application_approved':
+        return NotificationPresentationData(
+          localizedTitle: notification.title,
+          localizedMessage: notification.message,
+          icon: AppIcons.tick_circle,
+          color: AppColors.success,
+        );
     }
 
     return NotificationPresentationData(

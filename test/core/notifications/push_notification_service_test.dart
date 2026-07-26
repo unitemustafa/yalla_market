@@ -225,6 +225,32 @@ void main() {
     expect(restoredNotifier.value, isTrue);
   });
 
+  test('partner approval foreground notification is shown once', () async {
+    final presenter = FakeAccountNotificationPresenter();
+    final service = PushNotificationService(
+      FakeApiClient((_) => null),
+      InMemoryTokenStore(),
+      accountNotificationPresenter: presenter,
+    );
+    final data = <String, dynamic>{
+      'event': 'partner_application_approved',
+      'notification_id': '96',
+      'partner_application_id': '31',
+      'status': 'approved',
+      'title': 'تم قبول طلب الشراكة',
+      'message': 'مبروك! تمت الموافقة على طلب الشراكة.',
+    };
+    final eventFuture = service.events.first;
+
+    await service.handleDataForTesting(data, opened: false);
+    await service.handleDataForTesting(data, opened: false);
+
+    final event = await eventFuture;
+    expect(event.opened, isFalse);
+    expect(event.data['partner_application_id'], '31');
+    expect(presenter.partnerApprovalsShown, hasLength(1));
+  });
+
   test('account_restored notification tap emits one login event', () async {
     final presenter = FakeAccountNotificationPresenter();
     final service = PushNotificationService(
@@ -319,6 +345,7 @@ class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   final List<Map<String, dynamic>> marketsShown = [];
   final List<Map<String, dynamic>> productsShown = [];
   final List<Map<String, dynamic>> offersShown = [];
+  final List<Map<String, dynamic>> partnerApprovalsShown = [];
   int initializeCalls = 0;
 
   @override
@@ -355,6 +382,11 @@ class FakeAccountNotificationPresenter implements AccountNotificationPresenter {
   @override
   Future<void> showOfferCreated(Map<String, dynamic> data) async {
     offersShown.add(Map<String, dynamic>.from(data));
+  }
+
+  @override
+  Future<void> showPartnerApplicationApproved(Map<String, dynamic> data) async {
+    partnerApprovalsShown.add(Map<String, dynamic>.from(data));
   }
 
   Future<void> tap(Map<String, dynamic> data) async {

@@ -5,6 +5,7 @@ class AppColors {
 
   // Brand
   static const Color primary = Color(0xFF013C7E);
+  static const Color splashBackground = primary;
   static const Color currency = success;
 
   // Feedback

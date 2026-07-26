@@ -342,6 +342,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Our team will review it and contact you soon.':
         'فريقنا هيراجعه ويتواصل معاك قريبًا.',
     'About Yalla Market': 'نبذة عن يلا ماركت',
+    'Everything you need in one place': 'كل احتياجاتك في مكان واحد',
     'Everything you need to know about the app':
         'كل اللي تحتاج تعرفه عن التطبيق',
     'Frequently asked questions': 'أسئلة متكررة',

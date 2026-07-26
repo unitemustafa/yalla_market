@@ -14,7 +14,8 @@ void main() {
     await tester.pumpWidget(const YallaMarketApp());
     await tester.pump();
 
-    expect(find.text('يلا ماركت'), findsOneWidget);
+    expect(find.byKey(const ValueKey('splash_brand_logo')), findsOneWidget);
+    expect(find.byKey(const ValueKey('splash_tagline')), findsOneWidget);
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

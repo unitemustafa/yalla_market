@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
@@ -24,8 +23,6 @@ class _SplashViewState extends State<SplashView>
   late final AnimationController _entranceController;
   late final Animation<double> _logoOpacity;
   late final Animation<double> _logoScale;
-  late final Animation<Offset> _taglineSlide;
-  late final Animation<double> _taglineOpacity;
   Timer? _navigationTimer;
   bool _motionPreferenceApplied = false;
 
@@ -46,17 +43,6 @@ class _SplashViewState extends State<SplashView>
         curve: const Interval(0, 0.72, curve: Curves.easeOutBack),
       ),
     );
-    _taglineOpacity = CurvedAnimation(
-      parent: _entranceController,
-      curve: const Interval(0.42, 1, curve: Curves.easeOut),
-    );
-    _taglineSlide =
-        Tween<Offset>(begin: const Offset(0, 0.22), end: Offset.zero).animate(
-          CurvedAnimation(
-            parent: _entranceController,
-            curve: const Interval(0.42, 1, curve: Curves.easeOutCubic),
-          ),
-        );
     _entranceController.forward();
     _navigationTimer = Timer(
       const Duration(milliseconds: 1500),
@@ -107,35 +93,12 @@ class _SplashViewState extends State<SplashView>
           child: Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  FadeTransition(
-                    opacity: _logoOpacity,
-                    child: ScaleTransition(
-                      scale: _logoScale,
-                      child: const _CompactSplashLogo(),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  FadeTransition(
-                    opacity: _taglineOpacity,
-                    child: SlideTransition(
-                      position: _taglineSlide,
-                      child: Text(
-                        key: const ValueKey('splash_tagline'),
-                        context.tr('Everything you need in one place'),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(
-                              color: Colors.white.withValues(alpha: 0.88),
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0,
-                            ),
-                      ),
-                    ),
-                  ),
-                ],
+              child: FadeTransition(
+                opacity: _logoOpacity,
+                child: ScaleTransition(
+                  scale: _logoScale,
+                  child: const _CompactSplashLogo(),
+                ),
               ),
             ),
           ),
@@ -156,6 +119,7 @@ class _CompactSplashLogo extends StatelessWidget {
       height: 116,
       child: ClipRect(
         child: OverflowBox(
+          alignment: const Alignment(0, -0.1),
           maxWidth: 270,
           maxHeight: 270,
           child: AppImage(

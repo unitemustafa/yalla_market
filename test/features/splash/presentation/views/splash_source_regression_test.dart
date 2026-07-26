@@ -20,13 +20,14 @@ void main() {
     expect(navigationIndex, greaterThan(syncIndex));
   });
 
-  test('splash shows the brand logo and localizes its tagline', () {
+  test('splash shows only the centered brand logo', () {
     final source = File(
       'lib/features/splash/presentation/views/splash_view.dart',
     ).readAsStringSync();
 
     expect(source, contains('source: AppAssets.homeBrandLogo'));
-    expect(source, contains("context.tr('Everything you need in one place')"));
+    expect(source, isNot(contains('splash_tagline')));
+    expect(source, isNot(contains('Everything you need in one place')));
   });
 
   test('native launcher names are Arabic on Android and iOS', () {

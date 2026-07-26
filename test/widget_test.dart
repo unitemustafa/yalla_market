@@ -15,7 +15,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const ValueKey('splash_brand_logo')), findsOneWidget);
-    expect(find.byKey(const ValueKey('splash_tagline')), findsOneWidget);
+    expect(find.byKey(const ValueKey('splash_tagline')), findsNothing);
     expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

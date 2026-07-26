@@ -114,18 +114,10 @@ class _SplashViewState extends State<SplashView>
                     opacity: _logoOpacity,
                     child: ScaleTransition(
                       scale: _logoScale,
-                      child: const AppImage(
-                        key: ValueKey('splash_brand_logo'),
-                        source: AppAssets.homeBrandLogo,
-                        width: 270,
-                        height: 270,
-                        fit: BoxFit.contain,
-                        cacheWidth: 540,
-                        cacheHeight: 540,
-                      ),
+                      child: const _CompactSplashLogo(),
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 8),
                   FadeTransition(
                     opacity: _taglineOpacity,
                     child: SlideTransition(
@@ -146,6 +138,33 @@ class _SplashViewState extends State<SplashView>
                 ],
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactSplashLogo extends StatelessWidget {
+  const _CompactSplashLogo();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      key: const ValueKey('splash_brand_logo'),
+      width: 150,
+      height: 116,
+      child: ClipRect(
+        child: OverflowBox(
+          maxWidth: 270,
+          maxHeight: 270,
+          child: AppImage(
+            source: AppAssets.homeBrandLogo,
+            width: 270,
+            height: 270,
+            fit: BoxFit.contain,
+            cacheWidth: 540,
+            cacheHeight: 540,
           ),
         ),
       ),

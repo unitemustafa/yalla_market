@@ -288,8 +288,8 @@ void main() {
       find.byKey(const ValueKey('featured_category_featured-2')),
     );
     expect(last.width, first.width);
-    expect(first.height, 136);
-    expect(last.height, 136);
+    expect(first.height, 106);
+    expect(last.height, 106);
     expect(tester.takeException(), isNull);
   });
 

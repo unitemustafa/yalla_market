@@ -595,7 +595,7 @@ class _FeaturedCategoriesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridLayout(
       itemCount: categories.length,
-      mainAxisExtent: 136,
+      mainAxisExtent: 106,
       minimumCardWidth: 72,
       minCrossAxisCount: 4,
       maxCrossAxisCount: 4,
@@ -604,7 +604,6 @@ class _FeaturedCategoriesGrid extends StatelessWidget {
         return CategoryTile(
           key: ValueKey('featured_category_${category.id}'),
           name: category.name,
-          countLabel: category.marketCountLabel,
           image: category.image,
           accentColor: Color(category.accentColorValue),
           onTap: () {

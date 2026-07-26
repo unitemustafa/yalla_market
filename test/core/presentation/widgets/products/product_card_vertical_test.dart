@@ -47,7 +47,7 @@ void main() {
           home: const Scaffold(
             body: SizedBox(
               width: 220,
-              height: 220,
+              height: 188,
               child: ProductCardVertical(
                 productId: 'backend-product-42',
                 image: AppAssets.defaultProduct,
@@ -92,6 +92,11 @@ void main() {
     final priceRect = tester.getRect(find.byType(GreenCurrencyPrice));
     final productRect = tester.getRect(find.byType(ProductCardVertical));
     final titleRect = tester.getRect(find.text('Backend product'));
+    final imageRect = tester.getRect(
+      find.byKey(const ValueKey('product_image_backend-product-42')),
+    );
+    expect(imageRect.height, 90);
+    expect(titleRect.top - imageRect.bottom, lessThanOrEqualTo(8));
     expect(priceRect.top - marketRect.bottom, lessThanOrEqualTo(6));
     expect(buttonRectBefore.top - priceRect.bottom, lessThanOrEqualTo(8));
     expect(productRect.bottom - buttonRectBefore.bottom, lessThanOrEqualTo(8));

@@ -23,7 +23,6 @@ class HomeCategories extends StatelessWidget {
         name: category.name,
         image: category.image,
         accentColor: category.color,
-        compact: true,
         onTap: () {
           Navigator.pushNamed(
             context,

@@ -1,3 +1,4 @@
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.io.FileInputStream
 import java.util.Properties
 
@@ -18,6 +19,10 @@ val hasReleaseKeystore = keystorePropertiesFile.exists()
 val requestedReleaseBuild = gradle.startParameter.taskNames.any {
     it.contains("release", ignoreCase = true)
 }
+val skipCrashlyticsMappingUpload =
+    providers.environmentVariable("SKIP_CRASHLYTICS_MAPPING_UPLOAD")
+        .orNull
+        ?.equals("true", ignoreCase = true) == true
 
 if (requestedReleaseBuild && !hasReleaseKeystore) {
     throw GradleException(
@@ -69,6 +74,9 @@ android {
         release {
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
+            }
+            configure<CrashlyticsExtension> {
+                mappingFileUploadEnabled = !skipCrashlyticsMappingUpload
             }
         }
     }

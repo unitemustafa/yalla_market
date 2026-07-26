@@ -191,7 +191,8 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                   top: Radius.circular(8),
                 ),
                 child: SizedBox(
-                  height: compact ? 68 : 88,
+                  key: ValueKey('product_image_${widget.productId}'),
+                  height: compact ? 90 : 110,
                   child: ColoredBox(
                     color: imagePanelColor,
                     child: Stack(

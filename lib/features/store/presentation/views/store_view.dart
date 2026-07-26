@@ -595,10 +595,10 @@ class _FeaturedCategoriesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridLayout(
       itemCount: categories.length,
-      mainAxisExtent: 148,
-      minimumCardWidth: 94,
-      minCrossAxisCount: 3,
-      maxCrossAxisCount: 5,
+      mainAxisExtent: 136,
+      minimumCardWidth: 72,
+      minCrossAxisCount: 4,
+      maxCrossAxisCount: 4,
       itemBuilder: (context, index) {
         final category = categories[index];
         return CategoryTile(

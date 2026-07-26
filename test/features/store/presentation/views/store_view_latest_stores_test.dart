@@ -257,7 +257,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('featured categories keep equal three-column card widths', (
+  testWidgets('featured categories keep equal four-column card widths', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(400, 820));
@@ -288,8 +288,8 @@ void main() {
       find.byKey(const ValueKey('featured_category_featured-2')),
     );
     expect(last.width, first.width);
-    expect(first.height, 148);
-    expect(last.height, 148);
+    expect(first.height, 136);
+    expect(last.height, 136);
     expect(tester.takeException(), isNull);
   });
 

@@ -15,7 +15,7 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 184;
+  static const double height = 200;
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -78,8 +78,8 @@ class StoreMarketCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 38,
-                      height: 38,
+                      width: 54,
+                      height: 54,
                       decoration: BoxDecoration(
                         color: accentColor.withValues(
                           alpha: isDark ? 0.18 : 0.10,
@@ -91,8 +91,8 @@ class StoreMarketCard extends StatelessWidget {
                         fallbackType: AppImagePlaceholderType.store,
                         fit: BoxFit.cover,
                         borderRadius: BorderRadius.circular(9),
-                        cacheWidth: 76,
-                        cacheHeight: 76,
+                        cacheWidth: 128,
+                        cacheHeight: 128,
                       ),
                     ),
                     const SizedBox(width: 8),

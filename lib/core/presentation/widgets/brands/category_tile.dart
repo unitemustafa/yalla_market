@@ -52,7 +52,7 @@ class CategoryTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: compact ? 72 : 90,
+                height: compact ? 72 : 78,
                 child: DecoratedBox(
                   decoration: BoxDecoration(
                     color: accentColor.withValues(alpha: isDark ? 0.18 : 0.09),

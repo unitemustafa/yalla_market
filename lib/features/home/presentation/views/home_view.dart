@@ -24,6 +24,7 @@ import '../../domain/entities/home_data.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../location/presentation/cubit/location_state.dart';
+import '../../../location/presentation/widgets/city_selector_sheet.dart';
 import '../../../personalization/presentation/controllers/user_profile_controller.dart';
 import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
@@ -94,6 +95,13 @@ class _HomeViewState extends State<HomeView> {
     if (mounted) await _loadHomeData(force: true);
   }
 
+  Future<void> _openCitySelector() {
+    return CitySelectorSheet.show(
+      context,
+      onCityChanged: () => _loadHomeData(force: true),
+    );
+  }
+
   void _goToSelectCity() {
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -145,7 +153,10 @@ class _HomeViewState extends State<HomeView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _HomeTopBar(isDark: isDark),
+                        _HomeTopBar(
+                          isDark: isDark,
+                          onRegionTap: _openCitySelector,
+                        ),
                         const SizedBox(height: 18),
                         _HomeSearchActionsRow(isDark: isDark),
                         const SizedBox(height: 12),
@@ -338,9 +349,10 @@ class HomeCatalogSections extends StatelessWidget {
 }
 
 class _HomeTopBar extends StatelessWidget {
-  const _HomeTopBar({required this.isDark});
+  const _HomeTopBar({required this.isDark, required this.onRegionTap});
 
   final bool isDark;
+  final VoidCallback onRegionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -377,6 +389,7 @@ class _HomeTopBar extends StatelessWidget {
                   return _HomeCustomerSummary(
                     customerName: profile.displayName,
                     regionLabel: homeRegionLabel(context, state.selectedCity),
+                    onRegionTap: onRegionTap,
                   );
                 },
               ),
@@ -408,10 +421,12 @@ class _HomeCustomerSummary extends StatelessWidget {
   const _HomeCustomerSummary({
     required this.customerName,
     required this.regionLabel,
+    required this.onRegionTap,
   });
 
   final String customerName;
   final String regionLabel;
+  final VoidCallback onRegionTap;
 
   @override
   Widget build(BuildContext context) {
@@ -444,7 +459,7 @@ class _HomeCustomerSummary extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 1),
-          _HomeRegionBadge(label: regionLabel),
+          _HomeRegionBadge(label: regionLabel, onTap: onRegionTap),
         ],
       ),
     );
@@ -452,38 +467,57 @@ class _HomeCustomerSummary extends StatelessWidget {
 }
 
 class _HomeRegionBadge extends StatelessWidget {
-  const _HomeRegionBadge({required this.label});
+  const _HomeRegionBadge({required this.label, required this.onTap});
 
   final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 180),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            AppIcons.location,
-            key: ValueKey('home_region_icon'),
-            color: AppColors.warning,
-            size: 14,
-          ),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label,
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                color: Colors.white.withValues(alpha: 0.82),
-                fontSize: AppFontSizes.caption,
-                height: 1.2,
-                fontWeight: FontWeight.w600,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          key: const ValueKey('home_region_selector'),
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsetsDirectional.fromSTEB(0, 2, 4, 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  AppIcons.location,
+                  key: ValueKey('home_region_icon'),
+                  color: AppColors.warning,
+                  size: 14,
+                ),
+                const SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    label,
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      fontSize: AppFontSizes.caption,
+                      height: 1.2,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 3),
+                Icon(
+                  AppIcons.arrow_down_1,
+                  key: const ValueKey('home_region_arrow'),
+                  color: Colors.white.withValues(alpha: 0.82),
+                  size: 13,
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

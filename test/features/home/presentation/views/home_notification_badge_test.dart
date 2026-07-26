@@ -50,6 +50,11 @@ void main() {
       expect(find.byKey(const ValueKey('home_cart_button')), findsOneWidget);
       expect(find.byKey(const ValueKey('home_welcome_label')), findsOneWidget);
       expect(find.byKey(const ValueKey('home_region_icon')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('home_region_selector')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('home_region_arrow')), findsOneWidget);
 
       final searchRect = tester.getRect(
         find.byKey(const ValueKey('home_search_field')),

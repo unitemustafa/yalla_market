@@ -20,12 +20,13 @@ void main() {
     expect(navigationIndex, greaterThan(syncIndex));
   });
 
-  test('splash localizes the visible application name', () {
+  test('splash shows the brand logo and localizes its tagline', () {
     final source = File(
       'lib/features/splash/presentation/views/splash_view.dart',
     ).readAsStringSync();
 
-    expect(source, contains("context.tr('Yalla Market')"));
+    expect(source, contains('source: AppAssets.homeBrandLogo'));
+    expect(source, contains("context.tr('Everything you need in one place')"));
   });
 
   test('native launcher names are Arabic on Android and iOS', () {

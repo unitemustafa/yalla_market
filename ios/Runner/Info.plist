@@ -40,7 +40,7 @@
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>يستخدم يلا ماركت موقعك لاقتراح مدينة التوصيل المناسبة فقط.</string>
+	<string>يستخدم يلا ماركت موقعك لتحديد موقع التوصيل على الخريطة أثناء استخدام التطبيق.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>يستخدم يلا ماركت مكتبة الصور فقط عندما تختار صورة للملف الشخصي.</string>
 	<key>UIBackgroundModes</key>

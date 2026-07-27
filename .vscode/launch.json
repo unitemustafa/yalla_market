@@ -8,7 +8,10 @@
         {
             "name": "yalla_market",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "toolArgs": [
+                "--dart-define-from-file=env/development.json"
+            ]
         },
         {
             "name": "yalla_market (profile mode)",

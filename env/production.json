@@ -1,3 +1,4 @@
 {
-  "API_BASE_URL": "https://yalla-backend-ecjct.ondigitalocean.app"
+  "API_BASE_URL": "https://yalla-backend-ecjct.ondigitalocean.app",
+  "MAPTILER_API_KEY": ""
 }

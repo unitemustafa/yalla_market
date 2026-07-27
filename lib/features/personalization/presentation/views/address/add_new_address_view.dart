@@ -15,23 +15,29 @@ import '../../../../location/presentation/cubit/location_cubit.dart';
 import '../../../../personalization/domain/entities/address.dart';
 import '../../../../personalization/domain/entities/delivery_area.dart';
 import '../../../../personalization/domain/usecases/delivery_area_usecases.dart';
+import '../../../data/datasources/geoapify_geocoding_data_source.dart';
 import '../../controllers/user_profile_controller.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
 import 'address_entry.dart';
+import 'address_location_picker_view.dart';
 
 class AddNewAddressView extends StatefulWidget {
   const AddNewAddressView({
     super.key,
     this.address,
     this.initialCoordinates,
+    this.initialLocation,
     this.locationDataSource,
+    this.geocodingDataSource,
     this.getDeliveryAreas,
   });
 
   final AddressEntry? address;
   final DeviceCoordinates? initialCoordinates;
+  final SelectedMapLocation? initialLocation;
   final DeviceLocationDataSource? locationDataSource;
+  final MapGeocodingDataSource? geocodingDataSource;
   final GetDeliveryAreasUseCase? getDeliveryAreas;
 
   @override
@@ -52,6 +58,7 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
   List<DeliveryArea> _deliveryAreas = const [];
   int? _selectedDeliveryAreaId;
   bool _usesManualArea = false;
+  late SelectedMapLocation? _selectedMapLocation;
 
   bool get _isEditing => widget.address != null;
 
@@ -78,6 +85,14 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
         address?.deliveryAreaId == null &&
         (address?.manualArea?.trim().isNotEmpty ?? false);
     _getDeliveryAreas = widget.getDeliveryAreas;
+    _selectedMapLocation =
+        widget.initialLocation ??
+        (widget.initialCoordinates == null
+            ? _locationFromAddress(address)
+            : SelectedMapLocation(
+                latitude: widget.initialCoordinates!.latitude,
+                longitude: widget.initialCoordinates!.longitude,
+              ));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _syncInitialRegionFields();
@@ -261,10 +276,14 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       city: isServiceCity ? region.name : manualCity ?? '',
       state: '',
       country: '',
-      latitude:
-          existingAddress?.latitude ?? widget.initialCoordinates?.latitude,
-      longitude:
-          existingAddress?.longitude ?? widget.initialCoordinates?.longitude,
+      latitude: _selectedMapLocation?.latitude ?? existingAddress?.latitude,
+      longitude: _selectedMapLocation?.longitude ?? existingAddress?.longitude,
+      formattedAddress: _selectedMapLocation == null
+          ? existingAddress?.formattedAddress
+          : _selectedMapLocation!.formattedAddress,
+      placeId: _selectedMapLocation == null
+          ? existingAddress?.placeId
+          : _selectedMapLocation!.placeId,
       isDefault: existingAddress?.isDefault ?? false,
       manualCity: manualCity,
       manualArea: manualArea,
@@ -275,6 +294,53 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
       deliveryAreaPrice: selectedDeliveryAreaPrice,
       deliveryType: 'delivery',
     );
+  }
+
+  SelectedMapLocation? _locationFromAddress(AddressEntry? address) {
+    final latitude = address?.latitude;
+    final longitude = address?.longitude;
+    if (latitude == null || longitude == null) return null;
+    return SelectedMapLocation(
+      latitude: latitude,
+      longitude: longitude,
+      formattedAddress: address?.formattedAddress,
+      placeId: address?.placeId,
+    );
+  }
+
+  Future<void> _changeMapLocation() async {
+    final locationDataSource =
+        widget.locationDataSource ?? sl<DeviceLocationDataSource>();
+    final geocodingDataSource =
+        widget.geocodingDataSource ?? sl<MapGeocodingDataSource>();
+    final selectedCity = context.read<LocationCubit>().state.selectedCity;
+    final result = await Navigator.push<SelectedMapLocation>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddressLocationPickerView(
+          locationDataSource: locationDataSource,
+          geocodingDataSource: geocodingDataSource,
+          fallbackCoordinates: _fallbackCoordinates(selectedCity),
+          initialLocation: _selectedMapLocation,
+        ),
+      ),
+    );
+    if (!mounted || result == null) return;
+    setState(() => _selectedMapLocation = result);
+  }
+
+  DeviceCoordinates _fallbackCoordinates(CityData? city) {
+    final latitude = city?.centerLatitude;
+    final longitude = city?.centerLongitude;
+    if (latitude != null &&
+        longitude != null &&
+        latitude >= -90 &&
+        latitude <= 90 &&
+        longitude >= -180 &&
+        longitude <= 180) {
+      return DeviceCoordinates(latitude, longitude);
+    }
+    return const DeviceCoordinates(30.0444, 31.2357);
   }
 
   DeliveryArea? get _selectedArea {
@@ -394,6 +460,11 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                                 requiredField: _requiredField,
                               ),
                           ],
+                        ),
+                        const SizedBox(height: 14),
+                        _MapLocationTile(
+                          location: _selectedMapLocation,
+                          onTap: _changeMapLocation,
                         ),
                         const SizedBox(height: 24),
                         AppActionButton(
@@ -848,6 +919,43 @@ class _DeliveryAreaOptionTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _MapLocationTile extends StatelessWidget {
+  const _MapLocationTile({required this.location, required this.onTap});
+
+  final SelectedMapLocation? location;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = location != null;
+    final subtitle = location?.formattedAddress?.trim();
+    return Card(
+      margin: EdgeInsets.zero,
+      child: ListTile(
+        leading: const Icon(Icons.map_outlined, color: AppColors.primary),
+        title: Text(
+          context.tr(
+            selected ? 'Map location selected' : 'Choose location on map',
+          ),
+          style: const TextStyle(fontWeight: FontWeight.w800),
+        ),
+        subtitle: Text(
+          subtitle?.isNotEmpty == true
+              ? subtitle!
+              : selected
+              ? '${location!.latitude.toStringAsFixed(5)}, '
+                    '${location!.longitude.toStringAsFixed(5)}'
+              : context.tr('GPS access is required to open the map.'),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        trailing: const Icon(Icons.chevron_right),
+        onTap: onTap,
       ),
     );
   }

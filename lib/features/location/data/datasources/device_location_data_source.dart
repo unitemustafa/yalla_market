@@ -35,8 +35,11 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
 
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw const LocationSelectionException(
+      throw LocationSelectionException(
         'Location permission was not granted. Allow location to continue.',
+        reason: permission == LocationPermission.deniedForever
+            ? LocationSelectionFailure.permissionDeniedForever
+            : LocationSelectionFailure.permissionDenied,
       );
     }
 
@@ -44,6 +47,7 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
     if (!serviceEnabled) {
       throw const LocationSelectionException(
         'Location services are disabled. Turn on GPS to continue.',
+        reason: LocationSelectionFailure.serviceDisabled,
       );
     }
 
@@ -94,13 +98,17 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
     }
     if (permission == LocationPermission.denied ||
         permission == LocationPermission.deniedForever) {
-      throw const LocationSelectionException(
+      throw LocationSelectionException(
         'Location permission was not granted. Allow location to continue.',
+        reason: permission == LocationPermission.deniedForever
+            ? LocationSelectionFailure.permissionDeniedForever
+            : LocationSelectionFailure.permissionDenied,
       );
     }
     if (!await Geolocator.isLocationServiceEnabled()) {
       throw const LocationSelectionException(
         'Location services are disabled. Turn on GPS to continue.',
+        reason: LocationSelectionFailure.serviceDisabled,
       );
     }
   }
@@ -131,6 +139,7 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
 
       throw const LocationSelectionException(
         'Could not find your current location. Choose one manually.',
+        reason: LocationSelectionFailure.positionUnavailable,
       );
     } catch (_) {
       final lastKnownPosition = await Geolocator.getLastKnownPosition();
@@ -174,10 +183,22 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
   }
 }
 
+enum LocationSelectionFailure {
+  permissionDenied,
+  permissionDeniedForever,
+  serviceDisabled,
+  positionUnavailable,
+  unknown,
+}
+
 class LocationSelectionException implements Exception {
-  const LocationSelectionException(this.message);
+  const LocationSelectionException(
+    this.message, {
+    this.reason = LocationSelectionFailure.unknown,
+  });
 
   final String message;
+  final LocationSelectionFailure reason;
 
   @override
   String toString() => message;

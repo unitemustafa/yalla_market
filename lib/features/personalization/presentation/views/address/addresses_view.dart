@@ -9,6 +9,7 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../domain/entities/address.dart';
+import '../../../data/datasources/geoapify_geocoding_data_source.dart';
 import '../../../../location/data/datasources/device_location_data_source.dart';
 import '../../../../location/domain/entities/city_data.dart';
 import '../../../domain/usecases/delivery_area_usecases.dart';
@@ -60,19 +61,20 @@ class _AddressesViewState extends State<AddressesView>
     BuildContext context, {
     AddressData? address,
   }) async {
-    DeviceCoordinates? coordinates;
+    SelectedMapLocation? selectedLocation;
     if (address == null) {
       final selectedCity = context.read<LocationCubit>().state.selectedCity;
-      coordinates = await Navigator.push<DeviceCoordinates>(
+      selectedLocation = await Navigator.push<SelectedMapLocation>(
         context,
         MaterialPageRoute(
           builder: (_) => AddressLocationPickerView(
             locationDataSource: sl<DeviceLocationDataSource>(),
+            geocodingDataSource: sl<MapGeocodingDataSource>(),
             fallbackCoordinates: _fallbackCoordinates(selectedCity),
           ),
         ),
       );
-      if (coordinates == null || !context.mounted) return;
+      if (selectedLocation == null || !context.mounted) return;
     }
 
     await Navigator.push<AddressData>(
@@ -80,8 +82,9 @@ class _AddressesViewState extends State<AddressesView>
       MaterialPageRoute(
         builder: (_) => AddNewAddressView(
           address: address,
-          initialCoordinates: coordinates,
+          initialLocation: selectedLocation,
           locationDataSource: sl<DeviceLocationDataSource>(),
+          geocodingDataSource: sl<MapGeocodingDataSource>(),
           getDeliveryAreas: sl<GetDeliveryAreasUseCase>(),
         ),
       ),

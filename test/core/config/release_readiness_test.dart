@@ -61,6 +61,7 @@ void main() {
 
     test('iOS includes pods, APNs entitlements, and required usage text', () {
       final infoPlist = File('ios/Runner/Info.plist').readAsStringSync();
+      final podfile = File('ios/Podfile').readAsStringSync();
       final project = File(
         'ios/Runner.xcodeproj/project.pbxproj',
       ).readAsStringSync();
@@ -72,6 +73,20 @@ void main() {
         isTrue,
       );
       expect(infoPlist, contains('NSPhotoLibraryUsageDescription'));
+      expect(infoPlist, contains('<string>يلا ماركت</string>'));
+      expect(
+        infoPlist,
+        contains(
+          'يستخدم يلا ماركت موقعك لتحديد موقع التوصيل على الخريطة '
+          'أثناء استخدام التطبيق.',
+        ),
+      );
+      expect(
+        infoPlist,
+        isNot(contains('NSLocationAlwaysAndWhenInUseUsageDescription')),
+      );
+      expect(podfile, contains("target.name == 'geolocator_apple'"));
+      expect(podfile, contains('BYPASS_PERMISSION_LOCATION_ALWAYS=1'));
       expect(infoPlist, contains('remote-notification'));
       expect(project, contains('Runner/RunnerDebug.entitlements'));
       expect(project, contains('Runner/RunnerRelease.entitlements'));

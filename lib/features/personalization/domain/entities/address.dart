@@ -11,6 +11,8 @@ class AddressData {
     required this.country,
     this.latitude,
     this.longitude,
+    this.formattedAddress,
+    this.placeId,
     this.isDefault = false,
     this.manualCity,
     this.manualArea,
@@ -36,6 +38,8 @@ class AddressData {
   final String country;
   final double? latitude;
   final double? longitude;
+  final String? formattedAddress;
+  final String? placeId;
   final bool isDefault;
   final String? manualCity;
   final String? manualArea;
@@ -89,6 +93,10 @@ class AddressData {
       country: json['country']?.toString() ?? '',
       latitude: _doubleFromJson(json['latitude']),
       longitude: _doubleFromJson(json['longitude']),
+      formattedAddress: _stringOrNull(
+        json['formatted_address'] ?? json['formattedAddress'],
+      ),
+      placeId: _stringOrNull(json['place_id'] ?? json['placeId']),
       isDefault:
           _boolFromJson(json['is_default']) ??
           _boolFromJson(json['isDefault']) ??
@@ -151,6 +159,8 @@ class AddressData {
       'country': country,
       'latitude': latitude,
       'longitude': longitude,
+      'formattedAddress': formattedAddress,
+      'placeId': placeId,
       'isDefault': isDefault,
       'manualCity': manualCity,
       'manualArea': manualArea,
@@ -173,6 +183,8 @@ class AddressData {
       'delivery_area_id': deliveryAreaId,
       'manual_city': manualCity,
       'manual_area': manualArea,
+      'formatted_address': formattedAddress ?? '',
+      'place_id': placeId ?? '',
       'is_default': isDefault,
     };
     if (latitude != null && longitude != null) {
@@ -198,6 +210,8 @@ class AddressData {
     String? country,
     double? latitude,
     double? longitude,
+    String? formattedAddress,
+    String? placeId,
     bool? isDefault,
     String? manualCity,
     String? manualArea,
@@ -222,6 +236,8 @@ class AddressData {
       country: country ?? this.country,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
+      formattedAddress: formattedAddress ?? this.formattedAddress,
+      placeId: placeId ?? this.placeId,
       isDefault: isDefault ?? this.isDefault,
       manualCity: manualCity ?? this.manualCity,
       manualArea: manualArea ?? this.manualArea,

@@ -57,5 +57,23 @@ void main() {
       expect(address.details, 'Old Street');
       expect(address.deliveryAreaPrice, isNull);
     });
+
+    test('keeps reverse-geocoded metadata separate from manual region', () {
+      final address = AddressData.fromJson({
+        'manual_city': 'Mansoura',
+        'manual_area': 'University District',
+        'formatted_address': 'University District, Mansoura, Egypt',
+        'place_id': 'geo-123',
+      });
+
+      expect(address.manualCity, 'Mansoura');
+      expect(address.manualArea, 'University District');
+      expect(address.formattedAddress, 'University District, Mansoura, Egypt');
+      expect(address.placeId, 'geo-123');
+
+      final restored = AddressData.fromJson(address.toJson());
+      expect(restored.formattedAddress, address.formattedAddress);
+      expect(restored.placeId, address.placeId);
+    });
   });
 }

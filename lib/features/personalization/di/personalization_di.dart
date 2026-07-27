@@ -3,6 +3,7 @@ import 'package:get_it/get_it.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../features/personalization/data/repositories/address_remote_repository_impl.dart';
+import '../../../features/personalization/data/datasources/geoapify_geocoding_data_source.dart';
 import '../../../features/personalization/data/repositories/address_repository_impl.dart';
 import '../../../features/personalization/data/repositories/delivery_area_remote_repository_impl.dart';
 import '../../../features/personalization/data/repositories/delivery_area_repository_impl.dart';
@@ -19,6 +20,11 @@ import '../../../features/personalization/presentation/cubit/address_cubit.dart'
 import '../../../features/personalization/presentation/cubit/profile_image_cubit.dart';
 
 void registerPersonalizationDependencies(GetIt sl) {
+  if (!sl.isRegistered<MapGeocodingDataSource>()) {
+    sl.registerLazySingleton<MapGeocodingDataSource>(
+      () => GeoapifyGeocodingDataSource(sl<ApiClient>()),
+    );
+  }
   if (!sl.isRegistered<AddressRepository>()) {
     sl.registerLazySingleton<AddressRepository>(
       () => AppEnvironment.useDemoRepositories

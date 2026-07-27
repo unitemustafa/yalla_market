@@ -4,6 +4,21 @@ const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
     'Confirm delivery location': 'تأكيد موقع التوصيل',
     'Continue with this location': 'كمّل بالموقع ده',
+    'Search for a place in Egypt': 'ابحث عن مكان داخل مصر',
+    'Place search failed.': 'تعذر البحث عن المكان.',
+    'Address lookup failed. You can still continue.':
+        'تعذر معرفة العنوان، وتقدر تكمل بالإحداثيات.',
+    'Finding the address...': 'جاري معرفة العنوان...',
+    'Location access is required before choosing an address.':
+        'لازم تفعّل الموقع قبل اختيار العنوان.',
+    'Open app settings': 'افتح إعدادات التطبيق',
+    'Open location settings': 'افتح إعدادات الموقع',
+    'Could not find your current location. Try again.':
+        'تعذر تحديد موقعك الحالي. حاول مرة تانية.',
+    'Map location selected': 'تم تحديد الموقع على الخريطة',
+    'Choose location on map': 'حدد الموقع على الخريطة',
+    'GPS access is required to open the map.':
+        'لازم تفعّل GPS علشان تفتح الخريطة.',
     'Your current location is selected. Move the map to adjust it.':
         'موقعك الحالي متحدد. حرّك الخريطة لو محتاج تعدّله.',
     'Location selected manually.': 'تم تحديد الموقع يدويًا.',

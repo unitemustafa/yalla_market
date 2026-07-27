@@ -7,7 +7,7 @@ import 'package:yalla_market/features/personalization/domain/repositories/addres
 import 'package:yalla_market/features/personalization/domain/usecases/address_usecases.dart';
 import 'package:yalla_market/features/personalization/presentation/cubit/address_cubit.dart';
 import 'package:yalla_market/features/personalization/presentation/views/address/add_new_address_view.dart';
-import 'package:yalla_market/features/location/data/datasources/device_location_data_source.dart';
+import 'package:yalla_market/features/personalization/presentation/views/address/address_location_picker_view.dart';
 
 void main() {
   testWidgets('saves a general address without GPS coordinates', (
@@ -54,7 +54,12 @@ void main() {
         home: BlocProvider(
           create: (_) => AddressCubit(_addressUseCases(repository)),
           child: const AddNewAddressView(
-            initialCoordinates: DeviceCoordinates(30.0444, 31.2357),
+            initialLocation: SelectedMapLocation(
+              latitude: 30.0444,
+              longitude: 31.2357,
+              formattedAddress: '12 Tahrir St, Cairo, Egypt',
+              placeId: 'geo-home',
+            ),
           ),
         ),
       ),
@@ -73,6 +78,11 @@ void main() {
 
     expect(repository.lastSavedAddress?.latitude, 30.0444);
     expect(repository.lastSavedAddress?.longitude, 31.2357);
+    expect(
+      repository.lastSavedAddress?.formattedAddress,
+      '12 Tahrir St, Cairo, Egypt',
+    );
+    expect(repository.lastSavedAddress?.placeId, 'geo-home');
   });
 }
 

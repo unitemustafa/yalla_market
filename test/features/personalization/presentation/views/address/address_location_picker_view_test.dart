@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:yalla_market/features/location/data/datasources/device_location_data_source.dart';
 import 'package:yalla_market/features/personalization/data/datasources/geoapify_geocoding_data_source.dart';
 import 'package:yalla_market/features/personalization/presentation/views/address/address_location_picker_view.dart';
@@ -98,6 +99,23 @@ void main() {
     );
     expect(confirmButton.height, 46);
     expect(confirmButton.width, lessThanOrEqualTo(300));
+  });
+
+  testWidgets('keeps the map mounted while search is open', (tester) async {
+    await tester.pumpWidget(_picker(geocoding: _FakeGeocodingDataSource()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    final mapElement = tester.element(find.byType(FlutterMap));
+
+    await tester.tap(find.byKey(const ValueKey('map-picker-search-open')));
+    await tester.pumpAndSettle();
+    expect(find.byType(FlutterMap), findsOneWidget);
+    expect(tester.element(find.byType(FlutterMap)), same(mapElement));
+
+    await tester.tap(find.byKey(const ValueKey('map-picker-search-close')));
+    await tester.pumpAndSettle();
+    expect(tester.element(find.byType(FlutterMap)), same(mapElement));
   });
 }
 

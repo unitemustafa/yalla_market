@@ -439,11 +439,21 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
           ? const _MissingMapConfiguration()
           : _selectionController.canConfirm
           ? SafeArea(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 220),
-                switchInCurve: Curves.easeOut,
-                switchOutCurve: Curves.easeIn,
-                child: _searchMode ? _buildSearchPage() : _buildMapPage(),
+              child: Stack(
+                children: [
+                  Positioned.fill(child: _buildMapPage()),
+                  if (_searchMode)
+                    Positioned.fill(
+                      child: TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        tween: Tween(begin: 0, end: 1),
+                        builder: (context, value, child) =>
+                            Opacity(opacity: value, child: child),
+                        child: _buildSearchPage(),
+                      ),
+                    ),
+                ],
               ),
             )
           : _LocationGate(

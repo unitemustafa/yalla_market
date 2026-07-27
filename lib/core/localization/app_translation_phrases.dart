@@ -928,6 +928,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Name is too short': 'الاسم قصير جدًا',
     'No local user session.': 'مفيش جلسة مستخدم محفوظة.',
     'No products available': 'مفيش منتجات متاحة',
+    'No products in this section': 'لسه مفيش منتجات في القسم ده',
+    'Try another section or choose All.': 'جرّب قسم تاني أو اختار «الكل».',
     'Not set': 'غير محدد',
     'Pakistan': 'باكستان',
     'Password is required.': 'كلمة السر مطلوبة.',

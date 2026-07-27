@@ -348,7 +348,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         const SizedBox(height: 18),
         if (categories.isNotEmpty) ...[
           SizedBox(
-            height: 78,
+            height: 94,
             child: ListView.separated(
               key: const ValueKey('store_subcategory_rail'),
               scrollDirection: Axis.horizontal,
@@ -371,11 +371,8 @@ class _BrandProductsViewState extends State<BrandProductsView> {
                       setState(() => _selectedSubcategoryId = category?.id),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
-                    width: 108,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
+                    width: 112,
+                    padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
                       color: isSelected
                           ? AppColors.primary
@@ -387,29 +384,54 @@ class _BrandProductsViewState extends State<BrandProductsView> {
                             : Theme.of(context).dividerColor,
                       ),
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        if (category?.image.isNotEmpty == true) ...[
-                          AppImage(
-                            source: category!.image,
-                            width: 28,
-                            height: 28,
-                            borderRadius: BorderRadius.circular(8),
-                            fallbackType: AppImagePlaceholderType.category,
+                        Expanded(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? Colors.white.withValues(alpha: 0.16)
+                                  : AppColors.primary.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: category?.image.isNotEmpty == true
+                                ? AppImage(
+                                    source: category!.image,
+                                    fit: BoxFit.cover,
+                                    borderRadius: BorderRadius.circular(10),
+                                    fallbackType:
+                                        AppImagePlaceholderType.category,
+                                    cacheWidth: 224,
+                                    cacheHeight: 116,
+                                    filterQuality: FilterQuality.medium,
+                                  )
+                                : Icon(
+                                    AppIcons.category,
+                                    size: 30,
+                                    color: isSelected
+                                        ? Colors.white
+                                        : AppColors.primary,
+                                  ),
                           ),
-                          const SizedBox(width: 7),
-                        ],
-                        Flexible(
-                          child: Text(
-                            label,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: isSelected ? Colors.white : null,
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          height: 24,
+                          child: Center(
+                            child: Text(
+                              label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 13.5,
+                                height: 1.05,
+                                fontWeight: FontWeight.w900,
+                                color: isSelected
+                                    ? Colors.white
+                                    : Theme.of(context).colorScheme.onSurface,
+                              ),
                             ),
                           ),
                         ),

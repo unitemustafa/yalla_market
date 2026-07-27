@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
@@ -8,6 +9,9 @@ import 'package:yalla_market/core/preferences/app_preferences_controller.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/app_preferences_view.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/settings_view.dart';
+import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
+
+import '../../../../../helpers/auth_widget_fakes.dart';
 
 void main() {
   setUp(() {
@@ -60,6 +64,31 @@ void main() {
     );
     expect(button.tooltip, 'WhatsApp');
     expect(find.byType(FaIcon), findsOneWidget);
+  });
+
+  testWidgets('delete account requires password confirmation', (tester) async {
+    await tester.pumpWidget(
+      BlocProvider(
+        create: (_) => AuthCubit(authUseCases(FakeAuthRepository())),
+        child: const MaterialApp(home: SettingsView()),
+      ),
+    );
+
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -500),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Delete Account'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delete account permanently?'), findsOneWidget);
+    expect(find.byKey(const Key('delete-account-password')), findsOneWidget);
+
+    await tester.tap(find.widgetWithText(ElevatedButton, 'Delete'));
+    await tester.pump();
+
+    expect(find.text('Password is required.'), findsOneWidget);
   });
 
   testWidgets('about option opens the dedicated about page', (tester) async {

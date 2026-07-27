@@ -50,7 +50,8 @@ extension _SignupPolicyWidgets on _SignupViewState {
                       PolicyLink(
                         text: context.tr(AppStrings.privacyPolicy),
                         style: linkStyle,
-                        onTap: () => _showPolicySheet(
+                        onTap: () => _openPolicy(
+                          uri: LegalUrls.privacy,
                           title: AppStrings.privacyPolicy,
                           icon: AppIcons.shield_tick,
                           points: const [
@@ -64,7 +65,8 @@ extension _SignupPolicyWidgets on _SignupViewState {
                       PolicyLink(
                         text: context.tr(AppStrings.termsOfUse),
                         style: linkStyle,
-                        onTap: () => _showPolicySheet(
+                        onTap: () => _openPolicy(
+                          uri: LegalUrls.terms,
                           title: AppStrings.termsOfUse,
                           icon: AppIcons.document_text,
                           points: const [
@@ -212,6 +214,23 @@ extension _SignupPolicyWidgets on _SignupViewState {
         );
       },
     );
+  }
+
+  Future<void> _openPolicy({
+    required Uri? uri,
+    required String title,
+    required IconData icon,
+    required List<String> points,
+  }) async {
+    if (uri != null) {
+      try {
+        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+      } catch (_) {
+        // Fall back to the readable in-app summary.
+      }
+    }
+    if (!mounted) return;
+    _showPolicySheet(title: title, icon: icon, points: points);
   }
 
   Widget _buildCreateAccountButton({required bool isLoading}) {

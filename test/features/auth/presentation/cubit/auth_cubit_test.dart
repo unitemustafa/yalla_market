@@ -454,6 +454,38 @@ void main() {
       await expectedStates;
       await cubit.close();
     });
+
+    test('deleteAccount clears authenticated state on success', () async {
+      final repository = _FakeAuthRepository(loginResult: sampleSession);
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final deleted = await cubit.deleteAccount('Password123!');
+
+      expect(deleted, isTrue);
+      expect(repository.lastDeletePassword, 'Password123!');
+      expect(cubit.state, isA<AuthInitial>());
+      expect(AuthGuard.isAuthenticated, isFalse);
+      await cubit.close();
+    });
+
+    test('deleteAccount keeps session and exposes failure message', () async {
+      final repository = _FakeAuthRepository(
+        loginResult: sampleSession,
+        deleteAccountFailure: const ValidationFailure(
+          'The password is incorrect.',
+        ),
+      );
+      final cubit = AuthCubit(_authUseCases(repository));
+      await cubit.login(email: sampleUser.email, password: 'password');
+
+      final deleted = await cubit.deleteAccount('wrong');
+
+      expect(deleted, isFalse);
+      expect(cubit.state, isA<AuthAuthenticated>());
+      expect(cubit.lastAccountDeletionError, 'The password is incorrect.');
+      await cubit.close();
+    });
   });
 }
 
@@ -473,6 +505,7 @@ AuthUseCases _authUseCases(AuthRepository repository) {
     refreshProfile: RefreshProfileUseCase(repository),
     updateProfile: UpdateProfileUseCase(repository),
     updateProfileAvatar: UpdateProfileAvatarUseCase(repository),
+    deleteAccount: DeleteAccountUseCase(repository),
     logout: LogoutUseCase(repository),
   );
 }
@@ -491,6 +524,7 @@ class _FakeAuthRepository implements AuthRepository {
     this.updateProfileAvatarFailure,
     this.requestPasswordResetFailure,
     this.resetPasswordFailure,
+    this.deleteAccountFailure,
   });
 
   final AuthSession? restoreResult;
@@ -505,9 +539,11 @@ class _FakeAuthRepository implements AuthRepository {
   final Failure? updateProfileAvatarFailure;
   final Failure? requestPasswordResetFailure;
   final Failure? resetPasswordFailure;
+  final Failure? deleteAccountFailure;
   String? lastLoginEmail;
   bool? lastRememberMe;
   String? lastVerificationCode;
+  String? lastDeletePassword;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() async {
@@ -640,6 +676,15 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<bool>> logout() async {
+    return const ApiResult.success(true);
+  }
+
+  @override
+  Future<ApiResult<bool>> deleteAccount({required String password}) async {
+    lastDeletePassword = password;
+    if (deleteAccountFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
     return const ApiResult.success(true);
   }
 }

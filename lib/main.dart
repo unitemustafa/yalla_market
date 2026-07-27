@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
@@ -14,6 +16,15 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   AppEnvironment.validate();
   initServiceLocator();
+  await AppLanguageController.instance.loadSavedLanguage();
+  await AppPreferencesController.instance.loadSavedPreferences();
+  runApp(const YallaMarketApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(_initializeBackgroundServices());
+  });
+}
+
+Future<void> _initializeBackgroundServices() async {
   await sl<PushNotificationService>().initialize();
   if (Firebase.apps.isNotEmpty) {
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
@@ -28,7 +39,4 @@ Future<void> main() async {
       };
     }
   }
-  await AppLanguageController.instance.loadSavedLanguage();
-  await AppPreferencesController.instance.loadSavedPreferences();
-  runApp(const YallaMarketApp());
 }

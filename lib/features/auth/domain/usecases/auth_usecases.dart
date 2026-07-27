@@ -22,6 +22,7 @@ class AuthUseCases {
     required this.refreshProfile,
     required this.updateProfile,
     required this.updateProfileAvatar,
+    required this.deleteAccount,
     required this.logout,
   });
 
@@ -39,6 +40,7 @@ class AuthUseCases {
   final RefreshProfileUseCase refreshProfile;
   final UpdateProfileUseCase updateProfile;
   final UpdateProfileAvatarUseCase updateProfileAvatar;
+  final DeleteAccountUseCase deleteAccount;
   final LogoutUseCase logout;
 }
 
@@ -233,6 +235,16 @@ class UpdateProfileAvatarUseCase {
     required String fileName,
   }) {
     return _repository.updateProfileAvatar(bytes: bytes, fileName: fileName);
+  }
+}
+
+class DeleteAccountUseCase {
+  const DeleteAccountUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<bool>> call({required String password}) {
+    return _repository.deleteAccount(password: password);
   }
 }
 

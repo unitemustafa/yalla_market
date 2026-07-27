@@ -46,5 +46,16 @@ in source control; the real `android/key.properties` must stay private.
 ```bash
 flutter analyze
 flutter test --coverage
-flutter build apk --release --dart-define-from-file=env/production.json
+dart run tool/release_preflight.dart env/production.json --platform=android
+flutter build appbundle --release --obfuscate \
+  --split-debug-info=build/debug-symbols/android \
+  --dart-define-from-file=env/production.json
 ```
+
+Run the preflight with `--platform=ios` before an App Store archive. It verifies
+the production API and MapTiler values, Firebase configuration, and Apple
+Development Team without printing secret values.
+
+Archive `build/debug-symbols/android` securely with the matching release before
+running `flutter clean`; Crashlytics stack traces from an obfuscated build need
+those files.

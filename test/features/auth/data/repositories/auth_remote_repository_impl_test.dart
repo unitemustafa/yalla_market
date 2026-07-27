@@ -302,6 +302,26 @@ void main() {
       expect(await tokenStore.read(), isNull);
     });
 
+    test('deleteAccount confirms password and clears local session', () async {
+      final tokenStore = InMemoryTokenStore();
+      await tokenStore.save(_storedTokens(remembered: true));
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'DELETE');
+        expect(request.path, '/auth/client/profile/');
+        expect(request.data, {'password': 'Password123!'});
+        return {'detail': 'Account deleted successfully.'};
+      });
+      final repository = AuthRemoteRepositoryImpl(apiClient, tokenStore);
+
+      final result = await repository.deleteAccount(password: 'Password123!');
+
+      result.when(
+        success: (deleted) => expect(deleted, isTrue),
+        failure: (failure) => fail(failure.message),
+      );
+      expect(await tokenStore.read(), isNull);
+    });
+
     test('updateProfile sends profile fields supported by backend', () async {
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {

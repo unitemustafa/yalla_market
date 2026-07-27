@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/icons/app_icons.dart';
+import '../../../../../core/legal/legal_urls.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -92,7 +93,8 @@ class _AboutAppViewState extends State<AboutAppView> {
                           icon: AppIcons.security_safe,
                           title: 'Privacy policy',
                           accentColor: AppColors.success,
-                          onTap: () => _showInformationSheet(
+                          onTap: () => _openLegalPage(
+                            LegalUrls.privacy,
                             title: 'Privacy policy',
                             icon: AppIcons.security_safe,
                             sections: const [
@@ -114,7 +116,8 @@ class _AboutAppViewState extends State<AboutAppView> {
                           icon: AppIcons.document_text,
                           title: 'Terms of use',
                           accentColor: AppColors.warning,
-                          onTap: () => _showInformationSheet(
+                          onTap: () => _openLegalPage(
+                            LegalUrls.terms,
                             title: 'Terms of use',
                             icon: AppIcons.document_text,
                             sections: const [
@@ -225,6 +228,23 @@ class _AboutAppViewState extends State<AboutAppView> {
       title: 'Could not open link',
       message: 'Please try again.',
     );
+  }
+
+  Future<void> _openLegalPage(
+    Uri? uri, {
+    required String title,
+    required IconData icon,
+    required List<_InfoSection> sections,
+  }) async {
+    if (uri != null) {
+      try {
+        if (await launchUrl(uri, mode: LaunchMode.externalApplication)) return;
+      } catch (_) {
+        // Keep the in-app summary available when no browser can open.
+      }
+    }
+    if (!mounted) return;
+    _showInformationSheet(title: title, icon: icon, sections: sections);
   }
 
   void _showInformationSheet({

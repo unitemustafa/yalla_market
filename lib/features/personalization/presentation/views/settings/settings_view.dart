@@ -109,6 +109,14 @@ class SettingsView extends StatelessWidget {
                       AppRoutes.partnerApplication,
                     ),
                   ),
+                  SettingsMenuTile(
+                    icon: AppIcons.trash,
+                    title: 'Delete Account',
+                    subTitle:
+                        'Permanently remove your profile and personal data',
+                    accentColor: AppColors.error,
+                    onTap: () => _showDeleteAccountDialog(context),
+                  ),
                 ],
               ),
               const SizedBox(height: 18),
@@ -196,6 +204,176 @@ class SettingsView extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _showDeleteAccountDialog(BuildContext context) async {
+    final parentContext = context;
+    final passwordController = TextEditingController();
+    var obscurePassword = true;
+    var isDeleting = false;
+    String? errorMessage;
+
+    try {
+      final deleted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                title: Text(
+                  context.tr('Delete account permanently?'),
+                  textAlign: TextAlign.center,
+                ),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        context.tr(
+                          'This cannot be undone. Enter your account password to confirm permanent deletion.',
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        key: const Key('delete-account-password'),
+                        controller: passwordController,
+                        enabled: !isDeleting,
+                        obscureText: obscurePassword,
+                        autofillHints: const [AutofillHints.password],
+                        textInputAction: TextInputAction.done,
+                        decoration: InputDecoration(
+                          labelText: context.tr('Password'),
+                          errorText: errorMessage == null
+                              ? null
+                              : context.tr(errorMessage!),
+                          suffixIcon: IconButton(
+                            onPressed: isDeleting
+                                ? null
+                                : () {
+                                    setDialogState(() {
+                                      obscurePassword = !obscurePassword;
+                                    });
+                                  },
+                            icon: Icon(
+                              obscurePassword
+                                  ? Icons.visibility_off_outlined
+                                  : Icons.visibility_outlined,
+                            ),
+                          ),
+                        ),
+                        onSubmitted: isDeleting
+                            ? null
+                            : (_) => _confirmAccountDeletion(
+                                parentContext: parentContext,
+                                dialogContext: dialogContext,
+                                passwordController: passwordController,
+                                setDialogState: setDialogState,
+                                setDeleting: (value) => isDeleting = value,
+                                setError: (value) => errorMessage = value,
+                              ),
+                      ),
+                    ],
+                  ),
+                ),
+                actionsPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                actions: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: isDeleting
+                              ? null
+                              : () => Navigator.pop(dialogContext, false),
+                          child: Text(context.tr('Cancel')),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isDeleting
+                              ? null
+                              : () => _confirmAccountDeletion(
+                                  parentContext: parentContext,
+                                  dialogContext: dialogContext,
+                                  passwordController: passwordController,
+                                  setDialogState: setDialogState,
+                                  setDeleting: (value) => isDeleting = value,
+                                  setError: (value) => errorMessage = value,
+                                ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.error,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: isDeleting
+                              ? const SizedBox.square(
+                                  dimension: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Text(context.tr('Delete')),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (deleted != true || !parentContext.mounted) return;
+      UserProfileController.instance.reset();
+      Navigator.of(
+        parentContext,
+      ).pushNamedAndRemoveUntil(AppRoutes.login, (route) => false);
+    } finally {
+      passwordController.dispose();
+    }
+  }
+
+  Future<void> _confirmAccountDeletion({
+    required BuildContext parentContext,
+    required BuildContext dialogContext,
+    required TextEditingController passwordController,
+    required StateSetter setDialogState,
+    required ValueChanged<bool> setDeleting,
+    required ValueChanged<String?> setError,
+  }) async {
+    final password = passwordController.text;
+    if (password.isEmpty) {
+      setDialogState(() => setError('Password is required.'));
+      return;
+    }
+
+    setDialogState(() {
+      setError(null);
+      setDeleting(true);
+    });
+    final authCubit = parentContext.read<AuthCubit>();
+    final deleted = await authCubit.deleteAccount(password);
+    if (!dialogContext.mounted) return;
+    if (deleted) {
+      Navigator.pop(dialogContext, true);
+      return;
+    }
+
+    final failure =
+        authCubit.lastAccountDeletionError ?? 'Could not delete your account.';
+    final localizedFailure = failure.toLowerCase().contains('active order')
+        ? 'Finish or cancel any active orders first.'
+        : failure;
+    setDialogState(() {
+      setDeleting(false);
+      setError(localizedFailure);
+    });
   }
 }
 

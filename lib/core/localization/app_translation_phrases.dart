@@ -931,6 +931,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Not set': 'غير محدد',
     'Pakistan': 'باكستان',
     'Password is required.': 'كلمة السر مطلوبة.',
+    'The password is incorrect.': 'كلمة السر غير صحيحة.',
+    'Permanently remove your profile and personal data':
+        'احذف ملفك الشخصي وبياناتك نهائيًا',
     'Please enter a valid phone number': 'اكتب رقم موبايل صحيح',
     'Please accept the Privacy Policy and Terms of use.':
         'لازم توافق على سياسة الخصوصية وشروط الاستخدام.',

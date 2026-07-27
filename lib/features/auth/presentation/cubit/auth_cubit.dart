@@ -40,6 +40,7 @@ class AuthCubit extends Cubit<AuthState> {
   AuthSession? _pendingSignupSession;
   String? _lastProfileUpdateError;
   String? _lastPasswordResetError;
+  String? _lastAccountDeletionError;
   int? _lastOtpResendAfterSeconds;
   int? _lastOtpRetryAfterSeconds;
 
@@ -60,6 +61,7 @@ class AuthCubit extends Cubit<AuthState> {
   bool get hasPendingSignup => _pendingSignupSession != null;
   String? get lastProfileUpdateError => _lastProfileUpdateError;
   String? get lastPasswordResetError => _lastPasswordResetError;
+  String? get lastAccountDeletionError => _lastAccountDeletionError;
   int? get lastOtpResendAfterSeconds => _lastOtpResendAfterSeconds;
   int? get lastOtpRetryAfterSeconds => _lastOtpRetryAfterSeconds;
 
@@ -377,6 +379,24 @@ class AuthCubit extends Cubit<AuthState> {
         // Cannot show the old session without emitting; go to initial so
         // the UI is consistent. A snackbar is shown at the call site.
         emit(const AuthInitial());
+      },
+    );
+  }
+
+  Future<bool> deleteAccount(String password) async {
+    if (state is! AuthAuthenticated) return false;
+
+    _lastAccountDeletionError = null;
+    final result = await _authUseCases.deleteAccount(password: password);
+    return result.when(
+      success: (_) {
+        _pendingSignupSession = null;
+        emit(const AuthInitial());
+        return true;
+      },
+      failure: (failure) {
+        _lastAccountDeletionError = failure.message;
+        return false;
       },
     );
   }

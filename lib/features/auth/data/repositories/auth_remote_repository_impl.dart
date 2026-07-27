@@ -224,6 +224,19 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     });
   }
 
+  @override
+  Future<ApiResult<bool>> deleteAccount({required String password}) {
+    return _guard(() async {
+      await _apiClient.delete<Map<String, dynamic>>(
+        '/auth/client/profile/',
+        data: {'password': password},
+      );
+      await _sessionDeadlineController.clearSession();
+      await _clearCachedUser();
+      return true;
+    });
+  }
+
   Future<AuthUser> _loadMe() async {
     final payload = await _apiClient.get<Map<String, dynamic>>('/auth/me');
     final user = _userFromPayload(payload);

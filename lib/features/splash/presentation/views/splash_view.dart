@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -23,7 +21,6 @@ class _SplashViewState extends State<SplashView>
   late final AnimationController _entranceController;
   late final Animation<double> _logoOpacity;
   late final Animation<double> _logoScale;
-  Timer? _navigationTimer;
   bool _motionPreferenceApplied = false;
 
   @override
@@ -44,10 +41,9 @@ class _SplashViewState extends State<SplashView>
       ),
     );
     _entranceController.forward();
-    _navigationTimer = Timer(
-      const Duration(milliseconds: 1500),
-      () => context.read<SplashCubit>().determineStartupRoute(),
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<SplashCubit>().determineStartupRoute();
+    });
   }
 
   @override
@@ -62,7 +58,6 @@ class _SplashViewState extends State<SplashView>
 
   @override
   void dispose() {
-    _navigationTimer?.cancel();
     _entranceController.dispose();
     super.dispose();
   }
@@ -131,8 +126,8 @@ class _CompactSplashLogo extends StatelessWidget {
         ],
       ),
       child: AppImage(
-        source: AppAssets.appIconLogo,
-        fit: BoxFit.cover,
+        source: AppAssets.homeBrandLogo,
+        fit: BoxFit.contain,
         borderRadius: BorderRadius.circular(16),
         cacheWidth: 192,
         cacheHeight: 192,

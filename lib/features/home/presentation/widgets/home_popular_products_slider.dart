@@ -75,8 +75,11 @@ class HomeProductsSlider extends StatelessWidget {
       );
     }
 
+    final textScale = MediaQuery.textScalerOf(context).scale(1);
+    final extraHeight = ((textScale - 1).clamp(0, 1) * 24).toDouble();
+
     return SizedBox(
-      height: 188,
+      height: 188 + extraHeight,
       child: LayoutBuilder(
         builder: (context, constraints) {
           const spacing = 8.0;

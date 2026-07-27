@@ -448,7 +448,7 @@ class PushNotificationService {
   StreamSubscription<RemoteMessage>? _foregroundMessageSubscription;
   StreamSubscription<RemoteMessage>? _openedMessageSubscription;
   StreamSubscription<String>? _tokenRefreshSubscription;
-  bool _initialized = false;
+  Future<void>? _initialization;
 
   Stream<PushEvent> get events => _events.stream;
 
@@ -458,9 +458,11 @@ class PushNotificationService {
     return pending;
   }
 
-  Future<void> initialize() async {
-    if (_initialized) return;
-    _initialized = true;
+  Future<void> initialize() {
+    return _initialization ??= _initialize();
+  }
+
+  Future<void> _initialize() async {
     final preferences = await SharedPreferences.getInstance();
     if (preferences.getBool(_pendingAccountDisabledKey) == true) {
       await preferences.remove(_pendingAccountDisabledKey);
@@ -500,6 +502,7 @@ class PushNotificationService {
   }
 
   Future<void> registerAuthenticatedDevice() async {
+    await initialize();
     if (!pushNotificationsSupported) return;
     if (!AppPreferencesController.instance.mobileNotificationsEnabled) return;
     try {

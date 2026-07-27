@@ -18,40 +18,53 @@ void main() {
     addTearDown(wishlistCubit.close);
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
-    for (final width in const [320.0, 390.0, 600.0, 800.0]) {
-      await tester.binding.setSurfaceSize(Size(width, 800));
-      await tester.pumpWidget(
-        MultiBlocProvider(
-          providers: [
-            BlocProvider<CartCubit>.value(value: cartCubit),
-            BlocProvider<WishlistCubit>.value(value: wishlistCubit),
-          ],
-          child: MaterialApp(
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: const TextScaler.linear(1.5)),
-              child: child!,
-            ),
-            home: Scaffold(
-              body: Padding(
-                padding: const EdgeInsets.all(16),
-                child: HomeProductsSlider(
-                  products: List.generate(5, _product),
-                  onViewAll: () {},
+    for (final textScale in const [1.0, 1.3, 1.5, 2.0]) {
+      for (final width in const [
+        320.0,
+        360.0,
+        375.0,
+        393.0,
+        430.0,
+        600.0,
+        768.0,
+        1024.0,
+      ]) {
+        await tester.binding.setSurfaceSize(Size(width, 900));
+        await tester.pumpWidget(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider<CartCubit>.value(value: cartCubit),
+              BlocProvider<WishlistCubit>.value(value: wishlistCubit),
+            ],
+            child: MaterialApp(
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(textScale)),
+                child: child!,
+              ),
+              home: Scaffold(
+                body: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: HomeProductsSlider(
+                    products: List.generate(5, _product),
+                    onViewAll: () {},
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-      );
-      await tester.pump();
+        );
+        await tester.pump();
 
-      expect(
-        tester.takeException(),
-        isNull,
-        reason: 'Home product slider overflowed at ${width}px',
-      );
+        expect(
+          tester.takeException(),
+          isNull,
+          reason:
+              'Home product slider overflowed at ${width}px '
+              'with text scale $textScale',
+        );
+      }
     }
   });
 

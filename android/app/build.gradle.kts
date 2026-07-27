@@ -1,5 +1,7 @@
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.io.FileInputStream
+import java.nio.charset.StandardCharsets
+import java.util.Base64
 import java.util.Properties
 
 plugins {
@@ -24,10 +26,44 @@ val skipCrashlyticsMappingUpload =
         .orNull
         ?.equals("true", ignoreCase = true) == true
 
+fun decodedDartDefines(): Map<String, String> {
+    return providers.gradleProperty("dart-defines").orNull.orEmpty()
+        .split(",")
+        .mapNotNull { encoded ->
+            runCatching {
+                String(
+                    Base64.getDecoder().decode(encoded),
+                    StandardCharsets.UTF_8,
+                )
+            }.getOrNull()
+        }
+        .mapNotNull { define ->
+            val parts = define.split("=", limit = 2)
+            if (parts.size == 2) parts[0] to parts[1] else null
+        }
+        .toMap()
+}
+
 if (requestedReleaseBuild && !hasReleaseKeystore) {
     throw GradleException(
         "Release signing is not configured. Add android/key.properties and the release keystore."
     )
+}
+
+if (requestedReleaseBuild) {
+    val releaseDefines = decodedDartDefines()
+    val apiBaseUrl = releaseDefines["API_BASE_URL"].orEmpty()
+    val mapTilerApiKey = releaseDefines["MAPTILER_API_KEY"].orEmpty()
+    if (!apiBaseUrl.startsWith("https://")) {
+        throw GradleException(
+            "Release requires an HTTPS API_BASE_URL dart define."
+        )
+    }
+    if (mapTilerApiKey.isBlank()) {
+        throw GradleException(
+            "Release requires a non-empty MAPTILER_API_KEY dart define."
+        )
+    }
 }
 
 if (hasReleaseKeystore) {

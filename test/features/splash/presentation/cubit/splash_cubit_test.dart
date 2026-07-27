@@ -162,6 +162,7 @@ AuthUseCases _authUseCases(AuthRepository repository) {
     refreshProfile: RefreshProfileUseCase(repository),
     updateProfile: UpdateProfileUseCase(repository),
     updateProfileAvatar: UpdateProfileAvatarUseCase(repository),
+    deleteAccount: DeleteAccountUseCase(repository),
     logout: LogoutUseCase(repository),
   );
 }
@@ -317,6 +318,11 @@ class _FakeAuthRepository implements AuthRepository {
 
   @override
   Future<ApiResult<bool>> logout() async {
+    return const ApiResult.success(true);
+  }
+
+  @override
+  Future<ApiResult<bool>> deleteAccount({required String password}) async {
     return const ApiResult.success(true);
   }
 }

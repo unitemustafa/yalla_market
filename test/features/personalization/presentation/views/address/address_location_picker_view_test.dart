@@ -13,7 +13,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
-    final search = find.byType(TextField);
+    await tester.tap(find.byKey(const ValueKey('map-picker-search-open')));
+    await tester.pumpAndSettle();
+
+    final search = find.byKey(const ValueKey('map-picker-search-field'));
     await tester.enterText(search, 'Ca');
     await tester.pump(const Duration(milliseconds: 600));
     expect(geocoding.searches, isEmpty);
@@ -34,6 +37,7 @@ void main() {
       ),
     ]);
     await tester.pump();
+    await tester.pump();
     expect(find.text('Giza result'), findsOneWidget);
 
     geocoding.completeSearch('Cairo', const [
@@ -43,6 +47,7 @@ void main() {
         longitude: 31.23,
       ),
     ]);
+    await tester.pump();
     await tester.pump();
 
     expect(find.text('Giza result'), findsOneWidget);
@@ -69,6 +74,30 @@ void main() {
       ),
     );
     expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('uses compact controls and constrains the confirmation button', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 3;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    await tester.pumpWidget(_picker(geocoding: _FakeGeocodingDataSource()));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    final searchButton = tester.getSize(
+      find.byKey(const ValueKey('map-picker-search-open')),
+    );
+    expect(searchButton, const Size.square(44));
+
+    final confirmButton = tester.getSize(
+      find.byKey(const ValueKey('map-picker-confirm-button')),
+    );
+    expect(confirmButton.height, 46);
+    expect(confirmButton.width, lessThanOrEqualTo(300));
   });
 }
 

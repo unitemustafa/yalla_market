@@ -2,6 +2,7 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Delivery address': 'عنوان التوصيل',
     'Confirm delivery location': 'تأكيد موقع التوصيل',
     'Continue with this location': 'كمّل بالموقع ده',
     'Search for a place in Egypt': 'ابحث عن مكان داخل مصر',

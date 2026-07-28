@@ -29,6 +29,7 @@ import 'features/home/presentation/cubit/home_cubit.dart';
 import 'features/home/presentation/cubit/notification_cubit.dart';
 import 'features/location/presentation/cubit/location_cubit.dart';
 import 'features/onboarding/presentation/cubit/onboarding_cubit.dart';
+import 'features/offers/presentation/cubit/offer_catalog_cubit.dart';
 import 'features/personalization/presentation/controllers/user_profile_controller.dart';
 import 'features/personalization/presentation/cubit/address_cubit.dart';
 import 'features/personalization/presentation/cubit/profile_image_cubit.dart';
@@ -39,6 +40,7 @@ import 'features/store/presentation/cubit/product_catalog_cubit.dart';
 import 'features/store/presentation/cubit/product_discovery_cubit.dart';
 import 'features/store/presentation/cubit/store_cubit.dart';
 import 'features/wishlist/presentation/cubit/wishlist_cubit.dart';
+import 'features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 class YallaMarketApp extends StatelessWidget {
   const YallaMarketApp({super.key});
@@ -52,6 +54,7 @@ class YallaMarketApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<LocationCubit>()),
         BlocProvider(create: (_) => sl<SplashCubit>()),
         BlocProvider(create: (_) => sl<HomeCubit>()),
+        BlocProvider(create: (_) => sl<OfferCatalogCubit>()),
         BlocProvider(create: (_) => sl<NotificationCubit>()),
         BlocProvider(create: (_) => sl<ProductCatalogCubit>()),
         BlocProvider(create: (_) => sl<ProductDiscoveryCubit>()),
@@ -60,6 +63,7 @@ class YallaMarketApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<OrderHistoryCubit>()),
         BlocProvider(create: (_) => sl<CartCubit>()),
         BlocProvider(create: (_) => sl<WishlistCubit>()),
+        BlocProvider(create: (_) => sl<MarketWishlistCubit>()),
         BlocProvider(create: (_) => sl<AddressCubit>()),
         BlocProvider(create: (_) => sl<ProfileImageCubit>()),
       ],
@@ -75,6 +79,7 @@ class ResumeRefreshGuard {
     required Future<bool> Function() validateSession,
     required Future<void> Function() refreshHome,
     Future<void> Function()? refreshOrders,
+    Future<void> Function()? refreshOffers,
   }) async {
     if (_inFlight) return;
     _inFlight = true;
@@ -83,6 +88,7 @@ class ResumeRefreshGuard {
         await Future.wait([
           refreshHome(),
           if (refreshOrders != null) refreshOrders(),
+          if (refreshOffers != null) refreshOffers(),
         ]);
       }
     } finally {
@@ -214,6 +220,17 @@ class _AppCoordinatorState extends State<_AppCoordinator>
           ),
         );
         break;
+      case SharedContentType.market:
+        navigator.pushNamed(
+          AppRoutes.brandProducts,
+          arguments: BrandProductsRouteArgs(
+            brand: 'Store',
+            logo: '',
+            productCount: '',
+            marketId: target.id,
+          ),
+        );
+        break;
     }
   }
 
@@ -261,6 +278,8 @@ class _AppCoordinatorState extends State<_AppCoordinator>
         refreshHome: () => context.read<HomeCubit>().loadHome(force: true),
         refreshOrders: () =>
             context.read<OrderHistoryCubit>().loadOrders(force: true),
+        refreshOffers: () =>
+            context.read<OfferCatalogCubit>().loadOffers(force: true),
       );
     } catch (_) {
       // A background refresh failure must not invalidate an otherwise valid session.
@@ -287,6 +306,7 @@ class _AppCoordinatorState extends State<_AppCoordinator>
 
     final notifications = context.read<NotificationCubit>();
     final homeCubit = context.read<HomeCubit>();
+    final offerCatalogCubit = context.read<OfferCatalogCubit>();
     final orderHistoryCubit = context.read<OrderHistoryCubit>();
     final productCatalogCubit = context.read<ProductCatalogCubit>();
     final productDiscoveryCubit = context.read<ProductDiscoveryCubit>();
@@ -314,7 +334,10 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     }
 
     if (event == 'offer_created') {
-      await homeCubit.loadHome(force: true);
+      await Future.wait([
+        homeCubit.loadHome(force: true),
+        offerCatalogCubit.loadOffers(force: true),
+      ]);
       if (!mounted) return;
       if (pushEvent.opened) {
         final offerId = data['offer_id']?.toString();
@@ -428,12 +451,14 @@ class _AppCoordinatorState extends State<_AppCoordinator>
     UserProfileController.instance.reset();
     context.read<LocationCubit>().clearSession();
     context.read<WishlistCubit>().clearSession();
+    context.read<MarketWishlistCubit>().clearSession();
     context.read<CartCubit>().clearSession();
     context.read<AddressCubit>().clearSession();
     context.read<CheckoutCubit>().reset();
     context.read<OrderHistoryCubit>().clearSession();
     context.read<NotificationCubit>().clear();
     context.read<HomeCubit>().clearSession();
+    context.read<OfferCatalogCubit>().clearSession();
     context.read<ProductCatalogCubit>().clearSession();
     context.read<ProductDiscoveryCubit>().clearSession();
     context.read<StoreCubit>().clearSession();
@@ -458,9 +483,11 @@ class _AppCoordinatorState extends State<_AppCoordinator>
           );
           if (userKey == null) {
             context.read<WishlistCubit>().clearSession();
+            context.read<MarketWishlistCubit>().clearSession();
             context.read<CartCubit>().clearSession();
           } else {
             context.read<WishlistCubit>().loadWishlistForUser(userKey);
+            context.read<MarketWishlistCubit>().loadForUser(userKey);
             context.read<CartCubit>().loadCartForUser(userKey);
           }
           _schedulePendingDeepLink();

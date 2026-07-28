@@ -7,6 +7,7 @@ import '../../../preferences/app_preferences_controller.dart';
 import '../../../../features/store/domain/entities/product_data.dart';
 import '../buttons/app_action_button.dart';
 import '../layouts/grid_layout.dart';
+import '../search/app_search_actions_bar.dart';
 import '../states/app_state_view.dart';
 import 'product_cards/product_card_vertical.dart';
 import 'product_sort_button.dart';
@@ -19,9 +20,17 @@ class ProductResultsView extends StatefulWidget {
     required this.products,
     this.status = ProductResultsStatus.ready,
     this.showSearch = true,
+    this.useHomeSearchStyle = false,
+    this.contentAfterSearch,
+    this.controlsFooter,
     this.pageSize = 10,
     this.initialSortOption = 'Name',
     this.initialQuery = '',
+    this.searchFocusNode,
+    this.maxCrossAxisCount = 6,
+    this.gridMainAxisExtent = 188,
+    this.compactProductCards = true,
+    this.showSummary = true,
     this.emptyTitle = 'No products found',
     this.emptyMessage = 'Try another search, category, or sorting option.',
     this.loadingMessage = 'Loading products...',
@@ -33,9 +42,17 @@ class ProductResultsView extends StatefulWidget {
   final List<ProductData> products;
   final ProductResultsStatus status;
   final bool showSearch;
+  final bool useHomeSearchStyle;
+  final Widget? contentAfterSearch;
+  final Widget? controlsFooter;
   final int pageSize;
   final String initialSortOption;
   final String initialQuery;
+  final FocusNode? searchFocusNode;
+  final int maxCrossAxisCount;
+  final double gridMainAxisExtent;
+  final bool compactProductCards;
+  final bool showSummary;
   final String emptyTitle;
   final String emptyMessage;
   final String loadingMessage;
@@ -88,7 +105,9 @@ class _ProductResultsViewState extends State<ProductResultsView> {
     }
 
     if (widget.status == ProductResultsStatus.empty ||
-        widget.products.isEmpty) {
+        (widget.products.isEmpty &&
+            widget.controlsFooter == null &&
+            widget.contentAfterSearch == null)) {
       return AppEmptyState(
         title: widget.emptyTitle,
         message: widget.emptyMessage,
@@ -131,30 +150,66 @@ class _ProductResultsViewState extends State<ProductResultsView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (widget.showSearch) ...[
-                  _ProductSearchField(
-                    controller: _queryController,
-                    onChanged: (_) => _resetPage(),
-                  ),
+                  if (widget.useHomeSearchStyle)
+                    AppSearchActionsBar(
+                      searchField: AppSearchField(
+                        key: const ValueKey('store_product_search_field'),
+                        hintText: 'Search products...',
+                        controller: _queryController,
+                        focusNode: widget.searchFocusNode,
+                        onChanged: (_) => _resetPage(),
+                      ),
+                      actions: [
+                        ProductSortButton.compact(
+                          key: const ValueKey('store_product_filter_button'),
+                          value: _sortOption,
+                          options: _sortOptions,
+                          onChanged: (value) {
+                            setState(() {
+                              _sortOption = value;
+                              _page = 0;
+                            });
+                          },
+                        ),
+                      ],
+                    )
+                  else
+                    _ProductSearchField(
+                      controller: _queryController,
+                      onChanged: (_) => _resetPage(),
+                    ),
                   const SizedBox(height: 12),
                 ],
-                ProductSortButton(
-                  value: _sortOption,
-                  options: _sortOptions,
-                  onChanged: (value) {
-                    setState(() {
-                      _sortOption = value;
-                      _page = 0;
-                    });
-                  },
-                ),
-                const SizedBox(height: 16),
-                _ProductResultsSummary(
-                  count: sorted.length,
-                  query: query,
-                  page: safePage + 1,
-                  totalPages: totalPages,
-                ),
-                const SizedBox(height: 14),
+                if (widget.contentAfterSearch != null) ...[
+                  widget.contentAfterSearch!,
+                  const SizedBox(height: 14),
+                ],
+                if (widget.controlsFooter != null) ...[
+                  widget.controlsFooter!,
+                  const SizedBox(height: 14),
+                ],
+                if (!widget.useHomeSearchStyle) ...[
+                  ProductSortButton(
+                    value: _sortOption,
+                    options: _sortOptions,
+                    onChanged: (value) {
+                      setState(() {
+                        _sortOption = value;
+                        _page = 0;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (widget.showSummary) ...[
+                  _ProductResultsSummary(
+                    count: sorted.length,
+                    query: query,
+                    page: safePage + 1,
+                    totalPages: totalPages,
+                  ),
+                  const SizedBox(height: 14),
+                ],
                 if (sorted.isEmpty)
                   AppEmptyState(
                     title: widget.emptyTitle,
@@ -168,6 +223,8 @@ class _ProductResultsViewState extends State<ProductResultsView> {
                 else ...[
                   GridLayout(
                     itemCount: pageItems.length,
+                    mainAxisExtent: widget.gridMainAxisExtent,
+                    maxCrossAxisCount: widget.maxCrossAxisCount,
                     itemBuilder: (_, index) {
                       final product = pageItems[index];
                       return ProductCardVertical(
@@ -182,6 +239,7 @@ class _ProductResultsViewState extends State<ProductResultsView> {
                         marketName: product.brand,
                         oldPrice: product.oldPrice,
                         discount: product.discount,
+                        compact: widget.compactProductCards,
                       );
                     },
                   ),

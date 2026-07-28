@@ -1,4 +1,5 @@
 import '../../features/store/domain/entities/category_data.dart';
+import '../../features/store/domain/entities/store_data.dart';
 
 class NavigationMenuRouteArgs {
   const NavigationMenuRouteArgs({this.initialIndex = 0, this.focusOfferId});
@@ -85,6 +86,12 @@ class BrandProductsRouteArgs {
   final String? shopId;
   final String? classificationId;
   final String? marketId;
+}
+
+class StoreSearchRouteArgs {
+  const StoreSearchRouteArgs({required this.market});
+
+  final StoreMarketData market;
 }
 
 class ProductDetailRouteArgs {

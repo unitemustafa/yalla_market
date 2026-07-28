@@ -11,6 +11,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
+import '../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/routing/app_route_arguments.dart';
@@ -544,89 +545,6 @@ class _TopProfileAvatar extends StatelessWidget {
   }
 }
 
-class _TopActionButton extends StatelessWidget {
-  const _TopActionButton({
-    super.key,
-    required this.isDark,
-    required this.icon,
-    required this.onTap,
-    this.badgeCount = 0,
-  });
-
-  final bool isDark;
-  final IconData icon;
-  final VoidCallback onTap;
-  final int badgeCount;
-
-  @override
-  Widget build(BuildContext context) {
-    final normalizedBadgeCount = badgeCount < 0 ? 0 : badgeCount;
-    return Material(
-      color: isDark ? AppColors.darkCardColor : Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          width: 46,
-          height: 46,
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.black.withValues(alpha: 0.06),
-                  ),
-                ),
-                child: Icon(icon, size: 20),
-              ),
-              if (normalizedBadgeCount > 0)
-                PositionedDirectional(
-                  key: const ValueKey('notification_unread_badge'),
-                  top: -6,
-                  end: -6,
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 18,
-                      minHeight: 18,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.error,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? AppColors.darkCardColor : Colors.white,
-                        width: 1.5,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      normalizedBadgeCount > 99
-                          ? '99+'
-                          : '$normalizedBadgeCount',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Colors.white,
-                        fontSize: AppFontSizes.caption,
-                        height: 1,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _HomeSearchActionsRow extends StatelessWidget {
   const _HomeSearchActionsRow({required this.isDark});
 
@@ -634,38 +552,31 @@ class _HomeSearchActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      textDirection: TextDirection.ltr,
-      children: [
-        Expanded(child: _HomeSearchField(isDark: isDark)),
-        const SizedBox(width: 8),
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    return AppSearchActionsBar(
+      searchField: AppSearchField(
+        key: const ValueKey('home_search_field'),
+        hintText: 'Search products and categories...',
+        onTap: () => Navigator.pushNamed(context, AppRoutes.search),
+      ),
+      actions: [
         BlocBuilder<NotificationCubit, NotificationState>(
           builder: (context, state) {
-            return _TopActionButton(
+            return AppSearchActionButton(
               key: const ValueKey('notification_bell_button'),
-              isDark: isDark,
-              icon: AppIcons.notification,
-              badgeCount: state.unreadCount,
+              badgeKey: const ValueKey('notification_unread_badge'),
               onTap: () {
                 Navigator.pushNamed(context, AppRoutes.notifications);
               },
+              badgeCount: state.unreadCount,
+              child: Icon(AppIcons.notification, color: mutedColor, size: 20),
             );
           },
         ),
-        const SizedBox(width: 8),
-        Container(
+        AppSearchActionButton(
           key: const ValueKey('home_cart_button'),
-          width: 46,
-          height: 46,
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.darkCardColor : Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-            ),
-          ),
           child: CartCounterIcon(
             onPressed: () {
               Navigator.pushNamed(context, AppRoutes.cart);
@@ -676,76 +587,6 @@ class _HomeSearchActionsRow extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _HomeSearchField extends StatelessWidget {
-  const _HomeSearchField({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    final mutedColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-
-    return Material(
-      key: const ValueKey('home_search_field'),
-      color: isDark ? AppColors.darkCardColor : Colors.white,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: () {
-          Navigator.pushNamed(context, AppRoutes.search);
-        },
-        borderRadius: BorderRadius.circular(8),
-        child: Container(
-          height: 48,
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(AppIcons.search_normal, color: mutedColor, size: 18),
-              const SizedBox(width: 9),
-              Expanded(
-                child: Text(
-                  context.tr('Search products and categories...'),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: mutedColor,
-                    fontSize: AppFontSizes.small,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              Container(
-                width: 30,
-                height: 30,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(
-                    alpha: isDark ? 0.20 : 0.10,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  AppIcons.filter_search,
-                  color: AppColors.primary,
-                  size: 16,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

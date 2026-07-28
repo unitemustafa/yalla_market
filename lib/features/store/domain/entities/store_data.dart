@@ -4,7 +4,7 @@ import 'category_data.dart';
 import 'product_data.dart';
 
 class StoreData {
-  static const featuredSlotCount = 4;
+  static const featuredSlotCount = 8;
 
   const StoreData({
     required this.commonClassifications,
@@ -69,6 +69,7 @@ class StoreClassificationData {
     required this.image,
     required this.accentColorValue,
     required this.classificationType,
+    this.marketTypes = const [],
   });
 
   final String id;
@@ -78,6 +79,7 @@ class StoreClassificationData {
   final String image;
   final int accentColorValue;
   final String classificationType;
+  final List<StoreMarketTypeData> marketTypes;
 
   factory StoreClassificationData.fromJson(Map<String, dynamic> json) {
     final id = json['id']?.toString() ?? '';
@@ -96,6 +98,10 @@ class StoreClassificationData {
       image: _resolveImage(json['image']),
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
       classificationType: json['classification_type']?.toString() ?? 'normal',
+      marketTypes: _jsonList(json['market_types'])
+          .map(StoreMarketTypeData.fromJson)
+          .where((item) => item.id.isNotEmpty)
+          .toList(growable: false),
     );
   }
 
@@ -118,6 +124,39 @@ class StoreClassificationData {
   }
 }
 
+class StoreMarketTypeData {
+  const StoreMarketTypeData({
+    required this.id,
+    required this.nameAr,
+    required this.nameEn,
+    required this.image,
+    required this.sortOrder,
+  });
+
+  final String id;
+  final String nameAr;
+  final String nameEn;
+  final String image;
+  final int sortOrder;
+
+  factory StoreMarketTypeData.fromJson(Map<String, dynamic> json) {
+    return StoreMarketTypeData(
+      id: json['id']?.toString() ?? '',
+      nameAr: json['name_ar']?.toString().trim() ?? '',
+      nameEn: json['name_en']?.toString().trim() ?? '',
+      image: _resolveImage(json['image']),
+      sortOrder: _intFromJson(json['sort_order']) ?? 0,
+    );
+  }
+
+  String localizedName(String languageCode) {
+    if (languageCode.toLowerCase().startsWith('ar') && nameAr.isNotEmpty) {
+      return nameAr;
+    }
+    return nameEn.isNotEmpty ? nameEn : nameAr;
+  }
+}
+
 class StoreMarketData {
   const StoreMarketData({
     required this.id,
@@ -127,7 +166,15 @@ class StoreMarketData {
     required this.classificationId,
     required this.products,
     this.subcategories = const [],
+    this.marketTypeIds = const [],
     required this.image,
+    this.coverImage = AppAssets.temporaryMarketPlaceholder,
+    this.description = '',
+    this.deliveryTimeMinMinutes,
+    this.deliveryTimeMaxMinutes,
+    this.productCount = -1,
+    this.minimumProductPrice,
+    this.isLiked = false,
     required this.accentColorValue,
     this.isPopular = false,
     this.createdAt,
@@ -140,7 +187,15 @@ class StoreMarketData {
   final String classificationId;
   final List<ProductData> products;
   final List<StoreSubcategoryData> subcategories;
+  final List<String> marketTypeIds;
   final String image;
+  final String coverImage;
+  final String description;
+  final int? deliveryTimeMinMinutes;
+  final int? deliveryTimeMaxMinutes;
+  final int productCount;
+  final double? minimumProductPrice;
+  final bool isLiked;
   final int accentColorValue;
   final bool isPopular;
   final DateTime? createdAt;
@@ -162,6 +217,13 @@ class StoreMarketData {
             final order = first.sortOrder.compareTo(second.sortOrder);
             return order != 0 ? order : first.id.compareTo(second.id);
           });
+    final marketTypeIds = json['market_type_ids'] is List
+        ? (json['market_type_ids'] as List)
+              .map((value) => value.toString())
+              .where((value) => value.isNotEmpty)
+              .toSet()
+              .toList(growable: false)
+        : const <String>[];
 
     return StoreMarketData(
       id: id,
@@ -171,7 +233,17 @@ class StoreMarketData {
       classificationId: classificationId,
       products: products,
       subcategories: List.unmodifiable(subcategories),
+      marketTypeIds: List.unmodifiable(marketTypeIds),
       image: _resolveImage(json['image']),
+      coverImage: _resolveImage(json['cover_image']),
+      description: json['description']?.toString().trim() ?? '',
+      deliveryTimeMinMinutes: _intFromJson(json['delivery_time_min_minutes']),
+      deliveryTimeMaxMinutes: _intFromJson(json['delivery_time_max_minutes']),
+      productCount: _intFromJson(json['product_count']) ?? products.length,
+      minimumProductPrice: double.tryParse(
+        json['minimum_product_price']?.toString() ?? '',
+      ),
+      isLiked: json['is_liked'] == true,
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
       isPopular: json['is_popular'] == true,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
@@ -187,7 +259,15 @@ class StoreMarketData {
       classificationId: classificationId,
       products: products,
       subcategories: subcategories,
+      marketTypeIds: marketTypeIds,
       image: image,
+      coverImage: coverImage,
+      description: description,
+      deliveryTimeMinMinutes: deliveryTimeMinMinutes,
+      deliveryTimeMaxMinutes: deliveryTimeMaxMinutes,
+      productCount: productCount,
+      minimumProductPrice: minimumProductPrice,
+      isLiked: isLiked,
       accentColorValue: accentColorValue,
       isPopular: isPopular,
       createdAt: createdAt,
@@ -195,7 +275,42 @@ class StoreMarketData {
   }
 
   String get productCountLabel {
-    return '${products.length} product${products.length == 1 ? '' : 's'}';
+    final count = effectiveProductCount;
+    return '$count product${count == 1 ? '' : 's'}';
+  }
+
+  int get effectiveProductCount =>
+      productCount >= 0 ? productCount : products.length;
+
+  StoreMarketData copyWithFavorite(bool value) {
+    return StoreMarketData(
+      id: id,
+      name: name,
+      branch: branch,
+      status: status,
+      classificationId: classificationId,
+      products: products,
+      subcategories: subcategories,
+      marketTypeIds: marketTypeIds,
+      image: image,
+      coverImage: coverImage,
+      description: description,
+      deliveryTimeMinMinutes: deliveryTimeMinMinutes,
+      deliveryTimeMaxMinutes: deliveryTimeMaxMinutes,
+      productCount: productCount,
+      minimumProductPrice: minimumProductPrice,
+      isLiked: value,
+      accentColorValue: accentColorValue,
+      isPopular: isPopular,
+      createdAt: createdAt,
+    );
+  }
+
+  String get deliveryTimeLabel {
+    final minimum = deliveryTimeMinMinutes;
+    final maximum = deliveryTimeMaxMinutes;
+    if (minimum == null || maximum == null) return '';
+    return minimum == maximum ? '$minimum min' : '$minimum-$maximum min';
   }
 }
 

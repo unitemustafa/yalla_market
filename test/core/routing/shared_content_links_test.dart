@@ -2,18 +2,23 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/routing/shared_content_links.dart';
 
 void main() {
-  test('parses custom product and offer deep links', () {
+  test('parses custom product, offer, and market deep links', () {
     final product = SharedContentDeepLink.tryParse(
       Uri.parse('yallamarket://products/42'),
     );
     final offer = SharedContentDeepLink.tryParse(
       Uri.parse('yallamarket://offers/7'),
     );
+    final market = SharedContentDeepLink.tryParse(
+      Uri.parse('yallamarket://markets/9'),
+    );
 
     expect(product?.type, SharedContentType.product);
     expect(product?.id, '42');
     expect(offer?.type, SharedContentType.offer);
     expect(offer?.id, '7');
+    expect(market?.type, SharedContentType.market);
+    expect(market?.id, '9');
   });
 
   test('parses public HTTPS share links', () {

@@ -11,8 +11,12 @@ import '../../../../core/presentation/widgets/products/product_cards/product_car
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
+import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
+import '../../../store/domain/entities/store_data.dart';
+import '../../../store/presentation/widgets/store_market_card.dart';
 import '../../domain/entities/wishlist_item.dart';
 import '../cubit/wishlist_cubit.dart';
+import '../cubit/market_wishlist_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class WishlistView extends StatelessWidget {
@@ -22,64 +26,173 @@ class WishlistView extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return BlocBuilder<WishlistCubit, List<WishlistItem>>(
-      builder: (context, wishlist) {
-        final isEmpty = wishlist.isEmpty;
+    return BlocListener<MarketWishlistCubit, MarketWishlistState>(
+      listenWhen: (previous, current) =>
+          previous.errorRevision != current.errorRevision,
+      listener: (context, state) {
+        if (state.errorMessage?.isNotEmpty == true) {
+          CustomSnackBar.showError(
+            context: context,
+            title: 'Could not update favorite stores',
+            message: state.errorMessage,
+          );
+        }
+      },
+      child: BlocBuilder<WishlistCubit, List<WishlistItem>>(
+        builder: (context, wishlist) {
+          return BlocBuilder<MarketWishlistCubit, MarketWishlistState>(
+            builder: (context, marketWishlist) {
+              final isEmpty = wishlist.isEmpty && marketWishlist.items.isEmpty;
 
-        return Scaffold(
-          backgroundColor: isDark
-              ? AppColors.darkBackground
-              : const Color(0xFFF7F8FB),
-          body: SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: _WishlistTopBar(isDark: isDark),
-                ),
-                Expanded(
-                  child: AppRefreshIndicator(
-                    onRefresh: () => context.read<WishlistCubit>().refresh(),
-                    child: isEmpty
-                        ? _EmptyWishlistView(
-                            isDark: isDark,
-                            onExplorePressed: () {
-                              Navigator.pushNamedAndRemoveUntil(
-                                context,
-                                AppRoutes.navigationMenu,
-                                (route) => false,
-                                arguments: const NavigationMenuRouteArgs(
-                                  initialIndex: 1,
+              return Scaffold(
+                backgroundColor: isDark
+                    ? AppColors.darkBackground
+                    : const Color(0xFFF7F8FB),
+                body: SafeArea(
+                  child: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                        child: _WishlistTopBar(isDark: isDark),
+                      ),
+                      Expanded(
+                        child: AppRefreshIndicator(
+                          onRefresh: () => Future.wait([
+                            context.read<WishlistCubit>().refresh(),
+                            context.read<MarketWishlistCubit>().refresh(),
+                          ]),
+                          child: isEmpty
+                              ? _EmptyWishlistView(
+                                  isDark: isDark,
+                                  onExplorePressed: () {
+                                    Navigator.pushNamedAndRemoveUntil(
+                                      context,
+                                      AppRoutes.navigationMenu,
+                                      (route) => false,
+                                      arguments: const NavigationMenuRouteArgs(
+                                        initialIndex: 1,
+                                      ),
+                                    );
+                                  },
+                                )
+                              : SingleChildScrollView(
+                                  physics: AppRefreshIndicator.scrollPhysics,
+                                  padding: const EdgeInsets.fromLTRB(
+                                    16,
+                                    0,
+                                    16,
+                                    24,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (wishlist.isNotEmpty) ...[
+                                        const _WishlistSectionTitle(
+                                          title: 'Favorite products',
+                                          icon: AppIcons.heart5,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        GridLayout(
+                                          itemCount: wishlist.length,
+                                          itemBuilder: (_, index) {
+                                            final item = wishlist[index];
+                                            return ProductCardVertical(
+                                              image: item.image,
+                                              title: item.title,
+                                              brand: item.brand,
+                                              price: item.price,
+                                              productId: item.productId,
+                                              oldPrice: item.oldPrice,
+                                              discount: item.discount,
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                      if (wishlist.isNotEmpty &&
+                                          marketWishlist.items.isNotEmpty)
+                                        const SizedBox(height: 28),
+                                      if (marketWishlist.items.isNotEmpty) ...[
+                                        const _WishlistSectionTitle(
+                                          title: 'Favorite stores',
+                                          icon: AppIcons.shop5,
+                                        ),
+                                        const SizedBox(height: 12),
+                                        ...marketWishlist.items.map(
+                                          (market) => Padding(
+                                            padding: const EdgeInsets.only(
+                                              bottom: 12,
+                                            ),
+                                            child: StoreMarketCard(
+                                              key: ValueKey(
+                                                'wishlist_store_${market.id}',
+                                              ),
+                                              market: market,
+                                              keyPrefix: 'wishlist_store',
+                                              onTap: () =>
+                                                  _openMarket(context, market),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
                                 ),
-                              );
-                            },
-                          )
-                        : SingleChildScrollView(
-                            physics: AppRefreshIndicator.scrollPhysics,
-                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-                            child: GridLayout(
-                              itemCount: wishlist.length,
-                              itemBuilder: (_, index) {
-                                final item = wishlist[index];
-                                return ProductCardVertical(
-                                  image: item.image,
-                                  title: item.title,
-                                  brand: item.brand,
-                                  price: item.price,
-                                  productId: item.productId,
-                                  oldPrice: item.oldPrice,
-                                  discount: item.discount,
-                                );
-                              },
-                            ),
-                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  static void _openMarket(BuildContext context, StoreMarketData market) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.brandProducts,
+      arguments: BrandProductsRouteArgs(
+        brand: market.name,
+        logo: market.image,
+        productCount: market.productCountLabel,
+        classificationId: market.classificationId,
+        marketId: market.id,
+      ),
+    );
+  }
+}
+
+class _WishlistSectionTitle extends StatelessWidget {
+  const _WishlistSectionTitle({required this.title, required this.icon});
+
+  final String title;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 34,
+          height: 34,
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.11),
+            borderRadius: BorderRadius.circular(9),
           ),
-        );
-      },
+          child: Icon(icon, color: AppColors.primary, size: 18),
+        ),
+        const SizedBox(width: 9),
+        Text(
+          context.tr(title),
+          style: Theme.of(
+            context,
+          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+        ),
+      ],
     );
   }
 }
@@ -105,7 +218,7 @@ class _WishlistTopBar extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                context.tr('Saved products and favorites'),
+                context.tr('Saved products and stores'),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                   color: isDark
                       ? AppColors.darkTextSecondary

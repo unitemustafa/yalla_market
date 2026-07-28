@@ -1,6 +1,6 @@
 import '../network/api_endpoints.dart';
 
-enum SharedContentType { product, offer }
+enum SharedContentType { product, offer, market }
 
 class SharedContentDeepLink {
   const SharedContentDeepLink({required this.type, required this.id});
@@ -37,6 +37,7 @@ class SharedContentDeepLink {
     final type = switch (rawType.toLowerCase()) {
       'products' => SharedContentType.product,
       'offers' => SharedContentType.offer,
+      'markets' => SharedContentType.market,
       _ => null,
     };
     if (type == null) return null;
@@ -48,6 +49,8 @@ abstract final class SharedContentLinks {
   static String product(String id) => _build('products', id);
 
   static String offer(String id) => _build('offers', id);
+
+  static String market(String id) => _build('markets', id);
 
   static String _build(String type, String id) {
     final encodedId = Uri.encodeComponent(id.trim());

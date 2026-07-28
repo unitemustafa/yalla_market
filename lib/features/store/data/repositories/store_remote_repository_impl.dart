@@ -28,7 +28,7 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
 
   @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
-    final key = 'store.v2.${await _scope()}';
+    final key = 'store.v4.${await _scope()}';
     final cached = await _cache?.read(key);
     final cachedStore = _storeFromCache(cached);
 
@@ -58,6 +58,40 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
       if (cachedStore != null) return ApiResult.success(cachedStore);
       return const ApiResult.failure(
         UnknownFailure('Could not load store data.'),
+      );
+    }
+  }
+
+  @override
+  Future<ApiResult<StoreMarketData>> getMarket(String marketId) async {
+    try {
+      final payload = await _apiClient.get<Map<String, dynamic>>(
+        '/home/markets/$marketId/storefront/',
+      );
+      return ApiResult.success(StoreMarketData.fromJson(payload));
+    } on DioException catch (error) {
+      return ApiResult.failure(ApiErrorHandler.handle(error));
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not load store details.'),
+      );
+    }
+  }
+
+  @override
+  Future<ApiResult<List<StoreMarketData>>> getClassificationMarkets(
+    String classificationId,
+  ) async {
+    try {
+      final payload = await _apiClient.get<Map<String, dynamic>>(
+        '/home/classifications/$classificationId/markets/',
+      );
+      return ApiResult.success(_marketsFromPayload(payload['markets']));
+    } on DioException catch (error) {
+      return ApiResult.failure(ApiErrorHandler.handle(error));
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not load category stores.'),
       );
     }
   }

@@ -254,9 +254,32 @@ class _OfferSheetHeader extends StatelessWidget {
                   if (discountRate != null) ...[
                     const SizedBox(width: 8),
                     _MiniBadge(
+                      key: const ValueKey('offer_discount_badge'),
                       text: discountRate,
                       color: offer.color,
                       isDark: isDark,
+                    ),
+                  ],
+                  if (onShare != null) ...[
+                    const SizedBox(width: 8),
+                    Tooltip(
+                      message: context.tr('Share offer'),
+                      child: Material(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.08)
+                            : const Color(0xFFF3F5FA),
+                        borderRadius: BorderRadius.circular(8),
+                        child: InkWell(
+                          key: const ValueKey('offer_share_button'),
+                          borderRadius: BorderRadius.circular(8),
+                          onTap: onShare,
+                          child: const SizedBox(
+                            width: 36,
+                            height: 36,
+                            child: Icon(AppIcons.send_1, size: 18),
+                          ),
+                        ),
+                      ),
                     ),
                   ],
                 ],
@@ -278,27 +301,6 @@ class _OfferSheetHeader extends StatelessWidget {
             ],
           ),
         ),
-        if (onShare != null) ...[
-          const SizedBox(width: 8),
-          Tooltip(
-            message: context.tr('Share offer'),
-            child: Material(
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : const Color(0xFFF3F5FA),
-              shape: const CircleBorder(),
-              child: InkWell(
-                customBorder: const CircleBorder(),
-                onTap: onShare,
-                child: const SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: Icon(AppIcons.send_1, size: 20),
-                ),
-              ),
-            ),
-          ),
-        ],
       ],
     );
   }

@@ -136,6 +136,57 @@ void main() {
         );
       },
     );
+
+    test('loads every market for one classification on demand', () async {
+      final repository = StoreRemoteRepositoryImpl(
+        FakeApiClient((request) {
+          expect(request.method, 'GET');
+          expect(request.path, '/home/classifications/7/markets/');
+          return {
+            'classification': {
+              'id': 7,
+              'name': 'Restaurants',
+              'market_types': [
+                {
+                  'id': 3,
+                  'name_ar': 'برجر',
+                  'name_en': 'Burger',
+                  'image': '/media/market-types/burger.webp',
+                },
+              ],
+            },
+            'markets': [
+              {
+                'id': 91,
+                'name': 'Burger House',
+                'status': 'active',
+                'classification_id': 7,
+                'market_type_ids': [3],
+                'products': [_fullProduct()],
+              },
+              {
+                'id': 92,
+                'name': 'Pizza House',
+                'status': 'active',
+                'classification_id': 7,
+                'market_type_ids': [4],
+                'products': const [],
+              },
+            ],
+          };
+        }),
+      );
+
+      final result = await repository.getClassificationMarkets('7');
+
+      result.when(
+        success: (markets) {
+          expect(markets.map((market) => market.id), ['91', '92']);
+          expect(markets.first.marketTypeIds, ['3']);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+    });
   });
 }
 

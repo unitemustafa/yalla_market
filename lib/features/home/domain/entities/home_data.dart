@@ -1,7 +1,11 @@
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/network/api_endpoints.dart';
+import '../../../offers/domain/entities/offer_data.dart';
 import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
+
+typedef HomeOfferData = OfferData;
+typedef HomeOfferMarketData = OfferMarketData;
 
 class HomeData {
   const HomeData({
@@ -23,7 +27,7 @@ class HomeData {
           : null,
       offers: _listFromJson(
         json['offers'],
-      ).map(HomeOfferData.fromJson).toList(growable: false),
+      ).map(OfferData.fromJson).toList(growable: false),
       categories: _listFromJson(
         json['market_classifications'],
       ).map(_categoryFromClassification).toList(growable: false),
@@ -54,125 +58,6 @@ class HomeLocationData {
       name: json['name']?.toString() ?? '',
       latitude: json['latitude']?.toString() ?? '',
       longitude: json['longitude']?.toString() ?? '',
-    );
-  }
-}
-
-class HomeOfferData {
-  const HomeOfferData({
-    required this.id,
-    required this.title,
-    required this.description,
-    required this.image,
-    required this.type,
-    required this.discount,
-    required this.startsAt,
-    required this.endsAt,
-    this.marketId = '',
-    required this.marketName,
-    this.isMultiMarket = false,
-    this.marketCount = 0,
-    this.markets = const [],
-    this.marketNamesSummary = '',
-    this.showInGeneral = true,
-    this.serviceCityIds = const [],
-    this.serviceCityNames = const [],
-    this.announcementUrl = '',
-    this.announcementCtaLabel = '',
-    this.announcementPriority = 0,
-    this.announcementDisplaySeconds = 15,
-    required this.products,
-  });
-
-  final String id;
-  final String title;
-  final String description;
-  final String image;
-  final String type;
-  final String discount;
-  final DateTime? startsAt;
-  final DateTime? endsAt;
-  final String marketId;
-  final String marketName;
-  final bool isMultiMarket;
-  final int marketCount;
-  final List<HomeOfferMarketData> markets;
-  final String marketNamesSummary;
-  final bool showInGeneral;
-  final List<int> serviceCityIds;
-  final List<String> serviceCityNames;
-  final String announcementUrl;
-  final String announcementCtaLabel;
-  final int announcementPriority;
-  final int announcementDisplaySeconds;
-  final List<ProductData> products;
-
-  factory HomeOfferData.fromJson(Map<String, dynamic> json) {
-    final market = json['market'] is Map<String, dynamic>
-        ? json['market'] as Map<String, dynamic>
-        : null;
-
-    return HomeOfferData(
-      id: json['id']?.toString() ?? '',
-      title: json['title']?.toString() ?? '',
-      description: json['description']?.toString() ?? '',
-      image: _resolveImage(json['image']),
-      type: json['type']?.toString() ?? '',
-      discount: json['discount']?.toString() ?? '',
-      startsAt: DateTime.tryParse(json['start_time']?.toString() ?? ''),
-      endsAt: DateTime.tryParse(json['end_time']?.toString() ?? ''),
-      marketId:
-          json['market_id']?.toString() ?? market?['id']?.toString() ?? '',
-      marketName: market?['name']?.toString() ?? '',
-      isMultiMarket: _boolFromJson(json['is_multi_market']) ?? false,
-      marketCount: _intFromJson(json['market_count']) ?? 0,
-      markets: _listFromJson(
-        json['markets'],
-      ).map(HomeOfferMarketData.fromJson).toList(growable: false),
-      marketNamesSummary: json['market_names_summary']?.toString() ?? '',
-      showInGeneral: _boolFromJson(json['show_in_general']) ?? true,
-      serviceCityIds: _serviceCityIdsFromJson(json),
-      serviceCityNames: _serviceCityNamesFromJson(json),
-      announcementUrl: json['announcement_url']?.toString() ?? '',
-      announcementCtaLabel: json['announcement_cta_label']?.toString() ?? '',
-      announcementPriority: _intFromJson(json['announcement_priority']) ?? 0,
-      announcementDisplaySeconds:
-          _intFromJson(json['announcement_display_seconds']) ?? 15,
-      products: _listFromJson(json['products'])
-          .map(ProductData.fromJson)
-          .map(_productWithResolvedImage)
-          .toList(growable: false),
-    );
-  }
-
-  String get discountLabel {
-    final value = discount.trim();
-    if (value.isEmpty) return '';
-    final parsed = double.tryParse(value);
-    if (parsed == null || parsed <= 0) return '';
-    final text = parsed == parsed.roundToDouble()
-        ? parsed.toStringAsFixed(0)
-        : parsed.toStringAsFixed(1);
-    return '$text% off';
-  }
-}
-
-class HomeOfferMarketData {
-  const HomeOfferMarketData({
-    required this.id,
-    required this.name,
-    required this.branch,
-  });
-
-  final String id;
-  final String name;
-  final String branch;
-
-  factory HomeOfferMarketData.fromJson(Map<String, dynamic> json) {
-    return HomeOfferMarketData(
-      id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
-      branch: json['branch']?.toString() ?? '',
     );
   }
 }
@@ -260,46 +145,6 @@ int? _intFromJson(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
   return null;
-}
-
-bool? _boolFromJson(Object? value) {
-  if (value is bool) return value;
-  if (value is num) return value != 0;
-  if (value is String) {
-    final normalized = value.trim().toLowerCase();
-    if (normalized == 'true' || normalized == '1' || normalized == 'yes') {
-      return true;
-    }
-    if (normalized == 'false' || normalized == '0' || normalized == 'no') {
-      return false;
-    }
-  }
-  return null;
-}
-
-List<int> _serviceCityIdsFromJson(Map<String, dynamic> json) {
-  final ids = <int>{};
-  final direct = json['service_city_ids'];
-  if (direct is List) {
-    for (final item in direct) {
-      final id = _intFromJson(item);
-      if (id != null && id > 0) ids.add(id);
-    }
-  }
-
-  for (final city in _listFromJson(json['service_cities'])) {
-    final id = _intFromJson(city['id']);
-    if (id != null && id > 0) ids.add(id);
-  }
-
-  return ids.toList(growable: false);
-}
-
-List<String> _serviceCityNamesFromJson(Map<String, dynamic> json) {
-  return _listFromJson(json['service_cities'])
-      .map((city) => city['name']?.toString().trim() ?? '')
-      .where((name) => name.isNotEmpty)
-      .toList(growable: false);
 }
 
 int _accentColorFor(String seed) {

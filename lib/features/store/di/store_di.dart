@@ -76,7 +76,9 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
     sl.registerLazySingleton(() => GetStoreUseCase(sl<StoreRepository>()));
   }
   if (!sl.isRegistered<StoreCubit>()) {
-    sl.registerFactory(() => StoreCubit(sl<GetStoreUseCase>()));
+    sl.registerFactory(
+      () => StoreCubit(sl<GetStoreUseCase>(), sl<StoreRepository>()),
+    );
   }
   if (!sl.isRegistered<ProductCatalogCubit>()) {
     sl.registerFactory(

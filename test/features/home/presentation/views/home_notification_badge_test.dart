@@ -287,6 +287,18 @@ class _EmptyProductRepository implements ProductRepository {
 
 class _EmptyStoreRepository implements StoreRepository {
   @override
+  Future<ApiResult<StoreMarketData>> getMarket(String marketId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ApiResult<List<StoreMarketData>>> getClassificationMarkets(
+    String classificationId,
+  ) async {
+    return const ApiResult.success([]);
+  }
+
+  @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
     return const ApiResult.success(
       StoreData(

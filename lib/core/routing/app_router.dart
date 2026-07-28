@@ -23,6 +23,7 @@ import '../../features/navigation/presentation/views/navigation_menu_view.dart';
 import '../../features/store/presentation/views/all_products/all_products_view.dart';
 import '../../features/store/presentation/views/brand/brands_view.dart';
 import '../../features/store/presentation/views/brand/brand_products_view.dart';
+import '../../features/store/presentation/views/brand/store_product_search_view.dart';
 import '../../features/store/presentation/views/latest_stores_view.dart';
 import '../../features/store/presentation/views/checkout/processing_order_view.dart';
 import '../../features/store/presentation/views/checkout/payment_success_view.dart';
@@ -54,6 +55,7 @@ class AppRouter {
     AppRoutes.latestStores,
     AppRoutes.productDetail,
     AppRoutes.brandProducts,
+    AppRoutes.storeSearch,
     AppRoutes.profile,
     AppRoutes.notifications,
     AppRoutes.addresses,
@@ -190,6 +192,16 @@ class AppRouter {
             classificationId: args.classificationId,
             marketId: args.marketId,
           ),
+          settings,
+        );
+
+      case AppRoutes.storeSearch:
+        final args = settings.arguments as StoreSearchRouteArgs?;
+        if (args == null) {
+          return _buildMissingArgumentsRoute(settings);
+        }
+        return _buildRoute(
+          StoreProductSearchView(market: args.market),
           settings,
         );
 

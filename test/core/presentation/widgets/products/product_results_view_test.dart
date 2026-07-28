@@ -63,6 +63,132 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'store controls appear before subcategories and filter products',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final cartCubit = makeCartCubit();
+      final wishlistCubit = makeWishlistCubit();
+      await cartCubit.loadCartForUser('store-controls-user');
+      addTearDown(cartCubit.close);
+      addTearDown(wishlistCubit.close);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<CartCubit>.value(value: cartCubit),
+            BlocProvider<WishlistCubit>.value(value: wishlistCubit),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: SingleChildScrollView(
+                child: ProductResultsView(
+                  products: [_product(0), _product(1)],
+                  initialSortOption: 'Newest',
+                  useHomeSearchStyle: true,
+                  contentAfterSearch: const SizedBox(
+                    key: ValueKey('test_offer_section'),
+                    height: 80,
+                  ),
+                  controlsFooter: const SizedBox(
+                    key: ValueKey('test_subcategory_rail'),
+                    height: 94,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final search = find.byKey(const ValueKey('store_product_search_field'));
+      final offers = find.byKey(const ValueKey('test_offer_section'));
+      final categories = find.byKey(const ValueKey('test_subcategory_rail'));
+      expect(search, findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('store_product_filter_button')),
+        findsOneWidget,
+      );
+      expect(
+        tester.getTopLeft(search).dy,
+        lessThan(tester.getTopLeft(offers).dy),
+      );
+      expect(
+        tester.getTopLeft(offers).dy,
+        lessThan(tester.getTopLeft(categories).dy),
+      );
+
+      await tester.enterText(
+        find.descendant(of: search, matching: find.byType(TextField)),
+        'Product 1',
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('product_add_to_cart_product-0')),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const ValueKey('product_add_to_cart_product-1')),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'keeps the query but dismisses focus when another route covers the page',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final cartCubit = makeCartCubit();
+      final wishlistCubit = makeWishlistCubit();
+      await cartCubit.loadCartForUser('store-focus-user');
+      addTearDown(cartCubit.close);
+      addTearDown(wishlistCubit.close);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<CartCubit>.value(value: cartCubit),
+            BlocProvider<WishlistCubit>.value(value: wishlistCubit),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: ProductResultsView(
+                products: [_product(0), _product(1)],
+                useHomeSearchStyle: true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final search = find.byKey(const ValueKey('store_product_search_field'));
+      final textField = find.descendant(
+        of: search,
+        matching: find.byType(TextField),
+      );
+      await tester.tap(textField);
+      await tester.enterText(textField, 'Product 1');
+      await tester.pump();
+      expect(tester.widget<TextField>(textField).focusNode?.hasFocus, isTrue);
+
+      final navigator = tester.state<NavigatorState>(find.byType(Navigator));
+      navigator.push(
+        MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Next page')),
+        ),
+      );
+      await tester.pumpAndSettle();
+      navigator.pop();
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextField>(textField).controller?.text, 'Product 1');
+      expect(tester.widget<TextField>(textField).focusNode?.hasFocus, isFalse);
+      expect(tester.testTextInput.isVisible, isFalse);
+    },
+  );
 }
 
 ProductData _product(int index) {

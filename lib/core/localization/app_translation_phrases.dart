@@ -2,6 +2,12 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Offers': 'العروض',
+    'Favorite products': 'المنتجات المفضلة',
+    'Favorite stores': 'المحلات المفضلة',
+    'Saved products and stores': 'المنتجات والمحلات المحفوظة',
+    'Could not update favorite stores': 'تعذر تحديث المحلات المفضلة',
+    'Could not share store': 'تعذر مشاركة المحل',
     'Delivery address': 'عنوان التوصيل',
     'Confirm delivery location': 'تأكيد موقع التوصيل',
     'Continue with this location': 'كمّل بالموقع ده',
@@ -1062,7 +1068,13 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Explore market categories': 'استكشف فئات السوق',
     'Featured Categories': 'فئات مميزة',
     'Products and categories': 'منتجات وفئات',
+    'Search stores...': 'دور على محل...',
+    'Search products...': 'دور على منتج...',
+    'Search the menu...': 'ابحث في القائمة...',
+    'Try another product name.': 'جرّب اسم منتج آخر.',
     'Search categories, products...': 'دور على فئات ومنتجات...',
+    'No stores found': 'مفيش محلات مطابقة',
+    'Try a different store name.': 'جرّب اسم محل تاني.',
     'Search products and categories...': 'دور على منتجات أو فئات...',
     'This category is empty. Try another category or check back later.':
         'الفئة دي فاضية. جرّب فئة تانية أو ارجع لاحقًا.',

@@ -6,6 +6,7 @@ import '../../features/cart/di/cart_di.dart';
 import '../../features/home/di/home_di.dart';
 import '../../features/location/di/location_di.dart';
 import '../../features/onboarding/di/onboarding_di.dart';
+import '../../features/offers/di/offers_di.dart';
 import '../../features/personalization/di/personalization_di.dart';
 import '../../features/splash/di/splash_di.dart';
 import '../../features/store/di/store_di.dart';
@@ -20,6 +21,7 @@ void initServiceLocator() {
   registerAuthDependencies(sl);
   registerSplashDependencies(sl);
   registerHomeDependencies(sl);
+  registerOfferDependencies(sl);
   registerStoreDependencies(sl);
   registerCartDependencies(sl);
   registerWishlistDependencies(sl);

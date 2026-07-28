@@ -24,6 +24,7 @@ class AppRoutes {
   static const String categories = '/categories';
   static const String latestStores = '/stores/latest';
   static const String brandProducts = '/brand-products';
+  static const String storeSearch = '/markets/search';
   static const String profile = '/profile';
   static const String notifications = '/notifications';
   static const String addresses = '/addresses';

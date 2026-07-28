@@ -29,15 +29,14 @@ class AppAssets {
       '$_placeholdersPath/empty_store_dark.jpg';
 
   // Logos
-  static const String logo = '$_logosPath/yallamarket_logo.png';
   static const String homeBrandLogo = '$_logosPath/yallamarket_home_logo.png';
-  static const String appIconLogo = logo;
-  static const String lightThemeLogo = logo;
-  static const String darkThemeLogo = logo;
+  static const String appIconLogo = homeBrandLogo;
+  static const String lightThemeLogo = homeBrandLogo;
+  static const String darkThemeLogo = homeBrandLogo;
   static const String defaultAvatar = appIconLogo;
 
   static String themedLogo({required bool isDarkMode}) {
-    return logo;
+    return homeBrandLogo;
   }
 
   static String defaultAvatarForGender(String? gender) {

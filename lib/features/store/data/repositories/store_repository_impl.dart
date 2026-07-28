@@ -55,6 +55,35 @@ class StoreRepositoryImpl implements StoreRepository {
     }
   }
 
+  @override
+  Future<ApiResult<StoreMarketData>> getMarket(String marketId) async {
+    final result = await getStore();
+    return result.when(
+      success: (store) {
+        for (final markets in store.marketsByClassificationId.values) {
+          for (final market in markets) {
+            if (market.id == marketId) return ApiResult.success(market);
+          }
+        }
+        return const ApiResult.failure(
+          UnknownFailure('Store is not available.'),
+        );
+      },
+      failure: ApiResult.failure,
+    );
+  }
+
+  @override
+  Future<ApiResult<List<StoreMarketData>>> getClassificationMarkets(
+    String classificationId,
+  ) async {
+    final result = await getStore();
+    return result.when(
+      success: (store) => ApiResult.success(store.marketsFor(classificationId)),
+      failure: ApiResult.failure,
+    );
+  }
+
   List<StoreClassificationData> _demoClassifications() {
     const source = <MarketCategoryData>[
       MarketCategories.restaurants,

@@ -341,6 +341,7 @@ class _SummaryLine extends StatelessWidget {
 
 class _MiniBadge extends StatelessWidget {
   const _MiniBadge({
+    super.key,
     required this.text,
     required this.color,
     required this.isDark,

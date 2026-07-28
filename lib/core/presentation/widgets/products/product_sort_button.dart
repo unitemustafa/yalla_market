@@ -12,12 +12,22 @@ class ProductSortButton extends StatelessWidget {
     required this.options,
     required this.onChanged,
     this.title = 'Sort products',
+    this.compact = false,
   });
+
+  const ProductSortButton.compact({
+    super.key,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+    this.title = 'Sort products',
+  }) : compact = true;
 
   final String value;
   final List<String> options;
   final ValueChanged<String> onChanged;
   final String title;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -29,6 +39,30 @@ class ProductSortButton extends StatelessWidget {
     final mutedColor = isDark
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
+
+    if (compact) {
+      return Material(
+        color: panelColor,
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          onTap: () => _showSortSheet(context, isDark),
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: borderColor),
+            ),
+            child: const Icon(
+              AppIcons.filter_search,
+              color: AppColors.primary,
+              size: 20,
+            ),
+          ),
+        ),
+      );
+    }
 
     return Material(
       color: panelColor,

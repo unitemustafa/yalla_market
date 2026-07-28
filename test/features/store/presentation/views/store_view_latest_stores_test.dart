@@ -68,29 +68,17 @@ void main() {
     expect(find.byKey(const ValueKey('latest_store_market-1')), findsOneWidget);
     expect(find.byKey(const ValueKey('latest_store_market-7')), findsNothing);
     expect(
-      find.byKey(const ValueKey('latest_store_market-1_product_0')),
+      find.byKey(const ValueKey('latest_store_market-1_cover')),
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('latest_store_market-1_product_2')),
+      find.byKey(const ValueKey('latest_store_market-1_logo')),
       findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('latest_store_market-1_product_3')),
-      findsNothing,
     );
     final emptyStoreImage = tester.widget<AppImage>(
-      find.byKey(const ValueKey('latest_store_market-2_default_0')),
+      find.byKey(const ValueKey('latest_store_market-2_cover')),
     );
-    expect(emptyStoreImage.source, AppAssets.emptyStoreLight);
-    expect(
-      find.byKey(const ValueKey('latest_store_market-2_default_1')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('latest_store_market-2_default_2')),
-      findsOneWidget,
-    );
+    expect(emptyStoreImage.source, AppAssets.temporaryMarketPlaceholder);
 
     await tester.drag(slider, const Offset(-2200, 0));
     await tester.pumpAndSettle();
@@ -173,7 +161,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('popular_store_popular-market-0_default_0')),
+      find.byKey(const ValueKey('popular_store_popular-market-0_cover')),
       findsOneWidget,
     );
 
@@ -251,9 +239,9 @@ void main() {
     await tester.pumpAndSettle();
 
     final emptyStoreImage = tester.widget<AppImage>(
-      find.byKey(const ValueKey('latest_store_market-2_default_0')),
+      find.byKey(const ValueKey('latest_store_market-2_cover')),
     );
-    expect(emptyStoreImage.source, AppAssets.emptyStoreDark);
+    expect(emptyStoreImage.source, AppAssets.temporaryMarketPlaceholder);
     expect(tester.takeException(), isNull);
   });
 
@@ -323,6 +311,17 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    for (var index = 0; index < StoreData.featuredSlotCount; index++) {
+      expect(
+        find.byKey(ValueKey('featured_category_featured-$index')),
+        findsOneWidget,
+      );
+    }
+    expect(
+      find.byKey(const ValueKey('featured_category_normal-8')),
+      findsNothing,
+    );
+
     await tester.tap(find.text('View all'));
     await tester.pumpAndSettle();
 
@@ -333,7 +332,11 @@ void main() {
       'featured-1',
       'featured-2',
       'featured-3',
-      'normal-4',
+      'featured-4',
+      'featured-5',
+      'featured-6',
+      'featured-7',
+      'normal-8',
     ]);
   });
 }
@@ -460,15 +463,15 @@ StoreData _storeWithThreeFeaturedCategories() {
 
 StoreData _storeWithFeaturedOverflow() {
   final classifications = List.generate(
-    5,
+    9,
     (index) => StoreClassificationData(
-      id: index == 4 ? 'normal-4' : 'featured-$index',
+      id: index == 8 ? 'normal-8' : 'featured-$index',
       name: 'Category $index',
       marketCount: index + 1,
       products: const [],
       image: '',
       accentColorValue: 0xFF4F60F6,
-      classificationType: index == 4 ? 'normal' : 'featured',
+      classificationType: index == 8 ? 'normal' : 'featured',
     ),
   );
   return StoreData(
@@ -483,6 +486,18 @@ class _StoreRepository implements StoreRepository {
 
   final StoreData store;
   int calls = 0;
+
+  @override
+  Future<ApiResult<StoreMarketData>> getMarket(String marketId) {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<ApiResult<List<StoreMarketData>>> getClassificationMarkets(
+    String classificationId,
+  ) async {
+    return ApiResult.success(store.marketsFor(classificationId));
+  }
 
   @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {

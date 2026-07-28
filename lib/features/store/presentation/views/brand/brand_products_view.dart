@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../../core/config/app_environment.dart';
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/formatters/app_currency.dart';
 import '../../../data/demo/demo_categories.dart';
 import '../../../data/demo/demo_shops.dart';
 import '../../../../../core/localization/app_translations.dart';
@@ -12,9 +15,18 @@ import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
+import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
+import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
 import '../../../../../core/routing/app_routes.dart';
+import '../../../../../core/routing/shared_content_links.dart';
+import '../../../../../core/presentation/widgets/products/cart_counter_icon.dart';
+import '../../../../offers/domain/entities/offer_data.dart';
+import '../../../../offers/presentation/cubit/offer_catalog_cubit.dart';
+import '../../../../offers/presentation/cubit/offer_catalog_state.dart';
+import '../../../../offers/presentation/widgets/promo_slider.dart';
+import '../../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import '../../../domain/entities/product_data.dart';
 import '../../../domain/entities/store_data.dart';
 import '../../cubit/product_catalog_cubit.dart';
@@ -22,6 +34,7 @@ import '../../cubit/product_catalog_state.dart';
 import '../../cubit/store_cubit.dart';
 import '../../cubit/store_state.dart';
 import '../../widgets/store_market_card.dart';
+import '../../widgets/market_storefront_hero.dart';
 
 part 'brand_products_widgets.dart';
 
@@ -33,6 +46,55 @@ List<ProductData> productsForStoreSubcategory(
   if (selected.isEmpty) return List.unmodifiable(products);
   return products
       .where((product) => product.subcategoryId == selected)
+      .toList(growable: false);
+}
+
+List<StoreMarketData> storesMatchingQuery(
+  Iterable<StoreMarketData> stores,
+  String query,
+) {
+  final normalized = query.trim().toLowerCase();
+  if (normalized.isEmpty) return stores.toList(growable: false);
+  return stores
+      .where(
+        (store) =>
+            store.name.toLowerCase().contains(normalized) ||
+            store.branch.toLowerCase().contains(normalized),
+      )
+      .toList(growable: false);
+}
+
+List<StoreMarketData> storesMatchingType(
+  Iterable<StoreMarketData> stores,
+  String? marketTypeId,
+) {
+  final selected = marketTypeId?.trim() ?? '';
+  if (selected.isEmpty) return stores.toList(growable: false);
+  return stores
+      .where((store) => store.marketTypeIds.contains(selected))
+      .toList(growable: false);
+}
+
+List<OfferData> offersForMarket(Iterable<OfferData> offers, String marketId) {
+  final normalized = marketId.trim();
+  if (normalized.isEmpty) return const [];
+  final seen = <String>{};
+  return offers
+      .where((offer) => offer.belongsToMarket(normalized))
+      .where((offer) => seen.add(offer.id))
+      .toList(growable: false);
+}
+
+List<OfferData> offersForClassification(
+  Iterable<OfferData> offers,
+  String classificationId,
+) {
+  final normalized = classificationId.trim();
+  if (normalized.isEmpty) return const [];
+  final seen = <String>{};
+  return offers
+      .where((offer) => offer.belongsToClassification(normalized))
+      .where((offer) => seen.add(offer.id))
       .toList(growable: false);
 }
 
@@ -60,12 +122,29 @@ class BrandProductsView extends StatefulWidget {
 
 class _BrandProductsViewState extends State<BrandProductsView> {
   String? _selectedSubcategoryId;
+  String? _selectedMarketTypeId;
+  final TextEditingController _storeSearchController = TextEditingController();
+  String _storeQuery = '';
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<StoreCubit>().loadStore();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final storeCubit = context.read<StoreCubit>();
+      final offerCubit = context.read<OfferCatalogCubit>();
+      await storeCubit.loadStore();
+      if (!mounted) return;
+      final marketId = widget.marketId?.trim() ?? '';
+      if (marketId.isNotEmpty) {
+        await storeCubit.ensureMarket(marketId);
+      } else {
+        final classificationId = widget.classificationId?.trim() ?? '';
+        if (classificationId.isNotEmpty) {
+          await storeCubit.ensureClassification(classificationId);
+        }
+      }
+      offerCubit.loadOffers(force: true);
     });
   }
 
@@ -74,6 +153,57 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.marketId != widget.marketId) {
       _selectedSubcategoryId = null;
+      final marketId = widget.marketId?.trim() ?? '';
+      if (marketId.isNotEmpty) {
+        context.read<StoreCubit>().ensureMarket(marketId);
+      }
+    }
+    if (oldWidget.classificationId != widget.classificationId) {
+      _storeSearchController.clear();
+      _storeQuery = '';
+      _selectedMarketTypeId = null;
+      final classificationId = widget.classificationId?.trim() ?? '';
+      if (classificationId.isNotEmpty) {
+        context.read<StoreCubit>().ensureClassification(classificationId);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _storeSearchController.dispose();
+    super.dispose();
+  }
+
+  void _openStoreSearch(StoreMarketData market) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.storeSearch,
+      arguments: StoreSearchRouteArgs(market: market),
+    );
+  }
+
+  Future<void> _shareMarket(StoreMarketData market) async {
+    final link = SharedContentLinks.market(market.id);
+    try {
+      await SharePlus.instance.share(
+        ShareParams(
+          title: market.name,
+          text: '${market.name}\n$link',
+          sharePositionOrigin: Rect.fromCenter(
+            center: MediaQuery.sizeOf(context).center(Offset.zero),
+            width: 1,
+            height: 1,
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      CustomSnackBar.showError(
+        context: context,
+        title: 'Could not share store',
+        message: 'Please try again.',
+      );
     }
   }
 
@@ -81,30 +211,57 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     await Future.wait([
       context.read<StoreCubit>().loadStore(force: true),
       context.read<ProductCatalogCubit>().loadProducts(force: true),
+      context.read<OfferCatalogCubit>().loadOffers(force: true),
     ]);
+    if (!mounted) return;
+    final storeCubit = context.read<StoreCubit>();
+    final marketId = widget.marketId?.trim() ?? '';
+    if (marketId.isNotEmpty) {
+      await storeCubit.ensureMarket(marketId);
+      return;
+    }
+    final classificationId = widget.classificationId?.trim() ?? '';
+    if (classificationId.isNotEmpty) {
+      await storeCubit.ensureClassification(classificationId);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final isMarketPage = widget.marketId?.trim().isNotEmpty == true;
     final backgroundColor = isDark
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
 
-    return Scaffold(
+    final page = Scaffold(
       backgroundColor: backgroundColor,
       body: SafeArea(
+        top: !isMarketPage,
         child: BlocBuilder<StoreCubit, StoreState>(
           builder: (context, storeState) {
             return BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
               builder: (context, catalogState) {
-                return AppRefreshIndicator(
-                  onRefresh: _refreshContent,
-                  child: SingleChildScrollView(
-                    physics: AppRefreshIndicator.scrollPhysics,
-                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                    child: _buildContent(context, storeState, catalogState),
-                  ),
+                return BlocBuilder<OfferCatalogCubit, OfferCatalogState>(
+                  builder: (context, offerState) {
+                    return AppRefreshIndicator(
+                      onRefresh: _refreshContent,
+                      child: SingleChildScrollView(
+                        physics: AppRefreshIndicator.scrollPhysics,
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: isMarketPage
+                            ? const EdgeInsets.only(bottom: 28)
+                            : const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                        child: _buildContent(
+                          context,
+                          storeState,
+                          catalogState,
+                          offerState.offers,
+                        ),
+                      ),
+                    );
+                  },
                 );
               },
             );
@@ -112,14 +269,25 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         ),
       ),
     );
+
+    if (!isMarketPage) return page;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: page,
+    );
   }
 
   Widget _buildContent(
     BuildContext context,
     StoreState storeState,
     ProductCatalogState state,
+    List<OfferData> offers,
   ) {
-    final storeContent = _buildStoreContent(context, storeState);
+    final storeContent = _buildStoreContent(context, storeState, offers);
     if (storeContent != null) return storeContent;
 
     final isLocalShopCategory =
@@ -181,7 +349,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     return _buildProductList(context, readyState);
   }
 
-  Widget? _buildStoreContent(BuildContext context, StoreState state) {
+  Widget? _buildStoreContent(
+    BuildContext context,
+    StoreState state,
+    List<OfferData> offers,
+  ) {
     final classificationId = widget.classificationId?.trim();
     final marketId = widget.marketId?.trim();
     if ((classificationId == null || classificationId.isEmpty) &&
@@ -243,13 +415,23 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           ],
         );
       }
-      return _buildApiMarketProducts(context, store, market);
+      return _buildApiMarketProducts(
+        context,
+        store,
+        market,
+        offersForMarket(offers, market.id),
+      );
     }
 
     if (classificationId != null && classificationId.isNotEmpty) {
       final classification = _classificationById(store, classificationId);
       final markets = store.marketsFor(classificationId);
-      return _buildApiClassificationMarkets(context, classification, markets);
+      return _buildApiClassificationMarkets(
+        context,
+        classification,
+        markets,
+        offersForClassification(offers, classificationId),
+      );
     }
 
     return null;
@@ -259,35 +441,68 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     BuildContext context,
     StoreClassificationData? classification,
     List<StoreMarketData> markets,
+    List<OfferData> offers,
   ) {
     final title = classification?.name ?? widget.brand;
     final subtitle = markets.isEmpty
         ? widget.productCount
         : '${markets.length} store${markets.length == 1 ? '' : 's'}';
+    final availableMarketTypes = (classification?.marketTypes ?? const [])
+        .where(
+          (type) =>
+              markets.any((market) => market.marketTypeIds.contains(type.id)),
+        )
+        .toList(growable: false);
+    final effectiveTypeId =
+        availableMarketTypes.any((type) => type.id == _selectedMarketTypeId)
+        ? _selectedMarketTypeId
+        : null;
+    final visibleMarkets = storesMatchingType(
+      storesMatchingQuery(markets, _storeQuery),
+      effectiveTypeId,
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         PageTopBar(title: title, subtitle: subtitle),
         const SizedBox(height: 18),
-        BrandCard(
-          showBorder: true,
-          brand: title,
-          logo: classification?.image ?? widget.logo,
-          productCount: subtitle,
-          accentColor: classification == null
-              ? AppColors.primary
-              : Color(classification.accentColorValue),
+        AppSearchField(
+          key: const ValueKey('category_store_search_field'),
+          hintText: 'Search stores...',
+          controller: _storeSearchController,
+          onChanged: (value) => setState(() => _storeQuery = value),
         ),
-        const SizedBox(height: 22),
-        if (markets.isEmpty)
-          const AppEmptyState(
-            title: 'No stores available',
-            message: 'Stores will appear here when they cover your address.',
-            icon: AppIcons.shop,
+        if (offers.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _StoreOfferSection(offers: offers),
+        ],
+        if (availableMarketTypes.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _MarketTypeRail(
+            classificationImage: classification?.image ?? '',
+            types: availableMarketTypes,
+            selectedId: effectiveTypeId,
+            onSelected: (value) {
+              setState(() => _selectedMarketTypeId = value);
+            },
+          ),
+        ],
+        const SizedBox(height: 18),
+        if (visibleMarkets.isEmpty)
+          AppEmptyState(
+            title: _storeQuery.trim().isEmpty
+                ? 'No stores available'
+                : 'No stores found',
+            message: _storeQuery.trim().isEmpty
+                ? 'Stores will appear here when they cover your address.'
+                : 'Try a different store name.',
+            icon: _storeQuery.trim().isEmpty
+                ? AppIcons.shop
+                : AppIcons.search_status,
           )
         else
-          ...markets.map(
+          ...visibleMarkets.map(
             (market) => Padding(
               padding: const EdgeInsets.only(bottom: 12),
               child: StoreMarketCard(
@@ -318,12 +533,8 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     BuildContext context,
     StoreData store,
     StoreMarketData market,
+    List<OfferData> offers,
   ) {
-    final classification = _classificationById(store, market.classificationId);
-    final subtitle = [
-      if (classification != null) classification.name,
-      if (market.branch.trim().isNotEmpty) market.branch,
-    ].join(' • ');
     final languageCode = Localizations.localeOf(context).languageCode;
     final categories = market.subcategories;
     final selectedId =
@@ -337,134 +548,51 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     final categoryDescription = selectedCategory?.localizedDescription(
       languageCode,
     );
+    final controlsFooter = categories.isEmpty
+        ? null
+        : _StoreSubcategoryRail(
+            categories: categories,
+            selectedId: selectedId,
+            languageCode: languageCode,
+            categoryDescription: categoryDescription,
+            onSelected: (categoryId) {
+              setState(() => _selectedSubcategoryId = categoryId);
+            },
+          );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        PageTopBar(
-          title: market.name,
-          subtitle: subtitle.isEmpty ? market.productCountLabel : subtitle,
+        MarketStorefrontHero(
+          market: market,
+          onBack: Navigator.of(context).pop,
+          onSearch: () => _openStoreSearch(market),
+          onShare: () => _shareMarket(market),
         ),
-        const SizedBox(height: 18),
-        if (categories.isNotEmpty) ...[
-          SizedBox(
-            height: 94,
-            child: ListView.separated(
-              key: const ValueKey('store_subcategory_rail'),
-              scrollDirection: Axis.horizontal,
-              itemCount: categories.length + 1,
-              separatorBuilder: (_, _) => const SizedBox(width: 8),
-              itemBuilder: (context, index) {
-                final category = index == 0 ? null : categories[index - 1];
-                final isSelected = category?.id == selectedId;
-                final label = category == null
-                    ? (languageCode.startsWith('ar') ? 'الكل' : 'All')
-                    : category.localizedName(languageCode);
-                return InkWell(
-                  key: ValueKey(
-                    category == null
-                        ? 'store_subcategory_all'
-                        : 'store_subcategory_${category.id}',
-                  ),
-                  borderRadius: BorderRadius.circular(14),
-                  onTap: () =>
-                      setState(() => _selectedSubcategoryId = category?.id),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    width: 112,
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.primary
-                          : Theme.of(context).cardColor,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primary
-                            : Theme.of(context).dividerColor,
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Expanded(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Colors.white.withValues(alpha: 0.16)
-                                  : AppColors.primary.withValues(alpha: 0.10),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: category?.image.isNotEmpty == true
-                                ? AppImage(
-                                    source: category!.image,
-                                    fit: BoxFit.cover,
-                                    borderRadius: BorderRadius.circular(10),
-                                    fallbackType:
-                                        AppImagePlaceholderType.category,
-                                    cacheWidth: 224,
-                                    cacheHeight: 116,
-                                    filterQuality: FilterQuality.medium,
-                                  )
-                                : Icon(
-                                    AppIcons.category,
-                                    size: 30,
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppColors.primary,
-                                  ),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        SizedBox(
-                          height: 24,
-                          child: Center(
-                            child: Text(
-                              label,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                height: 1.05,
-                                fontWeight: FontWeight.w900,
-                                color: isSelected
-                                    ? Colors.white
-                                    : Theme.of(context).colorScheme.onSurface,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
-            ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          child: ProductResultsView(
+            products: products,
+            status: ProductResultsStatus.ready,
+            showSearch: false,
+            useHomeSearchStyle: true,
+            showSummary: false,
+            pageSize: 100,
+            maxCrossAxisCount: 2,
+            gridMainAxisExtent: 242,
+            compactProductCards: false,
+            contentAfterSearch: offers.isEmpty
+                ? null
+                : _StoreOfferSection(offers: offers),
+            controlsFooter: controlsFooter,
+            onRetry: () => context.read<StoreCubit>().loadStore(force: true),
+            emptyTitle: selectedCategory == null
+                ? 'No products available'
+                : 'No products in this section',
+            emptyMessage: selectedCategory == null
+                ? 'Products will appear here once this store is ready.'
+                : 'Try another section or choose All.',
           ),
-          if (categoryDescription?.isNotEmpty == true) ...[
-            const SizedBox(height: 8),
-            Text(
-              categoryDescription!,
-              key: const ValueKey('store_subcategory_description'),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-          const SizedBox(height: 14),
-        ],
-        ProductResultsView(
-          key: ValueKey('store_products_${selectedId ?? 'all'}'),
-          products: products,
-          status: ProductResultsStatus.ready,
-          onRetry: () => context.read<StoreCubit>().loadStore(force: true),
-          emptyTitle: selectedCategory == null
-              ? 'No products available'
-              : 'No products in this section',
-          emptyMessage: selectedCategory == null
-              ? 'Products will appear here once this store is ready.'
-              : 'Try another section or choose All.',
         ),
       ],
     );

@@ -69,6 +69,7 @@ class _AboutAppViewState extends State<AboutAppView> {
                           onTap: () => _showInformationSheet(
                             title: 'Frequently asked questions',
                             icon: AppIcons.message_text,
+                            collapsible: true,
                             sections: const [
                               _InfoSection(
                                 title: 'How do I place an order?',
@@ -251,6 +252,7 @@ class _AboutAppViewState extends State<AboutAppView> {
     required String title,
     required IconData icon,
     required List<_InfoSection> sections,
+    bool collapsible = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     showModalBottomSheet<void>(
@@ -301,41 +303,10 @@ class _AboutAppViewState extends State<AboutAppView> {
                 ),
                 const SizedBox(height: 18),
                 for (final section in sections) ...[
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.04)
-                          : const Color(0xFFF7F8FB),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.07)
-                            : Colors.black.withValues(alpha: 0.05),
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.tr(section.title),
-                          style: Theme.of(context).textTheme.titleMedium
-                              ?.copyWith(fontWeight: FontWeight.w900),
-                        ),
-                        const SizedBox(height: 7),
-                        Text(
-                          context.tr(section.body),
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                height: 1.55,
-                                color: isDark
-                                    ? AppColors.darkTextSecondary
-                                    : AppColors.lightTextSecondary,
-                              ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  if (collapsible)
+                    _ExpandableInfoCard(section: section, isDark: isDark)
+                  else
+                    _InfoCard(section: section, isDark: isDark),
                   const SizedBox(height: 10),
                 ],
               ],
@@ -345,6 +316,134 @@ class _AboutAppViewState extends State<AboutAppView> {
       },
     );
   }
+}
+
+class _ExpandableInfoCard extends StatefulWidget {
+  const _ExpandableInfoCard({required this.section, required this.isDark});
+
+  final _InfoSection section;
+  final bool isDark;
+
+  @override
+  State<_ExpandableInfoCard> createState() => _ExpandableInfoCardState();
+}
+
+class _ExpandableInfoCardState extends State<_ExpandableInfoCard> {
+  bool _isExpanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: ValueKey('faq_${widget.section.title}'),
+      decoration: _infoCardDecoration(widget.isDark),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _isExpanded = !_isExpanded),
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.tr(widget.section.title),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  AnimatedRotation(
+                    turns: _isExpanded ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: Icon(
+                      AppIcons.arrow_down_1,
+                      key: ValueKey('faq_arrow_${widget.section.title}'),
+                      size: 19,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOut,
+            child: _isExpanded
+                ? Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                    child: Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: Text(
+                        context.tr(widget.section.body),
+                        key: ValueKey('faq_answer_${widget.section.title}'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          height: 1.55,
+                          color: widget.isDark
+                              ? AppColors.darkTextSecondary
+                              : AppColors.lightTextSecondary,
+                        ),
+                      ),
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InfoCard extends StatelessWidget {
+  const _InfoCard({required this.section, required this.isDark});
+
+  final _InfoSection section;
+  final bool isDark;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: _infoCardDecoration(isDark),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            context.tr(section.title),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
+          ),
+          const SizedBox(height: 7),
+          Text(
+            context.tr(section.body),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              height: 1.55,
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+BoxDecoration _infoCardDecoration(bool isDark) {
+  return BoxDecoration(
+    color: isDark
+        ? Colors.white.withValues(alpha: 0.04)
+        : const Color(0xFFF7F8FB),
+    borderRadius: BorderRadius.circular(10),
+    border: Border.all(
+      color: isDark
+          ? Colors.white.withValues(alpha: 0.07)
+          : Colors.black.withValues(alpha: 0.05),
+    ),
+  );
 }
 
 class _AboutHero extends StatelessWidget {

@@ -16,8 +16,8 @@ void main() {
         'market_count': 2,
         'market_names_summary': 'الأول، الثاني',
         'markets': [
-          {'id': 1, 'name': 'الأول', 'branch': ''},
-          {'id': 2, 'name': 'الثاني', 'branch': ''},
+          {'id': 1, 'name': 'الأول', 'branch': '', 'classification_id': 11},
+          {'id': 2, 'name': 'الثاني', 'branch': '', 'classification_id': 22},
         ],
         'products': [
           {'id': 101, 'name': 'أ', 'market_id': 1, 'price': '10.00'},
@@ -30,6 +30,11 @@ void main() {
       expect(offer.markets.map((market) => market.id), ['1', '2']);
       expect(offer.marketNamesSummary, 'الأول، الثاني');
       expect(offer.products.map((product) => product.marketId), ['1', '2']);
+      expect(offer.targetMarketIds, {'1', '2'});
+      expect(offer.targetClassificationIds, {'11', '22'});
+      expect(offer.belongsToMarket('2'), isTrue);
+      expect(offer.belongsToClassification('22'), isTrue);
+      expect(offer.belongsToClassification('99'), isFalse);
     },
   );
 }

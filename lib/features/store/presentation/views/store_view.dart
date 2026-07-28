@@ -279,8 +279,8 @@ class _LatestStoresSlider extends StatelessWidget {
       height: StoreMarketCard.height,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final cardWidth = (constraints.maxWidth * 0.76)
-              .clamp(226.0, 286.0)
+          final cardWidth = (constraints.maxWidth * 0.92)
+              .clamp(300.0, 360.0)
               .toDouble();
 
           return ListView.separated(
@@ -468,8 +468,8 @@ class _PopularStoresSection extends StatelessWidget {
           const SizedBox(height: 12),
           LayoutBuilder(
             builder: (context, constraints) {
-              final cardWidth = (constraints.maxWidth * 0.76)
-                  .clamp(226.0, 286.0)
+              final cardWidth = (constraints.maxWidth * 0.92)
+                  .clamp(300.0, 360.0)
                   .toDouble();
               return SizedBox(
                 height: StoreMarketCard.height,

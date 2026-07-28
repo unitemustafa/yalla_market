@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
@@ -140,7 +139,17 @@ void main() {
       await tester.pumpWidget(_Subject(cartCubit: cartCubit, offerId: '5'));
       await tester.tap(find.byKey(const ValueKey('promo_offer_card')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byIcon(AppIcons.send_1));
+      final discountBadge = find.byKey(const ValueKey('offer_discount_badge'));
+      final shareButton = find.byKey(const ValueKey('offer_share_button'));
+      expect(discountBadge, findsOneWidget);
+      expect(shareButton, findsOneWidget);
+      expect(
+        (tester.getCenter(discountBadge).dy - tester.getCenter(shareButton).dy)
+            .abs(),
+        lessThan(2),
+      );
+
+      await tester.tap(shareButton);
       await tester.pumpAndSettle();
 
       expect(find.text('Share offer'), findsOneWidget);

@@ -52,12 +52,19 @@ void main() {
         'center_latitude': '31.0409000',
         'center_longitude': 31.3785,
         'radius_km': '18.50',
+        'boundary_bbox': {
+          'west': 31.1,
+          'south': 30.8,
+          'east': 31.6,
+          'north': 31.3,
+        },
       });
 
       expect(city.serviceCityId, 12);
       expect(city.centerLatitude, 31.0409);
       expect(city.centerLongitude, 31.3785);
       expect(city.radiusKm, 18.5);
+      expect(city.boundaryBbox?['west'], 31.1);
       expect(city.withSource(RegionSource.gps).centerLatitude, 31.0409);
     });
 

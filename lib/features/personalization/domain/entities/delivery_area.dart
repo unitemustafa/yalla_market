@@ -5,6 +5,13 @@ class DeliveryArea {
     required this.name,
     required this.deliveryPrice,
     required this.isActive,
+    this.centerLatitude,
+    this.centerLongitude,
+    this.radiusKm,
+    this.boundaryGeoJson,
+    this.boundaryBbox,
+    this.etaMinMinutes,
+    this.etaMaxMinutes,
   });
 
   final int id;
@@ -12,6 +19,13 @@ class DeliveryArea {
   final String name;
   final double? deliveryPrice;
   final bool isActive;
+  final double? centerLatitude;
+  final double? centerLongitude;
+  final double? radiusKm;
+  final Map<String, dynamic>? boundaryGeoJson;
+  final Map<String, dynamic>? boundaryBbox;
+  final int? etaMinMinutes;
+  final int? etaMaxMinutes;
 
   factory DeliveryArea.fromJson(Map<String, dynamic> json) {
     return DeliveryArea(
@@ -23,6 +37,13 @@ class DeliveryArea {
       name: json['name']?.toString().trim() ?? '',
       deliveryPrice: _doubleFromJson(json['delivery_price']),
       isActive: _boolFromJson(json['is_active']) ?? true,
+      centerLatitude: _doubleFromJson(json['center_latitude']),
+      centerLongitude: _doubleFromJson(json['center_longitude']),
+      radiusKm: _doubleFromJson(json['radius_km']),
+      boundaryGeoJson: _mapFromJson(json['boundary_geojson']),
+      boundaryBbox: _bboxFromJson(json['boundary_bbox']),
+      etaMinMinutes: _intFromJson(json['eta_min_minutes']),
+      etaMaxMinutes: _intFromJson(json['eta_max_minutes']),
     );
   }
 
@@ -50,5 +71,27 @@ bool? _boolFromJson(Object? value) {
 
 Object? _nestedValue(Object? value, String key) {
   if (value is Map<String, dynamic>) return value[key];
+  return null;
+}
+
+Map<String, dynamic>? _mapFromJson(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, value) => MapEntry('$key', value));
+  }
+  return null;
+}
+
+Map<String, dynamic>? _bboxFromJson(Object? value) {
+  final mapped = _mapFromJson(value);
+  if (mapped != null) return mapped;
+  if (value is List && value.length >= 4) {
+    return {
+      'west': value[0],
+      'south': value[1],
+      'east': value[2],
+      'north': value[3],
+    };
+  }
   return null;
 }

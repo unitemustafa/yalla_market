@@ -5,6 +5,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
+import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
 import '../../domain/entities/store_data.dart';
 
 /// The shared store row used everywhere a market is listed.
@@ -126,7 +127,11 @@ class _StoreCover extends StatelessWidget {
                         isDark: isDark,
                         onPressed: state.busyIds.contains(market.id)
                             ? null
-                            : () => cubit.toggle(market),
+                            : () => toggleMarketFavoriteWithFeedback(
+                                context: context,
+                                cubit: cubit,
+                                market: market,
+                              ),
                       );
                     },
                   ),
@@ -229,7 +234,7 @@ class _StoreInformation extends StatelessWidget {
             market.name,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               fontSize: 14,
               height: 1.25,
@@ -242,7 +247,7 @@ class _StoreInformation extends StatelessWidget {
               market.description,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+              textAlign: TextAlign.start,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: muted,
                 fontSize: 10.5,

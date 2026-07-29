@@ -94,10 +94,12 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
     await loadForUser(userKey);
   }
 
-  Future<void> toggle(StoreMarketData market) async {
+  Future<bool?> toggle(StoreMarketData market) async {
     final userKey = _currentUserKey;
     final id = market.id.trim();
-    if (userKey == null || id.isEmpty || state.busyIds.contains(id)) return;
+    if (userKey == null || id.isEmpty || state.busyIds.contains(id)) {
+      return null;
+    }
 
     final previousItems = state.items;
     final wasFavorite = isFavorite(market);
@@ -119,8 +121,8 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
 
     final generation = _generation;
     final result = await _repository.setFavorite(id, nextFavorite);
-    if (!_isCurrent(userKey, generation)) return;
-    result.when(
+    if (!_isCurrent(userKey, generation)) return null;
+    return result.when(
       success: (favorite) {
         _overrides[id] = favorite;
         final items = favorite
@@ -138,6 +140,7 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
             clearError: true,
           ),
         );
+        return favorite;
       },
       failure: (failure) {
         _overrides[id] = wasFavorite;
@@ -149,6 +152,7 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
             errorRevision: state.errorRevision + 1,
           ),
         );
+        return null;
       },
     );
   }

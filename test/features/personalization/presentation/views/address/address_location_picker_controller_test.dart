@@ -5,7 +5,7 @@ import 'package:yalla_market/features/personalization/presentation/views/address
 void main() {
   const fallback = DeviceCoordinates(30.0444, 31.2357);
 
-  test('uses the current GPS coordinate and allows confirmation', () async {
+  test('shows fallback immediately then applies current GPS', () async {
     final source = _FakeLocationDataSource(
       results: [const DeviceCoordinates(30.1234567, 31.7654321)],
     );
@@ -16,41 +16,47 @@ void main() {
 
     final result = await controller.initialize();
 
-    expect(result?.latitude, 30.1234567);
+    expect(result?.latitude, fallback.latitude);
+    expect(controller.canConfirm, isTrue);
+    await Future<void>.delayed(Duration.zero);
     expect(controller.target.longitude, 31.7654321);
     expect(controller.canConfirm, isTrue);
     expect(controller.usesCurrentLocation, isTrue);
     expect(controller.errorMessage, isNull);
   });
 
-  test('blocks the map when GPS permission is unavailable', () async {
-    final source = _FakeLocationDataSource(
-      results: [
-        const LocationSelectionException(
-          'Location permission denied.',
-          reason: LocationSelectionFailure.permissionDeniedForever,
-        ),
-      ],
-    );
-    final controller = AddressLocationPickerController(
-      locationDataSource: source,
-      fallbackCoordinates: fallback,
-    );
+  test(
+    'keeps manual map selection available when permission is unavailable',
+    () async {
+      final source = _FakeLocationDataSource(
+        results: [
+          const LocationSelectionException(
+            'Location permission denied.',
+            reason: LocationSelectionFailure.permissionDeniedForever,
+          ),
+        ],
+      );
+      final controller = AddressLocationPickerController(
+        locationDataSource: source,
+        fallbackCoordinates: fallback,
+      );
 
-    await controller.initialize();
+      await controller.initialize();
+      await Future<void>.delayed(Duration.zero);
 
-    expect(controller.target, same(fallback));
-    expect(controller.canConfirm, isFalse);
-    expect(controller.usesCurrentLocation, isFalse);
-    expect(controller.errorMessage, 'Location permission denied.');
-    expect(controller.gateStatus, LocationGateStatus.permissionDeniedForever);
+      expect(controller.target, same(fallback));
+      expect(controller.canConfirm, isTrue);
+      expect(controller.usesCurrentLocation, isFalse);
+      expect(controller.errorMessage, 'Location permission denied.');
+      expect(controller.gateStatus, LocationGateStatus.ready);
 
-    controller.selectManual(const DeviceCoordinates(29.99, 31.11));
+      controller.selectManual(const DeviceCoordinates(29.99, 31.11));
 
-    expect(controller.canConfirm, isFalse);
-    expect(controller.usesCurrentLocation, isFalse);
-    expect(controller.target, same(fallback));
-  });
+      expect(controller.canConfirm, isTrue);
+      expect(controller.usesCurrentLocation, isFalse);
+      expect(controller.target.latitude, 29.99);
+    },
+  );
 
   test(
     'editing starts from saved coordinates after the GPS gate passes',
@@ -92,7 +98,8 @@ void main() {
     );
 
     await controller.initialize();
-    expect(controller.canConfirm, isFalse);
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.canConfirm, isTrue);
 
     final result = await controller.useCurrentLocation();
 
@@ -102,42 +109,47 @@ void main() {
     expect(controller.errorMessage, isNull);
   });
 
-  test(
-    'opens the correct settings for permanent denial and disabled GPS',
-    () async {
-      final deniedSource = _FakeLocationDataSource(
-        results: [
-          const LocationSelectionException(
-            'Denied forever.',
-            reason: LocationSelectionFailure.permissionDeniedForever,
-          ),
-        ],
-      );
-      final deniedController = AddressLocationPickerController(
-        locationDataSource: deniedSource,
-        fallbackCoordinates: fallback,
-      );
-      await deniedController.initialize();
-      await deniedController.openRequiredSettings();
-      expect(deniedSource.openedAppSettings, isTrue);
+  test('GPS errors do not replace the selected city fallback', () async {
+    final source = _FakeLocationDataSource(
+      results: [
+        const LocationSelectionException(
+          'GPS disabled.',
+          reason: LocationSelectionFailure.serviceDisabled,
+        ),
+      ],
+    );
+    final controller = AddressLocationPickerController(
+      locationDataSource: source,
+      fallbackCoordinates: fallback,
+    );
 
-      final disabledSource = _FakeLocationDataSource(
-        results: [
-          const LocationSelectionException(
-            'GPS disabled.',
-            reason: LocationSelectionFailure.serviceDisabled,
-          ),
-        ],
-      );
-      final disabledController = AddressLocationPickerController(
-        locationDataSource: disabledSource,
-        fallbackCoordinates: fallback,
-      );
-      await disabledController.initialize();
-      await disabledController.openRequiredSettings();
-      expect(disabledSource.openedLocationSettings, isTrue);
-    },
-  );
+    await controller.initialize();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.canConfirm, isTrue);
+    expect(controller.target, same(fallback));
+    expect(controller.errorMessage, 'GPS disabled.');
+  });
+
+  test('GPS outside the selected city never replaces its center', () async {
+    final source = _FakeLocationDataSource(
+      results: [const DeviceCoordinates(30.5877, 31.5020)],
+    );
+    final controller = AddressLocationPickerController(
+      locationDataSource: source,
+      fallbackCoordinates: fallback,
+      isWithinCoverage: (coordinates) =>
+          (coordinates.latitude - fallback.latitude).abs() < 0.2 &&
+          (coordinates.longitude - fallback.longitude).abs() < 0.2,
+    );
+
+    await controller.initialize();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.target, same(fallback));
+    expect(controller.usesCurrentLocation, isFalse);
+    expect(controller.errorMessage, isNull);
+  });
 }
 
 class _FakeLocationDataSource implements DeviceLocationDataSource {
@@ -147,6 +159,13 @@ class _FakeLocationDataSource implements DeviceLocationDataSource {
   int _index = 0;
   bool openedAppSettings = false;
   bool openedLocationSettings = false;
+
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async {
+    return null;
+  }
 
   @override
   Future<DeviceCoordinates> resolveCurrentCoordinates({

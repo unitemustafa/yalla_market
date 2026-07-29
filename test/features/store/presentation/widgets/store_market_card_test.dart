@@ -103,6 +103,10 @@ void main() {
       tester.getSize(find.byType(StoreMarketCard)).height,
       StoreMarketCard.height,
     );
+    final name = tester.widget<Text>(
+      find.text('اسم محل طويل جدًا لاختبار العرض على الآيفون الصغير'),
+    );
+    expect(name.textAlign, TextAlign.start);
   });
 
   testWidgets('favorite button toggles without opening the store card', (
@@ -134,10 +138,12 @@ void main() {
 
     await tester.tap(find.byKey(const ValueKey('interactive_market_favorite')));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
 
     expect(cubit.isFavorite(_market(1)), isTrue);
     expect(repository.lastFavorite, isTrue);
     expect(opened, isFalse);
+    expect(find.text('Store added to favorites'), findsOneWidget);
   });
 }
 

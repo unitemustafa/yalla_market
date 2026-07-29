@@ -14,6 +14,12 @@ abstract class DeviceLocationDataSource {
     throw UnimplementedError();
   }
 
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async {
+    return null;
+  }
+
   Future<void> openAppSettings();
 
   Future<void> openLocationSettings();
@@ -89,6 +95,22 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
     await _ensureLocationReady(requestPermission: requestPermission);
     final position = await _resolvePosition();
     return DeviceCoordinates(position.latitude, position.longitude);
+  }
+
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async {
+    try {
+      await _ensureLocationReady(requestPermission: requestPermission);
+      final position = await Geolocator.getLastKnownPosition();
+      if (position == null) return null;
+      return DeviceCoordinates(position.latitude, position.longitude);
+    } on LocationSelectionException {
+      return null;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _ensureLocationReady({required bool requestPermission}) async {

@@ -6,6 +6,7 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
+import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
 import '../../domain/entities/store_data.dart';
 
 class MarketStorefrontHero extends StatelessWidget {
@@ -287,7 +288,11 @@ class _FavoriteHeroButton extends StatelessWidget {
           iconColor: favorite ? AppColors.error : null,
           onTap: state.busyIds.contains(market.id)
               ? null
-              : () => cubit.toggle(market),
+              : () => toggleMarketFavoriteWithFeedback(
+                  context: context,
+                  cubit: cubit,
+                  market: market,
+                ),
         );
       },
     );

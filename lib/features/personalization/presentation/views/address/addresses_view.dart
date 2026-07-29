@@ -62,8 +62,13 @@ class _AddressesViewState extends State<AddressesView>
     AddressData? address,
   }) async {
     SelectedMapLocation? selectedLocation;
+    CityData? formCity;
     if (address == null) {
-      final selectedCity = context.read<LocationCubit>().state.selectedCity;
+      final locationCubit = context.read<LocationCubit>();
+      final selectedCity = locationCubit.state.selectedCity;
+      final citiesFuture = locationCubit.state.availableCities.isEmpty
+          ? locationCubit.loadAvailableCities()
+          : Future.value(locationCubit.state.availableCities);
       selectedLocation = await Navigator.push<SelectedMapLocation>(
         context,
         MaterialPageRoute(
@@ -71,10 +76,14 @@ class _AddressesViewState extends State<AddressesView>
             locationDataSource: sl<DeviceLocationDataSource>(),
             geocodingDataSource: sl<MapGeocodingDataSource>(),
             fallbackCoordinates: _fallbackCoordinates(selectedCity),
+            selectedCity: selectedCity,
           ),
         ),
       );
       if (selectedLocation == null || !context.mounted) return;
+      final availableCities = await citiesFuture;
+      if (!context.mounted) return;
+      formCity = _resolveServiceCity(selectedCity, availableCities);
     }
 
     await Navigator.push<AddressData>(
@@ -86,12 +95,45 @@ class _AddressesViewState extends State<AddressesView>
           locationDataSource: sl<DeviceLocationDataSource>(),
           geocodingDataSource: sl<MapGeocodingDataSource>(),
           getDeliveryAreas: sl<GetDeliveryAreasUseCase>(),
+          initialCity: formCity,
         ),
       ),
     );
   }
 
+  CityData? _resolveServiceCity(
+    CityData? selectedCity,
+    List<CityData> availableCities,
+  ) {
+    if (selectedCity == null) return null;
+    final selectedKnownCity = CityData.fromName(selectedCity.name);
+    for (final city in availableCities) {
+      if (city.isGeneral || city.serviceCityId == null) continue;
+      if (selectedCity.serviceCityId != null &&
+          city.serviceCityId == selectedCity.serviceCityId) {
+        return city;
+      }
+      final candidateKnownCity = CityData.fromName(city.name);
+      if (selectedKnownCity != null &&
+          candidateKnownCity?.slug == selectedKnownCity.slug) {
+        return city;
+      }
+      if (city.name.trim().toLowerCase() ==
+          selectedCity.name.trim().toLowerCase()) {
+        return city;
+      }
+    }
+    return selectedCity;
+  }
+
   DeviceCoordinates _fallbackCoordinates(CityData? city) {
+    final knownCity = CityData.fromName(city?.name);
+    if (knownCity?.slug == 'cairo') {
+      return const DeviceCoordinates(30.0444, 31.2357);
+    }
+    if (knownCity?.slug == 'sharm-el-sheikh') {
+      return const DeviceCoordinates(27.9158, 34.3299);
+    }
     final latitude = city?.centerLatitude;
     final longitude = city?.centerLongitude;
     if (latitude != null &&

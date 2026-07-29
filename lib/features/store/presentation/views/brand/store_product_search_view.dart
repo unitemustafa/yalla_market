@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/formatters/product_pricing.dart';
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
+import '../../../../../core/presentation/widgets/texts/green_currency_price.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
 import '../../../../../core/routing/app_routes.dart';
 import '../../../domain/entities/product_data.dart';
@@ -61,7 +63,7 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
                   Expanded(
                     child: AppSearchField(
                       key: const ValueKey('store_search_page_field'),
-                      hintText: 'Search the menu...',
+                      hintText: context.tr('Search the menu...'),
                       controller: _controller,
                       focusNode: _focusNode,
                       onChanged: (_) => setState(() {}),
@@ -86,8 +88,8 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
 
                   if (products.isEmpty) {
                     return AppEmptyState(
-                      title: 'No products found',
-                      message: 'Try another product name.',
+                      title: context.tr('No products found'),
+                      message: context.tr('Try another product name.'),
                       icon: AppIcons.search_status,
                     );
                   }
@@ -218,7 +220,7 @@ class _ProductSearchRow extends StatelessWidget {
                       if (product.description.isNotEmpty) ...[
                         const SizedBox(height: 7),
                         Text(
-                          product.description,
+                          context.tr(product.description),
                           maxLines: 3,
                           overflow: TextOverflow.ellipsis,
                           style: Theme.of(context).textTheme.bodySmall
@@ -230,12 +232,11 @@ class _ProductSearchRow extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 10),
-                      Text(
-                        price,
-                        maxLines: 1,
+                      GreenCurrencyPrice(
+                        price: price,
                         style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                          fontSize: AppFontSizes.body,
+                          fontWeight: FontWeight.w900,
                         ),
                       ),
                     ],

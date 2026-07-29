@@ -27,6 +27,7 @@ import '../../../../offers/presentation/cubit/offer_catalog_cubit.dart';
 import '../../../../offers/presentation/cubit/offer_catalog_state.dart';
 import '../../../../offers/presentation/widgets/promo_slider.dart';
 import '../../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
+import '../../../../wishlist/presentation/widgets/market_favorite_action.dart';
 import '../../../domain/entities/product_data.dart';
 import '../../../domain/entities/store_data.dart';
 import '../../cubit/product_catalog_cubit.dart';

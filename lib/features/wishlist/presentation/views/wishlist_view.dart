@@ -94,7 +94,12 @@ class WishlistView extends StatelessWidget {
                                         ),
                                         const SizedBox(height: 12),
                                         GridLayout(
+                                          key: const ValueKey(
+                                            'wishlist_products_grid',
+                                          ),
                                           itemCount: wishlist.length,
+                                          minCrossAxisCount: 2,
+                                          maxCrossAxisCount: 2,
                                           itemBuilder: (_, index) {
                                             final item = wishlist[index];
                                             return ProductCardVertical(

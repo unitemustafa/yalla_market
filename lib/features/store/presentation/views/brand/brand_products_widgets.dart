@@ -122,7 +122,11 @@ class _StorefrontHero extends StatelessWidget {
                         iconColor: favorite ? AppColors.error : null,
                         onTap: state.busyIds.contains(market.id)
                             ? null
-                            : () => cubit.toggle(market),
+                            : () => toggleMarketFavoriteWithFeedback(
+                                context: context,
+                                cubit: cubit,
+                                market: market,
+                              ),
                       );
                     },
                   ),

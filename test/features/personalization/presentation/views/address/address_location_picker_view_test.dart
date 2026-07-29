@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:yalla_market/features/location/data/datasources/device_location_data_source.dart';
+import 'package:yalla_market/features/location/domain/entities/city_data.dart';
 import 'package:yalla_market/features/personalization/data/datasources/geoapify_geocoding_data_source.dart';
 import 'package:yalla_market/features/personalization/presentation/views/address/address_location_picker_view.dart';
 
@@ -66,7 +67,7 @@ void main() {
 
     expect(
       find.text('Address lookup failed. You can still continue.'),
-      findsOneWidget,
+      findsNothing,
     );
     final button = tester.widget<ElevatedButton>(
       find.ancestor(
@@ -99,6 +100,10 @@ void main() {
     );
     expect(confirmButton.height, 46);
     expect(confirmButton.width, lessThanOrEqualTo(300));
+    expect(
+      find.text('Your order will be delivered to this location'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('keeps the map mounted while search is open', (tester) async {
@@ -117,14 +122,97 @@ void main() {
     await tester.pumpAndSettle();
     expect(tester.element(find.byType(FlutterMap)), same(mapElement));
   });
+
+  testWidgets('rejects outside GPS even when legacy Cairo bounds are broad', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      _picker(
+        geocoding: _FakeGeocodingDataSource(),
+        locationDataSource: const _OutsideCairoLocationDataSource(),
+        selectedCity: const CityData(
+          name: 'Cairo',
+          slug: CityData.generalSlug,
+          centerLatitude: 30.0444,
+          centerLongitude: 31.2357,
+          radiusKm: 100,
+          boundaryBbox: {
+            'west': 30.0,
+            'south': 29.0,
+            'east': 33.0,
+            'north': 32.0,
+          },
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    expect(
+      find.text('Your current location is outside the delivery area.'),
+      findsNothing,
+    );
+    expect(
+      find.text('Your order will be delivered to this location'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('outside pin changes its bubble and disables confirmation', (
+    tester,
+  ) async {
+    final geocoding = _FakeGeocodingDataSource();
+    await tester.pumpWidget(
+      _picker(
+        geocoding: geocoding,
+        selectedCity: const CityData(name: 'Cairo', slug: CityData.generalSlug),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 700));
+
+    await tester.tap(find.byKey(const ValueKey('map-picker-search-open')));
+    await tester.pumpAndSettle();
+    final search = find.byKey(const ValueKey('map-picker-search-field'));
+    await tester.enterText(search, 'Zagazig');
+    await tester.pump(const Duration(milliseconds: 500));
+    geocoding.completeSearch('Zagazig', const [
+      GeoapifyPlace(
+        addressLine1: 'Zagazig result',
+        latitude: 30.5833,
+        longitude: 31.5000,
+      ),
+    ]);
+    await tester.pump();
+    await tester.tap(find.text('Zagazig result'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('Outside the delivery area. Adjust the location.'),
+      findsOneWidget,
+    );
+    final button = tester.widget<ElevatedButton>(
+      find.ancestor(
+        of: find.text('Continue with this location'),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    expect(button.onPressed, isNull);
+  });
 }
 
-Widget _picker({required MapGeocodingDataSource geocoding}) {
+Widget _picker({
+  required MapGeocodingDataSource geocoding,
+  DeviceLocationDataSource locationDataSource =
+      const _ReadyLocationDataSource(),
+  CityData? selectedCity,
+}) {
   return MaterialApp(
     home: AddressLocationPickerView(
-      locationDataSource: const _ReadyLocationDataSource(),
+      locationDataSource: locationDataSource,
       geocodingDataSource: geocoding,
       fallbackCoordinates: const DeviceCoordinates(30.0444, 31.2357),
+      selectedCity: selectedCity,
       tileUrlTemplateOverride: 'https://127.0.0.1:1/{z}/{x}/{y}.png',
     ),
   );
@@ -132,6 +220,13 @@ Widget _picker({required MapGeocodingDataSource geocoding}) {
 
 class _ReadyLocationDataSource implements DeviceLocationDataSource {
   const _ReadyLocationDataSource();
+
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async {
+    return null;
+  }
 
   @override
   Future<DeviceCoordinates> resolveCurrentCoordinates({
@@ -146,6 +241,31 @@ class _ReadyLocationDataSource implements DeviceLocationDataSource {
   }) async {
     return null;
   }
+
+  @override
+  Future<void> openAppSettings() async {}
+
+  @override
+  Future<void> openLocationSettings() async {}
+}
+
+class _OutsideCairoLocationDataSource implements DeviceLocationDataSource {
+  const _OutsideCairoLocationDataSource();
+
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async => null;
+
+  @override
+  Future<DeviceCoordinates> resolveCurrentCoordinates({
+    bool requestPermission = true,
+  }) async => const DeviceCoordinates(30.5833, 31.5000);
+
+  @override
+  Future<String?> resolveCurrentCityName({
+    bool requestPermission = true,
+  }) async => 'Zagazig';
 
   @override
   Future<void> openAppSettings() async {}

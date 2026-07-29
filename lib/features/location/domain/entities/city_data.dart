@@ -52,6 +52,8 @@ class CityData {
     this.centerLatitude,
     this.centerLongitude,
     this.radiusKm,
+    this.boundaryGeoJson,
+    this.boundaryBbox,
     this.source = RegionSource.manual,
   });
 
@@ -62,6 +64,8 @@ class CityData {
   final double? centerLatitude;
   final double? centerLongitude;
   final double? radiusKm;
+  final Map<String, dynamic>? boundaryGeoJson;
+  final Map<String, dynamic>? boundaryBbox;
   final RegionSource source;
 
   static const generalSlug = 'general';
@@ -108,6 +112,8 @@ class CityData {
       centerLatitude: centerLatitude,
       centerLongitude: centerLongitude,
       radiusKm: radiusKm,
+      boundaryGeoJson: boundaryGeoJson,
+      boundaryBbox: boundaryBbox,
       source: source,
     );
   }
@@ -120,6 +126,8 @@ class CityData {
       centerLatitude: centerLatitude,
       centerLongitude: centerLongitude,
       radiusKm: radiusKm,
+      boundaryGeoJson: boundaryGeoJson,
+      boundaryBbox: boundaryBbox,
       source: RegionSource.general,
     );
   }
@@ -141,6 +149,8 @@ class CityData {
       centerLatitude: _doubleFromJson(json['center_latitude']),
       centerLongitude: _doubleFromJson(json['center_longitude']),
       radiusKm: _doubleFromJson(json['radius_km']),
+      boundaryGeoJson: _mapFromJson(json['boundary_geojson']),
+      boundaryBbox: _bboxFromJson(json['boundary_bbox']),
     );
   }
 
@@ -154,6 +164,8 @@ class CityData {
       centerLatitude: _doubleFromJson(json['center_latitude']),
       centerLongitude: _doubleFromJson(json['center_longitude']),
       radiusKm: _doubleFromJson(json['radius_km']),
+      boundaryGeoJson: _mapFromJson(json['boundary_geojson']),
+      boundaryBbox: _bboxFromJson(json['boundary_bbox']),
     );
   }
 
@@ -578,5 +590,27 @@ int? _intFromJson(Object? value) {
 double? _doubleFromJson(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
+  return null;
+}
+
+Map<String, dynamic>? _mapFromJson(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, value) => MapEntry('$key', value));
+  }
+  return null;
+}
+
+Map<String, dynamic>? _bboxFromJson(Object? value) {
+  final mapped = _mapFromJson(value);
+  if (mapped != null) return mapped;
+  if (value is List && value.length >= 4) {
+    return {
+      'west': value[0],
+      'south': value[1],
+      'east': value[2],
+      'north': value[3],
+    };
+  }
   return null;
 }

@@ -631,6 +631,13 @@ void main() {
 }
 
 class _FakeDeviceLocationDataSource implements DeviceLocationDataSource {
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async {
+    return null;
+  }
+
   const _FakeDeviceLocationDataSource({
     this.cityName,
     this.coordinates = const DeviceCoordinates(30.0444, 31.2357),

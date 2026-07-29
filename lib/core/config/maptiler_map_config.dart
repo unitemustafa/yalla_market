@@ -5,7 +5,7 @@ abstract final class MapTilerMapConfig {
 
   static bool get isConfigured => apiKey.trim().isNotEmpty;
 
-  static String tileUrl({required bool highDensity}) {
+  static String tileUrl({bool highDensity = false}) {
     final densitySuffix = highDensity ? '@2x' : '';
     final key = Uri.encodeQueryComponent(apiKey.trim());
     return 'https://api.maptiler.com/maps/streets-v2/256/'

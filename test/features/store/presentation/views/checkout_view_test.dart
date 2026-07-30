@@ -972,6 +972,13 @@ class _FakeLocationRepository implements LocationRepository, LocationUserScope {
 }
 
 class _CreateOrderRepository implements OrderRepository {
+  @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    return const ApiResult.failure(
+      ValidationFailure('Delivery quote approval is not used in this test.'),
+    );
+  }
+
   _CreateOrderRepository({this.failure, this.preview, this.previewFailure});
 
   final Failure? failure;

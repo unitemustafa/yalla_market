@@ -766,4 +766,5 @@ const _orderEvents = {
   'order_status_changed',
   'order_cancelled',
   'order_failed_delivery',
+  'delivery_quote_sent',
 };

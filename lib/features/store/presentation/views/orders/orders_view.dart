@@ -192,6 +192,8 @@ class _OrdersViewState extends State<OrdersView> {
       reviewStatus: order.reviewStatusLabel,
       paymentMethod: order.paymentMethodLabel,
       deliveryType: order.deliveryTypeLabel,
+      deliveryPriceStatus: order.deliveryPriceStatus,
+      deliveryPrice: _formatMoney(order.shippingFee),
       isMultiMarket: order.isMultiMarket,
       marketCount: order.marketCount,
       marketSummary: order.marketNamesSummary,
@@ -485,6 +487,17 @@ class _OrdersViewState extends State<OrdersView> {
                         value: order.deliveryType,
                         mutedColor: mutedColor,
                       ),
+                      if (order.deliveryPriceStatus ==
+                          OrderDeliveryPriceStatus
+                              .awaitingCustomerApproval) ...[
+                        const SizedBox(height: 14),
+                        _DeliveryQuoteApprovalCard(
+                          orderId: order.apiId,
+                          deliveryPrice: order.deliveryPrice,
+                          total: order.total,
+                          isDark: isDark,
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       _DetailRow(
                         icon: AppIcons.calendar,

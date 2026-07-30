@@ -282,6 +282,14 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Selected': 'مختار',
     'Enter your area name': 'اكتب اسم منطقتك',
     'Delivery price will be confirmed later': 'سعر التوصيل هيتحدد لاحقًا',
+    'Delivery price approval': 'الموافقة على سعر التوصيل',
+    'The delivery price was set by the administration. Review it before approving.':
+        'تم تحديد سعر التوصيل من الإدارة. راجعه قبل الموافقة.',
+    'Delivery price': 'سعر التوصيل',
+    'Order total': 'إجمالي الطلب',
+    'Approve delivery price': 'الموافقة على سعر التوصيل',
+    'Delivery price approved': 'تمت الموافقة على سعر التوصيل',
+    'Could not approve delivery price': 'تعذر تأكيد سعر التوصيل',
     'Discount': 'الخصم',
     'Choose a delivery area to see the price':
         'اختار منطقة التوصيل عشان تشوف السعر',

@@ -127,6 +127,13 @@ class _FakeOrderRepository implements OrderRepository {
   Failure? nextFailure;
   int getMyOrdersCalls = 0;
 
+  @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    return const ApiResult.failure(
+      ValidationFailure('Delivery quote approval is not used in this test.'),
+    );
+  }
+
   void completeDelay() {
     final delay = _delay;
     if (delay != null && !delay.isCompleted) delay.complete();

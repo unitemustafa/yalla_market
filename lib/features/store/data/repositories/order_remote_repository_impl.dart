@@ -70,6 +70,16 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   }
 
   @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) {
+    return _guard(() async {
+      final payload = await _apiClient.post<Map<String, dynamic>>(
+        '/orders/$orderId/delivery-price/accept/',
+      );
+      return OrderData.fromJson(payload);
+    }, fallbackMessage: 'Could not approve the delivery price.');
+  }
+
+  @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,

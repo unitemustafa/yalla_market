@@ -367,6 +367,30 @@ void main() {
       );
     });
 
+    test('approves a delivery quote through the customer endpoint', () async {
+      final apiClient = FakeApiClient((request) {
+        expect(request.method, 'POST');
+        expect(request.path, '/orders/9/delivery-price/accept/');
+        return {
+          ..._createdOrderPayload,
+          'external_shipping_status': 'quoted',
+          'delivery_price_status': 'quoted',
+        };
+      });
+      final repository = OrderRemoteRepositoryImpl(apiClient);
+
+      final result = await repository.acceptDeliveryQuote('9');
+
+      result.when(
+        success: (order) {
+          expect(order.id, '9');
+          expect(order.deliveryPriceStatus, OrderDeliveryPriceStatus.fixed);
+        },
+        failure: (failure) => fail(failure.message),
+      );
+      expect(apiClient.requests, hasLength(1));
+    });
+
     test('parses list response from GET orders endpoint', () async {
       final createdAt = DateTime.utc(2026, 7, 1, 17, 48, 30);
       final apiClient = FakeApiClient((request) {

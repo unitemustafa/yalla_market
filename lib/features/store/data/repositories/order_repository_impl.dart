@@ -94,6 +94,15 @@ class OrderRepositoryImpl implements OrderRepository {
   }
 
   @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    final index = _orders.indexWhere((order) => order.id == orderId);
+    if (index < 0) {
+      return const ApiResult.failure(ValidationFailure('Order was not found.'));
+    }
+    return ApiResult.success(_orders[index]);
+  }
+
+  @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,

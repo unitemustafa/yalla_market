@@ -4,7 +4,7 @@ enum OrderStatus { pending, processing, shipped, delivered, cancelled }
 
 enum OrderDeliveryType { fixedArea, delivery, manualQuote }
 
-enum OrderDeliveryPriceStatus { fixed, pendingQuote }
+enum OrderDeliveryPriceStatus { fixed, pendingQuote, awaitingCustomerApproval }
 
 class ShippingAddressData {
   const ShippingAddressData({
@@ -451,14 +451,19 @@ OrderDeliveryPriceStatus _deliveryPriceStatusFromJson(
   required OrderDeliveryType deliveryType,
 }) {
   final name = value?.toString().trim().toLowerCase();
+  if (name == 'awaiting_customer_approval') {
+    return OrderDeliveryPriceStatus.awaitingCustomerApproval;
+  }
   if (name == 'pending_quote' || name == 'pending') {
     return OrderDeliveryPriceStatus.pendingQuote;
+  }
+  if (name == 'quoted' || name == 'fixed' || name == 'not_required') {
+    return OrderDeliveryPriceStatus.fixed;
   }
   if (deliveryType == OrderDeliveryType.delivery ||
       deliveryType == OrderDeliveryType.manualQuote) {
     return OrderDeliveryPriceStatus.pendingQuote;
   }
-  if (name == 'fixed') return OrderDeliveryPriceStatus.fixed;
   return OrderDeliveryPriceStatus.fixed;
 }
 

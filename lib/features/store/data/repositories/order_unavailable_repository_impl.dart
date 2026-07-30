@@ -37,6 +37,13 @@ class OrderUnavailableRepositoryImpl implements OrderRepository {
   }
 
   @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    return const ApiResult.failure(
+      ValidationFailure('Delivery price approval is not available yet.'),
+    );
+  }
+
+  @override
   Future<ApiResult<OrderPreviewData>> previewOrder({
     required List<CartItemData> cartItems,
     required String addressId,

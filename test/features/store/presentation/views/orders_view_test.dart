@@ -155,6 +155,40 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('shows customer approval for a pending delivery quote', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final orderHistoryCubit = OrderHistoryCubit(
+      GetMyOrdersUseCase(
+        _OrderRepositoryWithData([
+          _orderPlacedAt(
+            DateTime(2026, 7, 14),
+            deliveryPriceStatus:
+                OrderDeliveryPriceStatus.awaitingCustomerApproval,
+            shippingFee: 45,
+          ),
+        ]),
+      ),
+    );
+    addTearDown(orderHistoryCubit.close);
+
+    await tester.pumpWidget(
+      BlocProvider<OrderHistoryCubit>.value(
+        value: orderHistoryCubit,
+        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Delivery price approval'), findsOneWidget);
+    expect(find.text('Approve delivery price'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 OrderData _orderPlacedAt(
@@ -162,6 +196,8 @@ OrderData _orderPlacedAt(
   OrderStatus status = OrderStatus.pending,
   DateTime? estimatedDeliveryAt,
   List<OrderMarketSectionData> marketSections = const [],
+  OrderDeliveryPriceStatus deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
+  double shippingFee = 0,
 }) {
   return OrderData(
     id: '6',
@@ -190,16 +226,24 @@ OrderData _orderPlacedAt(
       ),
     ],
     subtotal: 75,
-    shippingFee: 0,
+    shippingFee: shippingFee,
+    deliveryPriceStatus: deliveryPriceStatus,
     taxTotal: 0,
     discountTotal: 0,
-    total: 75,
+    total: 75 + shippingFee,
     estimatedDeliveryAt: estimatedDeliveryAt,
     marketSections: marketSections,
   );
 }
 
 class _EmptyOrderRepository implements OrderRepository {
+  @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    return const ApiResult.failure(
+      ValidationFailure('Delivery quote approval is not used in this test.'),
+    );
+  }
+
   @override
   Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,

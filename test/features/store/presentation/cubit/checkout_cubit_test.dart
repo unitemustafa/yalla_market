@@ -181,6 +181,13 @@ class _FakeOrderRepository implements OrderRepository {
   List<CartItemData> lastCartItems = const [];
 
   @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    return const ApiResult.failure(
+      ValidationFailure('Delivery quote approval is not used in this test.'),
+    );
+  }
+
+  @override
   Future<ApiResult<List<OrderData>>> createOrder({
     required ShippingAddressData shippingAddress,
     required List<OrderItemData> items,

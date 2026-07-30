@@ -990,6 +990,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'minutes': 'دقيقة',
     'Discounts up to': 'خصومات حتى',
     'Pay cash': 'ادفع كاش',
+    'Pay cash & online': 'ادفع كاش وأونلاين',
     'Popular Products': 'المنتجات الشائعة',
     'Latest Products': 'أحدث المنتجات',
     'Browse the latest products': 'تصفح أحدث المنتجات',

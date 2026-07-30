@@ -792,8 +792,9 @@ class _ShopMetaChip extends StatelessWidget {
   }
 }
 
-class _MarketTypeRail extends StatelessWidget {
-  const _MarketTypeRail({
+class MarketTypeRail extends StatelessWidget {
+  const MarketTypeRail({
+    super.key,
     required this.classificationImage,
     required this.types,
     required this.selectedId,
@@ -809,6 +810,8 @@ class _MarketTypeRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final languageCode = Localizations.localeOf(context).languageCode;
     final isArabic = languageCode.toLowerCase().startsWith('ar');
+    final visibleTypes = types.take(4).toList(growable: false);
+    final hasMore = types.length > visibleTypes.length;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -826,10 +829,16 @@ class _MarketTypeRail extends StatelessWidget {
           child: ListView.separated(
             key: const ValueKey('market_type_rail'),
             scrollDirection: Axis.horizontal,
-            itemCount: types.length + 1,
+            itemCount: visibleTypes.length + 1 + (hasMore ? 1 : 0),
             separatorBuilder: (_, _) => const SizedBox(width: 10),
             itemBuilder: (context, index) {
-              final type = index == 0 ? null : types[index - 1];
+              if (hasMore && index == visibleTypes.length + 1) {
+                return _MarketTypeMoreItem(
+                  label: isArabic ? 'عرض الكل' : 'View all',
+                  onTap: () => _showAllTypes(context, languageCode),
+                );
+              }
+              final type = index == 0 ? null : visibleTypes[index - 1];
               final id = type?.id;
               return _MarketTypeItem(
                 key: ValueKey(
@@ -846,6 +855,150 @@ class _MarketTypeRail extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Future<void> _showAllTypes(BuildContext context, String languageCode) async {
+    final selected = await showModalBottomSheet<String?>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) {
+        final colors = Theme.of(sheetContext).colorScheme;
+        final isArabic = languageCode.toLowerCase().startsWith('ar');
+        final allItems = <StoreMarketTypeData?>[null, ...types];
+        return Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
+          ),
+          decoration: BoxDecoration(
+            color: colors.surface,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Container(
+                width: 42,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: colors.outlineVariant,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        isArabic ? 'كل تصنيفات المحلات' : 'All store types',
+                        style: Theme.of(sheetContext).textTheme.titleLarge
+                            ?.copyWith(fontWeight: FontWeight.w900),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      icon: const Icon(Icons.close_rounded),
+                      tooltip: MaterialLocalizations.of(
+                        sheetContext,
+                      ).closeButtonTooltip,
+                    ),
+                  ],
+                ),
+              ),
+              Divider(height: 1, color: colors.outlineVariant),
+              Flexible(
+                child: GridView.builder(
+                  key: const ValueKey('market_type_all_sheet'),
+                  padding: const EdgeInsets.fromLTRB(12, 18, 12, 28),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    mainAxisExtent: 112,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 12,
+                  ),
+                  itemCount: allItems.length,
+                  itemBuilder: (context, index) {
+                    final type = allItems[index];
+                    final id = type?.id;
+                    return _MarketTypeItem(
+                      key: ValueKey(
+                        id == null
+                            ? 'market_type_sheet_all'
+                            : 'market_type_sheet_$id',
+                      ),
+                      label:
+                          type?.localizedName(languageCode) ??
+                          (isArabic ? 'الكل' : 'All'),
+                      image: type?.image ?? classificationImage,
+                      selected: selectedId == id,
+                      onTap: () => Navigator.pop(sheetContext, id ?? ''),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (selected == null) return;
+    if (!context.mounted) return;
+    onSelected(selected.isEmpty ? null : selected);
+  }
+}
+
+class _MarketTypeMoreItem extends StatelessWidget {
+  const _MarketTypeMoreItem({required this.label, required this.onTap});
+
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        key: const ValueKey('market_type_view_all'),
+        borderRadius: BorderRadius.circular(42),
+        onTap: onTap,
+        child: SizedBox(
+          width: 72,
+          child: Column(
+            children: [
+              Container(
+                width: 68,
+                height: 68,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: colors.primary.withValues(alpha: 0.10),
+                  border: Border.all(
+                    color: colors.primary.withValues(alpha: 0.30),
+                  ),
+                ),
+                child: Icon(AppIcons.category, color: colors.primary, size: 27),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: colors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

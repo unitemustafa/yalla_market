@@ -480,7 +480,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         ],
         if (availableMarketTypes.isNotEmpty) ...[
           const SizedBox(height: 20),
-          _MarketTypeRail(
+          MarketTypeRail(
             classificationImage: classification?.image ?? '',
             types: availableMarketTypes,
             selectedId: effectiveTypeId,

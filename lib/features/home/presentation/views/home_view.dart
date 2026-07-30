@@ -398,16 +398,34 @@ class _HomeTopBar extends StatelessWidget {
             const SizedBox(width: 10),
             SizedBox(
               key: const ValueKey('home_brand_logo'),
-              width: 112,
-              height: 64,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.asset(
-                  AppAssets.homeBrandLogo,
-                  fit: BoxFit.cover,
-                  alignment: const Alignment(0, 0.02),
-                  cacheWidth: 196,
-                  filterQuality: FilterQuality.medium,
+              width: 88,
+              height: 52,
+              child: Container(
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    width: 1.4,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(7),
+                  child: Image.asset(
+                    AppAssets.homeBrandLogo,
+                    fit: BoxFit.cover,
+                    alignment: const Alignment(0, 0.02),
+                    cacheWidth: 196,
+                    filterQuality: FilterQuality.medium,
+                  ),
                 ),
               ),
             ),

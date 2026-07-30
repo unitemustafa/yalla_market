@@ -54,7 +54,7 @@ class HomeBenefitsStrip extends StatelessWidget {
             child: _BenefitItem(
               key: const ValueKey('home_benefit_payment'),
               icon: AppIcons.card_tick,
-              label: context.tr('Pay cash'),
+              label: context.tr('Pay cash & online'),
             ),
           ),
         ],

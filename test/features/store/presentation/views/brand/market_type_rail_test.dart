@@ -40,8 +40,7 @@ void main() {
               body: SingleChildScrollView(
                 padding: const EdgeInsets.all(12),
                 child: MarketTypeRail(
-                  classificationImage:
-                      'assets/images/temporary_market_placeholder.webp',
+                  classificationName: 'المطاعم',
                   types: types,
                   selectedId: selectedId,
                   onSelected: (value) => selectedId = value,
@@ -52,7 +51,7 @@ void main() {
         ),
       );
 
-      expect(find.byKey(const ValueKey('market_type_all')), findsOneWidget);
+      expect(find.byKey(const ValueKey('market_type_all')), findsNothing);
       expect(find.byKey(const ValueKey('market_type_4')), findsOneWidget);
       expect(find.byKey(const ValueKey('market_type_5')), findsNothing);
       expect(
@@ -60,6 +59,10 @@ void main() {
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byKey(const ValueKey('market_type_1')));
+      await tester.pump();
+      expect(selectedId, isNull);
 
       await tester.tap(find.byKey(const ValueKey('market_type_view_all')));
       await tester.pumpAndSettle();

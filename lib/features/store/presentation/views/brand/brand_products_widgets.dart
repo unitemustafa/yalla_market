@@ -795,13 +795,13 @@ class _ShopMetaChip extends StatelessWidget {
 class MarketTypeRail extends StatelessWidget {
   const MarketTypeRail({
     super.key,
-    required this.classificationImage,
+    required this.classificationName,
     required this.types,
     required this.selectedId,
     required this.onSelected,
   });
 
-  final String classificationImage;
+  final String classificationName;
   final List<StoreMarketTypeData> types;
   final String? selectedId;
   final ValueChanged<String?> onSelected;
@@ -817,39 +817,35 @@ class MarketTypeRail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          isArabic ? 'اختار نوع المحل' : 'Choose by type',
+          isArabic ? 'كل $classificationName' : 'All $classificationName',
           key: const ValueKey('market_type_heading'),
           style: Theme.of(
             context,
           ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 10),
         SizedBox(
-          height: 104,
+          height: 92,
           child: ListView.separated(
             key: const ValueKey('market_type_rail'),
             scrollDirection: Axis.horizontal,
-            itemCount: visibleTypes.length + 1 + (hasMore ? 1 : 0),
-            separatorBuilder: (_, _) => const SizedBox(width: 10),
+            itemCount: visibleTypes.length + (hasMore ? 1 : 0),
+            separatorBuilder: (_, _) => const SizedBox(width: 4),
             itemBuilder: (context, index) {
-              if (hasMore && index == visibleTypes.length + 1) {
+              if (hasMore && index == visibleTypes.length) {
                 return _MarketTypeMoreItem(
                   label: isArabic ? 'عرض الكل' : 'View all',
                   onTap: () => _showAllTypes(context, languageCode),
                 );
               }
-              final type = index == 0 ? null : visibleTypes[index - 1];
-              final id = type?.id;
+              final type = visibleTypes[index];
+              final id = type.id;
               return _MarketTypeItem(
-                key: ValueKey(
-                  id == null ? 'market_type_all' : 'market_type_$id',
-                ),
-                label:
-                    type?.localizedName(languageCode) ??
-                    (isArabic ? 'الكل' : 'All'),
-                image: type?.image ?? classificationImage,
+                key: ValueKey('market_type_$id'),
+                label: type.localizedName(languageCode),
+                image: type.image,
                 selected: selectedId == id,
-                onTap: () => onSelected(id),
+                onTap: () => onSelected(selectedId == id ? null : id),
               );
             },
           ),
@@ -867,7 +863,7 @@ class MarketTypeRail extends StatelessWidget {
       builder: (sheetContext) {
         final colors = Theme.of(sheetContext).colorScheme;
         final isArabic = languageCode.toLowerCase().startsWith('ar');
-        final allItems = <StoreMarketTypeData?>[null, ...types];
+        final allItems = types;
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
@@ -894,7 +890,9 @@ class MarketTypeRail extends StatelessWidget {
                   children: [
                     Expanded(
                       child: Text(
-                        isArabic ? 'كل تصنيفات المحلات' : 'All store types',
+                        isArabic
+                            ? 'كل الفئات الثانوية'
+                            : 'All secondary categories',
                         style: Theme.of(sheetContext).textTheme.titleLarge
                             ?.copyWith(fontWeight: FontWeight.w900),
                       ),
@@ -923,19 +921,13 @@ class MarketTypeRail extends StatelessWidget {
                   itemCount: allItems.length,
                   itemBuilder: (context, index) {
                     final type = allItems[index];
-                    final id = type?.id;
+                    final id = type.id;
                     return _MarketTypeItem(
-                      key: ValueKey(
-                        id == null
-                            ? 'market_type_sheet_all'
-                            : 'market_type_sheet_$id',
-                      ),
-                      label:
-                          type?.localizedName(languageCode) ??
-                          (isArabic ? 'الكل' : 'All'),
-                      image: type?.image ?? classificationImage,
+                      key: ValueKey('market_type_sheet_$id'),
+                      label: type.localizedName(languageCode),
+                      image: type.image,
                       selected: selectedId == id,
-                      onTap: () => Navigator.pop(sheetContext, id ?? ''),
+                      onTap: () => Navigator.pop(sheetContext, id),
                     );
                   },
                 ),
@@ -948,7 +940,7 @@ class MarketTypeRail extends StatelessWidget {
 
     if (selected == null) return;
     if (!context.mounted) return;
-    onSelected(selected.isEmpty ? null : selected);
+    onSelected(selected == selectedId ? null : selected);
   }
 }
 
@@ -969,12 +961,12 @@ class _MarketTypeMoreItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(42),
         onTap: onTap,
         child: SizedBox(
-          width: 72,
+          width: 76,
           child: Column(
             children: [
               Container(
-                width: 68,
-                height: 68,
+                width: 64,
+                height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: colors.primary.withValues(alpha: 0.10),
@@ -982,9 +974,9 @@ class _MarketTypeMoreItem extends StatelessWidget {
                     color: colors.primary.withValues(alpha: 0.30),
                   ),
                 ),
-                child: Icon(AppIcons.category, color: colors.primary, size: 27),
+                child: Icon(AppIcons.category, color: colors.primary, size: 25),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 6),
               Text(
                 label,
                 maxLines: 1,
@@ -992,6 +984,7 @@ class _MarketTypeMoreItem extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: colors.primary,
+                  fontSize: 13,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -1029,14 +1022,14 @@ class _MarketTypeItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(42),
         onTap: onTap,
         child: SizedBox(
-          width: 72,
+          width: 76,
           child: Column(
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                width: 68,
-                height: 68,
-                padding: EdgeInsets.all(selected ? 3 : 1),
+                width: 64,
+                height: 64,
+                padding: EdgeInsets.all(selected ? 3 : 0),
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: selected
@@ -1052,23 +1045,24 @@ class _MarketTypeItem extends StatelessWidget {
                 child: ClipOval(
                   child: AppImage(
                     source: image,
-                    width: 62,
-                    height: 62,
+                    width: 60,
+                    height: 60,
                     fit: BoxFit.cover,
                     fallbackType: AppImagePlaceholderType.category,
-                    cacheWidth: 136,
-                    cacheHeight: 136,
+                    cacheWidth: 128,
+                    cacheHeight: 128,
                   ),
                 ),
               ),
-              const SizedBox(height: 7),
+              const SizedBox(height: 6),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: selected ? colors.primary : colors.onSurface,
+                  color: selected ? colors.primary : colors.onSurfaceVariant,
+                  fontSize: 13,
                   fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
                 ),
               ),

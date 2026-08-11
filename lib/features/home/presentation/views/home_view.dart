@@ -31,6 +31,9 @@ import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
 import '../../../store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../store/presentation/cubit/product_catalog_state.dart';
+import '../../../store/presentation/cubit/store_cubit.dart';
+import '../../../store/presentation/cubit/store_state.dart';
+import '../../../store/presentation/widgets/store_highlights_sections.dart';
 import '../widgets/home_categories.dart';
 import '../widgets/home_benefits_strip.dart';
 import '../widgets/home_popular_products_slider.dart';
@@ -88,7 +91,10 @@ class _HomeViewState extends State<HomeView> {
         title: 'This offer is not available in your city right now.',
       );
     }
-    await context.read<ProductCatalogCubit>().loadProducts(force: force);
+    await Future.wait([
+      context.read<ProductCatalogCubit>().loadProducts(force: force),
+      context.read<StoreCubit>().loadStore(force: force),
+    ]);
   }
 
   Future<void> _openAddresses() async {
@@ -199,14 +205,43 @@ class _HomeViewState extends State<HomeView> {
                                   focusOfferId: widget.focusOfferId,
                                 ),
                                 const SizedBox(height: 24),
-                                BlocBuilder<
-                                  ProductCatalogCubit,
-                                  ProductCatalogState
-                                >(
-                                  builder: (context, catalogState) {
-                                    return HomeCatalogSections(
-                                      home: home,
-                                      catalogState: catalogState,
+                                BlocBuilder<StoreCubit, StoreState>(
+                                  builder: (context, storeState) {
+                                    return BlocBuilder<
+                                      ProductCatalogCubit,
+                                      ProductCatalogState
+                                    >(
+                                      builder: (context, catalogState) {
+                                        final store = storeState.data;
+                                        final hasStoreHighlights =
+                                            store != null &&
+                                            (store.latestMarkets.isNotEmpty ||
+                                                store.classifications.any(
+                                                  (classification) => store
+                                                      .popularMarketsFor(
+                                                        classification.id,
+                                                      )
+                                                      .isNotEmpty,
+                                                ));
+
+                                        return Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            HomeCatalogSections(
+                                              home: home,
+                                              catalogState: catalogState,
+                                            ),
+                                            if (store != null &&
+                                                hasStoreHighlights) ...[
+                                              const SizedBox(height: 22),
+                                              StoreHighlightsSections(
+                                                store: store,
+                                              ),
+                                            ],
+                                          ],
+                                        );
+                                      },
                                     );
                                   },
                                 ),

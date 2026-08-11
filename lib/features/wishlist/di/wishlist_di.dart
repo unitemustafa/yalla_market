@@ -7,6 +7,7 @@ import '../../../features/wishlist/data/repositories/wishlist_remote_repository_
 import '../../../features/wishlist/data/repositories/market_wishlist_remote_repository.dart';
 import '../../../features/wishlist/domain/repositories/market_wishlist_repository.dart';
 import '../../../features/wishlist/domain/repositories/wishlist_repository.dart';
+import '../../../features/wishlist/domain/usecases/market_wishlist_usecases.dart';
 import '../../../features/wishlist/domain/usecases/wishlist_usecases.dart';
 import '../../../features/wishlist/presentation/cubit/wishlist_cubit.dart';
 import '../../../features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
@@ -46,9 +47,12 @@ void registerWishlistDependencies(GetIt sl, {bool? useDemoRepositories}) {
       () => MarketWishlistRemoteRepository(sl<ApiClient>()),
     );
   }
-  if (!sl.isRegistered<MarketWishlistCubit>()) {
-    sl.registerFactory(
-      () => MarketWishlistCubit(sl<MarketWishlistRepository>()),
+  if (!sl.isRegistered<MarketWishlistUseCases>()) {
+    sl.registerLazySingleton(
+      () => MarketWishlistUseCases(sl<MarketWishlistRepository>()),
     );
+  }
+  if (!sl.isRegistered<MarketWishlistCubit>()) {
+    sl.registerFactory(() => MarketWishlistCubit(sl<MarketWishlistUseCases>()));
   }
 }

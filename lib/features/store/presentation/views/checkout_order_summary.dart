@@ -43,7 +43,7 @@ class _OrderSummaryCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              _IconTile(icon: AppIcons.receipt, isDark: isDark),
+              CheckoutIconTile(icon: AppIcons.receipt, isDark: isDark),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(

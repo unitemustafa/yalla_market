@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:yalla_market/core/icons/app_icons.dart';
 
-import '../../../../../core/config/app_environment.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/formatters/app_currency.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
-import '../../../../../core/presentation/widgets/texts/app_currency_text.dart';
-import '../../../data/demo/demo_orders.dart';
 import '../../../domain/entities/order.dart';
 import '../../cubit/order_history_cubit.dart';
 import '../../cubit/order_history_state.dart';
 import 'widgets/custom_date_range_sheet.dart';
 import 'widgets/order_list_item.dart';
-
-part 'orders_widgets_part.dart';
+import 'order_details_dialog.dart';
+import 'order_presentation_models.dart';
+import 'orders_overview_widgets.dart';
 
 class OrdersView extends StatefulWidget {
   const OrdersView({super.key, this.useDemoOrders, this.focusOrderId});
@@ -29,14 +26,8 @@ class OrdersView extends StatefulWidget {
   State<OrdersView> createState() => _OrdersViewState();
 }
 
-enum _OrdersDateFilter { today, week, month, custom }
-
 class _OrdersViewState extends State<OrdersView> {
-  static final List<_OrderData> _orders = DemoOrders.all
-      .map(_OrderData.fromDemo)
-      .toList(growable: false);
-
-  _OrdersDateFilter? _dateFilter;
+  OrdersDateFilter? _dateFilter;
   DateTimeRange? _customDateRange;
 
   @override
@@ -75,19 +66,14 @@ class _OrdersViewState extends State<OrdersView> {
     final backgroundColor = isDark
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
-    final useDemoOrders =
-        widget.useDemoOrders ?? AppEnvironment.useDemoRepositories;
-
     return BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
       builder: (context, state) {
         final loadedOrders = state is OrderHistoryReady
             ? state.orders.map(_mapStoredOrder).toList(growable: false)
             : state is OrderHistoryFailure
             ? state.orders.map(_mapStoredOrder).toList(growable: false)
-            : const <_OrderData>[];
-        final orders = loadedOrders.isEmpty && useDemoOrders
-            ? _orders
-            : loadedOrders;
+            : const <OrderPresentationData>[];
+        final orders = loadedOrders;
         final filteredOrders = _filterOrders(orders);
 
         return Scaffold(
@@ -124,7 +110,7 @@ class _OrdersViewState extends State<OrdersView> {
                         }
 
                         if (index == 1) {
-                          return _OrdersDateFilterBar(
+                          return OrdersDateFilterBar(
                             selected: _dateFilter,
                             customRange: _customDateRange,
                             onChanged: (filter) =>
@@ -133,7 +119,7 @@ class _OrdersViewState extends State<OrdersView> {
                         }
 
                         if (index == 2) {
-                          return _OrdersSummaryCard(
+                          return OrdersSummaryCard(
                             isDark: isDark,
                             orders: filteredOrders,
                           );
@@ -141,8 +127,8 @@ class _OrdersViewState extends State<OrdersView> {
 
                         if (filteredOrders.isEmpty) {
                           return orders.isEmpty
-                              ? const _OrdersEmptyState()
-                              : _OrdersEmptyFilterState(isDark: isDark);
+                              ? const OrdersEmptyState()
+                              : OrdersEmptyFilterState(isDark: isDark);
                         }
 
                         final order = filteredOrders[index - 3];
@@ -178,8 +164,8 @@ class _OrdersViewState extends State<OrdersView> {
     );
   }
 
-  _OrderData _mapStoredOrder(OrderData order) {
-    return _OrderData(
+  OrderPresentationData _mapStoredOrder(OrderData order) {
+    return OrderPresentationData(
       apiId: order.id,
       status: order.statusLabel,
       placedAt: order.placedAt,
@@ -201,14 +187,14 @@ class _OrdersViewState extends State<OrdersView> {
     );
   }
 
-  List<_OrderProductData> _productsFromOrder(OrderData order) {
+  List<OrderProductPresentationData> _productsFromOrder(OrderData order) {
     final sectionItems = order.marketSections
         .expand((section) => section.items)
         .toList(growable: false);
     final source = sectionItems.isEmpty ? order.items : sectionItems;
     return source
         .map(
-          (item) => _OrderProductData(
+          (item) => OrderProductPresentationData(
             title: item.title.trim().isEmpty ? 'Item' : item.title,
             brand: item.brand,
             quantity: item.quantity,
@@ -224,7 +210,9 @@ class _OrdersViewState extends State<OrdersView> {
         '${_monthName(value.month)} ${value.year}';
   }
 
-  List<_OrderData> _filterOrders(List<_OrderData> orders) {
+  List<OrderPresentationData> _filterOrders(
+    List<OrderPresentationData> orders,
+  ) {
     final range = _selectedDateRange;
     if (range == null) return orders;
 
@@ -241,16 +229,16 @@ class _OrdersViewState extends State<OrdersView> {
 
     return switch (_dateFilter) {
       null => null,
-      _OrdersDateFilter.today => (start: now, end: now),
-      _OrdersDateFilter.week => (
+      OrdersDateFilter.today => (start: now, end: now),
+      OrdersDateFilter.week => (
         start: now.subtract(const Duration(days: 6)),
         end: now,
       ),
-      _OrdersDateFilter.month => (
+      OrdersDateFilter.month => (
         start: DateTime(now.year, now.month),
         end: DateTime(now.year, now.month + 1, 0),
       ),
-      _OrdersDateFilter.custom =>
+      OrdersDateFilter.custom =>
         _customDateRange == null
             ? null
             : (
@@ -262,9 +250,9 @@ class _OrdersViewState extends State<OrdersView> {
 
   Future<void> _selectDateFilter(
     BuildContext context,
-    _OrdersDateFilter filter,
+    OrdersDateFilter filter,
   ) async {
-    if (filter != _OrdersDateFilter.custom) {
+    if (filter != OrdersDateFilter.custom) {
       setState(() => _dateFilter = filter);
       return;
     }
@@ -334,231 +322,7 @@ class _OrdersViewState extends State<OrdersView> {
     return names[(month - 1).clamp(0, names.length - 1)];
   }
 
-  void _showOrderDetails(BuildContext context, _OrderData initialOrder) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final sheetColor = isDark ? const Color(0xFF222326) : Colors.white;
-    final mutedColor = isDark
-        ? Colors.white.withValues(alpha: 0.62)
-        : Colors.black.withValues(alpha: 0.58);
-
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
-          builder: (context, state) {
-            final source = switch (state) {
-              OrderHistoryReady(:final orders) => orders,
-              OrderHistoryFailure(:final orders) => orders,
-              OrderHistoryLoading(:final orders) => orders,
-              _ => const <OrderData>[],
-            };
-            final matches = source.where(
-              (item) => item.id == initialOrder.apiId,
-            );
-            final order = matches.isEmpty
-                ? initialOrder
-                : _mapStoredOrder(matches.first);
-            return SafeArea(
-              top: false,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                decoration: BoxDecoration(
-                  color: sheetColor,
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
-                  ),
-                  border: Border.all(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.08)
-                        : Colors.black.withValues(alpha: 0.06),
-                  ),
-                ),
-                constraints: BoxConstraints(
-                  maxHeight: MediaQuery.sizeOf(context).height * 0.86,
-                ),
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Center(
-                        child: Container(
-                          width: 44,
-                          height: 4,
-                          decoration: BoxDecoration(
-                            color: mutedColor.withValues(alpha: 0.45),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 18),
-                      Row(
-                        children: [
-                          Container(
-                            width: 48,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              color: order.statusColor.withValues(
-                                alpha: isDark ? 0.18 : 0.10,
-                              ),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              AppIcons.box,
-                              color: order.statusColor,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  context.tr(order.status),
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(
-                                        color: order.statusColor,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  order.orderId,
-                                  style: Theme.of(context).textTheme.bodySmall
-                                      ?.copyWith(
-                                        color: mutedColor,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (order.products.isNotEmpty) ...[
-                        const SizedBox(height: 18),
-                        order.marketSections.isNotEmpty
-                            ? _OrderMarketSectionsSection(
-                                sections: order.marketSections,
-                                mutedColor: mutedColor,
-                                isDark: isDark,
-                              )
-                            : _OrderProductsSection(
-                                products: order.products,
-                                itemCount: order.itemCount,
-                                mutedColor: mutedColor,
-                                isDark: isDark,
-                              ),
-                      ],
-                      const SizedBox(height: 18),
-                      if (order.isMultiMarket || order.marketCount > 1) ...[
-                        _DetailRow(
-                          icon: AppIcons.shop,
-                          label: 'Markets',
-                          value: order.marketSummary.trim().isNotEmpty
-                              ? order.marketSummary
-                              : '${order.marketCount} markets',
-                          mutedColor: mutedColor,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      if (order.reviewStatus.trim().isNotEmpty) ...[
-                        _DetailRow(
-                          icon: AppIcons.clipboard_tick,
-                          label: 'Review',
-                          value: order.reviewStatus,
-                          mutedColor: mutedColor,
-                        ),
-                        const SizedBox(height: 12),
-                      ],
-                      _DetailRow(
-                        icon: AppIcons.money_3,
-                        label: 'Payment Method',
-                        value: order.paymentMethod,
-                        mutedColor: mutedColor,
-                      ),
-                      const SizedBox(height: 12),
-                      _DetailRow(
-                        icon: AppIcons.truck_fast,
-                        label: 'Delivery type',
-                        value: order.deliveryType,
-                        mutedColor: mutedColor,
-                      ),
-                      if (order.deliveryPriceStatus ==
-                          OrderDeliveryPriceStatus
-                              .awaitingCustomerApproval) ...[
-                        const SizedBox(height: 14),
-                        _DeliveryQuoteApprovalCard(
-                          orderId: order.apiId,
-                          deliveryPrice: order.deliveryPrice,
-                          total: order.total,
-                          isDark: isDark,
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      _DetailRow(
-                        icon: AppIcons.calendar,
-                        label: 'Order date',
-                        value: order.date,
-                        mutedColor: mutedColor,
-                      ),
-                      const SizedBox(height: 12),
-                      _DetailRow(
-                        icon: AppIcons.calendar_1,
-                        label: 'Shipping date',
-                        value: order.shippingDate,
-                        mutedColor: mutedColor,
-                      ),
-                      const SizedBox(height: 12),
-                      _DetailRow(
-                        icon: AppIcons.shopping_bag,
-                        label: 'Items',
-                        value: context.productCount(order.itemCount),
-                        mutedColor: mutedColor,
-                      ),
-                      const SizedBox(height: 12),
-                      _DetailRow(
-                        icon: AppIcons.receipt_text,
-                        label: 'Total',
-                        value: order.total,
-                        mutedColor: mutedColor,
-                      ),
-                      const SizedBox(height: 18),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(
-                            AppIcons.tick_circle,
-                            color: Colors.white,
-                          ),
-                          label: Text(
-                            context.tr('Done'),
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          },
-        );
-      },
-    );
+  void _showOrderDetails(BuildContext context, OrderPresentationData order) {
+    showOrderDetailsDialog(context, order, mapStoredOrder: _mapStoredOrder);
   }
 }

@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../store/domain/entities/store_data.dart';
-import '../../domain/repositories/market_wishlist_repository.dart';
+import '../../domain/usecases/market_wishlist_usecases.dart';
 
 class MarketWishlistState {
   const MarketWishlistState({
@@ -37,9 +37,9 @@ class MarketWishlistState {
 }
 
 class MarketWishlistCubit extends Cubit<MarketWishlistState> {
-  MarketWishlistCubit(this._repository) : super(const MarketWishlistState());
+  MarketWishlistCubit(this._useCases) : super(const MarketWishlistState());
 
-  final MarketWishlistRepository _repository;
+  final MarketWishlistUseCases _useCases;
   final Map<String, bool> _overrides = {};
   String? _currentUserKey;
   int _generation = 0;
@@ -62,7 +62,7 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
     }
 
     final generation = _generation;
-    final result = await _repository.getItems();
+    final result = await _useCases.getItems();
     if (!_isCurrent(normalized, generation)) return;
     result.when(
       success: (items) {
@@ -120,7 +120,7 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
     );
 
     final generation = _generation;
-    final result = await _repository.setFavorite(id, nextFavorite);
+    final result = await _useCases.setFavorite(id, nextFavorite);
     if (!_isCurrent(userKey, generation)) return null;
     return result.when(
       success: (favorite) {

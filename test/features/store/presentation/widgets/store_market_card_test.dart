@@ -8,6 +8,7 @@ import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 import 'package:yalla_market/features/store/presentation/widgets/store_market_card.dart';
 import 'package:yalla_market/features/wishlist/domain/repositories/market_wishlist_repository.dart';
+import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_usecases.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 void main() {
@@ -113,7 +114,7 @@ void main() {
     tester,
   ) async {
     final repository = _FavoriteRepository();
-    final cubit = MarketWishlistCubit(repository);
+    final cubit = MarketWishlistCubit(MarketWishlistUseCases(repository));
     addTearDown(cubit.close);
     await cubit.loadForUser('user');
     var opened = false;

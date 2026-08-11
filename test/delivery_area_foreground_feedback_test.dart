@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/app/coordinators/app_push_event_coordinator.dart';
 import 'package:yalla_market/core/notifications/push_notification_service.dart';
-import 'package:yalla_market/yalla_market_app.dart';
 
 void main() {
   test('foreground delivery area event presents the root banner', () async {

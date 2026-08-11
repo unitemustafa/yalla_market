@@ -9,9 +9,9 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../domain/entities/address.dart';
-import '../../../data/datasources/geoapify_geocoding_data_source.dart';
-import '../../../../location/data/datasources/device_location_data_source.dart';
 import '../../../../location/domain/entities/city_data.dart';
+import '../../../../location/domain/services/device_location_service.dart';
+import '../../../domain/repositories/map_geocoding_repository.dart';
 import '../../../domain/usecases/delivery_area_usecases.dart';
 import '../../cubit/address_cubit.dart';
 import '../../cubit/address_state.dart';
@@ -73,8 +73,8 @@ class _AddressesViewState extends State<AddressesView>
         context,
         MaterialPageRoute(
           builder: (_) => AddressLocationPickerView(
-            locationDataSource: sl<DeviceLocationDataSource>(),
-            geocodingDataSource: sl<MapGeocodingDataSource>(),
+            locationDataSource: sl<DeviceLocationService>(),
+            geocodingDataSource: sl<MapGeocodingRepository>(),
             fallbackCoordinates: _fallbackCoordinates(selectedCity),
             selectedCity: selectedCity,
           ),
@@ -92,8 +92,8 @@ class _AddressesViewState extends State<AddressesView>
         builder: (_) => AddNewAddressView(
           address: address,
           initialLocation: selectedLocation,
-          locationDataSource: sl<DeviceLocationDataSource>(),
-          geocodingDataSource: sl<MapGeocodingDataSource>(),
+          locationDataSource: sl<DeviceLocationService>(),
+          geocodingDataSource: sl<MapGeocodingRepository>(),
           getDeliveryAreas: sl<GetDeliveryAreasUseCase>(),
           initialCity: formCity,
         ),

@@ -1,0 +1,40 @@
+name: Flutter quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: flutter-quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.41.6
+          channel: stable
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+      - name: Verify formatting
+        run: dart format --output=none --set-exit-if-changed lib test integration_test tool
+      - name: Analyze
+        run: flutter analyze
+      - name: Prevent new oversized source files
+        run: dart run tool/check_source_size.dart
+      - name: Test with coverage
+        run: flutter test --coverage --reporter expanded
+      - name: Enforce coverage baseline
+        run: dart run tool/check_coverage.dart coverage/lcov.info 64
+      - name: Build Android debug APK
+        run: flutter build apk --debug

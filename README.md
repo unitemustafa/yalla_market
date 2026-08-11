@@ -1,61 +1,74 @@
 # Yalla Market
 
-Production-oriented Flutter marketplace app with official Android and iOS
-support. Web, Windows, macOS, and Linux builds run without Firebase Messaging;
-push notifications are enabled only on Android and iOS.
+Production Flutter marketplace application. Android and iOS are the supported
+release targets. Web and desktop builds are useful for development, but push
+notifications and every native capability are guaranteed only on mobile.
 
-## Runtime configuration
+## First-time setup
 
-The app expects a REST backend under `/api/v1`. Pass the API origin at build or
-run time:
+1. Install Flutter `3.41.6` and the matching Android/iOS toolchains.
+2. Run `flutter pub get`.
+3. Copy an environment template to a local ignored file and fill its values:
 
-```bash
-flutter run --dart-define=API_BASE_URL=https://yalla-backend-ecjct.ondigitalocean.app
-flutter build appbundle --dart-define-from-file=env/production.json
-```
+   ```powershell
+   Copy-Item env/development.example.json env/development.local.json
+   ```
 
-Debug builds without `API_BASE_URL` use local demo repositories so the UI can be
-developed before the backend is available. Release builds require
-`API_BASE_URL`.
+4. Start against the configured backend:
 
-## API response shape
+   ```bash
+   flutter run --dart-define-from-file=env/development.local.json
+   ```
 
-The full backend contract is documented in
+Debug builds without `API_BASE_URL` use local demo repositories. Release builds
+fail closed when the backend URL is absent or insecure. The REST API is expected
+under `/api/v1`; its wire contract is in
 [`docs/api-contract.md`](docs/api-contract.md).
 
-Successful responses should return either a direct JSON payload or:
+## Project map
 
-```json
-{ "data": {} }
+```text
+lib/
+  core/                 feature-neutral infrastructure and shared UI primitives
+  features/<feature>/
+    data/               API, persistence, DTOs, repository implementations
+    domain/             entities, repository contracts, use cases
+    presentation/       Cubits, state, views, feature widgets
+  main.dart             process entry point
+  yalla_market_app.dart application shell and cross-feature coordination
 ```
 
-Errors should return:
+Dependencies flow from presentation to domain to data contracts. Cubits call use
+cases, repositories own data access, and demo/remote selection happens in DI.
+See [`ARCHITECTURE.md`](ARCHITECTURE.md) before changing a feature and
+[`CONTRIBUTING.md`](CONTRIBUTING.md) before opening a pull request.
 
-```json
-{ "message": "Human readable error", "code": "ERROR_CODE", "fields": {} }
-```
-
-## Android release signing
-
-Copy `android/key.properties.example` to `android/key.properties` and point it
-at your upload keystore before release builds. The example file is safe to keep
-in source control; the real `android/key.properties` must stay private.
-
-## Verification
+## Daily verification
 
 ```bash
+dart format --output=none --set-exit-if-changed lib test tool
 flutter analyze
 flutter test --coverage
-dart run tool/release_preflight.dart env/production.json --platform=android
-flutter build appbundle --release --obfuscate \
-  --split-debug-info=build/debug-symbols/android \
-  --dart-define-from-file=env/production.json
+dart run tool/check_coverage.dart coverage/lcov.info 64
+flutter build apk --debug
 ```
 
-Run the preflight with `--platform=ios` before an App Store archive. It verifies
-the production API and MapTiler values, Firebase configuration, and Apple
-Development Team without printing secret values.
+The coverage floor protects the current baseline; new and changed domain, data,
+and Cubit code should normally be covered at 80% or better.
 
-Archive `build/debug-symbols/android` securely with the matching release before
-running `flutter clean`; Crashlytics stack traces from an obfuscated build need
-those files.
+## Release
+
+Copy `android/key.properties.example` to `android/key.properties` and point it
+at the upload keystore. Never commit the real signing file, Firebase plist, or a
+local runtime configuration.
+
+```bash
+dart run tool/release_preflight.dart env/production.local.json --platform=android
+flutter build appbundle --release --obfuscate \
+  --split-debug-info=build/debug-symbols/android \
+  --dart-define-from-file=env/production.local.json
+```
+
+Use `--platform=ios` before an App Store archive and follow
+`ios/README_RELEASE.md`. Archive the matching debug symbols before running
+`flutter clean`; obfuscated Crashlytics traces require them.

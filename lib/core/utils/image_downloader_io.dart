@@ -13,7 +13,7 @@ Future<bool> downloadAssetImage(String imageSource, String fileName) async {
     final bytes = await _bytesFromSource(source);
     final safeName = _safeFileName(source, fileName);
 
-    if (Platform.isAndroid) {
+    if (Platform.isAndroid || Platform.isIOS) {
       return await _downloadsChannel.invokeMethod<bool>(
             'saveImageToDownloads',
             {'fileName': safeName, 'bytes': bytes},

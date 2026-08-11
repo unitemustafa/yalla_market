@@ -3,6 +3,7 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/home/domain/entities/app_notification.dart';
 import 'package:yalla_market/features/home/domain/repositories/notification_repository.dart';
+import 'package:yalla_market/features/home/domain/usecases/notification_usecases.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_state.dart';
 
@@ -109,7 +110,8 @@ class SpyNotificationCubit extends NotificationCubit {
   SpyNotificationCubit({FakeNotificationRepository? repository})
     : this._(repository ?? FakeNotificationRepository());
 
-  SpyNotificationCubit._(this.repository) : super(repository);
+  SpyNotificationCubit._(this.repository)
+    : super(NotificationUseCases(repository));
 
   final FakeNotificationRepository repository;
   int loadCalls = 0;

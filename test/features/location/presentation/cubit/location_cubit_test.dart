@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/features/location/data/repositories/region_suggestion_preferences_repository.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
 import 'package:yalla_market/features/location/domain/repositories/location_repository.dart';
 import 'package:yalla_market/features/location/domain/usecases/location_usecases.dart';
+import 'package:yalla_market/features/location/domain/usecases/region_suggestion_usecases.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 
 void main() {
@@ -14,7 +16,7 @@ void main() {
 
   group('LocationCubit region GPS session flow', () {
     test('runs GPS suggestion only once per session', () {
-      final cubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      final cubit = _locationCubit(_FakeLocationRepository());
 
       expect(cubit.consumeGpsSuggestionSlot(), isTrue);
       expect(cubit.consumeGpsSuggestionSlot(), isFalse);
@@ -25,7 +27,7 @@ void main() {
     });
 
     test('tracks dismissed suggestions for the current session', () async {
-      final cubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      final cubit = _locationCubit(_FakeLocationRepository());
       const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
       const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
 
@@ -39,12 +41,12 @@ void main() {
     test('restores a dismissed suggestion for the same user', () async {
       const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
       const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
-      final firstCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      final firstCubit = _locationCubit(_FakeLocationRepository());
       await firstCubit.activateUser('client-1');
       await firstCubit.markSuggestionDismissed(current, detected);
       await firstCubit.close();
 
-      final restoredCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      final restoredCubit = _locationCubit(_FakeLocationRepository());
       await restoredCubit.activateUser('client-1');
 
       expect(restoredCubit.wasSuggestionDismissed(current, detected), isTrue);
@@ -54,12 +56,12 @@ void main() {
     test('does not leak a dismissed suggestion to another user', () async {
       const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
       const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
-      final firstCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      final firstCubit = _locationCubit(_FakeLocationRepository());
       await firstCubit.activateUser('client-1');
       await firstCubit.markSuggestionDismissed(current, detected);
       await firstCubit.close();
 
-      final otherCubit = LocationCubit(_useCases(_FakeLocationRepository()));
+      final otherCubit = _locationCubit(_FakeLocationRepository());
       await otherCubit.activateUser('client-2');
 
       expect(otherCubit.wasSuggestionDismissed(current, detected), isFalse);
@@ -83,7 +85,7 @@ void main() {
             message: 'Switch?',
           ),
         );
-        final cubit = LocationCubit(_useCases(repository));
+        final cubit = _locationCubit(repository);
         cubit.syncCity(
           const CityData(name: 'Cairo', slug: '1', serviceCityId: 1),
         );
@@ -99,7 +101,7 @@ void main() {
       'detect failure keeps current region and never becomes general',
       () async {
         final repository = _FakeLocationRepository(failDetection: true);
-        final cubit = LocationCubit(_useCases(repository));
+        final cubit = _locationCubit(repository);
         cubit.syncCity(
           const CityData(name: 'الجزائر', slug: '1', serviceCityId: 1),
         );
@@ -114,7 +116,7 @@ void main() {
 
     test('current region load failure does not reuse cached general', () async {
       final repository = _FakeLocationRepository(failSelectedCity: true);
-      final cubit = LocationCubit(_useCases(repository));
+      final cubit = _locationCubit(repository);
       cubit.syncCity(CityData.general);
 
       final city = await cubit.loadSelectedCity();
@@ -123,6 +125,15 @@ void main() {
       expect(cubit.state.selectedCity, isNull);
     });
   });
+}
+
+LocationCubit _locationCubit(_FakeLocationRepository repository) {
+  return LocationCubit(
+    _useCases(repository),
+    regionSuggestions: RegionSuggestionUseCases(
+      RegionSuggestionPreferencesRepository(),
+    ),
+  );
 }
 
 LocationUseCases _useCases(_FakeLocationRepository repository) {

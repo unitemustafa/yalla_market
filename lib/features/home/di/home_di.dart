@@ -10,6 +10,7 @@ import '../data/repositories/notification_remote_repository_impl.dart';
 import '../domain/repositories/home_repository.dart';
 import '../domain/repositories/notification_repository.dart';
 import '../domain/usecases/get_home_usecase.dart';
+import '../domain/usecases/notification_usecases.dart';
 import '../presentation/cubit/home_cubit.dart';
 import '../presentation/cubit/notification_cubit.dart';
 
@@ -36,7 +37,12 @@ void registerHomeDependencies(GetIt sl) {
   if (!sl.isRegistered<HomeCubit>()) {
     sl.registerFactory(() => HomeCubit(sl<GetHomeUseCase>()));
   }
+  if (!sl.isRegistered<NotificationUseCases>()) {
+    sl.registerLazySingleton(
+      () => NotificationUseCases(sl<NotificationRepository>()),
+    );
+  }
   if (!sl.isRegistered<NotificationCubit>()) {
-    sl.registerFactory(() => NotificationCubit(sl<NotificationRepository>()));
+    sl.registerFactory(() => NotificationCubit(sl<NotificationUseCases>()));
   }
 }

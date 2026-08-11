@@ -4,7 +4,7 @@
 
 - `flutter analyze`
 - `flutter test`
-- `flutter build appbundle --release --dart-define-from-file=env/production.json`
+- `flutter build appbundle --release --dart-define-from-file=env/production.local.json`
 - Verify the APK/AAB signature and record SHA-256 hashes.
 
 ## Android

@@ -5,7 +5,7 @@ import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_result.dart';
 import '../../domain/entities/city_data.dart';
 import '../../domain/repositories/location_repository.dart';
-import '../datasources/device_location_data_source.dart';
+import '../../domain/services/device_location_service.dart';
 import '../datasources/location_preferences.dart';
 
 class LocationRepositoryImpl implements LocationRepository, LocationUserScope {
@@ -16,7 +16,7 @@ class LocationRepositoryImpl implements LocationRepository, LocationUserScope {
   ]);
 
   final LocationPreferences _preferences;
-  final DeviceLocationDataSource _deviceLocation;
+  final DeviceLocationService _deviceLocation;
   final ApiClient? _apiClient;
 
   @override

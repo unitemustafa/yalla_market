@@ -3,6 +3,8 @@ import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 import 'package:yalla_market/features/store/domain/repositories/store_repository.dart';
+import 'package:yalla_market/features/store/domain/usecases/get_classification_markets_usecase.dart';
+import 'package:yalla_market/features/store/domain/usecases/get_market_usecase.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_store_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/store_cubit.dart';
 
@@ -11,7 +13,11 @@ void main() {
     'classification load replaces the limited summary exactly once',
     () async {
       final repository = _Repository();
-      final cubit = StoreCubit(GetStoreUseCase(repository), repository);
+      final cubit = StoreCubit(
+        GetStoreUseCase(repository),
+        getMarket: GetMarketUseCase(repository),
+        getClassificationMarkets: GetClassificationMarketsUseCase(repository),
+      );
       addTearDown(cubit.close);
 
       await cubit.loadStore();
@@ -39,7 +45,11 @@ void main() {
     'storefront load replaces a preview market even when it has products',
     () async {
       final repository = _Repository();
-      final cubit = StoreCubit(GetStoreUseCase(repository), repository);
+      final cubit = StoreCubit(
+        GetStoreUseCase(repository),
+        getMarket: GetMarketUseCase(repository),
+        getClassificationMarkets: GetClassificationMarketsUseCase(repository),
+      );
       addTearDown(cubit.close);
 
       await cubit.loadStore();

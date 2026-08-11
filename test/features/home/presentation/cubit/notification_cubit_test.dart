@@ -5,6 +5,7 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/home/domain/entities/app_notification.dart';
 import 'package:yalla_market/features/home/domain/repositories/notification_repository.dart';
+import 'package:yalla_market/features/home/domain/usecases/notification_usecases.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
 
 void main() {
@@ -16,7 +17,7 @@ void main() {
           _notification(id: 2, createdAt: DateTime(2027), isRead: true),
         ],
       );
-      final cubit = NotificationCubit(repository);
+      final cubit = _notificationCubit(repository);
 
       await cubit.loadNotifications();
 
@@ -27,7 +28,7 @@ void main() {
     });
 
     test('initial failure exposes an error without data', () async {
-      final cubit = NotificationCubit(
+      final cubit = _notificationCubit(
         _FakeNotificationRepository(
           failure: const ServerFailure('Server error.'),
         ),
@@ -44,7 +45,7 @@ void main() {
       final repository = _FakeNotificationRepository(
         notifications: [_notification(id: 1, isRead: false)],
       );
-      final cubit = NotificationCubit(repository);
+      final cubit = _notificationCubit(repository);
       await cubit.loadNotifications();
       repository.failure = const ServerFailure('Refresh failed.');
 
@@ -56,7 +57,7 @@ void main() {
     });
 
     test('mark unread notification success updates item and badge', () async {
-      final cubit = NotificationCubit(
+      final cubit = _notificationCubit(
         _FakeNotificationRepository(
           notifications: [_notification(id: 1, isRead: false)],
         ),
@@ -75,7 +76,7 @@ void main() {
       final repository = _FakeNotificationRepository(
         notifications: [_notification(id: 1, isRead: false)],
       );
-      final cubit = NotificationCubit(repository);
+      final cubit = _notificationCubit(repository);
       await cubit.loadNotifications();
       repository.markReadFailure = const ServerFailure('Patch failed.');
 
@@ -91,7 +92,7 @@ void main() {
       final repository = _FakeNotificationRepository(
         notifications: [_notification(id: 1, isRead: true)],
       );
-      final cubit = NotificationCubit(repository);
+      final cubit = _notificationCubit(repository);
       await cubit.loadNotifications();
 
       final success = await cubit.markNotificationRead(1);
@@ -102,7 +103,7 @@ void main() {
     });
 
     test('mark all success marks every item read', () async {
-      final cubit = NotificationCubit(
+      final cubit = _notificationCubit(
         _FakeNotificationRepository(
           notifications: [
             _notification(id: 1, isRead: false),
@@ -127,7 +128,7 @@ void main() {
           _notification(id: 2, isRead: true),
         ],
       );
-      final cubit = NotificationCubit(repository);
+      final cubit = _notificationCubit(repository);
       await cubit.loadNotifications();
 
       final success = await cubit.deleteAllNotifications();
@@ -144,7 +145,7 @@ void main() {
     test('clear drops state and ignores stale responses', () async {
       final completer = Completer<ApiResult<List<AppNotification>>>();
       final repository = _FakeNotificationRepository(loadCompleter: completer);
-      final cubit = NotificationCubit(repository);
+      final cubit = _notificationCubit(repository);
       final load = cubit.loadNotifications();
 
       cubit.clear();
@@ -158,6 +159,10 @@ void main() {
       await cubit.close();
     });
   });
+}
+
+NotificationCubit _notificationCubit(NotificationRepository repository) {
+  return NotificationCubit(NotificationUseCases(repository));
 }
 
 AppNotification _notification({

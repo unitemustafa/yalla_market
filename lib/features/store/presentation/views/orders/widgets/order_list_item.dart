@@ -218,10 +218,6 @@ class _ProductsPreviewState extends State<_ProductsPreview> {
 
   @override
   Widget build(BuildContext context) {
-    final visibleProducts = widget.products.take(2).toList(growable: false);
-    final hiddenCount = widget.products
-        .skip(visibleProducts.length)
-        .fold(0, (sum, product) => sum + product.quantity);
     final itemCount = widget.products.fold<int>(
       0,
       (sum, product) => sum + product.quantity,
@@ -295,28 +291,13 @@ class _ProductsPreviewState extends State<_ProductsPreview> {
               padding: const EdgeInsets.only(top: 7),
               child: Column(
                 children: [
-                  for (final product in visibleProducts) ...[
+                  for (final product in widget.products) ...[
                     _ProductPreviewRow(
                       product: product,
                       textColor: widget.textColor,
                     ),
-                    if (product != visibleProducts.last)
+                    if (product != widget.products.last)
                       const SizedBox(height: 5),
-                  ],
-                  if (hiddenCount > 0) ...[
-                    const SizedBox(height: 5),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text(
-                        '+ ${context.productCount(hiddenCount)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: widget.mutedColor,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
                   ],
                 ],
               ),

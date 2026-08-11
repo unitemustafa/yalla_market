@@ -532,6 +532,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Home, pets and daily essentials': 'البيت والحيوانات واحتياجات يومية',
     'Inactive plan': 'الباقة غير مفعلة',
     'Image download started': 'بدأ تحميل الصورة',
+    'Image saved successfully': 'تم حفظ الصورة بنجاح',
     'In Stock': 'متوفر',
     'Item added': 'اتضاف',
     'Item added to wishlist': 'اتضاف للمفضلة',

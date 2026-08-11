@@ -359,26 +359,6 @@ class _CheckoutNotice extends StatelessWidget {
   }
 }
 
-class _IconTile extends StatelessWidget {
-  const _IconTile({required this.icon, required this.isDark});
-
-  final IconData icon;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Icon(icon, color: AppColors.primary, size: 18),
-    );
-  }
-}
-
 class _SoftBadge extends StatelessWidget {
   const _SoftBadge({
     required this.label,

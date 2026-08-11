@@ -7,6 +7,7 @@ import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 import 'package:yalla_market/features/wishlist/domain/entities/wishlist_item.dart';
 import 'package:yalla_market/features/wishlist/domain/repositories/market_wishlist_repository.dart';
 import 'package:yalla_market/features/wishlist/domain/repositories/wishlist_repository.dart';
+import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_usecases.dart';
 import 'package:yalla_market/features/wishlist/domain/usecases/wishlist_usecases.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit.dart';
@@ -26,7 +27,9 @@ void main() {
         toggleItem: ToggleWishlistItemUseCase(wishlistRepository),
       ),
     );
-    final marketCubit = MarketWishlistCubit(_MarketWishlistRepository());
+    final marketCubit = MarketWishlistCubit(
+      MarketWishlistUseCases(_MarketWishlistRepository()),
+    );
     final cartCubit = makeCartCubit();
     addTearDown(wishlistCubit.close);
     addTearDown(marketCubit.close);

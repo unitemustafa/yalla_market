@@ -1,8 +1,10 @@
 package com.yallamarket.app
 
+import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.ContentValues
+import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
@@ -16,6 +18,9 @@ import java.io.FileOutputStream
 
 class MainActivity : FlutterActivity() {
     private val downloadsChannelName = "yallamarket/downloads"
+    private var pendingDownloadResult: MethodChannel.Result? = null
+    private var pendingDownloadFileName: String? = null
+    private var pendingDownloadBytes: ByteArray? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         createOrderUpdatesNotificationChannel()
@@ -41,12 +46,72 @@ class MainActivity : FlutterActivity() {
                 return@setMethodCallHandler
             }
 
-            try {
-                result.success(saveImageToDownloads(fileName, bytes))
-            } catch (_: Exception) {
-                result.success(false)
-            }
+            saveImageWithPermission(fileName, bytes, result)
         }
+    }
+
+    private fun saveImageWithPermission(
+        fileName: String,
+        bytes: ByteArray,
+        result: MethodChannel.Result
+    ) {
+        if (
+            Build.VERSION.SDK_INT <= Build.VERSION_CODES.P &&
+            checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) !=
+                PackageManager.PERMISSION_GRANTED
+        ) {
+            pendingDownloadResult?.success(false)
+            pendingDownloadResult = result
+            pendingDownloadFileName = fileName
+            pendingDownloadBytes = bytes
+            requestPermissions(
+                arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                downloadsPermissionRequestCode
+            )
+            return
+        }
+
+        completeDownload(fileName, bytes, result)
+    }
+
+    private fun completeDownload(
+        fileName: String,
+        bytes: ByteArray,
+        result: MethodChannel.Result
+    ) {
+        try {
+            result.success(saveImageToDownloads(fileName, bytes))
+        } catch (_: Exception) {
+            result.success(false)
+        }
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray
+    ) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode != downloadsPermissionRequestCode) return
+
+        val result = pendingDownloadResult
+        val fileName = pendingDownloadFileName
+        val bytes = pendingDownloadBytes
+        pendingDownloadResult = null
+        pendingDownloadFileName = null
+        pendingDownloadBytes = null
+
+        if (
+            result == null ||
+            fileName == null ||
+            bytes == null ||
+            grantResults.firstOrNull() != PackageManager.PERMISSION_GRANTED
+        ) {
+            result?.success(false)
+            return
+        }
+
+        completeDownload(fileName, bytes, result)
     }
 
     private fun saveImageToDownloads(fileName: String, bytes: ByteArray): Boolean {
@@ -137,5 +202,6 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         private const val ORDER_UPDATES_CHANNEL_ID = "order_updates"
+        private const val downloadsPermissionRequestCode = 4201
     }
 }

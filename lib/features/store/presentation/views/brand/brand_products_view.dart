@@ -4,16 +4,12 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
-import '../../../../../core/config/app_environment.dart';
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/formatters/app_currency.dart';
-import '../../../data/demo/demo_categories.dart';
-import '../../../data/demo/demo_shops.dart';
+import '../../../../../core/di/service_locator.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
-import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -21,23 +17,23 @@ import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../../core/routing/app_route_arguments.dart';
 import '../../../../../core/routing/app_routes.dart';
 import '../../../../../core/routing/shared_content_links.dart';
-import '../../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../offers/domain/entities/offer_data.dart';
 import '../../../../offers/presentation/cubit/offer_catalog_cubit.dart';
 import '../../../../offers/presentation/cubit/offer_catalog_state.dart';
-import '../../../../offers/presentation/widgets/promo_slider.dart';
-import '../../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
-import '../../../../wishlist/presentation/widgets/market_favorite_action.dart';
 import '../../../domain/entities/product_data.dart';
 import '../../../domain/entities/store_data.dart';
+import '../../../domain/services/market_shop_catalog.dart';
 import '../../cubit/product_catalog_cubit.dart';
 import '../../cubit/product_catalog_state.dart';
 import '../../cubit/store_cubit.dart';
 import '../../cubit/store_state.dart';
-import '../../widgets/store_market_card.dart';
 import '../../widgets/market_storefront_hero.dart';
+import '../../widgets/store_market_card.dart';
+import 'brand_local_shop_card.dart';
+import 'brand_store_sections.dart';
+import 'market_type_rail.dart';
 
-part 'brand_products_widgets.dart';
+export 'market_type_rail.dart';
 
 List<ProductData> productsForStoreSubcategory(
   List<ProductData> products,
@@ -126,6 +122,8 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   String? _selectedMarketTypeId;
   final TextEditingController _storeSearchController = TextEditingController();
   String _storeQuery = '';
+
+  MarketShopCatalog get _marketCatalog => sl<MarketShopCatalog>();
 
   @override
   void initState() {
@@ -291,9 +289,9 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     final storeContent = _buildStoreContent(context, storeState, offers);
     if (storeContent != null) return storeContent;
 
-    final isLocalShopCategory =
-        AppEnvironment.useDemoRepositories &&
-        MarketCategories.hasLocalShops(widget.brand);
+    final isLocalShopCategory = _marketCatalog.categoryHasLocalShops(
+      widget.brand,
+    );
     final selectedShopId = widget.shopId;
 
     if (state is ProductCatalogInitial || state is ProductCatalogLoading) {
@@ -476,7 +474,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         ),
         if (offers.isNotEmpty) ...[
           const SizedBox(height: 14),
-          _StoreOfferSection(offers: offers),
+          StoreOfferSection(offers: offers),
         ],
         if (availableMarketTypes.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -551,7 +549,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     );
     final controlsFooter = categories.isEmpty
         ? null
-        : _StoreSubcategoryRail(
+        : StoreSubcategoryRail(
             categories: categories,
             selectedId: selectedId,
             languageCode: languageCode,
@@ -584,7 +582,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             compactProductCards: false,
             contentAfterSearch: offers.isEmpty
                 ? null
-                : _StoreOfferSection(offers: offers),
+                : StoreOfferSection(offers: offers),
             controlsFooter: controlsFooter,
             onRetry: () => context.read<StoreCubit>().loadStore(force: true),
             emptyTitle: selectedCategory == null
@@ -618,7 +616,10 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   }
 
   Widget _buildLocalShops(BuildContext context, ProductCatalogReady state) {
-    final shops = MarketShops.byCategoryAndCity(widget.brand, state.city.slug);
+    final shops = _marketCatalog.byCategoryAndCity(
+      widget.brand,
+      state.city.slug,
+    );
     final cityName = context.tr(state.city.name);
     final subtitle = shops.isEmpty
         ? cityName
@@ -629,7 +630,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
       children: [
         PageTopBar(title: widget.brand, subtitle: subtitle),
         const SizedBox(height: 18),
-        _LocalCategoryHeader(
+        LocalCategoryHeader(
           title: widget.brand,
           logo: widget.logo,
           cityName: cityName,
@@ -644,7 +645,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           )
         else
           ...shops.map(
-            (shop) => _LocalShopCard(
+            (shop) => LocalShopCard(
               shop: shop,
               onTap: () {
                 Navigator.pushNamed(
@@ -669,7 +670,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     ProductCatalogReady state,
     String shopId,
   ) {
-    final shop = MarketShops.byId(shopId);
+    final shop = _marketCatalog.byId(shopId);
     final cityName = context.tr(state.city.name);
     if (shop == null || shop.citySlug != state.city.slug) {
       return Column(

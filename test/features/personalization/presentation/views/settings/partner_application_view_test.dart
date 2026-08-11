@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/personalization/domain/entities/partner_application.dart';
 import 'package:yalla_market/features/personalization/domain/repositories/partner_application_repository.dart';
+import 'package:yalla_market/features/personalization/domain/usecases/submit_partner_application_usecase.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/partner_application_view.dart';
 
 void main() {
@@ -12,7 +13,11 @@ void main() {
     final repository = _FakePartnerApplicationRepository();
 
     await tester.pumpWidget(
-      MaterialApp(home: PartnerApplicationView(repository: repository)),
+      MaterialApp(
+        home: PartnerApplicationView(
+          submitApplication: SubmitPartnerApplicationUseCase(repository),
+        ),
+      ),
     );
 
     expect(find.text('Register as a partner'), findsOneWidget);
@@ -30,7 +35,11 @@ void main() {
     final repository = _FakePartnerApplicationRepository();
 
     await tester.pumpWidget(
-      MaterialApp(home: PartnerApplicationView(repository: repository)),
+      MaterialApp(
+        home: PartnerApplicationView(
+          submitApplication: SubmitPartnerApplicationUseCase(repository),
+        ),
+      ),
     );
 
     expect(find.byType(DropdownButtonFormField), findsNothing);
@@ -70,7 +79,11 @@ void main() {
     final repository = _FakePartnerApplicationRepository();
 
     await tester.pumpWidget(
-      MaterialApp(home: PartnerApplicationView(repository: repository)),
+      MaterialApp(
+        home: PartnerApplicationView(
+          submitApplication: SubmitPartnerApplicationUseCase(repository),
+        ),
+      ),
     );
     await tester.scrollUntilVisible(
       find.text('Submit application'),

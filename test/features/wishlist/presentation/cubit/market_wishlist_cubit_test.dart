@@ -3,12 +3,13 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 import 'package:yalla_market/features/wishlist/domain/repositories/market_wishlist_repository.dart';
+import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_usecases.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 void main() {
   test('loads favorite stores and removes one successfully', () async {
     final repository = _MarketWishlistRepository([_market]);
-    final cubit = MarketWishlistCubit(repository);
+    final cubit = MarketWishlistCubit(MarketWishlistUseCases(repository));
     addTearDown(cubit.close);
 
     await cubit.loadForUser('user-1');
@@ -24,7 +25,7 @@ void main() {
 
   test('rolls back optimistic favorite when the request fails', () async {
     final repository = _MarketWishlistRepository(const [], failUpdates: true);
-    final cubit = MarketWishlistCubit(repository);
+    final cubit = MarketWishlistCubit(MarketWishlistUseCases(repository));
     addTearDown(cubit.close);
     await cubit.loadForUser('user-1');
 

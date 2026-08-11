@@ -29,10 +29,12 @@ import '../../domain/entities/order_preview.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import '../cubit/order_history_cubit.dart';
+import 'checkout_address_sections.dart';
+import 'checkout_icon_tile.dart';
+import 'checkout_payment_section.dart';
 
 part 'checkout_review_items.dart';
 part 'checkout_order_summary.dart';
-part 'checkout_delivery_sections.dart';
 part 'checkout_action_and_shared.dart';
 
 class CheckoutView extends StatefulWidget {
@@ -322,9 +324,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   ),
                                 ],
                                 const SizedBox(height: 14),
-                                _PaymentMethodCard(isDark: isDark),
+                                PaymentMethodCard(isDark: isDark),
                                 const SizedBox(height: 14),
-                                _SavedAddressCheckoutCard(
+                                SavedAddressCheckoutCard(
                                   address: selectedAddress,
                                   isDark: isDark,
                                 ),

@@ -13,15 +13,18 @@ import '../../../features/personalization/domain/repositories/address_repository
 import '../../../features/personalization/domain/repositories/delivery_area_repository.dart';
 import '../../../features/personalization/domain/repositories/profile_image_repository.dart';
 import '../../../features/personalization/domain/repositories/partner_application_repository.dart';
+import '../../../features/personalization/domain/repositories/map_geocoding_repository.dart';
 import '../../../features/personalization/domain/usecases/address_usecases.dart';
 import '../../../features/personalization/domain/usecases/delivery_area_usecases.dart';
 import '../../../features/personalization/domain/usecases/pick_profile_image_usecase.dart';
+import '../../../features/personalization/domain/usecases/submit_partner_application_usecase.dart';
 import '../../../features/personalization/presentation/cubit/address_cubit.dart';
+import '../../../features/personalization/presentation/cubit/partner_application_cubit.dart';
 import '../../../features/personalization/presentation/cubit/profile_image_cubit.dart';
 
 void registerPersonalizationDependencies(GetIt sl) {
-  if (!sl.isRegistered<MapGeocodingDataSource>()) {
-    sl.registerLazySingleton<MapGeocodingDataSource>(
+  if (!sl.isRegistered<MapGeocodingRepository>()) {
+    sl.registerLazySingleton<MapGeocodingRepository>(
       () => GeoapifyGeocodingDataSource(sl<ApiClient>()),
     );
   }
@@ -89,6 +92,16 @@ void registerPersonalizationDependencies(GetIt sl) {
   if (!sl.isRegistered<PartnerApplicationRepository>()) {
     sl.registerLazySingleton<PartnerApplicationRepository>(
       () => PartnerApplicationRemoteRepositoryImpl(sl<ApiClient>()),
+    );
+  }
+  if (!sl.isRegistered<SubmitPartnerApplicationUseCase>()) {
+    sl.registerLazySingleton(
+      () => SubmitPartnerApplicationUseCase(sl<PartnerApplicationRepository>()),
+    );
+  }
+  if (!sl.isRegistered<PartnerApplicationCubit>()) {
+    sl.registerFactory(
+      () => PartnerApplicationCubit(sl<SubmitPartnerApplicationUseCase>()),
     );
   }
   if (!sl.isRegistered<PickProfileImageUseCase>()) {

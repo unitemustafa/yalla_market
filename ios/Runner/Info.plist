@@ -45,6 +45,8 @@
 	<string>يستخدم يلا ماركت موقعك لتحديد موقع التوصيل على الخريطة أثناء استخدام التطبيق.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>يستخدم يلا ماركت مكتبة الصور فقط عندما تختار صورة للملف الشخصي.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Yalla Market needs permission to save the product images you download to Photos.</string>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

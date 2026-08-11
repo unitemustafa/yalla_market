@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yalla_market/yalla_market_app.dart';
+import 'package:yalla_market/app/coordinators/app_lifecycle_coordinator.dart';
 
 void main() {
   test('valid resumed session refreshes home once', () async {

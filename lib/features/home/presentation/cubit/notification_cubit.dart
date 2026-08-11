@@ -1,13 +1,13 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/app_notification.dart';
-import '../../domain/repositories/notification_repository.dart';
+import '../../domain/usecases/notification_usecases.dart';
 import 'notification_state.dart';
 
 class NotificationCubit extends Cubit<NotificationState> {
-  NotificationCubit(this._repository) : super(const NotificationState());
+  NotificationCubit(this._useCases) : super(const NotificationState());
 
-  final NotificationRepository _repository;
+  final NotificationUseCases _useCases;
   int _generation = 0;
 
   Future<void> loadNotifications({bool forceRefresh = false}) async {
@@ -24,7 +24,7 @@ class NotificationCubit extends Cubit<NotificationState> {
       ),
     );
 
-    final result = await _repository.getNotifications();
+    final result = await _useCases.getNotifications();
     if (generation != _generation || isClosed) return;
 
     result.when(
@@ -61,7 +61,7 @@ class NotificationCubit extends Cubit<NotificationState> {
 
   Future<void> refreshUnreadCount() async {
     final generation = _generation;
-    final result = await _repository.getUnreadCount();
+    final result = await _useCases.getUnreadCount();
     if (generation != _generation || isClosed) return;
 
     result.when(
@@ -82,7 +82,7 @@ class NotificationCubit extends Cubit<NotificationState> {
     final generation = _generation;
     emit(state.copyWith(markingReadIds: nextMarking, clearError: true));
 
-    final result = await _repository.markAsRead(id);
+    final result = await _useCases.markAsRead(id);
     if (generation != _generation || isClosed) return false;
 
     return result.when(
@@ -123,7 +123,7 @@ class NotificationCubit extends Cubit<NotificationState> {
     if (!state.notifications.any((item) => item.id == id)) return false;
 
     final generation = _generation;
-    final result = await _repository.deleteNotification(id);
+    final result = await _useCases.deleteNotification(id);
     if (generation != _generation || isClosed) return false;
 
     return result.when(
@@ -142,7 +142,7 @@ class NotificationCubit extends Cubit<NotificationState> {
     final generation = _generation;
     emit(state.copyWith(isDeletingAll: true, clearError: true));
 
-    final markResult = await _repository.markAllAsRead();
+    final markResult = await _useCases.markAllAsRead();
     if (generation != _generation || isClosed) return false;
 
     var markedAll = false;
@@ -156,7 +156,7 @@ class NotificationCubit extends Cubit<NotificationState> {
       return false;
     }
 
-    final clearResult = await _repository.clearReadNotifications();
+    final clearResult = await _useCases.clearReadNotifications();
     if (generation != _generation || isClosed) return false;
 
     return clearResult.when(
@@ -214,7 +214,7 @@ class NotificationCubit extends Cubit<NotificationState> {
 
     final generation = _generation;
     emit(state.copyWith(isMarkingAllRead: true, clearError: true));
-    final result = await _repository.markAllAsRead();
+    final result = await _useCases.markAllAsRead();
     if (generation != _generation || isClosed) return false;
 
     return result.when(

@@ -1,17 +1,19 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../domain/entities/city_data.dart';
+import '../../domain/entities/dismissed_region_suggestion.dart';
 import '../../domain/usecases/location_usecases.dart';
+import '../../domain/usecases/region_suggestion_usecases.dart';
 import 'location_state.dart';
 
 class LocationCubit extends Cubit<LocationState> {
-  LocationCubit(this._useCases) : super(const LocationInitial());
+  LocationCubit(this._useCases, {RegionSuggestionUseCases? regionSuggestions})
+    : _regionSuggestions = regionSuggestions,
+      super(const LocationInitial());
 
   final LocationUseCases _useCases;
+  final RegionSuggestionUseCases? _regionSuggestions;
   static const _dismissedSuggestionTtl = Duration(hours: 24);
-  static const _dismissedSuggestionKeyPrefix =
-      'location.dismissed_gps_suggestion';
   bool _gpsSuggestionCheckedThisSession = false;
   final Set<String> _dismissedSuggestionKeys = {};
   String? _activeUserKey;
@@ -56,39 +58,42 @@ class LocationCubit extends Cubit<LocationState> {
     _dismissedSuggestionKeys.add(suggestionKey);
 
     final activeUserKey = _activeUserKey;
-    if (activeUserKey == null || activeUserKey.isEmpty) return;
-    final preferences = await SharedPreferences.getInstance();
-    await Future.wait([
-      preferences.setString(
-        '$_dismissedSuggestionKeyPrefix.key.$activeUserKey',
-        suggestionKey,
+    final regionSuggestions = _regionSuggestions;
+    if (activeUserKey == null ||
+        activeUserKey.isEmpty ||
+        regionSuggestions == null) {
+      return;
+    }
+    await regionSuggestions.saveDismissed(
+      activeUserKey,
+      DismissedRegionSuggestion(
+        suggestionKey: suggestionKey,
+        dismissedAt: DateTime.now().toUtc(),
       ),
-      preferences.setString(
-        '$_dismissedSuggestionKeyPrefix.at.$activeUserKey',
-        DateTime.now().toUtc().toIso8601String(),
-      ),
-    ]);
+    );
   }
 
   Future<void> _restoreDismissedSuggestion() async {
     final activeUserKey = _activeUserKey;
-    if (activeUserKey == null || activeUserKey.isEmpty) return;
-    final preferences = await SharedPreferences.getInstance();
-    final keyName = '$_dismissedSuggestionKeyPrefix.key.$activeUserKey';
-    final timestampName = '$_dismissedSuggestionKeyPrefix.at.$activeUserKey';
-    final suggestionKey = preferences.getString(keyName);
-    final dismissedAt = DateTime.tryParse(
-      preferences.getString(timestampName) ?? '',
-    )?.toUtc();
+    final regionSuggestions = _regionSuggestions;
+    if (activeUserKey == null ||
+        activeUserKey.isEmpty ||
+        regionSuggestions == null) {
+      return;
+    }
+    final result = await regionSuggestions.getDismissed(activeUserKey);
+    final suggestion = result.when(
+      success: (value) => value,
+      failure: (_) => null,
+    );
+    final suggestionKey = suggestion?.suggestionKey;
+    final dismissedAt = suggestion?.dismissedAt.toUtc();
     final now = DateTime.now().toUtc();
     if (suggestionKey == null ||
         suggestionKey.isEmpty ||
         dismissedAt == null ||
         now.difference(dismissedAt) >= _dismissedSuggestionTtl) {
-      await Future.wait([
-        preferences.remove(keyName),
-        preferences.remove(timestampName),
-      ]);
+      await regionSuggestions.clearDismissed(activeUserKey);
       return;
     }
     _dismissedSuggestionKeys.add(suggestionKey);

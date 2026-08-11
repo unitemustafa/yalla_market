@@ -1,25 +1,20 @@
 import '../../../../core/network/api_client.dart';
+import '../../domain/entities/geocoding_place.dart';
+import '../../domain/repositories/map_geocoding_repository.dart';
 
-class GeoapifyPlace {
+export '../../domain/entities/geocoding_place.dart';
+
+class GeoapifyPlace extends GeocodingPlace {
   const GeoapifyPlace({
-    this.placeId,
-    this.formattedAddress,
-    this.addressLine1,
-    this.addressLine2,
-    required this.latitude,
-    required this.longitude,
-    this.resultType,
-    this.distanceMeters,
+    super.placeId,
+    super.formattedAddress,
+    super.addressLine1,
+    super.addressLine2,
+    required super.latitude,
+    required super.longitude,
+    super.resultType,
+    super.distanceMeters,
   });
-
-  final String? placeId;
-  final String? formattedAddress;
-  final String? addressLine1;
-  final String? addressLine2;
-  final double latitude;
-  final double longitude;
-  final String? resultType;
-  final double? distanceMeters;
 
   factory GeoapifyPlace.fromJson(Map<String, dynamic> json) {
     final latitude = _doubleFromJson(json['latitude']);
@@ -38,29 +33,9 @@ class GeoapifyPlace {
       distanceMeters: _doubleFromJson(json['distance_meters']),
     );
   }
-
-  String get displayAddress =>
-      formattedAddress ??
-      [addressLine1, addressLine2]
-          .whereType<String>()
-          .where((value) => value.trim().isNotEmpty)
-          .join(', ');
 }
 
-abstract interface class MapGeocodingDataSource {
-  Future<List<GeoapifyPlace>> autocomplete({
-    required String query,
-    required double latitude,
-    required double longitude,
-    required String language,
-  });
-
-  Future<GeoapifyPlace?> reverse({
-    required double latitude,
-    required double longitude,
-    required String language,
-  });
-}
+abstract class MapGeocodingDataSource implements MapGeocodingRepository {}
 
 class GeoapifyGeocodingDataSource implements MapGeocodingDataSource {
   const GeoapifyGeocodingDataSource(this._apiClient);

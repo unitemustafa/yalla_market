@@ -210,34 +210,24 @@ class _BrandPill extends StatelessWidget {
             AppAssets.temporaryMarketPlaceholder,
         productCount:
             loadedCategory?.productCountLabel ??
-            category?.count ??
+            category?.productCountLabel ??
             '0 products',
       ),
     );
   }
 
   MarketShopData? _shopForBrand() {
-    if (!AppEnvironment.useDemoRepositories) return null;
-
     final normalizedBrand = _normalize(brand);
 
-    for (final shop in MarketShops.all) {
+    for (final shop in sl<MarketShopCatalog>().shops) {
       if (_normalize(shop.name) == normalizedBrand) return shop;
     }
 
     return null;
   }
 
-  MarketCategoryData? _categoryForBrand() {
-    if (!AppEnvironment.useDemoRepositories) return null;
-
-    final normalizedBrand = _normalize(brand);
-
-    for (final category in MarketCategories.all) {
-      if (_normalize(category.name) == normalizedBrand) return category;
-    }
-
-    return null;
+  CategoryData? _categoryForBrand() {
+    return sl<MarketShopCatalog>().categoryByName(brand);
   }
 
   CategoryData? _loadedCategory(BuildContext context) {

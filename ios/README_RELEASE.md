@@ -10,7 +10,8 @@ On a Mac with Xcode and an Apple Developer account:
 1. Verify the deployment-specific `GoogleService-Info.plist` exists at
    `ios/Runner/GoogleService-Info.plist`. The Runner target already references
    it, and it must belong to the Firebase iOS app `com.yallamarket.app`.
-2. Put the protected MapTiler client key in `env/production.json` as
+2. Copy `env/production.example.json` to `env/production.local.json`, then put
+   the restricted MapTiler client key there as
    `MAPTILER_API_KEY`. Set `GEOAPIFY_API_KEY` only in the deployed backend.
 3. Run `plutil -lint ios/Runner/Info.plist`.
 4. Run `flutter pub get`, then `cd ios && pod install --repo-update`.
@@ -20,7 +21,7 @@ On a Mac with Xcode and an Apple Developer account:
    Do not enable background location.
 8. Configure the APNs key in Firebase Console.
 9. Build with
-   `flutter build ipa --release --dart-define-from-file=env/production.json`.
+   `flutter build ipa --release --dart-define-from-file=env/production.local.json`.
 10. Upload the archive to TestFlight and test sign-in persistence, both
     location-permission paths, disabled GPS, map search, pin selection,
     profile-photo selection, notifications, checkout, and order history on a

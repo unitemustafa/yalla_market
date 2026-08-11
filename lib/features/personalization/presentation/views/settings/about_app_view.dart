@@ -4,12 +4,12 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/legal/legal_urls.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
+import '../../widgets/about_app_widgets.dart';
 
 class AboutAppView extends StatefulWidget {
   const AboutAppView({super.key});
@@ -57,12 +57,12 @@ class _AboutAppViewState extends State<AboutAppView> {
                       subtitle: 'Everything you need to know about the app',
                     ),
                     const SizedBox(height: 18),
-                    _AboutHero(isDark: isDark),
+                    AboutHero(isDark: isDark),
                     const SizedBox(height: 18),
-                    _AboutMenuCard(
+                    AboutMenuCard(
                       isDark: isDark,
                       children: [
-                        _AboutMenuTile(
+                        AboutMenuTile(
                           icon: AppIcons.message_text,
                           title: 'Frequently asked questions',
                           accentColor: AppColors.primary,
@@ -71,17 +71,17 @@ class _AboutAppViewState extends State<AboutAppView> {
                             icon: AppIcons.message_text,
                             collapsible: true,
                             sections: const [
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'How do I place an order?',
                                 body:
                                     'Choose your market and products, add the delivery address, then confirm your order from the cart.',
                               ),
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'How can I track my order?',
                                 body:
                                     'Open My Orders from the account page to see the latest order status and delivery updates.',
                               ),
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'How do I contact support?',
                                 body:
                                     'Use the WhatsApp button on the account page for direct assistance.',
@@ -89,8 +89,8 @@ class _AboutAppViewState extends State<AboutAppView> {
                             ],
                           ),
                         ),
-                        _AboutDivider(isDark: isDark),
-                        _AboutMenuTile(
+                        AboutDivider(isDark: isDark),
+                        AboutMenuTile(
                           icon: AppIcons.security_safe,
                           title: 'Privacy policy',
                           accentColor: AppColors.success,
@@ -99,12 +99,12 @@ class _AboutAppViewState extends State<AboutAppView> {
                             title: 'Privacy policy',
                             icon: AppIcons.security_safe,
                             sections: const [
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'Your information',
                                 body:
                                     'We use your account and delivery information only to provide, secure, and improve Yalla Market services.',
                               ),
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'Data protection',
                                 body:
                                     'We apply security controls to protect your information and never sell your personal data.',
@@ -112,8 +112,8 @@ class _AboutAppViewState extends State<AboutAppView> {
                             ],
                           ),
                         ),
-                        _AboutDivider(isDark: isDark),
-                        _AboutMenuTile(
+                        AboutDivider(isDark: isDark),
+                        AboutMenuTile(
                           icon: AppIcons.document_text,
                           title: 'Terms of use',
                           accentColor: AppColors.warning,
@@ -122,12 +122,12 @@ class _AboutAppViewState extends State<AboutAppView> {
                             title: 'Terms of use',
                             icon: AppIcons.document_text,
                             sections: const [
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'Using Yalla Market',
                                 body:
                                     'Use accurate account and delivery details and keep your password private.',
                               ),
-                              _InfoSection(
+                              AboutInfoSection(
                                 title: 'Orders and availability',
                                 body:
                                     'Product availability, prices, and delivery times can change before an order is confirmed.',
@@ -138,10 +138,10 @@ class _AboutAppViewState extends State<AboutAppView> {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    _AboutMenuCard(
+                    AboutMenuCard(
                       isDark: isDark,
                       children: [
-                        _AboutMenuTile(
+                        AboutMenuTile(
                           customIcon: const FaIcon(
                             FontAwesomeIcons.facebookF,
                             size: 18,
@@ -152,8 +152,8 @@ class _AboutAppViewState extends State<AboutAppView> {
                             Uri.https('www.facebook.com', '/yallamarket'),
                           ),
                         ),
-                        _AboutDivider(isDark: isDark),
-                        _AboutMenuTile(
+                        AboutDivider(isDark: isDark),
+                        AboutMenuTile(
                           customIcon: const FaIcon(
                             FontAwesomeIcons.xTwitter,
                             size: 18,
@@ -163,8 +163,8 @@ class _AboutAppViewState extends State<AboutAppView> {
                           onTap: () =>
                               _openSocial(Uri.https('x.com', '/yallamarket')),
                         ),
-                        _AboutDivider(isDark: isDark),
-                        _AboutMenuTile(
+                        AboutDivider(isDark: isDark),
+                        AboutMenuTile(
                           customIcon: const FaIcon(
                             FontAwesomeIcons.instagram,
                             size: 19,
@@ -235,7 +235,7 @@ class _AboutAppViewState extends State<AboutAppView> {
     Uri? uri, {
     required String title,
     required IconData icon,
-    required List<_InfoSection> sections,
+    required List<AboutInfoSection> sections,
   }) async {
     if (uri != null) {
       try {
@@ -251,7 +251,7 @@ class _AboutAppViewState extends State<AboutAppView> {
   void _showInformationSheet({
     required String title,
     required IconData icon,
-    required List<_InfoSection> sections,
+    required List<AboutInfoSection> sections,
     bool collapsible = false,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -304,9 +304,9 @@ class _AboutAppViewState extends State<AboutAppView> {
                 const SizedBox(height: 18),
                 for (final section in sections) ...[
                   if (collapsible)
-                    _ExpandableInfoCard(section: section, isDark: isDark)
+                    AboutExpandableInfoCard(section: section, isDark: isDark)
                   else
-                    _InfoCard(section: section, isDark: isDark),
+                    AboutInfoCard(section: section, isDark: isDark),
                   const SizedBox(height: 10),
                 ],
               ],
@@ -316,308 +316,4 @@ class _AboutAppViewState extends State<AboutAppView> {
       },
     );
   }
-}
-
-class _ExpandableInfoCard extends StatefulWidget {
-  const _ExpandableInfoCard({required this.section, required this.isDark});
-
-  final _InfoSection section;
-  final bool isDark;
-
-  @override
-  State<_ExpandableInfoCard> createState() => _ExpandableInfoCardState();
-}
-
-class _ExpandableInfoCardState extends State<_ExpandableInfoCard> {
-  bool _isExpanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: ValueKey('faq_${widget.section.title}'),
-      decoration: _infoCardDecoration(widget.isDark),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: () => setState(() => _isExpanded = !_isExpanded),
-            borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.all(14),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      context.tr(widget.section.title),
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  AnimatedRotation(
-                    turns: _isExpanded ? 0.5 : 0,
-                    duration: const Duration(milliseconds: 180),
-                    child: Icon(
-                      AppIcons.arrow_down_1,
-                      key: ValueKey('faq_arrow_${widget.section.title}'),
-                      size: 19,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            child: _isExpanded
-                ? Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
-                    child: Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: Text(
-                        context.tr(widget.section.body),
-                        key: ValueKey('faq_answer_${widget.section.title}'),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          height: 1.55,
-                          color: widget.isDark
-                              ? AppColors.darkTextSecondary
-                              : AppColors.lightTextSecondary,
-                        ),
-                      ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _InfoCard extends StatelessWidget {
-  const _InfoCard({required this.section, required this.isDark});
-
-  final _InfoSection section;
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: _infoCardDecoration(isDark),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.tr(section.title),
-            style: Theme.of(
-              context,
-            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-          ),
-          const SizedBox(height: 7),
-          Text(
-            context.tr(section.body),
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              height: 1.55,
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-BoxDecoration _infoCardDecoration(bool isDark) {
-  return BoxDecoration(
-    color: isDark
-        ? Colors.white.withValues(alpha: 0.04)
-        : const Color(0xFFF7F8FB),
-    borderRadius: BorderRadius.circular(10),
-    border: Border.all(
-      color: isDark
-          ? Colors.white.withValues(alpha: 0.07)
-          : Colors.black.withValues(alpha: 0.05),
-    ),
-  );
-}
-
-class _AboutHero extends StatelessWidget {
-  const _AboutHero({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.15 : 0.20),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 54,
-            height: 54,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              AppIcons.shopping_bag,
-              color: AppColors.primary,
-              size: 28,
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  AppConstants.appName,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  context.tr('Simple shopping from trusted local markets.'),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.82),
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AboutMenuCard extends StatelessWidget {
-  const _AboutMenuCard({required this.isDark, required this.children});
-
-  final bool isDark;
-  final List<Widget> children;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCardColor : Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.08)
-              : Colors.black.withValues(alpha: 0.06),
-        ),
-      ),
-      child: Column(children: children),
-    );
-  }
-}
-
-class _AboutMenuTile extends StatelessWidget {
-  const _AboutMenuTile({
-    this.icon,
-    this.customIcon,
-    required this.title,
-    required this.accentColor,
-    required this.onTap,
-  }) : assert(icon != null || customIcon != null);
-
-  final IconData? icon;
-  final Widget? customIcon;
-  final String title;
-  final Color accentColor;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
-          child: Row(
-            children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: accentColor.withValues(alpha: 0.10),
-                  borderRadius: BorderRadius.circular(9),
-                ),
-                child: IconTheme(
-                  data: IconThemeData(color: accentColor),
-                  child: Center(
-                    child:
-                        customIcon ?? Icon(icon, color: accentColor, size: 21),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  context.tr(title),
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              Icon(
-                isRtl ? AppIcons.arrow_left_2 : AppIcons.arrow_right_3,
-                size: 18,
-                color: Theme.of(context).textTheme.bodySmall?.color,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AboutDivider extends StatelessWidget {
-  const _AboutDivider({required this.isDark});
-
-  final bool isDark;
-
-  @override
-  Widget build(BuildContext context) {
-    return Divider(
-      height: 1,
-      indent: 64,
-      color: isDark
-          ? Colors.white.withValues(alpha: 0.07)
-          : Colors.black.withValues(alpha: 0.06),
-    );
-  }
-}
-
-class _InfoSection {
-  const _InfoSection({required this.title, required this.body});
-
-  final String title;
-  final String body;
 }

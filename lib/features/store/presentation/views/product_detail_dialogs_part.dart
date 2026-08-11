@@ -325,7 +325,7 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                           if (didDownload) {
                             CustomSnackBar.showSuccess(
                               context: pageContext,
-                              title: 'Image download started',
+                              title: 'Image saved successfully',
                               message: fileName,
                             );
                           } else {

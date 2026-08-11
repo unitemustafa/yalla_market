@@ -1,16 +1,23 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/usecases/get_store_usecase.dart';
-import '../../domain/repositories/store_repository.dart';
 import '../../domain/entities/store_data.dart';
+import '../../domain/usecases/get_classification_markets_usecase.dart';
+import '../../domain/usecases/get_market_usecase.dart';
+import '../../domain/usecases/get_store_usecase.dart';
 import 'store_state.dart';
 
 class StoreCubit extends Cubit<StoreState> {
-  StoreCubit(this._getStoreUseCase, [this._repository])
-    : super(const StoreInitial());
+  StoreCubit(
+    this._getStoreUseCase, {
+    GetMarketUseCase? getMarket,
+    GetClassificationMarketsUseCase? getClassificationMarkets,
+  }) : _getMarket = getMarket,
+       _getClassificationMarkets = getClassificationMarkets,
+       super(const StoreInitial());
 
   final GetStoreUseCase _getStoreUseCase;
-  final StoreRepository? _repository;
+  final GetMarketUseCase? _getMarket;
+  final GetClassificationMarketsUseCase? _getClassificationMarkets;
   int _generation = 0;
   final Set<String> _loadedMarketIds = {};
   final Set<String> _loadingMarketIds = {};
@@ -43,15 +50,15 @@ class StoreCubit extends Cubit<StoreState> {
 
   Future<void> ensureMarket(String marketId) async {
     final normalized = marketId.trim();
-    final repository = _repository;
+    final getMarket = _getMarket;
     if (normalized.isEmpty ||
-        repository == null ||
+        getMarket == null ||
         _loadedMarketIds.contains(normalized) ||
         !_loadingMarketIds.add(normalized)) {
       return;
     }
     final generation = _generation;
-    final result = await repository.getMarket(normalized);
+    final result = await getMarket(normalized);
     _loadingMarketIds.remove(normalized);
     if (generation != _generation || isClosed) return;
     result.when(
@@ -79,15 +86,15 @@ class StoreCubit extends Cubit<StoreState> {
 
   Future<void> ensureClassification(String classificationId) async {
     final normalized = classificationId.trim();
-    final repository = _repository;
+    final getClassificationMarkets = _getClassificationMarkets;
     if (normalized.isEmpty ||
-        repository == null ||
+        getClassificationMarkets == null ||
         _loadedClassificationIds.contains(normalized) ||
         !_loadingClassificationIds.add(normalized)) {
       return;
     }
     final generation = _generation;
-    final result = await repository.getClassificationMarkets(normalized);
+    final result = await getClassificationMarkets(normalized);
     _loadingClassificationIds.remove(normalized);
     if (generation != _generation || isClosed) return;
     result.when(

@@ -1,18 +1,23 @@
 import 'package:get_it/get_it.dart';
 
-import '../../../features/location/data/datasources/device_location_data_source.dart';
+import '../../../features/location/data/datasources/device_location_data_source.dart'
+    show GeolocatorLocationDataSource;
 import '../../../features/location/data/datasources/location_preferences.dart';
 import '../../../features/location/data/repositories/location_repository_impl.dart';
+import '../../../features/location/data/repositories/region_suggestion_preferences_repository.dart';
 import '../../../features/location/domain/repositories/location_repository.dart';
+import '../../../features/location/domain/repositories/region_suggestion_repository.dart';
+import '../../../features/location/domain/services/device_location_service.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
+import '../../../features/location/domain/usecases/region_suggestion_usecases.dart';
 import '../../../features/location/presentation/cubit/location_cubit.dart';
 
 void registerLocationDependencies(GetIt sl) {
   if (!sl.isRegistered<LocationPreferences>()) {
     sl.registerLazySingleton(LocationPreferences.new);
   }
-  if (!sl.isRegistered<DeviceLocationDataSource>()) {
-    sl.registerLazySingleton<DeviceLocationDataSource>(
+  if (!sl.isRegistered<DeviceLocationService>()) {
+    sl.registerLazySingleton<DeviceLocationService>(
       GeolocatorLocationDataSource.new,
     );
   }
@@ -20,7 +25,7 @@ void registerLocationDependencies(GetIt sl) {
     sl.registerLazySingleton<LocationRepositoryImpl>(
       () => LocationRepositoryImpl(
         sl<LocationPreferences>(),
-        sl<DeviceLocationDataSource>(),
+        sl<DeviceLocationService>(),
         sl(),
       ),
     );
@@ -33,6 +38,16 @@ void registerLocationDependencies(GetIt sl) {
   if (!sl.isRegistered<LocationUserScope>()) {
     sl.registerLazySingleton<LocationUserScope>(
       () => sl<LocationRepositoryImpl>(),
+    );
+  }
+  if (!sl.isRegistered<RegionSuggestionRepository>()) {
+    sl.registerLazySingleton<RegionSuggestionRepository>(
+      RegionSuggestionPreferencesRepository.new,
+    );
+  }
+  if (!sl.isRegistered<RegionSuggestionUseCases>()) {
+    sl.registerLazySingleton(
+      () => RegionSuggestionUseCases(sl<RegionSuggestionRepository>()),
     );
   }
   if (!sl.isRegistered<GetSelectedCityUseCase>()) {
@@ -114,6 +129,11 @@ void registerLocationDependencies(GetIt sl) {
     );
   }
   if (!sl.isRegistered<LocationCubit>()) {
-    sl.registerFactory(() => LocationCubit(sl<LocationUseCases>()));
+    sl.registerFactory(
+      () => LocationCubit(
+        sl<LocationUseCases>(),
+        regionSuggestions: sl<RegionSuggestionUseCases>(),
+      ),
+    );
   }
 }

@@ -1,12 +1,12 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/repositories/offer_repository.dart';
+import '../../domain/usecases/get_offers_usecase.dart';
 import 'offer_catalog_state.dart';
 
 class OfferCatalogCubit extends Cubit<OfferCatalogState> {
-  OfferCatalogCubit(this._repository) : super(const OfferCatalogState());
+  OfferCatalogCubit(this._getOffers) : super(const OfferCatalogState());
 
-  final OfferRepository _repository;
+  final GetOffersUseCase _getOffers;
   int _generation = 0;
 
   Future<void> loadOffers({bool force = false}) async {
@@ -15,7 +15,7 @@ class OfferCatalogCubit extends Cubit<OfferCatalogState> {
 
     final generation = _generation;
     emit(state.copyWith(isLoading: true, clearError: true));
-    final result = await _repository.getOffers();
+    final result = await _getOffers();
     if (generation != _generation || isClosed) return;
 
     result.when(

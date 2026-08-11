@@ -1,13 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/config/app_environment.dart';
-import '../../data/demo/demo_shops.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
 import '../../domain/entities/category_data.dart';
-import '../../domain/entities/product_data.dart';
 import '../../domain/usecases/get_brands_usecase.dart';
 import '../../domain/usecases/get_categories_usecase.dart';
 import '../../domain/usecases/get_products_usecase.dart';
+import '../../domain/usecases/prepare_product_discovery_usecase.dart';
 import '../../domain/usecases/search_products_usecase.dart';
 import 'product_discovery_state.dart';
 
@@ -18,11 +16,14 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     required GetCategoriesUseCase getCategories,
     required GetBrandsUseCase getBrands,
     required GetSelectedCityUseCase getSelectedCity,
+    PrepareProductDiscoveryUseCase prepareDiscovery =
+        const PrepareProductDiscoveryUseCase(),
   }) : _getProducts = getProducts,
        _searchProducts = searchProducts,
        _getCategories = getCategories,
        _getBrands = getBrands,
        _getSelectedCity = getSelectedCity,
+       _prepareDiscovery = prepareDiscovery,
        super(const ProductDiscoveryInitial()) {
     loadDiscovery();
   }
@@ -32,6 +33,7 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   final GetCategoriesUseCase _getCategories;
   final GetBrandsUseCase _getBrands;
   final GetSelectedCityUseCase _getSelectedCity;
+  final PrepareProductDiscoveryUseCase _prepareDiscovery;
   int? _loadingGeneration;
   int _requestGeneration = 0;
 
@@ -77,18 +79,19 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
 
       productsResult.when(
         success: (products) {
-          final allProducts = _productsWithShopMenus(
+          final allProducts = _prepareDiscovery.products(
             products,
             citySlug: selectedCity.slug,
           );
 
           categoriesResult.when(
             success: (categories) {
-              final countedCategories = _categoriesWithProductCounts(
-                categories: categories,
-                products: allProducts,
-                citySlug: selectedCity.slug,
-              );
+              final countedCategories = _prepareDiscovery
+                  .categoriesWithProductCounts(
+                    categories: categories,
+                    products: allProducts,
+                    citySlug: selectedCity.slug,
+                  );
 
               brandsResult.when(
                 success: (brands) {
@@ -154,7 +157,7 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
 
     productsResult.when(
       success: (products) {
-        final allProducts = _productsWithShopMenus(
+        final allProducts = _prepareDiscovery.products(
           products,
           citySlug: selectedCity.slug,
           query: normalizedQuery,
@@ -183,96 +186,6 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     return categories
         .where((category) => category.matches(query))
         .toList(growable: false);
-  }
-
-  List<ProductData> _productsWithShopMenus(
-    List<ProductData> products, {
-    required String citySlug,
-    String query = '',
-  }) {
-    if (!AppEnvironment.useDemoRepositories) {
-      return _dedupeProducts(products);
-    }
-
-    final normalizedCity = _normalize(citySlug);
-    final shopProducts = MarketShops.all
-        .where((shop) => shop.citySlug == normalizedCity)
-        .expand((shop) => shop.products);
-    final combinedProducts = <ProductData>[...products, ...shopProducts];
-    final matchingProducts = query.trim().isEmpty
-        ? combinedProducts
-        : combinedProducts
-              .where((product) => product.matches(query))
-              .toList(growable: false);
-
-    return _dedupeProducts(matchingProducts);
-  }
-
-  List<ProductData> _dedupeProducts(Iterable<ProductData> products) {
-    final seen = <String>{};
-    final result = <ProductData>[];
-
-    for (final product in products) {
-      final key = product.id.trim().toLowerCase().isNotEmpty
-          ? product.id.trim().toLowerCase()
-          : product.slug?.trim().toLowerCase() ??
-                '${_normalize(product.brand)}::${_normalize(product.title)}';
-      if (seen.add(key)) result.add(product);
-    }
-
-    return result;
-  }
-
-  List<CategoryData> _categoriesWithProductCounts({
-    required List<CategoryData> categories,
-    required List<ProductData> products,
-    required String citySlug,
-  }) {
-    return categories
-        .map(
-          (category) => category.copyWith(
-            productCount: _productCountForCategory(
-              category: category,
-              products: products,
-              citySlug: citySlug,
-            ),
-          ),
-        )
-        .toList(growable: false);
-  }
-
-  int _productCountForCategory({
-    required CategoryData category,
-    required List<ProductData> products,
-    required String citySlug,
-  }) {
-    if (AppEnvironment.useDemoRepositories) {
-      final shops = MarketShops.byCategoryAndCity(category.name, citySlug);
-      if (shops.isNotEmpty) {
-        return shops.fold<int>(0, (sum, shop) => sum + shop.productCount);
-      }
-    }
-
-    return products
-        .where((product) => _productBelongsToCategory(product, category))
-        .length;
-  }
-
-  bool _productBelongsToCategory(ProductData product, CategoryData category) {
-    final categoryTerms = {
-      category.name,
-      category.slug,
-      ...category.keywords,
-    }.map(_normalize).where((term) => term.isNotEmpty).toSet();
-    if (categoryTerms.isEmpty) return false;
-
-    if (categoryTerms.contains(_normalize(product.brand))) return true;
-
-    return product.tags.any((tag) => categoryTerms.contains(_normalize(tag)));
-  }
-
-  String _normalize(String value) {
-    return value.trim().toLowerCase();
   }
 
   void _emitFailure(String message, {String? query}) {

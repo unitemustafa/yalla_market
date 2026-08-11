@@ -4,26 +4,11 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../../domain/entities/city_data.dart';
+import '../../domain/services/device_location_service.dart';
 
-abstract class DeviceLocationDataSource {
-  Future<String?> resolveCurrentCityName({bool requestPermission = true});
+export '../../domain/services/device_location_service.dart';
 
-  Future<DeviceCoordinates> resolveCurrentCoordinates({
-    bool requestPermission = true,
-  }) {
-    throw UnimplementedError();
-  }
-
-  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
-    bool requestPermission = false,
-  }) async {
-    return null;
-  }
-
-  Future<void> openAppSettings();
-
-  Future<void> openLocationSettings();
-}
+abstract class DeviceLocationDataSource implements DeviceLocationService {}
 
 class GeolocatorLocationDataSource implements DeviceLocationDataSource {
   static const _currentPositionTimeout = Duration(seconds: 12);
@@ -203,32 +188,4 @@ class GeolocatorLocationDataSource implements DeviceLocationDataSource {
     }
     return normalizedValues;
   }
-}
-
-enum LocationSelectionFailure {
-  permissionDenied,
-  permissionDeniedForever,
-  serviceDisabled,
-  positionUnavailable,
-  unknown,
-}
-
-class LocationSelectionException implements Exception {
-  const LocationSelectionException(
-    this.message, {
-    this.reason = LocationSelectionFailure.unknown,
-  });
-
-  final String message;
-  final LocationSelectionFailure reason;
-
-  @override
-  String toString() => message;
-}
-
-class DeviceCoordinates {
-  const DeviceCoordinates(this.latitude, this.longitude);
-
-  final double latitude;
-  final double longitude;
 }

@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../../../core/config/app_environment.dart';
-import '../../../store/data/demo/demo_categories.dart';
 import '../../../../core/presentation/widgets/brands/category_tile.dart';
 import '../../../../core/routing/app_route_arguments.dart';
 import '../../../../core/routing/app_routes.dart';
@@ -85,25 +83,7 @@ class HomeCategories extends StatelessWidget {
           .toList(growable: false);
     }
 
-    if (!AppEnvironment.useDemoRepositories) return const [];
-
-    const fallbackCategories = [
-      MarketCategories.restaurants,
-      MarketCategories.supermarket,
-      MarketCategories.vegetables,
-      MarketCategories.fruits,
-    ];
-    return fallbackCategories
-        .map(
-          (category) => _HomeCategoryViewData(
-            id: _slugFrom(category.name),
-            name: category.name,
-            image: category.image,
-            productCountLabel: category.count,
-            color: category.color,
-          ),
-        )
-        .toList(growable: false);
+    return const [];
   }
 }
 
@@ -121,12 +101,4 @@ class _HomeCategoryViewData {
   final String image;
   final String productCountLabel;
   final Color color;
-}
-
-String _slugFrom(String value) {
-  return value
-      .trim()
-      .toLowerCase()
-      .replaceAll(RegExp(r'[^a-z0-9\u0600-\u06ff]+'), '-')
-      .replaceAll(RegExp(r'^-+|-+$'), '');
 }

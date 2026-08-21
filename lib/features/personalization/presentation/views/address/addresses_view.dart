@@ -4,7 +4,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/di/service_locator.dart';
+import '../../../../../app/di/service_locator.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';

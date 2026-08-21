@@ -8,7 +8,6 @@ const _existingDebt = <String>{
   'lib/core/localization/app_translation_phrases.dart',
   'lib/core/presentation/widgets/products/product_cards/product_card_vertical.dart',
   'lib/features/auth/data/repositories/auth_remote_repository_impl.dart',
-  'lib/features/auth/data/repositories/auth_repository_impl.dart',
   'lib/features/auth/presentation/cubit/auth_cubit.dart',
   'lib/features/auth/presentation/views/forget_password_view.dart',
   'lib/features/auth/presentation/views/login_view.dart',
@@ -28,33 +27,45 @@ const _existingDebt = <String>{
   'lib/features/store/domain/entities/product_data.dart',
   'lib/features/store/presentation/views/brand/brand_products_view.dart',
   'lib/features/store/presentation/views/checkout/payment_success_view.dart',
-  'lib/features/store/presentation/views/checkout_action_and_shared.dart',
   'lib/features/store/presentation/views/checkout_view.dart',
   'lib/features/store/presentation/views/product_detail_dialogs_part.dart',
-  'lib/yalla_market_app.dart',
 };
 
 void main() {
   final oversized = <String, int>{};
+  final currentDebt = <String, int>{};
   for (final entity in Directory('lib').listSync(recursive: true)) {
     if (entity is! File || !entity.path.endsWith('.dart')) continue;
     final path = entity.path.replaceAll('\\', '/');
     final lines = entity.readAsLinesSync().length;
-    if (lines > _maximumLines && !_existingDebt.contains(path)) {
+    if (lines <= _maximumLines) continue;
+    if (_existingDebt.contains(path)) {
+      currentDebt[path] = lines;
+    } else {
       oversized[path] = lines;
     }
   }
 
-  if (oversized.isNotEmpty) {
-    stderr.writeln('New Dart files exceed $_maximumLines lines:');
+  final staleDebt = _existingDebt.difference(currentDebt.keys.toSet());
+
+  if (oversized.isNotEmpty || staleDebt.isNotEmpty) {
+    if (oversized.isNotEmpty) {
+      stderr.writeln('New Dart files exceed $_maximumLines lines:');
+    }
     for (final entry in oversized.entries) {
       stderr.writeln('- ${entry.key}: ${entry.value}');
+    }
+    if (staleDebt.isNotEmpty) {
+      stderr.writeln('Remove resolved or missing paths from the debt list:');
+      for (final path in staleDebt) {
+        stderr.writeln('- $path');
+      }
     }
     exitCode = 1;
     return;
   }
 
   stdout.writeln(
-    'Source-size ratchet passed; ${_existingDebt.length} legacy files remain.',
+    'Source-size ratchet passed; ${currentDebt.length} legacy files remain.',
   );
 }

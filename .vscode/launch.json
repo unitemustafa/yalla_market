@@ -10,7 +10,7 @@
             "request": "launch",
             "type": "dart",
             "toolArgs": [
-                "--dart-define-from-file=env/development.json"
+                "--dart-define-from-file=env/development.local.json"
             ]
         },
         {

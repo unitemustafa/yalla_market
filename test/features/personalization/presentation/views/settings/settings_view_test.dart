@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/preferences/app_preferences_controller.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/app_preferences_view.dart';
 import 'package:yalla_market/features/personalization/presentation/views/settings/settings_view.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';

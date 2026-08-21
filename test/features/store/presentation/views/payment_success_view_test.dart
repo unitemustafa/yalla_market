@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
-import 'package:yalla_market/core/routing/app_route_arguments.dart';
+import 'package:yalla_market/app/routing/app_route_arguments.dart';
 import 'package:yalla_market/features/store/presentation/views/checkout/payment_success_view.dart';
 
 void main() {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/presentation/widgets/brands/category_tile.dart';
-import '../../../../core/routing/app_route_arguments.dart';
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_route_arguments.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../../../store/domain/entities/category_data.dart';
 
 class HomeCategories extends StatelessWidget {

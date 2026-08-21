@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yalla_market/core/routing/app_route_arguments.dart';
-import 'package:yalla_market/core/routing/app_router.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_route_arguments.dart';
+import 'package:yalla_market/app/routing/app_router.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 
 void main() {
   group('AppRouter', () {

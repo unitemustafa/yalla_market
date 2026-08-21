@@ -1,7 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../auth/domain/usecases/auth_usecases.dart';
 import '../../../location/domain/entities/city_data.dart';

@@ -5,7 +5,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/di/service_locator.dart';
+import '../../../../../app/di/service_locator.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
@@ -14,9 +14,9 @@ import '../../../../../core/presentation/widgets/products/product_results_view.d
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
-import '../../../../../core/routing/app_route_arguments.dart';
-import '../../../../../core/routing/app_routes.dart';
-import '../../../../../core/routing/shared_content_links.dart';
+import '../../../../../app/routing/app_route_arguments.dart';
+import '../../../../../app/routing/app_routes.dart';
+import '../../../../../app/routing/shared_content_links.dart';
 import '../../../../offers/domain/entities/offer_data.dart';
 import '../../../../offers/presentation/cubit/offer_catalog_cubit.dart';
 import '../../../../offers/presentation/cubit/offer_catalog_state.dart';

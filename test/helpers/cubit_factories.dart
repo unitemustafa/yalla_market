@@ -6,7 +6,6 @@ import 'package:yalla_market/features/personalization/data/repositories/address_
 import 'package:yalla_market/features/personalization/domain/repositories/address_repository.dart';
 import 'package:yalla_market/features/personalization/domain/usecases/address_usecases.dart';
 import 'package:yalla_market/features/personalization/presentation/cubit/address_cubit.dart';
-import 'package:yalla_market/features/store/data/repositories/order_repository_impl.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
 import 'package:yalla_market/features/store/domain/usecases/create_order_usecase.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
@@ -17,6 +16,8 @@ import 'package:yalla_market/features/wishlist/data/repositories/wishlist_reposi
 import 'package:yalla_market/features/wishlist/domain/repositories/wishlist_repository.dart';
 import 'package:yalla_market/features/wishlist/domain/usecases/wishlist_usecases.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit.dart';
+
+import 'test_order_repository.dart';
 
 CartCubit makeCartCubit({CartRepository? repository}) {
   final repo = repository ?? CartRepositoryImpl();
@@ -56,11 +57,11 @@ AddressCubit makeAddressCubit({AddressRepository? repository}) {
 }
 
 CheckoutCubit makeCheckoutCubit({OrderRepository? repository}) {
-  final repo = repository ?? OrderRepositoryImpl();
+  final repo = repository ?? TestOrderRepository();
   return CheckoutCubit(CreateOrderUseCase(repo), PreviewOrderUseCase(repo));
 }
 
 OrderHistoryCubit makeOrderHistoryCubit({OrderRepository? repository}) {
-  final repo = repository ?? OrderRepositoryImpl();
+  final repo = repository ?? TestOrderRepository();
   return OrderHistoryCubit(GetMyOrdersUseCase(repo));
 }

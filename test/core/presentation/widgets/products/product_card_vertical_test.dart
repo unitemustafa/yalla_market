@@ -8,8 +8,8 @@ import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import 'package:yalla_market/core/presentation/widgets/texts/green_currency_price.dart';
-import 'package:yalla_market/core/routing/app_route_arguments.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_route_arguments.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit.dart';
 

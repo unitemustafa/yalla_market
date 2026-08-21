@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/core/session/account_restored_notifier.dart';
 import 'package:yalla_market/features/auth/presentation/views/account_disabled_view.dart';
 

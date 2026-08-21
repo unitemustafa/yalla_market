@@ -12,7 +12,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';

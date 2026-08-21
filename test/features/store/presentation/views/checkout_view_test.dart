@@ -7,7 +7,7 @@ import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
@@ -15,7 +15,6 @@ import 'package:yalla_market/features/location/domain/repositories/location_repo
 import 'package:yalla_market/features/location/domain/usecases/location_usecases.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 import 'package:yalla_market/features/personalization/presentation/cubit/address_cubit.dart';
-import 'package:yalla_market/features/store/data/repositories/order_repository_impl.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
@@ -25,13 +24,14 @@ import 'package:yalla_market/features/store/presentation/views/checkout_view.dar
 
 import '../../../../helpers/cubit_factories.dart';
 import '../../../../helpers/domain_fixtures.dart';
+import '../../../../helpers/test_order_repository.dart';
 
 void main() {
   testWidgets('renders checkout summary without creating a real order', (
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
-    final orderRepository = OrderRepositoryImpl();
+    final orderRepository = TestOrderRepository();
     final cartCubit = makeCartCubit();
     final addressCubit = makeAddressCubit();
     final checkoutCubit = makeCheckoutCubit(repository: orderRepository);
@@ -76,7 +76,7 @@ void main() {
     tester,
   ) async {
     SharedPreferences.setMockInitialValues({});
-    final orderRepository = OrderRepositoryImpl();
+    final orderRepository = TestOrderRepository();
     final cartCubit = makeCartCubit();
     final addressCubit = makeAddressCubit();
     final checkoutCubit = makeCheckoutCubit(repository: orderRepository);

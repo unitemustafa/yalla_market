@@ -6,9 +6,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/icons/app_icons.dart';
 import '../../../../core/localization/app_translations.dart';
-import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../../domain/entities/city_data.dart';
 import '../cubit/location_cubit.dart';
 import '../cubit/location_state.dart';
@@ -325,130 +324,6 @@ class _SelectCityViewState extends State<SelectCityView>
       AppRoutes.navigationMenu,
       (route) => false,
     );
-  }
-}
-
-// ignore: unused_element
-class _DetectedGovernorateCard extends StatelessWidget {
-  const _DetectedGovernorateCard({
-    required this.city,
-    required this.isDark,
-    required this.onConfirm,
-    required this.onChange,
-  });
-
-  final CityData city;
-  final bool isDark;
-  final VoidCallback? onConfirm;
-  final VoidCallback? onChange;
-
-  @override
-  Widget build(BuildContext context) {
-    final mutedColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final isCustomCity = city.isNamedGeneral;
-    final locationName = city.displayName(arabic: context.isArabicLanguage);
-    final detectedTitle = isCustomCity
-        ? context.tr('We detected your city')
-        : context.tr('We detected your governorate');
-    final confirmQuestion = isCustomCity
-        ? context.tr('Is this your city?')
-        : context.tr('Is this your governorate?');
-
-    final card = Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(isCustomCity ? 16 : 14),
-      decoration: BoxDecoration(
-        color: isDark ? AppColors.darkCardColor : Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: isDark ? 0.28 : 0.18),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: isCustomCity
-            ? MainAxisAlignment.center
-            : MainAxisAlignment.start,
-        crossAxisAlignment: isCustomCity
-            ? CrossAxisAlignment.center
-            : CrossAxisAlignment.start,
-        children: [
-          Text(
-            detectedTitle,
-            style: Theme.of(context).textTheme.labelLarge?.copyWith(
-              color: mutedColor,
-              fontWeight: FontWeight.w800,
-            ),
-            textAlign: isCustomCity ? TextAlign.center : TextAlign.start,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: isCustomCity
-                ? MainAxisAlignment.center
-                : MainAxisAlignment.start,
-            children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(
-                    alpha: isDark ? 0.18 : 0.10,
-                  ),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  AppIcons.location,
-                  color: AppColors.primary,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Flexible(
-                child: _DetectedLocationBadge(
-                  label: locationName,
-                  isDark: isDark,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            confirmQuestion,
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: mutedColor,
-              fontWeight: FontWeight.w700,
-            ),
-            textAlign: isCustomCity ? TextAlign.center : TextAlign.start,
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: AppActionButton(
-                  label: context.tr('Yes, continue'),
-                  icon: AppIcons.tick_circle,
-                  onPressed: onConfirm,
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: AppActionButton(
-                  label: context.tr('Change'),
-                  icon: AppIcons.edit,
-                  variant: AppActionButtonVariant.outlined,
-                  onPressed: onChange,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-
-    if (!isCustomCity) return card;
-
-    return Center(child: SizedBox(width: 300, height: 300, child: card));
   }
 }
 

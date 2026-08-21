@@ -98,6 +98,23 @@ void main() {
 
       expect(violations, existingDebt);
     });
+
+    test(
+      'application composition does not return to core compatibility paths',
+      () {
+        final violations = _importsUnder('lib')
+            .where(
+              (entry) =>
+                  entry.import.contains('core/routing/') ||
+                  entry.import.endsWith('core/di/service_locator.dart'),
+            )
+            .toList(growable: false);
+
+        expect(violations, isEmpty);
+        expect(Directory('lib/core/routing').existsSync(), isFalse);
+        expect(File('lib/core/di/service_locator.dart').existsSync(), isFalse);
+      },
+    );
   });
 }
 

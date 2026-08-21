@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
-import '../../../../core/routing/app_route_arguments.dart';
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_route_arguments.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../../domain/entities/store_data.dart';
 import 'store_market_card.dart';
 

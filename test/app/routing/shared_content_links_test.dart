@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:yalla_market/core/routing/shared_content_links.dart';
+import 'package:yalla_market/app/routing/shared_content_links.dart';
 
 void main() {
   test('parses custom product, offer, and market deep links', () {

@@ -7,7 +7,7 @@ import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
-import '../../../../../core/routing/app_route_arguments.dart';
+import '../../../../../app/routing/app_route_arguments.dart';
 import '../../../../home/presentation/cubit/home_cubit.dart';
 import '../../../../home/presentation/cubit/home_state.dart';
 import '../../../domain/entities/product_data.dart';

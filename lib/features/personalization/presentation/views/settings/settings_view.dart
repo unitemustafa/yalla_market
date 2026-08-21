@@ -7,7 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../../../../core/routing/app_routes.dart';
+import '../../../../../app/routing/app_routes.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../controllers/user_profile_controller.dart';
 import '../../widgets/settings_menu_tile.dart';

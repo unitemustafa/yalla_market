@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
-import '../../../../core/routing/auth_guard.dart';
+import '../../../../app/routing/auth_guard.dart';
 import '../../../../core/session/session_expired_notifier.dart';
 import '../../../../core/session/account_inactive_notifier.dart';
 import '../../../../core/notifications/push_notification_service.dart';

@@ -12,7 +12,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/routing/app_route_arguments.dart';
+import '../../../../../app/routing/app_route_arguments.dart';
 
 class PaymentSuccessView extends StatefulWidget {
   const PaymentSuccessView({super.key, this.args, this.feedbackPlayer});

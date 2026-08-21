@@ -7,7 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/otp/otp_cooldown_store.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/auth/domain/entities/otp_delivery_result.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_state.dart';

@@ -9,8 +9,8 @@ import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../../core/presentation/widgets/texts/green_currency_price.dart';
-import '../../../../../core/routing/app_route_arguments.dart';
-import '../../../../../core/routing/app_routes.dart';
+import '../../../../../app/routing/app_route_arguments.dart';
+import '../../../../../app/routing/app_routes.dart';
 import '../../../domain/entities/product_data.dart';
 import '../../../domain/entities/store_data.dart';
 

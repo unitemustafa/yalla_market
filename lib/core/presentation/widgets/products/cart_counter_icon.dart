@@ -5,7 +5,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../features/cart/domain/entities/cart_item.dart';
 import '../../../../features/cart/presentation/cubit/cart_cubit.dart';
-import '../../../routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import '../../../constants/app_colors.dart';
 
 class CartCounterIcon extends StatelessWidget {

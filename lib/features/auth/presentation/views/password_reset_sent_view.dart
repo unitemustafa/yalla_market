@@ -7,7 +7,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../widgets/auth_status_artwork.dart';
 import '../widgets/auth_top_bar.dart';
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/core/presentation/widgets/snackbars/custom_snackbar.dart';
-import 'package:yalla_market/core/routing/app_navigator.dart';
+import 'package:yalla_market/app/routing/app_navigator.dart';
 
 void main() {
   testWidgets(

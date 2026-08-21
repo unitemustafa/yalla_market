@@ -6,7 +6,7 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
-import 'package:yalla_market/core/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/core/theme/app_theme.dart';
 import 'package:yalla_market/features/onboarding/domain/repositories/onboarding_repository.dart';
 import 'package:yalla_market/features/onboarding/domain/usecases/onboarding_usecases.dart';

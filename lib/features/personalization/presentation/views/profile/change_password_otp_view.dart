@@ -11,7 +11,7 @@ import '../../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../../../../core/routing/app_routes.dart';
+import '../../../../../app/routing/app_routes.dart';
 import '../../../../../core/utils/validators.dart';
 import '../../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../../auth/presentation/widgets/custom_text_field.dart';

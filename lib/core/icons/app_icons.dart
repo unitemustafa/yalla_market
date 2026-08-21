@@ -8,11 +8,6 @@ class AppIcons {
   static const String _fontFamily = 'iconsax';
   static const String _fontPackage = 'iconsax';
 
-  static const IconData activity = IconData(
-    0xe907,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
   static const IconData add = IconData(
     0xe908,
     fontFamily: _fontFamily,
@@ -40,11 +35,6 @@ class AppIcons {
   );
   static const IconData bag_2 = IconData(
     0xe94e,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
-  static const IconData bag_tick = IconData(
-    0xe952,
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
@@ -95,11 +85,6 @@ class AppIcons {
   );
   static const IconData clipboard_tick = IconData(
     0xe9c5,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
-  static const IconData code = IconData(
-    0xe9d8,
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
@@ -218,18 +203,8 @@ class AppIcons {
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
-  static const IconData message = IconData(
-    0xeb02,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
   static const IconData message_text = IconData(
     0xeb14,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
-  static const IconData messages = IconData(
-    0xeb0e,
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
@@ -298,23 +273,8 @@ class AppIcons {
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
-  static const IconData record_circle5 = IconData(
-    0x580,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
   static const IconData routing = IconData(
     0xebb5,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
-  static const IconData safe_home = IconData(
-    0xebbb,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
-  static const IconData search_favorite = IconData(
-    0xebc9,
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
@@ -390,11 +350,6 @@ class AppIcons {
   );
   static const IconData star = IconData(
     0xec0f,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
-  static const IconData star5 = IconData(
-    0x5ed,
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );

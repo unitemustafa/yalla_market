@@ -1,7 +1,7 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 
-import '../../../../core/routing/app_routes.dart';
+import '../../../../app/routing/app_routes.dart';
 import '../../../../core/session/account_restored_notifier.dart';
 
 class AccountDisabledView extends StatelessWidget {

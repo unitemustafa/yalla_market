@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
-import 'package:yalla_market/core/di/service_locator.dart';
+import 'package:yalla_market/app/di/service_locator.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';

@@ -7,7 +7,7 @@ import '../../../../../core/localization/app_language_controller.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/preferences/app_preferences_controller.dart';
-import '../../../../../core/routing/app_routes.dart';
+import '../../../../../app/routing/app_routes.dart';
 
 part 'app_preferences_tiles.dart';
 part 'app_preferences_sheet_widgets.dart';

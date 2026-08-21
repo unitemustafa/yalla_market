@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
-import 'package:yalla_market/core/routing/auth_guard.dart';
+import 'package:yalla_market/app/routing/auth_guard.dart';
 import 'package:yalla_market/core/session/account_inactive_notifier.dart';
 import 'package:yalla_market/core/session/session_expired_notifier.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';

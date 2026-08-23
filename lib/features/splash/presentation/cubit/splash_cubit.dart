@@ -2,6 +2,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/errors/failure.dart';
 import '../../../../app/routing/app_routes.dart';
+import '../../../../core/otp/pending_verification_store.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../auth/domain/usecases/auth_usecases.dart';
 import '../../../location/domain/entities/city_data.dart';
@@ -13,12 +14,16 @@ class SplashCubit extends Cubit<SplashState> {
   SplashCubit(
     this._onboardingUseCases,
     this._authUseCases,
-    this._locationUseCases,
-  ) : super(const SplashLoading());
+    this._locationUseCases, {
+    PendingVerificationStore? pendingVerificationStore,
+  }) : _pendingVerificationStore =
+           pendingVerificationStore ?? const PendingVerificationStore(),
+       super(const SplashLoading());
 
   final OnboardingUseCases _onboardingUseCases;
   final AuthUseCases _authUseCases;
   final LocationUseCases _locationUseCases;
+  final PendingVerificationStore _pendingVerificationStore;
 
   Future<void> determineStartupRoute() async {
     final onboardingResult = await _onboardingUseCases.hasSeenOnboarding();
@@ -44,6 +49,19 @@ class SplashCubit extends Cubit<SplashState> {
     );
 
     if (session == null) {
+      if (!sessionExpired) {
+        final pending = await _pendingVerificationStore.read();
+        if (pending != null) {
+          emit(
+            SplashNavigateTo(
+              AppRoutes.verifyEmail,
+              pendingVerificationEmail: pending.email,
+              pendingVerificationExpiresAt: pending.expiresAt,
+            ),
+          );
+          return;
+        }
+      }
       emit(SplashNavigateTo(AppRoutes.login, sessionExpired: sessionExpired));
       return;
     }

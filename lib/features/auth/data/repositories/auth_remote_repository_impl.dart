@@ -329,6 +329,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       absoluteExpiresAt: tokens?.absoluteExpiresAt,
       mode: tokens?.mode ?? AuthSessionMode.temporary,
       otpResendAfterSeconds: _intFromPayload(payload, 'resend_after_seconds'),
+      registrationExpiresAt: _dateFromString(
+        payload['registration_expires_at'],
+      ),
     );
   }
 
@@ -437,6 +440,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       return OtpDeliveryResult(
         resendAfterSeconds: seconds,
         resendAvailableAt: _dateFromString(payload['resend_available_at']),
+        registrationExpiresAt: _dateFromString(
+          payload['registration_expires_at'],
+        ),
       );
     }
     return const OtpDeliveryResult();

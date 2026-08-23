@@ -77,7 +77,16 @@ class _SplashViewState extends State<SplashView>
         if (state.city != null) {
           locationCubit.syncCity(state.city);
         }
-        Navigator.of(context).pushReplacementNamed(state.route);
+        if (state.pendingVerificationEmail case final email?) {
+          authCubit.hydratePendingVerification(
+            email,
+            expiresAt: state.pendingVerificationExpiresAt,
+          );
+        }
+        Navigator.of(context).pushReplacementNamed(
+          state.route,
+          arguments: state.pendingVerificationEmail,
+        );
         if (state.sessionExpired) {
           authCubit.markSessionExpired();
         }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +8,7 @@ import '../../../../app/routing/auth_guard.dart';
 import '../../../../core/session/session_expired_notifier.dart';
 import '../../../../core/session/account_inactive_notifier.dart';
 import '../../../../core/notifications/push_notification_service.dart';
+import '../../../../core/otp/pending_verification_store.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/usecases/auth_usecases.dart';
@@ -18,11 +20,14 @@ class AuthCubit extends Cubit<AuthState> {
     SessionExpiredNotifier? sessionExpiredNotifier,
     AccountInactiveNotifier? accountInactiveNotifier,
     PushNotificationService? pushNotificationService,
+    PendingVerificationStore? pendingVerificationStore,
   }) : _sessionExpiredNotifier =
            sessionExpiredNotifier ?? SessionExpiredNotifier.instance,
        _accountInactiveNotifier =
            accountInactiveNotifier ?? AccountInactiveNotifier.instance,
        _pushNotificationService = pushNotificationService,
+       _pendingVerificationStore =
+           pendingVerificationStore ?? const PendingVerificationStore(),
        super(
          (accountInactiveNotifier ?? AccountInactiveNotifier.instance)
                  .isInactive
@@ -37,6 +42,9 @@ class AuthCubit extends Cubit<AuthState> {
   final SessionExpiredNotifier _sessionExpiredNotifier;
   final AccountInactiveNotifier _accountInactiveNotifier;
   final PushNotificationService? _pushNotificationService;
+  final PendingVerificationStore _pendingVerificationStore;
+  String? _pendingVerificationEmail;
+  DateTime? _pendingVerificationExpiresAt;
   AuthSession? _pendingSignupSession;
   String? _lastProfileUpdateError;
   String? _lastPasswordResetError;
@@ -51,6 +59,7 @@ class AuthCubit extends Cubit<AuthState> {
       AuthGuard.setAuthenticated();
     } else if (change.nextState is AuthInitial ||
         change.nextState is AuthSignupSucceeded ||
+        change.nextState is AuthVerificationRequired ||
         change.nextState is AuthSessionExpired) {
       AuthGuard.clearAuthentication();
     } else if (change.nextState is AuthAccountDisabled) {
@@ -58,7 +67,8 @@ class AuthCubit extends Cubit<AuthState> {
     }
   }
 
-  bool get hasPendingSignup => _pendingSignupSession != null;
+  bool get hasPendingSignup => _pendingVerificationEmail != null;
+  String? get pendingVerificationEmail => _pendingVerificationEmail;
   String? get lastProfileUpdateError => _lastProfileUpdateError;
   String? get lastPasswordResetError => _lastPasswordResetError;
   String? get lastAccountDeletionError => _lastAccountDeletionError;
@@ -73,6 +83,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void _handleInactiveAccount() {
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
     AuthGuard.clearAuthentication();
     if (!isClosed) {
@@ -86,6 +97,7 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   void _handleSessionExpired() {
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
     AuthGuard.clearAuthentication();
     if (!isClosed) {
@@ -99,13 +111,16 @@ class AuthCubit extends Cubit<AuthState> {
 
   /// Hydrates auth state from an already-resolved session (e.g. from SplashCubit).
   void hydrate(AuthSession session) {
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
+    unawaited(_pendingVerificationStore.clear());
     emit(AuthAuthenticated(session));
   }
 
   Future<bool> restoreSavedSession() async {
     if (state is AuthLoading) return false;
 
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
     emit(const AuthLoading());
 
@@ -139,6 +154,7 @@ class AuthCubit extends Cubit<AuthState> {
   }) async {
     if (state is AuthLoading) return;
 
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
     _accountInactiveNotifier.reset();
     emit(const AuthLoading());
@@ -151,9 +167,27 @@ class AuthCubit extends Cubit<AuthState> {
     result.when(
       success: (session) {
         _accountInactiveNotifier.reset();
+        _pendingVerificationEmail = null;
+        _pendingSignupSession = null;
+        unawaited(_pendingVerificationStore.clear());
         emit(AuthAuthenticated(session));
       },
       failure: (failure) {
+        if (failure is EmailVerificationRequiredFailure) {
+          _setPendingVerification(
+            failure.email,
+            expiresAt: failure.registrationExpiresAt,
+          );
+          _lastOtpRetryAfterSeconds = failure.retryAfterSeconds;
+          emit(
+            AuthVerificationRequired(
+              failure.email,
+              retryAfterSeconds: failure.retryAfterSeconds,
+              registrationExpiresAt: failure.registrationExpiresAt,
+            ),
+          );
+          return;
+        }
         if (failure is AccountInactiveFailure) {
           emit(const AuthLoginAccountDisabled());
           return;
@@ -208,6 +242,7 @@ class AuthCubit extends Cubit<AuthState> {
   }) async {
     if (state is AuthLoading) return;
 
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
     emit(const AuthLoading());
 
@@ -222,39 +257,65 @@ class AuthCubit extends Cubit<AuthState> {
     result.when(
       success: (session) {
         _pendingSignupSession = session;
+        final createdEmail = session.user.email.trim().isEmpty
+            ? email.trim()
+            : session.user.email.trim();
+        _setPendingVerification(
+          createdEmail,
+          expiresAt: session.registrationExpiresAt,
+        );
         _lastOtpResendAfterSeconds = session.otpResendAfterSeconds;
         _lastOtpRetryAfterSeconds = null;
-        final createdEmail = session.user.email.trim();
-        emit(
-          AuthSignupSucceeded(
-            createdEmail.isEmpty ? email.trim() : createdEmail,
-          ),
-        );
+        emit(AuthSignupSucceeded(createdEmail));
       },
       failure: (failure) {
+        if (failure is EmailVerificationRequiredFailure) {
+          _setPendingVerification(
+            failure.email,
+            expiresAt: failure.registrationExpiresAt,
+          );
+          _lastOtpRetryAfterSeconds = failure.retryAfterSeconds;
+          emit(
+            AuthVerificationRequired(
+              failure.email,
+              retryAfterSeconds: failure.retryAfterSeconds,
+              registrationExpiresAt: failure.registrationExpiresAt,
+            ),
+          );
+          return;
+        }
         emit(AuthFailure(failure.message));
       },
     );
   }
 
-  Future<bool> completeSignupVerification(String code) async {
-    final session = _pendingSignupSession;
-    if (session == null) return false;
-
-    if (session.accessToken != null && session.refreshToken != null) {
+  Future<bool> completeSignupVerification(String code, {String? email}) async {
+    if (await _clearExpiredPendingVerification()) return false;
+    final verificationEmail = email?.trim().isNotEmpty == true
+        ? email!.trim()
+        : _pendingVerificationEmail;
+    if (verificationEmail == null || verificationEmail.isEmpty) return false;
+    _pendingVerificationEmail = verificationEmail;
+    final pendingSession = _pendingSignupSession;
+    if (pendingSession?.accessToken != null &&
+        pendingSession?.refreshToken != null) {
       _pendingSignupSession = null;
-      emit(AuthAuthenticated(session));
+      _pendingVerificationEmail = null;
+      unawaited(_pendingVerificationStore.clear());
+      emit(AuthAuthenticated(pendingSession!));
       return true;
     }
 
     emit(const AuthLoading());
     final result = await _authUseCases.verifyEmail(
-      email: session.user.email,
+      email: verificationEmail,
       code: code.trim(),
     );
     return result.when(
       success: (verifiedSession) {
+        _pendingVerificationEmail = null;
         _pendingSignupSession = null;
+        unawaited(_pendingVerificationStore.clear());
         emit(AuthAuthenticated(verifiedSession));
         return true;
       },
@@ -265,17 +326,25 @@ class AuthCubit extends Cubit<AuthState> {
     );
   }
 
-  Future<bool> resendSignupVerificationCode() async {
-    final session = _pendingSignupSession;
-    if (session == null) return false;
+  Future<bool> resendSignupVerificationCode({String? email}) async {
+    if (await _clearExpiredPendingVerification()) return false;
+    final verificationEmail = email?.trim().isNotEmpty == true
+        ? email!.trim()
+        : _pendingVerificationEmail;
+    if (verificationEmail == null || verificationEmail.isEmpty) return false;
+    _pendingVerificationEmail = verificationEmail;
 
     final result = await _authUseCases.resendVerificationCode(
-      session.user.email,
+      verificationEmail,
     );
     return result.when(
       success: (delivery) {
         _lastOtpResendAfterSeconds = delivery.resendAfterSeconds;
         _lastOtpRetryAfterSeconds = null;
+        _setPendingVerification(
+          verificationEmail,
+          expiresAt: delivery.registrationExpiresAt,
+        );
         return delivery.sent;
       },
       failure: (failure) {
@@ -284,6 +353,54 @@ class AuthCubit extends Cubit<AuthState> {
         return false;
       },
     );
+  }
+
+  void hydratePendingVerification(String email, {DateTime? expiresAt}) {
+    _pendingSignupSession = null;
+    _setPendingVerification(email, expiresAt: expiresAt);
+    emit(AuthVerificationRequired(email, registrationExpiresAt: expiresAt));
+  }
+
+  Future<void> abandonPendingVerification() async {
+    _pendingVerificationEmail = null;
+    _pendingVerificationExpiresAt = null;
+    _pendingSignupSession = null;
+    await _pendingVerificationStore.clear();
+    emit(const AuthInitial());
+  }
+
+  void _setPendingVerification(String email, {DateTime? expiresAt}) {
+    final normalized = email.trim().toLowerCase();
+    if (normalized.isEmpty) return;
+    final isSameRegistration = _pendingVerificationEmail == normalized;
+    final effectiveExpiry =
+        expiresAt ??
+        (isSameRegistration ? _pendingVerificationExpiresAt : null) ??
+        DateTime.now().toUtc().add(const Duration(hours: 24));
+    _pendingVerificationEmail = normalized;
+    _pendingVerificationExpiresAt = effectiveExpiry;
+    unawaited(
+      _pendingVerificationStore.save(
+        email: normalized,
+        expiresAt: effectiveExpiry,
+      ),
+    );
+  }
+
+  Future<bool> _clearExpiredPendingVerification() async {
+    final email = _pendingVerificationEmail;
+    final expiresAt = _pendingVerificationExpiresAt;
+    if (email == null ||
+        expiresAt == null ||
+        expiresAt.isAfter(DateTime.now().toUtc())) {
+      return false;
+    }
+    _pendingVerificationEmail = null;
+    _pendingVerificationExpiresAt = null;
+    _pendingSignupSession = null;
+    await _pendingVerificationStore.clear();
+    emit(const AuthInitial());
+    return true;
   }
 
   Future<bool> requestPasswordReset(String email) async {
@@ -370,7 +487,9 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> logout() async {
+    _pendingVerificationEmail = null;
     _pendingSignupSession = null;
+    unawaited(_pendingVerificationStore.clear());
     await _pushNotificationService?.unregisterCurrentDevice();
     final result = await _authUseCases.logout();
     result.when(
@@ -390,7 +509,9 @@ class AuthCubit extends Cubit<AuthState> {
     final result = await _authUseCases.deleteAccount(password: password);
     return result.when(
       success: (_) {
+        _pendingVerificationEmail = null;
         _pendingSignupSession = null;
+        unawaited(_pendingVerificationStore.clear());
         emit(const AuthInitial());
         return true;
       },

@@ -63,6 +63,7 @@ class FakeAuthRepository implements AuthRepository {
     this.usernameCheckFailure,
     this.emailCheckFailure,
     this.phoneCheckFailure,
+    this.loginFailure,
     this.resendCompleter,
     this.resendFailure,
     this.passwordResetResults = const [],
@@ -80,6 +81,7 @@ class FakeAuthRepository implements AuthRepository {
   final Failure? usernameCheckFailure;
   final Failure? emailCheckFailure;
   final Failure? phoneCheckFailure;
+  final Failure? loginFailure;
   final Completer<ApiResult<OtpDeliveryResult>>? resendCompleter;
   final Failure? resendFailure;
   final List<OtpDeliveryResult> passwordResetResults;
@@ -110,6 +112,9 @@ class FakeAuthRepository implements AuthRepository {
     loginCalls += 1;
     lastLoginEmail = email;
     lastRememberMe = rememberMe;
+    if (loginFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
     return ApiResult.success(sampleSession);
   }
 

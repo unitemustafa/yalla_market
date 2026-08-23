@@ -27,6 +27,21 @@ final class OtpCooldownFailure extends Failure {
   final int retryAfterSeconds;
 }
 
+final class EmailVerificationRequiredFailure extends Failure {
+  const EmailVerificationRequiredFailure({
+    required this.email,
+    this.retryAfterSeconds,
+    this.resendAvailableAt,
+    this.registrationExpiresAt,
+    super.statusCode = 403,
+  }) : super('Email verification is required.');
+
+  final String email;
+  final int? retryAfterSeconds;
+  final DateTime? resendAvailableAt;
+  final DateTime? registrationExpiresAt;
+}
+
 final class RateLimitFailure extends Failure {
   const RateLimitFailure(
     super.message, {

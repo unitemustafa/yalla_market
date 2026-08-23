@@ -15,6 +15,8 @@ abstract final class ApiErrorHandler {
     if (_isAccountInactive(error.response?.data)) {
       return const AccountInactiveFailure();
     }
+    final verificationFailure = _emailVerificationFailure(error.response);
+    if (verificationFailure != null) return verificationFailure;
     final statusCode = error.response?.statusCode;
     final message =
         _messageFromResponse(error.response) ?? _fallbackMessage(error);
@@ -43,6 +45,26 @@ abstract final class ApiErrorHandler {
 
   static bool _isAccountInactive(Object? data) {
     return data is Map && data['code']?.toString() == 'account_inactive';
+  }
+
+  static EmailVerificationRequiredFailure? _emailVerificationFailure(
+    Response<dynamic>? response,
+  ) {
+    final data = response?.data;
+    if (data is! Map ||
+        data['code']?.toString() != 'email_verification_required' &&
+            data['verification_required'] != true) {
+      return null;
+    }
+    final email = data['email']?.toString().trim() ?? '';
+    if (email.isEmpty) return null;
+    return EmailVerificationRequiredFailure(
+      email: email,
+      retryAfterSeconds: _retryAfterSecondsOrNull(response),
+      resendAvailableAt: _dateFromResponse(data['resend_available_at']),
+      registrationExpiresAt: _dateFromResponse(data['registration_expires_at']),
+      statusCode: response?.statusCode,
+    );
   }
 
   static Failure _failureFromStatusCode(
@@ -129,6 +151,16 @@ abstract final class ApiErrorHandler {
     if (bodyValue != null && bodyValue > 0) return bodyValue;
     final headerValue = response?.headers.value('retry-after');
     return int.tryParse(headerValue ?? '') ?? 0;
+  }
+
+  static int? _retryAfterSecondsOrNull(Response<dynamic>? response) {
+    final seconds = _retryAfterSeconds(response);
+    return seconds > 0 ? seconds : null;
+  }
+
+  static DateTime? _dateFromResponse(Object? value) {
+    if (value is! String || value.trim().isEmpty) return null;
+    return DateTime.tryParse(value);
   }
 
   static String? _firstString(Object? value) {

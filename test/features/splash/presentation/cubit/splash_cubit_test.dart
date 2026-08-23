@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/core/otp/pending_verification_store.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/app/routing/app_routes.dart';
@@ -20,7 +22,13 @@ import 'package:yalla_market/features/splash/presentation/cubit/splash_state.dar
 import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('SplashCubit', () {
+    setUp(() {
+      SharedPreferences.setMockInitialValues({});
+    });
+
     test(
       'onboarding not seen routes to onboarding and does not restore session',
       () async {
@@ -50,6 +58,26 @@ void main() {
       final state = cubit.state as SplashNavigateTo;
       expect(state.route, AppRoutes.login);
       expect(state.sessionExpired, isFalse);
+      await cubit.close();
+    });
+
+    test('restores an unexpired pending verification before login', () async {
+      final expiresAt = DateTime.now().toUtc().add(const Duration(hours: 1));
+      await const PendingVerificationStore().save(
+        email: 'pending@example.com',
+        expiresAt: expiresAt,
+      );
+      final cubit = _cubit(
+        onboardingRepository: const _FakeOnboardingRepository(seen: true),
+        authRepository: _FakeAuthRepository(),
+      );
+
+      await cubit.determineStartupRoute();
+
+      final state = cubit.state as SplashNavigateTo;
+      expect(state.route, AppRoutes.verifyEmail);
+      expect(state.pendingVerificationEmail, 'pending@example.com');
+      expect(state.pendingVerificationExpiresAt, expiresAt);
       await cubit.close();
     });
 

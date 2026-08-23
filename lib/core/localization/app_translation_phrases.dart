@@ -1139,6 +1139,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'جرّب بحث تاني أو فئة أو طريقة ترتيب مختلفة.',
     'Your sports order is being prepared.': 'طلب الرياضة بتاعك بيتجهز دلوقتي.',
     'Your order has been created successfully.': 'تم إنشاء طلبك بنجاح.',
+    'Email verification is required.': 'حسابك محتاج تأكيد البريد الإلكتروني.',
     'Acer': 'Acer',
     'Adidas': 'Adidas',
     'Apple': 'Apple',

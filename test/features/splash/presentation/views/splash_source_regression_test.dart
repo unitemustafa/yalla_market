@@ -12,7 +12,7 @@ void main() {
     );
     final syncIndex = source.indexOf('locationCubit.syncCity(state.city)');
     final navigationIndex = source.indexOf(
-      'Navigator.of(context).pushReplacementNamed(state.route)',
+      'Navigator.of(context).pushReplacementNamed(',
     );
 
     expect(activateIndex, greaterThanOrEqualTo(0));

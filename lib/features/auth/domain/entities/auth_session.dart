@@ -12,6 +12,7 @@ class AuthSession {
     this.absoluteExpiresAt,
     this.mode = AuthSessionMode.temporary,
     this.otpResendAfterSeconds,
+    this.registrationExpiresAt,
   });
 
   final AuthUser user;
@@ -25,6 +26,7 @@ class AuthSession {
   final DateTime? absoluteExpiresAt;
   final AuthSessionMode mode;
   final int? otpResendAfterSeconds;
+  final DateTime? registrationExpiresAt;
 
   bool get isRemembered => mode.isRemembered;
 }

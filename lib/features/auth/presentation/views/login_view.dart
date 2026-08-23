@@ -12,6 +12,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
+import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
@@ -95,6 +96,25 @@ class _LoginViewState extends State<LoginView> {
             message: strings.signInSuccessMessage,
           );
           unawaited(_navigateAfterSignIn(context));
+        }
+
+        if (state is AuthVerificationRequired) {
+          final retryAfter = state.retryAfterSeconds;
+          if (retryAfter != null && retryAfter > 0) {
+            unawaited(
+              const OtpCooldownStore().save(
+                purpose: OtpPurpose.registration,
+                identifier: state.email,
+                seconds: retryAfter,
+              ),
+            );
+          }
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.verifyEmail,
+            (route) => false,
+            arguments: state.email,
+          );
         }
 
         if (state is AuthFailure) {

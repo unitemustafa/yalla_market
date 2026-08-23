@@ -15,6 +15,8 @@ final class SplashNavigateTo extends SplashState {
     this.session,
     this.city,
     this.sessionExpired = false,
+    this.pendingVerificationEmail,
+    this.pendingVerificationExpiresAt,
   });
 
   final String route;
@@ -27,4 +29,6 @@ final class SplashNavigateTo extends SplashState {
 
   /// True when startup found a previously active session that is no longer valid.
   final bool sessionExpired;
+  final String? pendingVerificationEmail;
+  final DateTime? pendingVerificationExpiresAt;
 }

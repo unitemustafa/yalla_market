@@ -100,6 +100,50 @@ void main() {
     });
 
     test(
+      'turns an unverified login into a resumable verification state',
+      () async {
+        final expiresAt = DateTime.now().toUtc().add(const Duration(days: 1));
+        final repository = _FakeAuthRepository(
+          loginFailure: EmailVerificationRequiredFailure(
+            email: 'pending@example.com',
+            retryAfterSeconds: 30,
+            registrationExpiresAt: expiresAt,
+          ),
+        );
+        final cubit = AuthCubit(_authUseCases(repository));
+
+        await cubit.login(email: 'pending_user', password: 'Password123!');
+
+        final state = cubit.state as AuthVerificationRequired;
+        expect(state.email, 'pending@example.com');
+        expect(state.retryAfterSeconds, 30);
+        expect(state.registrationExpiresAt, expiresAt);
+        expect(cubit.hasPendingSignup, isTrue);
+        await cubit.close();
+      },
+    );
+
+    test(
+      'clears an expired pending verification before using its code',
+      () async {
+        final cubit = AuthCubit(_authUseCases(_FakeAuthRepository()));
+        cubit.hydratePendingVerification(
+          'expired@example.com',
+          expiresAt: DateTime.now().toUtc().subtract(
+            const Duration(seconds: 1),
+          ),
+        );
+
+        final completed = await cubit.completeSignupVerification('123456');
+
+        expect(completed, isFalse);
+        expect(cubit.hasPendingSignup, isFalse);
+        expect(cubit.state, isA<AuthInitial>());
+        await cubit.close();
+      },
+    );
+
+    test(
       'emits a login-only disabled state when the account is inactive',
       () async {
         final repository = _FakeAuthRepository(

@@ -1,9 +1,9 @@
-import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -70,15 +70,11 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     if (_isCoolingDown || _isResending) return;
 
     final authCubit = context.read<AuthCubit>();
-    if (!authCubit.hasPendingSignup) {
-      _showExpiredSessionMessage();
-      return;
-    }
 
     setState(() => _isResending = true);
     late final bool sent;
     try {
-      sent = await authCubit.resendSignupVerificationCode();
+      sent = await authCubit.resendSignupVerificationCode(email: widget.email);
     } catch (_) {
       sent = false;
     } finally {
@@ -88,6 +84,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     if (!mounted) return;
 
     if (!sent) {
+      if (_leaveIfRegistrationExpired(authCubit)) return;
       final retryAfter = authCubit.lastOtpRetryAfterSeconds;
       if (retryAfter != null && retryAfter > 0) {
         await _saveAndStartCooldown(retryAfter);
@@ -125,19 +122,17 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     if (!_hasCompleteCode || _isConfirming) return;
 
     final authCubit = context.read<AuthCubit>();
-    if (!authCubit.hasPendingSignup) {
-      _showExpiredSessionMessage();
-      return;
-    }
 
     setState(() => _isConfirming = true);
     final completed = await authCubit.completeSignupVerification(
       _codeController.text,
+      email: widget.email,
     );
     if (!mounted) return;
     setState(() => _isConfirming = false);
 
     if (!completed) {
+      if (_leaveIfRegistrationExpired(authCubit)) return;
       CustomSnackBar.showError(
         context: context,
         title: _copy(
@@ -245,14 +240,25 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     });
   }
 
-  void _showExpiredSessionMessage() {
+  Future<void> _leaveVerification() async {
+    await context.read<AuthCubit>().abandonPendingVerification();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.signup,
+      (route) => false,
+    );
+  }
+
+  bool _leaveIfRegistrationExpired(AuthCubit authCubit) {
+    if (authCubit.state is! AuthInitial) return false;
     CustomSnackBar.showError(
       context: context,
-      title: _copy(context, ar: 'الجلسة انتهت', en: 'Session expired'),
+      title: _copy(context, ar: 'انتهت مهلة التسجيل', en: 'Signup expired'),
       message: _copy(
         context,
-        ar: 'اعمل الحساب من الأول عشان نكمل التأكيد.',
-        en: 'Create the account again so we can finish verification.',
+        ar: 'ابدأ إنشاء الحساب من جديد علشان نبعث لك كود جديد.',
+        en: 'Start signup again so we can send you a new code.',
       ),
     );
     Navigator.pushNamedAndRemoveUntil(
@@ -260,6 +266,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       AppRoutes.signup,
       (route) => false,
     );
+    return true;
   }
 
   @override
@@ -268,42 +275,41 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     final isDarkMode = theme.brightness == Brightness.dark;
     final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
 
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: _buildBackgroundDecoration(isDarkMode),
-        child: SafeArea(
-          child: FixedAuthPageLayout(
-            isKeyboardVisible: isKeyboardVisible,
-            nonScrollingMinHeight: 700,
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                AuthTopBar(
-                  showBack: true,
-                  onBack: () {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.signup,
-                      (route) => false,
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-                AuthStatusArtwork(
-                  icon: AppIcons.sms_tracking,
-                  isDark: isDarkMode,
-                ),
-                const SizedBox(height: 28),
-                _buildMessage(context, theme, isDarkMode),
-                const SizedBox(height: 26),
-                _buildCodeInput(theme, isDarkMode),
-                const SizedBox(height: 24),
-                _buildConfirmButton(context),
-                const SizedBox(height: 12),
-                _buildResendButton(theme, isDarkMode),
-              ],
+    return PopScope(
+      canPop: false,
+      child: Scaffold(
+        body: DecoratedBox(
+          decoration: _buildBackgroundDecoration(isDarkMode),
+          child: SafeArea(
+            child: FixedAuthPageLayout(
+              isKeyboardVisible: isKeyboardVisible,
+              nonScrollingMinHeight: 700,
+              padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  AuthTopBar(
+                    showBack: true,
+                    onBack: () {
+                      unawaited(_leaveVerification());
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  AuthStatusArtwork(
+                    icon: AppIcons.sms_tracking,
+                    isDark: isDarkMode,
+                  ),
+                  const SizedBox(height: 28),
+                  _buildMessage(context, theme, isDarkMode),
+                  const SizedBox(height: 26),
+                  _buildCodeInput(theme, isDarkMode),
+                  const SizedBox(height: 24),
+                  _buildConfirmButton(context),
+                  const SizedBox(height: 12),
+                  _buildResendButton(theme, isDarkMode),
+                ],
+              ),
             ),
           ),
         ),

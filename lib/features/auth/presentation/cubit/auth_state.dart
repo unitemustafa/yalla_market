@@ -24,6 +24,18 @@ final class AuthSignupSucceeded extends AuthState {
   final String email;
 }
 
+final class AuthVerificationRequired extends AuthState {
+  const AuthVerificationRequired(
+    this.email, {
+    this.retryAfterSeconds,
+    this.registrationExpiresAt,
+  });
+
+  final String email;
+  final int? retryAfterSeconds;
+  final DateTime? registrationExpiresAt;
+}
+
 final class AuthSessionExpired extends AuthState {
   const AuthSessionExpired();
 }

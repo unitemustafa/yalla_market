@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -219,6 +221,25 @@ class _SignupViewState extends State<SignupView> {
             AppRoutes.verifyEmail,
             (route) => false,
             arguments: email,
+          );
+        }
+
+        if (state is AuthVerificationRequired) {
+          final retryAfter = state.retryAfterSeconds;
+          if (retryAfter != null && retryAfter > 0) {
+            unawaited(
+              const OtpCooldownStore().save(
+                purpose: OtpPurpose.registration,
+                identifier: state.email,
+                seconds: retryAfter,
+              ),
+            );
+          }
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.verifyEmail,
+            (route) => false,
+            arguments: state.email,
           );
         }
 

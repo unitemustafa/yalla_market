@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
@@ -63,6 +64,22 @@ void main() {
       tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
       isTrue,
     );
+  });
+
+  testWidgets('unverified login opens the verification route automatically', (
+    tester,
+  ) async {
+    final repository = FakeAuthRepository(
+      loginFailure: const EmailVerificationRequiredFailure(
+        email: 'pending@example.com',
+        retryAfterSeconds: 30,
+      ),
+    );
+    await _pumpLogin(tester, repository);
+
+    await _submitLogin(tester);
+
+    expect(find.text('/verify-email|pending@example.com'), findsOneWidget);
   });
 
   testWidgets('animates language switcher without losing keyboard focus', (
@@ -147,7 +164,7 @@ Future<void> _pumpLogin(
         locale: const Locale('en'),
         onGenerateRoute: (settings) => MaterialPageRoute<void>(
           settings: settings,
-          builder: (_) => const SizedBox.shrink(),
+          builder: (_) => Text('${settings.name}|${settings.arguments}'),
         ),
         home: const LoginView(),
       ),

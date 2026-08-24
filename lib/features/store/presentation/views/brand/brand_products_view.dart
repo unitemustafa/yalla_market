@@ -455,7 +455,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     final effectiveTypeId =
         availableMarketTypes.any((type) => type.id == _selectedMarketTypeId)
         ? _selectedMarketTypeId
-        : null;
+        : availableMarketTypes.firstOrNull?.id;
     final visibleMarkets = storesMatchingType(
       storesMatchingQuery(markets, _storeQuery),
       effectiveTypeId,
@@ -539,7 +539,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     final selectedId =
         categories.any((category) => category.id == _selectedSubcategoryId)
         ? _selectedSubcategoryId
-        : null;
+        : categories.firstOrNull?.id;
     final products = productsForStoreSubcategory(market.products, selectedId);
     final selectedCategory = selectedId == null
         ? null

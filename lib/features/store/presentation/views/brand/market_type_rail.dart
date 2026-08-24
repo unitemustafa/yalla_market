@@ -24,6 +24,9 @@ class MarketTypeRail extends StatelessWidget {
     final isArabic = languageCode.toLowerCase().startsWith('ar');
     final visibleTypes = types.take(4).toList(growable: false);
     final hasMore = types.length > visibleTypes.length;
+    final effectiveSelectedId = types.any((type) => type.id == selectedId)
+        ? selectedId
+        : types.firstOrNull?.id;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,8 +59,8 @@ class MarketTypeRail extends StatelessWidget {
                 key: ValueKey('market_type_$id'),
                 label: type.localizedName(languageCode),
                 image: type.image,
-                selected: selectedId == id,
-                onTap: () => onSelected(selectedId == id ? null : id),
+                selected: effectiveSelectedId == id,
+                onTap: () => onSelected(id),
               );
             },
           ),
@@ -76,6 +79,10 @@ class MarketTypeRail extends StatelessWidget {
         final colors = Theme.of(sheetContext).colorScheme;
         final isArabic = languageCode.toLowerCase().startsWith('ar');
         final allItems = types;
+        final effectiveSelectedId =
+            allItems.any((type) => type.id == selectedId)
+            ? selectedId
+            : allItems.firstOrNull?.id;
         return Container(
           constraints: BoxConstraints(
             maxHeight: MediaQuery.sizeOf(sheetContext).height * 0.72,
@@ -138,7 +145,7 @@ class MarketTypeRail extends StatelessWidget {
                       key: ValueKey('market_type_sheet_$id'),
                       label: type.localizedName(languageCode),
                       image: type.image,
-                      selected: selectedId == id,
+                      selected: effectiveSelectedId == id,
                       onTap: () => Navigator.pop(sheetContext, id),
                     );
                   },
@@ -152,7 +159,7 @@ class MarketTypeRail extends StatelessWidget {
 
     if (selected == null) return;
     if (!context.mounted) return;
-    onSelected(selected == selectedId ? null : selected);
+    onSelected(selected);
   }
 }
 

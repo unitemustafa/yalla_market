@@ -9,7 +9,7 @@ void main() {
   testWidgets(
     'market types fit an iPhone SE width and overflow into a bottom sheet',
     (tester) async {
-      String? selectedId = '1';
+      String? selectedId;
       final types = List.generate(
         6,
         (index) => StoreMarketTypeData(
@@ -62,7 +62,7 @@ void main() {
 
       await tester.tap(find.byKey(const ValueKey('market_type_1')));
       await tester.pump();
-      expect(selectedId, isNull);
+      expect(selectedId, '1');
 
       await tester.tap(find.byKey(const ValueKey('market_type_view_all')));
       await tester.pumpAndSettle();

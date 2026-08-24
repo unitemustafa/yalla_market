@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../offers/domain/entities/offer_data.dart';
@@ -50,6 +49,11 @@ class StoreSubcategoryRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveSelectedId =
+        categories.any((category) => category.id == selectedId)
+        ? selectedId
+        : categories.firstOrNull?.id;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -66,21 +70,15 @@ class StoreSubcategoryRail extends StatelessWidget {
             child: ListView.separated(
               key: const ValueKey('store_subcategory_rail'),
               scrollDirection: Axis.horizontal,
-              itemCount: categories.length + 1,
+              itemCount: categories.length,
               separatorBuilder: (_, _) => const SizedBox(width: 4),
               itemBuilder: (context, index) {
-                final category = index == 0 ? null : categories[index - 1];
-                final isSelected = category?.id == selectedId;
-                final label = category == null
-                    ? (languageCode.startsWith('ar') ? 'الكل' : 'All')
-                    : category.localizedName(languageCode);
+                final category = categories[index];
+                final isSelected = category.id == effectiveSelectedId;
+                final label = category.localizedName(languageCode);
                 return InkWell(
-                  key: ValueKey(
-                    category == null
-                        ? 'store_subcategory_all'
-                        : 'store_subcategory_${category.id}',
-                  ),
-                  onTap: () => onSelected(category?.id),
+                  key: ValueKey('store_subcategory_${category.id}'),
+                  onTap: () => onSelected(category.id),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     padding: const EdgeInsets.symmetric(horizontal: 13),
@@ -97,16 +95,6 @@ class StoreSubcategoryRail extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (category == null) ...[
-                          Icon(
-                            AppIcons.category,
-                            size: 16,
-                            color: isSelected
-                                ? AppColors.primary
-                                : Theme.of(context).hintColor,
-                          ),
-                          const SizedBox(width: 6),
-                        ],
                         Text(
                           label,
                           maxLines: 1,

@@ -31,6 +31,7 @@ import '../../features/store/presentation/views/checkout/payment_success_view.da
 import '../../features/store/presentation/views/checkout_view.dart';
 import '../../features/store/presentation/views/orders/orders_view.dart';
 import '../../features/store/presentation/views/product_detail_view.dart';
+import '../../features/store/presentation/views/product_category_campaign_view.dart';
 import '../../features/search/presentation/views/search_view.dart';
 import 'app_route_arguments.dart';
 import 'app_routes.dart';
@@ -55,6 +56,7 @@ class AppRouter {
     AppRoutes.categories,
     AppRoutes.latestStores,
     AppRoutes.productDetail,
+    AppRoutes.productCategoryCampaign,
     AppRoutes.brandProducts,
     AppRoutes.storeSearch,
     AppRoutes.profile,
@@ -168,6 +170,19 @@ class AppRouter {
             productSlug: args.productSlug,
             oldPrice: args.oldPrice,
             discount: args.discount,
+          ),
+          settings,
+        );
+
+      case AppRoutes.productCategoryCampaign:
+        final args = settings.arguments as ProductCategoryCampaignRouteArgs?;
+        if (args == null || args.categoryId.trim().isEmpty) {
+          return _buildMissingArgumentsRoute(settings);
+        }
+        return _buildRoute(
+          ProductCategoryCampaignView(
+            categoryId: args.categoryId,
+            categoryName: args.categoryName,
           ),
           settings,
         );

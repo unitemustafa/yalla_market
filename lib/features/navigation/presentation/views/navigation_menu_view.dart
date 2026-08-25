@@ -11,6 +11,9 @@ import '../../../../app/routing/app_routes.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../home/presentation/views/home_view.dart';
 import '../../../home/presentation/cubit/home_cubit.dart';
+import '../../../home/presentation/cubit/home_state.dart';
+import '../../../home/domain/entities/home_campaign_data.dart';
+import '../../../home/presentation/home_campaign/home_campaign_host.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../store/presentation/cubit/product_catalog_cubit.dart';
@@ -246,10 +249,25 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
           (index) => _screens[index] ?? const SizedBox.shrink(),
         ),
       ),
-      bottomNavigationBar: _YallaBottomNavigationBar(
-        items: _items,
-        selectedIndex: selectedIndex,
-        onSelected: _selectTab,
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (selectedIndex == 0)
+            BlocSelector<HomeCubit, HomeState, HomeCampaignData?>(
+              selector: (state) => state.data?.homeCampaign,
+              builder: (context, campaign) => campaign == null
+                  ? const SizedBox.shrink()
+                  : HomeCampaignHost(
+                      key: ValueKey(campaign.storageIdentity),
+                      campaign: campaign,
+                    ),
+            ),
+          _YallaBottomNavigationBar(
+            items: _items,
+            selectedIndex: selectedIndex,
+            onSelected: _selectTab,
+          ),
+        ],
       ),
     );
   }

@@ -3,6 +3,7 @@ import '../../../../core/network/api_endpoints.dart';
 import '../../../offers/domain/entities/offer_data.dart';
 import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
+import 'home_campaign_data.dart';
 
 typedef HomeOfferData = OfferData;
 typedef HomeOfferMarketData = OfferMarketData;
@@ -13,12 +14,14 @@ class HomeData {
     required this.offers,
     required this.categories,
     required this.products,
+    this.homeCampaign,
   });
 
   final HomeLocationData? location;
   final List<HomeOfferData> offers;
   final List<CategoryData> categories;
   final List<ProductData> products;
+  final HomeCampaignData? homeCampaign;
 
   factory HomeData.fromJson(Map<String, dynamic> json) {
     return HomeData(
@@ -35,6 +38,11 @@ class HomeData {
           .map(ProductData.fromJson)
           .map(_productWithResolvedImage)
           .toList(growable: false),
+      homeCampaign: json['home_campaign'] is Map<String, dynamic>
+          ? HomeCampaignData.fromJson(
+              json['home_campaign'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }

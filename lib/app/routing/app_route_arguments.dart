@@ -140,6 +140,16 @@ class ProductDetailRouteArgs {
   final String? initialVariantId;
 }
 
+class ProductCategoryCampaignRouteArgs {
+  const ProductCategoryCampaignRouteArgs({
+    required this.categoryId,
+    required this.categoryName,
+  });
+
+  final String categoryId;
+  final String categoryName;
+}
+
 String _routeText(Object? value) => value?.toString().trim() ?? '';
 
 String _trimRouteDecimal(double value) {

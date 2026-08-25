@@ -37,6 +37,7 @@ class HomeRepositoryImpl implements HomeRepository {
                     ],
               categories: categories,
               products: products,
+              homeCampaign: null,
             ),
           ),
           failure: ApiResult.failure,

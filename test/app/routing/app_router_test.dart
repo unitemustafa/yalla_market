@@ -54,9 +54,19 @@ void main() {
           ),
         ),
       );
+      final categoryCampaignRoute = AppRouter.generateRoute(
+        const RouteSettings(
+          name: AppRoutes.productCategoryCampaign,
+          arguments: ProductCategoryCampaignRouteArgs(
+            categoryId: 'category-1',
+            categoryName: 'وجبات',
+          ),
+        ),
+      );
 
       expect(productRoute, isA<MaterialPageRoute<dynamic>>());
       expect(brandRoute, isA<MaterialPageRoute<dynamic>>());
+      expect(categoryCampaignRoute, isA<MaterialPageRoute<dynamic>>());
     });
 
     test('keeps route generation safe when required arguments are missing', () {
@@ -66,9 +76,13 @@ void main() {
       final brandRoute = AppRouter.generateRoute(
         const RouteSettings(name: AppRoutes.brandProducts),
       );
+      final categoryCampaignRoute = AppRouter.generateRoute(
+        const RouteSettings(name: AppRoutes.productCategoryCampaign),
+      );
 
       expect(productRoute, isA<MaterialPageRoute<dynamic>>());
       expect(brandRoute, isA<MaterialPageRoute<dynamic>>());
+      expect(categoryCampaignRoute, isA<MaterialPageRoute<dynamic>>());
     });
 
     test('builds product details arguments from notification data', () {

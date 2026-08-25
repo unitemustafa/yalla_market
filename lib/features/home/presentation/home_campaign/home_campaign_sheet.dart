@@ -205,15 +205,20 @@ class _CampaignMedia extends StatelessWidget {
     if (media.type != 'image' || media.imageUrl.isEmpty) {
       return const SizedBox.shrink();
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: CachedNetworkImage(
-        imageUrl: media.imageUrl,
-        width: double.infinity,
-        height: height,
-        fit: BoxFit.cover,
-        placeholder: (_, _) => _MediaPlaceholder(height: height),
-        errorWidget: (_, _, _) => _MediaPlaceholder(height: height),
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: ColoredBox(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: CachedNetworkImage(
+            imageUrl: media.imageUrl,
+            width: double.infinity,
+            fit: BoxFit.contain,
+            placeholder: (_, _) => _MediaPlaceholder(height: height),
+            errorWidget: (_, _, _) => _MediaPlaceholder(height: height),
+          ),
+        ),
       ),
     );
   }

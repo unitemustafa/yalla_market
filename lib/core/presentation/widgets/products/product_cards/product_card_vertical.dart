@@ -202,7 +202,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                             child: AppImage(
                               source: widget.image,
                               fallbackType: AppImagePlaceholderType.product,
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
                               cacheWidth: 320,
                               cacheHeight: 264,
                               filterQuality: FilterQuality.low,

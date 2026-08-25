@@ -31,6 +31,7 @@ class OnboardingPageItem extends StatelessWidget {
         final isCompactHeight = constraints.maxHeight < 560;
         final isVeryCompactHeight = constraints.maxHeight < 480;
         final isNarrow = constraints.maxWidth < 360;
+        final useSideBySideLayout = constraints.maxWidth >= 700;
         final horizontalPadding = isNarrow ? 16.0 : 24.0;
         final imageFlex = isVeryCompactHeight
             ? 4
@@ -38,8 +39,8 @@ class OnboardingPageItem extends StatelessWidget {
             ? 5
             : 6;
         final contentFlex = isCompactHeight ? 5 : 4;
-        final maxContentWidth = constraints.maxWidth >= 600
-            ? 560.0
+        final maxContentWidth = useSideBySideLayout
+            ? 920.0
             : constraints.maxWidth;
 
         return Center(
@@ -52,106 +53,163 @@ class OnboardingPageItem extends StatelessWidget {
                 horizontalPadding,
                 0,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    flex: imageFlex,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: panelColor,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Stack(
-                        children: [
-                          PositionedDirectional(
-                            top: 14,
-                            start: 14,
-                            child: _StepBadge(
-                              icon: icon,
-                              accentColor: accentColor,
-                              label: '$pageNumber/$totalPages',
-                            ),
-                          ),
-                          Positioned.fill(
-                            child: Padding(
-                              padding: EdgeInsets.fromLTRB(
-                                isNarrow ? 18 : 28,
-                                isCompactHeight ? 42 : 54,
-                                isNarrow ? 18 : 28,
-                                isCompactHeight ? 18 : 28,
-                              ),
-                              child: Image.asset(
-                                model.imagePath,
-                                fit: BoxFit.contain,
-                                cacheWidth: 760,
-                                cacheHeight: 760,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  SizedBox(
-                    height: isVeryCompactHeight
-                        ? 14
-                        : isCompactHeight
-                        ? 18
-                        : 30,
-                  ),
-                  Expanded(
-                    flex: contentFlex,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      mainAxisAlignment: isCompactHeight
-                          ? MainAxisAlignment.start
-                          : MainAxisAlignment.center,
+              child: useSideBySideLayout
+                  ? Row(
                       children: [
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 240),
-                          switchInCurve: Curves.easeOut,
-                          switchOutCurve: Curves.easeIn,
-                          child: Text(
-                            model.title,
-                            key: ValueKey(model.title),
-                            textAlign: TextAlign.center,
-                            style: theme.textTheme.headlineLarge?.copyWith(
-                              color: textColor,
-                              fontSize: AppFontSizes.pageTitle,
-                              height: 1.16,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0,
+                        Expanded(
+                          flex: 4,
+                          child: Align(
+                            child: _buildImagePanel(
+                              context,
+                              panelColor: panelColor,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 240),
-                          child: ConstrainedBox(
-                            key: ValueKey(model.description),
-                            constraints: const BoxConstraints(maxWidth: 330),
-                            child: Text(
-                              model.description,
-                              textAlign: TextAlign.center,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: mutedColor,
-                                fontSize: AppFontSizes.bodyLarge,
-                                height: 1.5,
-                                letterSpacing: 0,
-                              ),
+                        const SizedBox(width: 48),
+                        Expanded(
+                          flex: 5,
+                          child: _buildTextContent(
+                            context,
+                            textColor: textColor,
+                            mutedColor: mutedColor,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          flex: imageFlex,
+                          child: Align(
+                            child: _buildImagePanel(
+                              context,
+                              panelColor: panelColor,
                             ),
+                          ),
+                        ),
+                        SizedBox(
+                          height: isVeryCompactHeight
+                              ? 14
+                              : isCompactHeight
+                              ? 18
+                              : 30,
+                        ),
+                        Expanded(
+                          flex: contentFlex,
+                          child: _buildTextContent(
+                            context,
+                            textColor: textColor,
+                            mutedColor: mutedColor,
+                            mainAxisAlignment: isCompactHeight
+                                ? MainAxisAlignment.start
+                                : MainAxisAlignment.center,
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildImagePanel(
+    BuildContext context, {
+    required Color panelColor,
+  }) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+
+    return AspectRatio(
+      aspectRatio: 1122 / 1402,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: panelColor,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.asset(
+                    model.imagePath,
+                    fit: BoxFit.contain,
+                    cacheWidth: (constraints.maxWidth * devicePixelRatio)
+                        .round(),
+                    cacheHeight: (constraints.maxHeight * devicePixelRatio)
+                        .round(),
+                  ),
+                  PositionedDirectional(
+                    top: 14,
+                    start: 14,
+                    child: _StepBadge(
+                      icon: icon,
+                      accentColor: accentColor,
+                      label: '$pageNumber/$totalPages',
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextContent(
+    BuildContext context, {
+    required Color textColor,
+    required Color mutedColor,
+    required MainAxisAlignment mainAxisAlignment,
+  }) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: mainAxisAlignment,
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 240),
+          switchInCurve: Curves.easeOut,
+          switchOutCurve: Curves.easeIn,
+          child: Text(
+            model.title,
+            key: ValueKey(model.title),
+            textAlign: TextAlign.center,
+            style: theme.textTheme.headlineLarge?.copyWith(
+              color: textColor,
+              fontSize: AppFontSizes.pageTitle,
+              height: 1.16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 240),
+          child: ConstrainedBox(
+            key: ValueKey(model.description),
+            constraints: const BoxConstraints(maxWidth: 330),
+            child: Text(
+              model.description,
+              textAlign: TextAlign.center,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: mutedColor,
+                fontSize: AppFontSizes.bodyLarge,
+                height: 1.5,
+                letterSpacing: 0,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

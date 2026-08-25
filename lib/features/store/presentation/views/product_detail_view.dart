@@ -385,88 +385,99 @@ class _ProductDetailViewState extends State<ProductDetailView> {
               onWishlistTap: () => _toggleWishlist(context, isFavorite),
               onThumbnailTap: (asset) => setState(() => currentImage = asset),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PriceHeader(
-                    discount: _discountBadgeLabel(context, _productDiscount),
-                    price: _selectedDisplayPrice,
-                    oldPrice: _selectedOriginalPrice.isNotEmpty
-                        ? _selectedOriginalPrice
-                        : _formatPrice(_productOldPrice),
-                    isDark: isDark,
-                  ),
-                  if (_isLoadingProductDetails) ...[
-                    const SizedBox(height: 8),
-                    const LinearProgressIndicator(minHeight: 2),
-                  ],
-                  if (_variants.isEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      'هذا المنتج غير متاح للطلب حاليًا.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 12),
-                  Text(
-                    context.tr(_productTitle),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: textColor,
-                      fontSize: AppFontSizes.title,
-                      height: 1.12,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _StatusPill(
-                        label: stock,
-                        color: stockColor,
+                      _PriceHeader(
+                        discount: _discountBadgeLabel(
+                          context,
+                          _productDiscount,
+                        ),
+                        price: _selectedDisplayPrice,
+                        oldPrice: _selectedOriginalPrice.isNotEmpty
+                            ? _selectedOriginalPrice
+                            : _formatPrice(_productOldPrice),
                         isDark: isDark,
                       ),
-                      const SizedBox(width: 10),
-                      _BrandPill(brand: _productBrand, isDark: isDark),
+                      if (_isLoadingProductDetails) ...[
+                        const SizedBox(height: 8),
+                        const LinearProgressIndicator(minHeight: 2),
+                      ],
+                      if (_variants.isEmpty) ...[
+                        const SizedBox(height: 12),
+                        Text(
+                          'هذا المنتج غير متاح للطلب حاليًا.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ],
+                      const SizedBox(height: 12),
+                      Text(
+                        context.tr(_productTitle),
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: textColor,
+                          fontSize: AppFontSizes.title,
+                          height: 1.12,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          _StatusPill(
+                            label: stock,
+                            color: stockColor,
+                            isDark: isDark,
+                          ),
+                          const SizedBox(width: 10),
+                          _BrandPill(brand: _productBrand, isDark: isDark),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+                      _buildVariantSelectors(isDark: isDark),
+                      if (hasUnavailableCombination) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          'هذا الاختيار غير متاح حاليًا.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: AppColors.error,
+                                fontWeight: FontWeight.w800,
+                              ),
+                        ),
+                      ],
+                      if (_productAdditions.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        _buildAdditionsButton(
+                          isDark: isDark,
+                          mutedColor: mutedColor,
+                        ),
+                      ],
+                      const SizedBox(height: 20),
+                      _InfoCard(
+                        isDark: isDark,
+                        title: 'Description',
+                        child: Text(
+                          _productDescription,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: mutedColor,
+                                height: 1.45,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  _buildVariantSelectors(isDark: isDark),
-                  if (hasUnavailableCombination) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'هذا الاختيار غير متاح حاليًا.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ],
-                  if (_productAdditions.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    _buildAdditionsButton(
-                      isDark: isDark,
-                      mutedColor: mutedColor,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  _InfoCard(
-                    isDark: isDark,
-                    title: 'Description',
-                    child: Text(
-                      _productDescription,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: mutedColor,
-                        height: 1.45,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
           ],

@@ -99,7 +99,8 @@ class WishlistView extends StatelessWidget {
                                           ),
                                           itemCount: wishlist.length,
                                           minCrossAxisCount: 2,
-                                          maxCrossAxisCount: 2,
+                                          maxCrossAxisCount: 6,
+                                          minimumCardWidth: 152,
                                           itemBuilder: (_, index) {
                                             final item = wishlist[index];
                                             return ProductCardVertical(

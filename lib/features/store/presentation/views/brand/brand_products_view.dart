@@ -581,7 +581,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             useHomeSearchStyle: true,
             showSummary: false,
             pageSize: 100,
-            maxCrossAxisCount: 2,
             gridMainAxisExtent: 242,
             compactProductCards: false,
             contentAfterSearch: offers.isEmpty

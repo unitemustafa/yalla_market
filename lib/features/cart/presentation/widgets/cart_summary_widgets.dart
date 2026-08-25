@@ -166,7 +166,6 @@ class CheckoutSummary extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         decoration: BoxDecoration(
           color: panelColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
@@ -185,77 +184,85 @@ class CheckoutSummary extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _SummaryRow(
-              label: 'Subtotal',
-              value: formatCartMoney(subtotal),
-              textColor: textColor,
-              mutedColor: mutedColor,
-            ),
-            const SizedBox(height: 8),
-            _SummaryRow(
-              label: 'Delivery',
-              value: cartNotSpecifiedLabel(context),
-              textColor: textColor,
-              mutedColor: mutedColor,
-              valueColor: AppColors.primary,
-            ),
-            const SizedBox(height: 12),
-            Divider(
-              height: 1,
-              color: isDark
-                  ? Colors.white.withValues(alpha: 0.08)
-                  : Colors.black.withValues(alpha: 0.06),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 920),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _SummaryRow(
+                    label: 'Subtotal',
+                    value: formatCartMoney(subtotal),
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                  ),
+                  const SizedBox(height: 8),
+                  _SummaryRow(
+                    label: 'Delivery',
+                    value: cartNotSpecifiedLabel(context),
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                    valueColor: AppColors.primary,
+                  ),
+                  const SizedBox(height: 12),
+                  Divider(
+                    height: 1,
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : Colors.black.withValues(alpha: 0.06),
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
                     children: [
-                      Text(
-                        context.productCount(itemCount),
-                        style: TextStyle(
-                          color: mutedColor,
-                          fontSize: AppFontSizes.label,
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.productCount(itemCount),
+                              style: TextStyle(
+                                color: mutedColor,
+                                fontSize: AppFontSizes.label,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            AppCurrencyText(
+                              text: context.tr(formatCartMoney(total)),
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: AppFontSizes.title,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      AppCurrencyText(
-                        text: context.tr(formatCartMoney(total)),
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: AppFontSizes.title,
-                          fontWeight: FontWeight.w900,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: onCheckout,
+                          icon: const Icon(AppIcons.card_tick, size: 19),
+                          label: Text(context.tr('Checkout')),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
                         ),
                       ),
                     ],
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onCheckout,
-                    icon: const Icon(AppIcons.card_tick, size: 19),
-                    label: Text(context.tr('Checkout')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ],
+          ),
         ),
       ),
     );

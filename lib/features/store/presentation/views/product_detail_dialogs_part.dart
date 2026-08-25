@@ -79,6 +79,8 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
       builder: (sheetContext) {
         return StatefulBuilder(
           builder: (context, setSheetState) {
+            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+
             return SafeArea(
               top: false,
               child: Container(
@@ -178,7 +180,10 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                                       source: addition.image,
                                       width: 54,
                                       height: 54,
-                                      fit: BoxFit.cover,
+                                      fit: BoxFit.contain,
+                                      cacheWidth: (54 * devicePixelRatio).round(),
+                                      cacheHeight: (54 * devicePixelRatio)
+                                          .round(),
                                       borderRadius: BorderRadius.circular(8),
                                       fallbackType:
                                           AppImagePlaceholderType.addon,
@@ -404,6 +409,7 @@ class _ProductShareSheet extends StatelessWidget {
     final mutedColor = isDark
         ? Colors.white.withValues(alpha: 0.64)
         : Colors.black.withValues(alpha: 0.58);
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return SafeArea(
       top: false,
@@ -465,9 +471,9 @@ class _ProductShareSheet extends StatelessWidget {
                       child: AppImage(
                         source: image,
                         fallbackType: AppImagePlaceholderType.product,
-                        fit: BoxFit.cover,
-                        cacheWidth: 128,
-                        cacheHeight: 128,
+                        fit: BoxFit.contain,
+                        cacheWidth: (64 * devicePixelRatio).round(),
+                        cacheHeight: (64 * devicePixelRatio).round(),
                       ),
                     ),
                   ),

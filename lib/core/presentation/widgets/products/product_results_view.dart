@@ -139,6 +139,11 @@ class _ProductResultsViewState extends State<ProductResultsView> {
                 .clamp(0, sorted.length)
                 .toInt();
             final pageItems = sorted.sublist(start, end);
+            final productGridColumnLimit = widget.compactProductCards ? 6 : 4;
+            final productGridMaxCrossAxisCount =
+                widget.maxCrossAxisCount > productGridColumnLimit
+                ? productGridColumnLimit
+                : widget.maxCrossAxisCount;
 
             if (safePage != _page) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -224,7 +229,8 @@ class _ProductResultsViewState extends State<ProductResultsView> {
                   GridLayout(
                     itemCount: pageItems.length,
                     mainAxisExtent: widget.gridMainAxisExtent,
-                    maxCrossAxisCount: widget.maxCrossAxisCount,
+                    minimumCardWidth: widget.compactProductCards ? 152 : 220,
+                    maxCrossAxisCount: productGridMaxCrossAxisCount,
                     itemBuilder: (_, index) {
                       final product = pageItems[index];
                       return ProductCardVertical(

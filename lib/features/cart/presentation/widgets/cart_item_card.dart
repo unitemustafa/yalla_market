@@ -17,16 +17,31 @@ class CartItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _buildCartItem(context, item: item, isDark: isDark);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return _buildCartItem(
+          context,
+          item: item,
+          isDark: isDark,
+          isWide: constraints.maxWidth >= 700,
+        );
+      },
+    );
   }
 
   Widget _buildCartItem(
     BuildContext context, {
     required CartItemData item,
     required bool isDark,
+    required bool isWide,
   }) {
     if (item.isOffer && item.offerProducts.isNotEmpty) {
-      return _buildOfferCartItem(context, item: item, isDark: isDark);
+      return _buildOfferCartItem(
+        context,
+        item: item,
+        isDark: isDark,
+        isWide: isWide,
+      );
     }
 
     final panelColor = isDark ? AppColors.darkCardColor : Colors.white;
@@ -37,6 +52,9 @@ class CartItemCard extends StatelessWidget {
     final imageBackground = isDark
         ? Colors.white.withValues(alpha: 0.06)
         : const Color(0xFFF1F3F8);
+    final imageWidth = isWide ? 112.0 : 86.0;
+    final imageHeight = isWide ? 120.0 : 92.0;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -61,8 +79,8 @@ class CartItemCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 86,
-            height: 92,
+            width: imageWidth,
+            height: imageHeight,
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
               color: imageBackground,
@@ -72,8 +90,8 @@ class CartItemCard extends StatelessWidget {
               source: item.image,
               fallbackType: AppImagePlaceholderType.product,
               fit: BoxFit.contain,
-              cacheWidth: 172,
-              cacheHeight: 184,
+              cacheWidth: (imageWidth * devicePixelRatio).round(),
+              cacheHeight: (imageHeight * devicePixelRatio).round(),
             ),
           ),
           const SizedBox(width: 12),
@@ -156,6 +174,7 @@ class CartItemCard extends StatelessWidget {
     BuildContext context, {
     required CartItemData item,
     required bool isDark,
+    required bool isWide,
   }) {
     final panelColor = isDark ? AppColors.darkCardColor : Colors.white;
     final mutedColor = isDark
@@ -169,6 +188,8 @@ class CartItemCard extends StatelessWidget {
       0,
       (sum, product) => sum + product.quantity,
     );
+    final imageSize = isWide ? 96.0 : 72.0;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -195,8 +216,8 @@ class CartItemCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
-                width: 72,
-                height: 72,
+                width: imageSize,
+                height: imageSize,
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
                   color: imageBackground,
@@ -206,8 +227,8 @@ class CartItemCard extends StatelessWidget {
                   source: item.image,
                   fallbackType: AppImagePlaceholderType.product,
                   fit: BoxFit.contain,
-                  cacheWidth: 144,
-                  cacheHeight: 144,
+                  cacheWidth: (imageSize * devicePixelRatio).round(),
+                  cacheHeight: (imageSize * devicePixelRatio).round(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -261,6 +282,7 @@ class CartItemCard extends StatelessWidget {
               context,
               product: item.offerProducts[index],
               isDark: isDark,
+              isWide: isWide,
             ),
             if (index != item.offerProducts.length - 1)
               Divider(
@@ -308,25 +330,28 @@ class CartItemCard extends StatelessWidget {
     BuildContext context, {
     required CartOfferProductData product,
     required bool isDark,
+    required bool isWide,
   }) {
     final mutedColor = isDark
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+    final imageSize = isWide ? 56.0 : 42.0;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
         children: [
           SizedBox(
-            width: 42,
-            height: 42,
+            width: imageSize,
+            height: imageSize,
             child: AppImage(
               source: product.image,
               fallbackType: AppImagePlaceholderType.product,
               fit: BoxFit.contain,
-              cacheWidth: 84,
-              cacheHeight: 84,
+              cacheWidth: (imageSize * devicePixelRatio).round(),
+              cacheHeight: (imageSize * devicePixelRatio).round(),
             ),
           ),
           const SizedBox(width: 10),

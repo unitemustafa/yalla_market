@@ -168,7 +168,7 @@ void main() {
       discountBadge.padding,
       const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     );
-    expect(tester.widget<AppImage>(find.byType(AppImage)).fit, BoxFit.cover);
+    expect(tester.widget<AppImage>(find.byType(AppImage)).fit, BoxFit.contain);
     final priceTexts = tester
         .widgetList<RichText>(find.byType(RichText))
         .map((widget) => widget.text.toPlainText());

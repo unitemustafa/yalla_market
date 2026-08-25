@@ -113,7 +113,6 @@ class _PromoOfferSheet extends StatelessWidget {
       top: false,
       child: Container(
         height: MediaQuery.sizeOf(context).height * 0.94,
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
         decoration: BoxDecoration(
           color: sheetColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
@@ -123,80 +122,88 @@ class _PromoOfferSheet extends StatelessWidget {
                 : Colors.black.withValues(alpha: 0.06),
           ),
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Center(
-              child: Container(
-                width: 44,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: mutedColor.withValues(alpha: 0.45),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _OfferSheetHeader(
-              offer: offer,
-              textColor: textColor,
-              mutedColor: mutedColor,
-              isDark: isDark,
-              onShare: _shareLink == null
-                  ? null
-                  : () => _showShareSheet(context),
-            ),
-            const SizedBox(height: 14),
-            if (offer.endsAt != null) ...[
-              _OfferCountdownPanel(
-                offer: offer,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                isDark: isDark,
-              ),
-              const SizedBox(height: 14),
-            ],
-            Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 760),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _OfferStatusPanel(
+                  Center(
+                    child: Container(
+                      width: 44,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: mutedColor.withValues(alpha: 0.45),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _OfferSheetHeader(
                     offer: offer,
                     textColor: textColor,
                     mutedColor: mutedColor,
                     isDark: isDark,
+                    onShare: _shareLink == null
+                        ? null
+                        : () => _showShareSheet(context),
                   ),
                   const SizedBox(height: 14),
-                  _OfferProductsPanel(
+                  if (offer.endsAt != null) ...[
+                    _OfferCountdownPanel(
+                      offer: offer,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      isDark: isDark,
+                    ),
+                    const SizedBox(height: 14),
+                  ],
+                  Expanded(
+                    child: ListView(
+                      padding: EdgeInsets.zero,
+                      children: [
+                        _OfferStatusPanel(
+                          offer: offer,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 14),
+                        _OfferProductsPanel(
+                          offer: offer,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 14),
+                        _OfferSummaryPanel(
+                          offer: offer,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(height: 14),
+                        _OfferPaymentPanel(
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          isDark: isDark,
+                        ),
+                      ],
+                    ),
+                  ),
+                  _OfferCheckoutBar(
                     offer: offer,
                     textColor: textColor,
                     mutedColor: mutedColor,
                     isDark: isDark,
-                  ),
-                  const SizedBox(height: 14),
-                  _OfferSummaryPanel(
-                    offer: offer,
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    isDark: isDark,
-                  ),
-                  const SizedBox(height: 14),
-                  _OfferPaymentPanel(
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    isDark: isDark,
+                    onCheckout: () => _checkoutOffer(context),
                   ),
                 ],
               ),
             ),
-            _OfferCheckoutBar(
-              offer: offer,
-              textColor: textColor,
-              mutedColor: mutedColor,
-              isDark: isDark,
-              onCheckout: () => _checkoutOffer(context),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -557,106 +564,116 @@ class _OfferProductRow extends StatelessWidget {
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openProductDetails(context),
-        child: Row(
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: imageFill,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: AppImage(
-                source: product.image,
-                fallbackType: AppImagePlaceholderType.product,
-                fit: BoxFit.contain,
-                cacheWidth: 88,
-                cacheHeight: 88,
-                filterQuality: FilterQuality.low,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final imageSize = constraints.maxWidth >= 600 ? 68.0 : 44.0;
+            final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+
+            return Row(
+              children: [
+                Container(
+                  width: imageSize,
+                  height: imageSize,
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: imageFill,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: AppImage(
+                    source: product.image,
+                    fallbackType: AppImagePlaceholderType.product,
+                    fit: BoxFit.contain,
+                    cacheWidth: (imageSize * devicePixelRatio).round(),
+                    cacheHeight: (imageSize * devicePixelRatio).round(),
+                    filterQuality: FilterQuality.low,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(
-                        child: Text(
-                          product.title(context),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              product.title(context),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: textColor,
+                                    height: 1.18,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        product.brand(context),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                          color: mutedColor,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      if (product.meta(context).trim().isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          product.meta(context),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.bodyMedium
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: mutedColor,
+                                fontWeight: FontWeight.w700,
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 10),
+                SizedBox(
+                  width: 76,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: GreenCurrencyPrice(
+                          price: product.price,
+                          style: Theme.of(context).textTheme.labelLarge
                               ?.copyWith(
                                 color: textColor,
-                                height: 1.18,
                                 fontWeight: FontWeight.w900,
                               ),
                         ),
                       ),
+                      if (product.oldPrice != null &&
+                          product.oldPrice != product.price) ...[
+                        const SizedBox(height: 2),
+                        AppCurrencyText(
+                          text: product.oldPrice!,
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                color: mutedColor,
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                          textAlign: TextAlign.end,
+                        ),
+                      ],
                     ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    product.brand(context),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                      color: mutedColor,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  if (product.meta(context).trim().isNotEmpty) ...[
-                    const SizedBox(height: 2),
-                    Text(
-                      product.meta(context),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: mutedColor,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(width: 10),
-            SizedBox(
-              width: 76,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: AlignmentDirectional.centerEnd,
-                    child: GreenCurrencyPrice(
-                      price: product.price,
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: textColor,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  if (product.oldPrice != null &&
-                      product.oldPrice != product.price) ...[
-                    const SizedBox(height: 2),
-                    AppCurrencyText(
-                      text: product.oldPrice!,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: mutedColor,
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                      textAlign: TextAlign.end,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
+                ),
+              ],
+            );
+          },
         ),
       ),
     );

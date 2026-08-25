@@ -27,7 +27,6 @@ class _BottomAddToCartBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
         decoration: BoxDecoration(
           color: isDark ? AppColors.darkCardColor : Colors.white,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
@@ -46,54 +45,64 @@ class _BottomAddToCartBar extends StatelessWidget {
             ),
           ],
         ),
-        child: Row(
-          children: [
-            _QuantityStepper(
-              quantity: quantity,
-              isDark: isDark,
-              onDecrease: onDecrease,
-              onIncrease: onIncrease,
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: canAdd ? onAddToCart : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canAdd
-                      ? AppColors.primary
-                      : (isDark
-                            ? Colors.white.withValues(alpha: 0.10)
-                            : Colors.black.withValues(alpha: 0.08)),
-                  foregroundColor: canAdd
-                      ? Colors.white
-                      : (isDark ? Colors.white54 : Colors.black45),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 720),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+              child: Row(
+                children: [
+                  _QuantityStepper(
+                    quantity: quantity,
+                    isDark: isDark,
+                    onDecrease: onDecrease,
+                    onIncrease: onIncrease,
                   ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(AppIcons.bag_2, size: 19),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: AppCurrencyText(
-                        text: quantity > 0
-                            ? '${context.tr('Add')} ${AppCurrency.format(total)}'
-                            : context.tr('Add to Bag'),
-                        currencyColor: AppColors.currency,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: canAdd ? onAddToCart : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: canAdd
+                            ? AppColors.primary
+                            : (isDark
+                                  ? Colors.white.withValues(alpha: 0.10)
+                                  : Colors.black.withValues(alpha: 0.08)),
+                        foregroundColor: canAdd
+                            ? Colors.white
+                            : (isDark ? Colors.white54 : Colors.black45),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(AppIcons.bag_2, size: 19),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: AppCurrencyText(
+                              text: quantity > 0
+                                  ? '${context.tr('Add')} ${AppCurrency.format(total)}'
+                                  : context.tr('Add to Bag'),
+                              currencyColor: AppColors.currency,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );

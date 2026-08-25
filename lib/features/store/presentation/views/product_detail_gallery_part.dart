@@ -26,91 +26,112 @@ class _ProductGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
-    final imageLogicalWidth = (MediaQuery.sizeOf(context).width - 32).clamp(
-      1.0,
-      720.0,
-    );
     final backIcon = Directionality.of(context) == TextDirection.rtl
         ? AppIcons.arrow_right_3
         : AppIcons.arrow_left_2;
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       decoration: BoxDecoration(
         color: isDark ? AppColors.darkCardColor : const Color(0xFFF1F3F8),
         borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
       ),
       child: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _CircleActionButton(
-                  icon: backIcon,
-                  isDark: isDark,
-                  onTap: onBack,
-                ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _CircleActionButton(
-                      icon: AppIcons.send_1,
-                      isDark: isDark,
-                      onTap: onShare,
-                      tooltip: 'Share product',
-                    ),
-                    const SizedBox(width: 8),
-                    _CircleActionButton(
-                      icon: isFavorite ? AppIcons.heart5 : AppIcons.heart,
-                      color: isFavorite ? AppColors.error : null,
-                      isDark: isDark,
-                      onTap: onWishlistTap,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            GestureDetector(
-              onTap: onImageTap,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final galleryWidth = (constraints.maxWidth - 32).clamp(1.0, 720.0);
+            final imageHeight = constraints.maxWidth >= 700
+                ? (galleryWidth * 7 / 12).clamp(280.0, 420.0)
+                : 188.0;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: Center(
                 child: SizedBox(
-                  height: 188,
-                  width: double.infinity,
-                  child: AppImage(
-                    source: currentImage,
-                    fallbackType: AppImagePlaceholderType.product,
-                    fit: BoxFit.cover,
-                    cacheWidth: (imageLogicalWidth * devicePixelRatio).round(),
-                    cacheHeight: (188 * devicePixelRatio).round(),
+                  width: galleryWidth,
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _CircleActionButton(
+                            icon: backIcon,
+                            isDark: isDark,
+                            onTap: onBack,
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              _CircleActionButton(
+                                icon: AppIcons.send_1,
+                                isDark: isDark,
+                                onTap: onShare,
+                                tooltip: 'Share product',
+                              ),
+                              const SizedBox(width: 8),
+                              _CircleActionButton(
+                                icon: isFavorite
+                                    ? AppIcons.heart5
+                                    : AppIcons.heart,
+                                color: isFavorite ? AppColors.error : null,
+                                isDark: isDark,
+                                onTap: onWishlistTap,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: onImageTap,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: SizedBox(
+                            height: imageHeight,
+                            width: double.infinity,
+                            child: ColoredBox(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.04)
+                                  : Colors.white,
+                              child: AppImage(
+                                source: currentImage,
+                                fallbackType: AppImagePlaceholderType.product,
+                                fit: BoxFit.contain,
+                                cacheWidth:
+                                    (galleryWidth * devicePixelRatio).round(),
+                                cacheHeight:
+                                    (imageHeight * devicePixelRatio).round(),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        height: 64,
+                        child: ListView.separated(
+                          scrollDirection: Axis.horizontal,
+                          shrinkWrap: true,
+                          itemCount: thumbnailImages.length,
+                          separatorBuilder: (_, _) => const SizedBox(width: 10),
+                          itemBuilder: (context, index) {
+                            final asset = thumbnailImages[index];
+                            return _ThumbnailButton(
+                              asset: asset,
+                              isSelected: currentImage == asset,
+                              isDark: isDark,
+                              onTap: () => onThumbnailTap(asset),
+                            );
+                          },
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 64,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                shrinkWrap: true,
-                itemCount: thumbnailImages.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final asset = thumbnailImages[index];
-                  return _ThumbnailButton(
-                    asset: asset,
-                    isSelected: currentImage == asset,
-                    isDark: isDark,
-                    onTap: () => onThumbnailTap(asset),
-                  );
-                },
-              ),
-            ),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -174,6 +195,8 @@ class _ThumbnailButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -193,8 +216,8 @@ class _ThumbnailButton extends StatelessWidget {
           source: asset,
           fallbackType: AppImagePlaceholderType.product,
           fit: BoxFit.contain,
-          cacheWidth: 128,
-          cacheHeight: 128,
+          cacheWidth: (64 * devicePixelRatio).round(),
+          cacheHeight: (64 * devicePixelRatio).round(),
         ),
       ),
     );

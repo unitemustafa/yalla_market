@@ -241,6 +241,7 @@ extension _ProductDetailActions on _ProductDetailViewState {
     required Color mutedColor,
   }) {
     final selectedAdditions = _selectedAdditions;
+    final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
     final label = selectedAdditions.isEmpty
         ? context.tr('Choose additions')
         : context.isArabicLanguage
@@ -323,7 +324,9 @@ extension _ProductDetailActions on _ProductDetailViewState {
                         source: addition.image,
                         width: 28,
                         height: 28,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
+                        cacheWidth: (28 * devicePixelRatio).round(),
+                        cacheHeight: (28 * devicePixelRatio).round(),
                         borderRadius: BorderRadius.circular(6),
                         fallbackType: AppImagePlaceholderType.addon,
                         semanticLabel: context.tr(addition.name),

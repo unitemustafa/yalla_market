@@ -16,7 +16,9 @@ import 'package:yalla_market/features/wishlist/presentation/views/wishlist_view.
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
-  testWidgets('favorite products always use two columns', (tester) async {
+  testWidgets('favorite products use two columns at phone widths', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 

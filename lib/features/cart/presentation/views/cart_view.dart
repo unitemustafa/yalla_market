@@ -55,57 +55,64 @@ class _CartViewState extends State<CartView> {
           );
 
           return SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: topBar,
-                ),
-                Expanded(
-                  child: cartItems.isEmpty
-                      ? const EmptyCartView()
-                      : ListView.separated(
-                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
-                          itemCount: cartItems.length,
-                          separatorBuilder: (_, _) =>
-                              const SizedBox(height: 12),
-                          itemBuilder: (context, index) {
-                            final item = cartItems[index];
-                            return Dismissible(
-                              key: Key(item.id),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                padding: const EdgeInsetsDirectional.only(
-                                  end: 22,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: const Icon(
-                                  AppIcons.trash,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              onDismissed: (direction) {
-                                context.read<CartCubit>().removeItem(item.id);
-                                CustomSnackBar.showRemoved(
-                                  context: context,
-                                  title: 'Item removed from cart',
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 920),
+                child: Column(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+                      child: topBar,
+                    ),
+                    Expanded(
+                      child: cartItems.isEmpty
+                          ? const EmptyCartView()
+                          : ListView.separated(
+                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+                              itemCount: cartItems.length,
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(height: 12),
+                              itemBuilder: (context, index) {
+                                final item = cartItems[index];
+                                return Dismissible(
+                                  key: Key(item.id),
+                                  direction: DismissDirection.endToStart,
+                                  background: Container(
+                                    padding: const EdgeInsetsDirectional.only(
+                                      end: 22,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.error,
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    alignment: AlignmentDirectional.centerEnd,
+                                    child: const Icon(
+                                      AppIcons.trash,
+                                      color: Colors.white,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  onDismissed: (direction) {
+                                    context.read<CartCubit>().removeItem(
+                                      item.id,
+                                    );
+                                    CustomSnackBar.showRemoved(
+                                      context: context,
+                                      title: 'Item removed from cart',
+                                    );
+                                  },
+                                  child: _buildCartItem(
+                                    context,
+                                    item: item,
+                                    isDark: isDark,
+                                  ),
                                 );
                               },
-                              child: _buildCartItem(
-                                context,
-                                item: item,
-                                isDark: isDark,
-                              ),
-                            );
-                          },
-                        ),
+                            ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           );
         },

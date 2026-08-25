@@ -34,18 +34,26 @@ class _HomeCampaignSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sheet = campaign.sheet;
+    final colorScheme = Theme.of(context).colorScheme;
+    final sheetBackgroundColor = sheet.useThemeColors
+        ? colorScheme.surface
+        : sheet.backgroundColor;
+    final sheetTextColor = sheet.useThemeColors
+        ? colorScheme.onSurface
+        : sheet.textColor;
     final alignment = sheet.alignment == 'center'
         ? TextAlign.center
         : TextAlign.start;
     final content = _CampaignTextContent(
       campaign: campaign,
       textAlign: alignment,
+      textColor: sheetTextColor,
     );
     return SizedBox(
       height: MediaQuery.sizeOf(context).height * _heightFactor(),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: sheet.backgroundColor,
+          color: sheetBackgroundColor,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         ),
         child: Column(
@@ -58,7 +66,7 @@ class _HomeCampaignSheet extends StatelessWidget {
                     width: 42,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: sheet.textColor.withValues(alpha: 0.18),
+                      color: sheetTextColor.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(99),
                     ),
                   ),
@@ -70,7 +78,7 @@ class _HomeCampaignSheet extends StatelessWidget {
                       HomeCampaignSheetResult.dismissed,
                     ),
                     icon: const Icon(Icons.close_rounded),
-                    color: sheet.textColor,
+                    color: sheetTextColor,
                   ),
                 ],
               ),
@@ -137,9 +145,14 @@ class _HomeCampaignSheet extends StatelessWidget {
 }
 
 class _CampaignTextContent extends StatelessWidget {
-  const _CampaignTextContent({required this.campaign, required this.textAlign});
+  const _CampaignTextContent({
+    required this.campaign,
+    required this.textAlign,
+    required this.textColor,
+  });
   final HomeCampaignData campaign;
   final TextAlign textAlign;
+  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
@@ -153,7 +166,7 @@ class _CampaignTextContent extends StatelessWidget {
           textAlign: textAlign,
           textDirection: TextDirection.rtl,
           style: TextStyle(
-            color: campaign.sheet.textColor,
+            color: textColor,
             fontSize: 24,
             fontWeight: FontWeight.w900,
             height: 1.3,
@@ -166,7 +179,7 @@ class _CampaignTextContent extends StatelessWidget {
             textAlign: textAlign,
             textDirection: TextDirection.rtl,
             style: TextStyle(
-              color: campaign.sheet.textColor.withValues(alpha: 0.78),
+              color: textColor.withValues(alpha: 0.78),
               fontSize: 15,
               fontWeight: FontWeight.w600,
               height: 1.65,

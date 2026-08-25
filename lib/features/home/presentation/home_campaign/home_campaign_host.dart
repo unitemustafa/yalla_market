@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -11,8 +13,13 @@ import 'home_campaign_preferences.dart';
 import 'home_campaign_sheet.dart';
 
 class HomeCampaignHost extends StatefulWidget {
-  const HomeCampaignHost({super.key, required this.campaign});
+  const HomeCampaignHost({
+    super.key,
+    required this.campaign,
+    this.onRotationDue,
+  });
   final HomeCampaignData campaign;
+  final Future<void> Function()? onRotationDue;
 
   @override
   State<HomeCampaignHost> createState() => _HomeCampaignHostState();
@@ -22,11 +29,13 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
   bool _ready = false;
   bool _hidden = false;
   bool _sheetOpen = false;
+  Timer? _rotationTimer;
 
   @override
   void initState() {
     super.initState();
     _prepare();
+    _scheduleRotation();
   }
 
   @override
@@ -36,7 +45,27 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
       _ready = false;
       _hidden = false;
       _prepare();
+      _scheduleRotation();
     }
+  }
+
+  void _scheduleRotation() {
+    _rotationTimer?.cancel();
+    final seconds = widget.campaign.behavior.rotationSeconds
+        .clamp(60, 86400)
+        .toInt();
+    final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    final delaySeconds = seconds - (nowSeconds % seconds);
+    _rotationTimer = Timer(Duration(seconds: delaySeconds), () async {
+      await widget.onRotationDue?.call();
+      if (mounted) _scheduleRotation();
+    });
+  }
+
+  @override
+  void dispose() {
+    _rotationTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _prepare() async {

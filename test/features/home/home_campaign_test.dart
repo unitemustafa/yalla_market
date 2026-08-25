@@ -15,6 +15,8 @@ void main() {
     expect(campaign.sheet.template, 'hero');
     expect(campaign.action.type, 'none');
     expect(campaign.teaser.backgroundColor, const Color(0xFFFF5A00));
+    expect(campaign.sheet.useThemeColors, isTrue);
+    expect(campaign.behavior.rotationSeconds, 1800);
   });
 
   test('home payload exposes its campaign without changing existing lists', () {
@@ -53,6 +55,32 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('عرض النهارده'), findsNothing);
   });
+
+  testWidgets('campaign sheet follows the dark app theme', (tester) async {
+    final payload = _payload()..['id'] = 43;
+    final campaign = HomeCampaignData.fromJson(payload);
+    const darkText = Color(0xFFE9EEF8);
+    await tester.pumpWidget(
+      MaterialApp(
+        themeMode: ThemeMode.dark,
+        darkTheme: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            surface: Color(0xFF17191F),
+            onSurface: darkText,
+          ),
+        ),
+        home: Scaffold(
+          bottomNavigationBar: HomeCampaignHost(campaign: campaign),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('عرض النهارده'));
+    await tester.pumpAndSettle();
+
+    final title = tester.widget<Text>(find.text('وفر في طلبك'));
+    expect(title.style?.color, darkText);
+  });
 }
 
 Map<String, dynamic> _payload() => {
@@ -70,6 +98,7 @@ Map<String, dynamic> _payload() => {
     'template': 'hero',
     'size': 'medium',
     'alignment': 'center',
+    'use_theme_colors': true,
     'background_color': '#FFFFFF',
     'text_color': '#202124',
     'button_background_color': '#FF5A00',
@@ -77,5 +106,9 @@ Map<String, dynamic> _payload() => {
   },
   'media': {'type': 'none', 'image_url': '', 'video_url': '', 'poster_url': ''},
   'action': {'type': 'none', 'label': '', 'value': '', 'target': null},
-  'behavior': {'open_mode': 'tap_only', 'dismiss_behavior': 'hide_session'},
+  'behavior': {
+    'open_mode': 'tap_only',
+    'dismiss_behavior': 'hide_session',
+    'rotation_seconds': 1800,
+  },
 };

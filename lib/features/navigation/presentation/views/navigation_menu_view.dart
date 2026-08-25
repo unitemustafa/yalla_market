@@ -1,4 +1,6 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -237,6 +239,9 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
       selectedIndex = index;
       _screens[index] ??= _screenAt(index);
     });
+    if (index == 0) {
+      unawaited(context.read<HomeCubit>().refreshSilently());
+    }
   }
 
   @override
@@ -260,6 +265,8 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
                   : HomeCampaignHost(
                       key: ValueKey(campaign.storageIdentity),
                       campaign: campaign,
+                      onRotationDue: () =>
+                          context.read<HomeCubit>().refreshSilently(),
                     ),
             ),
           _YallaBottomNavigationBar(

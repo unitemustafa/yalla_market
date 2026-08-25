@@ -66,6 +66,7 @@ class HomeCampaignSheetData {
     required this.template,
     required this.size,
     required this.alignment,
+    required this.useThemeColors,
     required this.backgroundColor,
     required this.textColor,
     required this.buttonBackgroundColor,
@@ -76,6 +77,7 @@ class HomeCampaignSheetData {
   final String template;
   final String size;
   final String alignment;
+  final bool useThemeColors;
   final Color backgroundColor;
   final Color textColor;
   final Color buttonBackgroundColor;
@@ -88,6 +90,9 @@ class HomeCampaignSheetData {
         template: json['template']?.toString() ?? 'hero',
         size: json['size']?.toString() ?? 'large',
         alignment: json['alignment']?.toString() ?? 'center',
+        useThemeColors: json['use_theme_colors'] is bool
+            ? json['use_theme_colors'] as bool
+            : true,
         backgroundColor: campaignColor(json['background_color'], Colors.white),
         textColor: campaignColor(json['text_color'], const Color(0xFF202124)),
         buttonBackgroundColor: campaignColor(
@@ -145,14 +150,18 @@ class HomeCampaignBehaviorData {
   const HomeCampaignBehaviorData({
     required this.openMode,
     required this.dismissBehavior,
+    required this.rotationSeconds,
   });
   final String openMode;
   final String dismissBehavior;
+  final int rotationSeconds;
   factory HomeCampaignBehaviorData.fromJson(Map<String, dynamic> json) =>
       HomeCampaignBehaviorData(
         openMode: json['open_mode']?.toString() ?? 'tap_only',
         dismissBehavior:
             json['dismiss_behavior']?.toString() ?? 'collapse_only',
+        rotationSeconds:
+            int.tryParse(json['rotation_seconds']?.toString() ?? '') ?? 1800,
       );
 }
 

@@ -40,9 +40,11 @@ class _ProductGallery extends StatelessWidget {
         bottom: false,
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final galleryWidth = (constraints.maxWidth - 32).clamp(1.0, 720.0);
+            final galleryWidth = (constraints.maxWidth - 32)
+                .clamp(1.0, 720.0)
+                .toDouble();
             final imageHeight = constraints.maxWidth >= 700
-                ? (galleryWidth * 7 / 12).clamp(280.0, 420.0)
+                ? (galleryWidth * 7 / 12).clamp(280.0, 420.0).toDouble()
                 : 188.0;
 
             return Padding(

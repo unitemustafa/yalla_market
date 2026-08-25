@@ -650,8 +650,6 @@ class _PromoSliderState extends State<PromoSlider> {
     return _OfferProduct(
       productId: product.id,
       variantId: selectedVariantId,
-      marketId: product.marketId,
-      marketName: product.brand,
       image: product.image,
       titleEn: product.title,
       titleAr: product.title,

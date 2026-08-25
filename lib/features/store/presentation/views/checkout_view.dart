@@ -295,12 +295,6 @@ class _CheckoutViewState extends State<CheckoutView> {
                 final shippingFee = hasPreviewTotals
                     ? previewSummary?.deliveryTotal ?? 0.0
                     : 0.0;
-                final multiMarketFee = hasPreviewTotals
-                    ? previewSummary?.multiMarketFee ?? 0.0
-                    : 0.0;
-                final multiMarketFeeRate = hasPreviewTotals
-                    ? previewSummary?.multiMarketFeeRate ?? 0.0
-                    : 0.0;
                 final total = hasPreviewTotals
                     ? previewSummary?.grandTotal ?? localSubtotal
                     : localSubtotal;
@@ -368,11 +362,6 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   deliveryTypeLabel: deliveryTypeLabel,
                                   discount: discount,
                                   discountLabel: discountLabel,
-                                  showMultiMarketFee:
-                                      hasPreviewTotals &&
-                                      (preview?.isMultiMarket ?? false),
-                                  multiMarketFee: multiMarketFee,
-                                  multiMarketFeeRate: multiMarketFeeRate,
                                   shippingFeeLabel: shippingFeeLabel,
                                   totalLabel: totalLabel,
                                   isDark: isDark,

@@ -266,8 +266,6 @@ class OrderData {
     this.shippingCompany,
     required this.taxTotal,
     required this.discountTotal,
-    this.multiMarketFeeRate = 0,
-    this.multiMarketFee = 0,
     required this.total,
     this.estimatedDeliveryAt,
   });
@@ -294,8 +292,6 @@ class OrderData {
   final ShippingCompanyData? shippingCompany;
   final double taxTotal;
   final double discountTotal;
-  final double multiMarketFeeRate;
-  final double multiMarketFee;
   final double total;
   final DateTime? estimatedDeliveryAt;
 
@@ -367,12 +363,6 @@ class OrderData {
       taxTotal: _doubleFromJson(json['taxTotal'] ?? json['tax_total']),
       discountTotal: _doubleFromJson(
         json['discountTotal'] ?? json['discount_total'] ?? json['discount'],
-      ),
-      multiMarketFeeRate: _doubleFromJson(
-        json['multiMarketFeeRate'] ?? json['multi_market_fee_rate'],
-      ),
-      multiMarketFee: _doubleFromJson(
-        json['multiMarketFee'] ?? json['multi_market_fee'],
       ),
       total: _doubleFromJson(json['total'] ?? json['total_price']),
       estimatedDeliveryAt: shippingDate,
@@ -456,8 +446,6 @@ class OrderData {
             },
       'taxTotal': taxTotal,
       'discountTotal': discountTotal,
-      'multiMarketFeeRate': multiMarketFeeRate,
-      'multiMarketFee': multiMarketFee,
       'total': total,
       'estimatedDeliveryAt': estimatedDeliveryAt?.toIso8601String(),
     };

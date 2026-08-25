@@ -185,8 +185,6 @@ class _OrdersViewState extends State<OrdersView> {
       marketCount: order.marketCount,
       marketSummary: order.marketNamesSummary,
       marketSections: order.marketSections,
-      multiMarketFeeRate: order.multiMarketFeeRate,
-      multiMarketFee: order.multiMarketFee,
     );
   }
 

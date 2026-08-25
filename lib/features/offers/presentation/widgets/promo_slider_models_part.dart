@@ -157,8 +157,6 @@ class _PromoOfferData {
             (product) => CartOfferProductData(
               productId: product.productId,
               variantId: product.variantId,
-              marketId: product.marketId,
-              marketName: product.marketName,
               image: product.image,
               brand: product.brand(context),
               title: product.title(context),
@@ -183,8 +181,6 @@ class _OfferProduct {
   const _OfferProduct({
     this.productId,
     this.variantId,
-    this.marketId,
-    this.marketName,
     required this.image,
     required this.titleEn,
     required this.titleAr,
@@ -202,8 +198,6 @@ class _OfferProduct {
   final String image;
   final String? productId;
   final String? variantId;
-  final String? marketId;
-  final String? marketName;
   final String titleEn;
   final String titleAr;
   final String brandEn;

@@ -6,9 +6,6 @@ class _OrderSummaryCard extends StatelessWidget {
     required this.deliveryTypeLabel,
     required this.discount,
     required this.discountLabel,
-    required this.showMultiMarketFee,
-    required this.multiMarketFee,
-    required this.multiMarketFeeRate,
     required this.shippingFeeLabel,
     required this.totalLabel,
     required this.isDark,
@@ -18,9 +15,6 @@ class _OrderSummaryCard extends StatelessWidget {
   final String deliveryTypeLabel;
   final double discount;
   final String discountLabel;
-  final bool showMultiMarketFee;
-  final double multiMarketFee;
-  final double multiMarketFeeRate;
   final String shippingFeeLabel;
   final String totalLabel;
   final bool isDark;
@@ -94,16 +88,6 @@ class _OrderSummaryCard extends StatelessWidget {
             textColor: textColor,
             mutedColor: mutedColor,
           ),
-          if (showMultiMarketFee) ...[
-            const SizedBox(height: 12),
-            _SummaryRow(
-              label:
-                  '${context.tr('Additional value')} (${_percentageLabel(multiMarketFeeRate)}%)',
-              value: _formatMoney(multiMarketFee),
-              textColor: textColor,
-              mutedColor: mutedColor,
-            ),
-          ],
           const SizedBox(height: 16),
           Divider(
             height: 1,
@@ -162,13 +146,6 @@ class _OrderSummaryCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _percentageLabel(double percentage) {
-  if (percentage == percentage.roundToDouble()) {
-    return percentage.toInt().toString();
-  }
-  return percentage.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
 }
 
 String _discountSummaryLabel(BuildContext context, OrderPreviewData? preview) {

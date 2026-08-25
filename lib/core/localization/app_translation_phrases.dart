@@ -291,7 +291,6 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Delivery price approved': 'تمت الموافقة على سعر التوصيل',
     'Could not approve delivery price': 'تعذر تأكيد سعر التوصيل',
     'Discount': 'الخصم',
-    'Additional value': 'القيمة الإضافية',
     'Choose a delivery area to see the price':
         'اختار منطقة التوصيل عشان تشوف السعر',
     'Fixed delivery price: {price}': 'سعر التوصيل المحدد: {price}',

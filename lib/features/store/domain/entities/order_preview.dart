@@ -128,16 +128,12 @@ class OrderPreviewSummaryData {
     required this.subtotal,
     required this.discountTotal,
     required this.deliveryTotal,
-    this.multiMarketFeeRate = 0,
-    this.multiMarketFee = 0,
     required this.grandTotal,
   });
 
   final double subtotal;
   final double discountTotal;
   final double deliveryTotal;
-  final double multiMarketFeeRate;
-  final double multiMarketFee;
   final double grandTotal;
 
   factory OrderPreviewSummaryData.fromJson(Map<String, dynamic> json) {
@@ -145,8 +141,6 @@ class OrderPreviewSummaryData {
       subtotal: _doubleFromJson(json['subtotal']),
       discountTotal: _doubleFromJson(json['discount_total']),
       deliveryTotal: _doubleFromJson(json['delivery_total']),
-      multiMarketFeeRate: _doubleFromJson(json['multi_market_fee_rate']),
-      multiMarketFee: _doubleFromJson(json['multi_market_fee']),
       grandTotal: _doubleFromJson(json['grand_total']),
     );
   }

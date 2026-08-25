@@ -26,8 +26,6 @@ class OrderPresentationData {
     this.marketCount = 1,
     this.marketSummary = '',
     this.marketSections = const [],
-    this.multiMarketFeeRate = 0,
-    this.multiMarketFee = 0,
   });
 
   final String apiId;
@@ -49,8 +47,6 @@ class OrderPresentationData {
   final int marketCount;
   final String marketSummary;
   final List<OrderMarketSectionData> marketSections;
-  final double multiMarketFeeRate;
-  final double multiMarketFee;
 
   Color get statusColor {
     return status == 'Delivered' ? AppColors.success : AppColors.warning;

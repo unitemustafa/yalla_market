@@ -18,8 +18,6 @@ class CartOfferProductData {
   const CartOfferProductData({
     this.productId,
     this.variantId,
-    this.marketId,
-    this.marketName,
     required this.image,
     required this.brand,
     required this.title,
@@ -30,8 +28,6 @@ class CartOfferProductData {
 
   final String? productId;
   final String? variantId;
-  final String? marketId;
-  final String? marketName;
   final String image;
   final String brand;
   final String title;
@@ -45,9 +41,6 @@ class CartOfferProductData {
           json['productId']?.toString() ?? json['product_id']?.toString(),
       variantId:
           json['variantId']?.toString() ?? json['variant_id']?.toString(),
-      marketId: json['marketId']?.toString() ?? json['market_id']?.toString(),
-      marketName:
-          json['marketName']?.toString() ?? json['market_name']?.toString(),
       image: json['image']?.toString() ?? json['imageUrl']?.toString() ?? '',
       brand:
           json['brand']?.toString() ??
@@ -65,8 +58,6 @@ class CartOfferProductData {
     return {
       'productId': productId,
       'variantId': variantId,
-      'marketId': marketId,
-      'marketName': marketName,
       'image': image,
       'brand': brand,
       'title': title,

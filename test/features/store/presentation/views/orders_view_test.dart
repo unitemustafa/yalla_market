@@ -5,7 +5,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
-import 'package:yalla_market/core/presentation/widgets/texts/app_currency_text.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
@@ -223,43 +222,6 @@ void main() {
     expect(find.text('Shipping Company'), findsOneWidget);
     expect(find.text('Fast Ship'), findsOneWidget);
   });
-
-  testWidgets('shows the saved multi-market fee in order details', (
-    tester,
-  ) async {
-    final orderHistoryCubit = OrderHistoryCubit(
-      GetMyOrdersUseCase(
-        _OrderRepositoryWithData([
-          _orderPlacedAt(
-            DateTime(2026, 7, 14),
-            isMultiMarket: true,
-            marketCount: 2,
-            multiMarketFeeRate: 5,
-            multiMarketFee: 11,
-          ),
-        ]),
-      ),
-    );
-    addTearDown(orderHistoryCubit.close);
-
-    await tester.pumpWidget(
-      BlocProvider<OrderHistoryCubit>.value(
-        value: orderHistoryCubit,
-        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('6'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Additional value (5%)'), findsOneWidget);
-    expect(
-      find.byWidgetPredicate(
-        (widget) => widget is AppCurrencyText && widget.text == 'EGP 11',
-      ),
-      findsOneWidget,
-    );
-  });
 }
 
 OrderData _orderPlacedAt(
@@ -270,10 +232,6 @@ OrderData _orderPlacedAt(
   OrderDeliveryPriceStatus deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
   double shippingFee = 0,
   ShippingCompanyData? shippingCompany,
-  bool isMultiMarket = false,
-  int marketCount = 1,
-  double multiMarketFeeRate = 0,
-  double multiMarketFee = 0,
 }) {
   return OrderData(
     id: '6',
@@ -307,11 +265,7 @@ OrderData _orderPlacedAt(
     deliveryPriceStatus: deliveryPriceStatus,
     taxTotal: 0,
     discountTotal: 0,
-    isMultiMarket: isMultiMarket,
-    marketCount: marketCount,
-    multiMarketFeeRate: multiMarketFeeRate,
-    multiMarketFee: multiMarketFee,
-    total: 75 + shippingFee + multiMarketFee,
+    total: 75 + shippingFee,
     estimatedDeliveryAt: estimatedDeliveryAt,
     marketSections: marketSections,
   );

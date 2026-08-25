@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 
 import '../../../../core/cache/persistent_json_cache.dart';
@@ -24,25 +22,23 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
   final ApiClient _apiClient;
   final PersistentJsonCache? _cache;
   final GetSelectedCityUseCase? _getSelectedCity;
-  static const _freshness = Duration(minutes: 30);
-
   @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
     final key = 'store.v4.${await _scope()}';
     final cached = await _cache?.read(key);
     final cachedStore = _storeFromCache(cached);
 
-    if (!forceRefresh && cachedStore != null && cached!.isFresh(_freshness)) {
-      unawaited(_refreshCache(key));
-      return ApiResult.success(cachedStore);
+    if (!forceRefresh && cachedStore != null) {
+      return ApiResult.success(
+        cachedStore,
+        origin: DataOrigin.cache,
+        savedAt: cached!.savedAt,
+      );
     }
 
     try {
       return ApiResult.success(await _fetchAndCache(key));
     } on DioException catch (error) {
-      if (cachedStore != null && _canUseCache(error)) {
-        return ApiResult.success(cachedStore);
-      }
       if (isRegionRequiredPayload(error.response?.data)) {
         return const ApiResult.failure(
           ValidationFailure(regionRequiredMessage),
@@ -55,7 +51,6 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
       }
       return ApiResult.failure(ApiErrorHandler.handle(error));
     } catch (_) {
-      if (cachedStore != null) return ApiResult.success(cachedStore);
       return const ApiResult.failure(
         UnknownFailure('Could not load store data.'),
       );
@@ -102,14 +97,6 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
     );
     await _cache?.write(key, summary);
     return _storeFromSummary(summary);
-  }
-
-  Future<void> _refreshCache(String key) async {
-    try {
-      await _fetchAndCache(key);
-    } catch (_) {
-      // Keep the last valid snapshot until the next explicit refresh.
-    }
   }
 
   StoreData? _storeFromCache(CachedJsonEntry? entry) {
@@ -173,10 +160,5 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
       success: (city) => city?.slug.trim().toLowerCase() ?? 'general',
       failure: (_) => 'general',
     );
-  }
-
-  bool _canUseCache(DioException error) {
-    final status = error.response?.statusCode;
-    return error.response == null || (status != null && status >= 500);
   }
 }

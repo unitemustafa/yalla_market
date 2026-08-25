@@ -7,7 +7,10 @@ class GetProductUseCase {
 
   final ProductRepository _repository;
 
-  Future<ApiResult<ProductData>> call(String idOrSlug) {
-    return _repository.getProduct(idOrSlug);
+  Future<ApiResult<ProductData>> call(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) {
+    return _repository.getProduct(idOrSlug, forceRefresh: forceRefresh);
   }
 }

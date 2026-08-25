@@ -42,7 +42,11 @@ List<ProductData> productsForStoreSubcategory(
   final selected = subcategoryId?.trim() ?? '';
   if (selected.isEmpty) return List.unmodifiable(products);
   return products
-      .where((product) => product.subcategoryId == selected)
+      .where(
+        (product) =>
+            product.subcategories.any((item) => item.id == selected) ||
+            product.subcategoryId == selected,
+      )
       .toList(growable: false);
 }
 

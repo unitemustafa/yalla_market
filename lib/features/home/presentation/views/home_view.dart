@@ -174,6 +174,13 @@ class _HomeViewState extends State<HomeView> {
                             if (homeState is HomeFailure &&
                                 homeState.message == regionRequiredMessage) {
                               _goToSelectCity();
+                            } else if (homeState is HomeFailure &&
+                                homeState.data != null) {
+                              CustomSnackBar.showError(
+                                context: context,
+                                title: context.tr('Refresh failed'),
+                                message: context.tr(homeState.message),
+                              );
                             }
                           },
                           builder: (context, homeState) {

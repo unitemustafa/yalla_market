@@ -7,6 +7,7 @@ import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
+import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../app/routing/app_route_arguments.dart';
 import '../../../../home/presentation/cubit/home_cubit.dart';
 import '../../../../home/presentation/cubit/home_state.dart';
@@ -91,7 +92,16 @@ class _AllProductsViewState extends State<AllProductsView> {
         },
       ),
       ProductCollectionType.latest =>
-        BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
+        BlocConsumer<ProductCatalogCubit, ProductCatalogState>(
+          listener: (context, state) {
+            if (state is ProductCatalogReady && state.refreshError != null) {
+              CustomSnackBar.showError(
+                context: context,
+                title: context.tr('Refresh failed'),
+                message: context.tr(state.refreshError!),
+              );
+            }
+          },
           builder: (context, state) {
             final products = state is ProductCatalogReady
                 ? _limited(state.products)

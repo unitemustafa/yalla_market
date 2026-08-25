@@ -147,7 +147,10 @@ class _FakeProductRepository implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async {
     return ApiResult.success(products.first);
   }
 

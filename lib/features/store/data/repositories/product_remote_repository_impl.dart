@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 
 import '../../../../core/cache/persistent_json_cache.dart';
@@ -27,9 +25,6 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   final PersistentJsonCache? _cache;
   final GetSelectedCityUseCase? _getSelectedCity;
   Future<Object?>? _classificationsInFlight;
-  static const _listFreshness = Duration(minutes: 30);
-  static const _detailFreshness = Duration(minutes: 20);
-
   @override
   Future<ApiResult<List<ProductData>>> getProducts({
     String? citySlug,
@@ -39,7 +34,6 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     return _cachedRequest<List<ProductData>>(
       key: 'products.$scope',
       forceRefresh: forceRefresh,
-      freshness: _listFreshness,
       fetch: () => _apiClient.get<Object?>(
         '/home/products/',
         queryParameters: const {'order_by_latest': true, 'page_size': 15},
@@ -50,12 +44,14 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async {
     final scope = await _scope(null);
     return _cachedRequest<ProductData>(
       key: 'product.$scope.$idOrSlug',
-      forceRefresh: false,
-      freshness: _detailFreshness,
+      forceRefresh: forceRefresh,
       fetch: () =>
           _apiClient.get<Map<String, dynamic>>('/home/products/$idOrSlug/'),
       parse: (payload) {
@@ -91,6 +87,8 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
             cachedProducts
                 .where((product) => product.matches(normalized))
                 .toList(growable: false),
+            origin: DataOrigin.cache,
+            savedAt: cached?.savedAt,
           );
         }
       }
@@ -102,6 +100,8 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
           cachedProducts
               .where((product) => product.matches(normalized))
               .toList(growable: false),
+          origin: DataOrigin.cache,
+          savedAt: cached?.savedAt,
         );
       }
       return const ApiResult.failure(
@@ -118,7 +118,6 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     return _cachedRequest<List<CategoryData>>(
       key: 'classifications.$scope',
       forceRefresh: forceRefresh,
-      freshness: _listFreshness,
       fetch: _getClassificationsPayload,
       parse: _categoriesFromPayload,
       errorMessage: 'Could not load categories.',
@@ -133,7 +132,6 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     return _cachedRequest<List<BrandData>>(
       key: 'classifications.$scope',
       forceRefresh: forceRefresh,
-      freshness: _listFreshness,
       fetch: _getClassificationsPayload,
       parse: _brandsFromPayload,
       errorMessage: 'Could not load brands.',
@@ -197,7 +195,6 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
   Future<ApiResult<T>> _cachedRequest<T>({
     required String key,
     required bool forceRefresh,
-    required Duration freshness,
     required Future<Object?> Function() fetch,
     required T Function(Object? payload) parse,
     required String errorMessage,
@@ -205,9 +202,12 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     final cached = await _cache?.read(key);
     final cachedValue = _parseCache(cached, parse);
 
-    if (!forceRefresh && cachedValue != null && cached!.isFresh(freshness)) {
-      unawaited(_refreshCache(key, fetch));
-      return ApiResult.success(cachedValue);
+    if (!forceRefresh && cachedValue != null) {
+      return ApiResult.success(
+        cachedValue,
+        origin: DataOrigin.cache,
+        savedAt: cached!.savedAt,
+      );
     }
 
     try {
@@ -216,25 +216,9 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
       await _cache?.write(key, payload);
       return ApiResult.success(parsed);
     } on DioException catch (error) {
-      if (cachedValue != null && _canUseCache(error)) {
-        return ApiResult.success(cachedValue);
-      }
       return _failureForDio(error);
     } catch (_) {
-      if (cachedValue != null) return ApiResult.success(cachedValue);
       return ApiResult.failure(UnknownFailure(errorMessage));
-    }
-  }
-
-  Future<void> _refreshCache(
-    String key,
-    Future<Object?> Function() fetch,
-  ) async {
-    try {
-      final payload = await fetch();
-      await _cache?.write(key, payload);
-    } catch (_) {
-      // Keep serving the previous snapshot until an explicit refresh succeeds.
     }
   }
 

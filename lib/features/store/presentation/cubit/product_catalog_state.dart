@@ -18,10 +18,15 @@ final class ProductCatalogNeedsCity extends ProductCatalogState {
 }
 
 final class ProductCatalogReady extends ProductCatalogState {
-  const ProductCatalogReady(this.products, {required this.city});
+  const ProductCatalogReady(
+    this.products, {
+    required this.city,
+    this.refreshError,
+  });
 
   final List<ProductData> products;
   final CityData city;
+  final String? refreshError;
 }
 
 final class ProductCatalogFailure extends ProductCatalogState {

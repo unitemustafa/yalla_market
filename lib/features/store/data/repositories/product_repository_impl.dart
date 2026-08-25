@@ -22,7 +22,10 @@ class ProductRepositoryImpl implements ProductRepository {
   }
 
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async {
     try {
       final normalized = idOrSlug.trim().toLowerCase();
       if (normalized.isEmpty) {

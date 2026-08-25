@@ -179,4 +179,18 @@ void main() {
       expect(offersForClassification(offers, '300'), isEmpty);
     },
   );
+
+  test('a product assigned to two subcategories appears in both', () {
+    final product = ProductData.fromJson({
+      'id': 3,
+      'name': 'Combo',
+      'subcategories': [
+        {'id': 10, 'name_ar': 'سندوتشات'},
+        {'id': 20, 'name_ar': 'عصير'},
+      ],
+    });
+
+    expect(productsForStoreSubcategory([product], '10'), [product]);
+    expect(productsForStoreSubcategory([product], '20'), [product]);
+  });
 }

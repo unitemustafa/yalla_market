@@ -217,6 +217,7 @@ class ProductData {
     this.categoryId,
     this.subcategoryId,
     this.subcategory,
+    this.subcategories = const [],
     this.marketId,
     this.marketClassificationId,
     this.variants = const [],
@@ -251,6 +252,7 @@ class ProductData {
   final String? categoryId;
   final String? subcategoryId;
   final StoreSubcategoryData? subcategory;
+  final List<StoreSubcategoryData> subcategories;
   final String? marketId;
   final String? marketClassificationId;
   final List<ProductVariantData> variants;
@@ -295,6 +297,21 @@ class ProductData {
     final tags = _stringList(json['tags']);
     final category = _mapFromJson(json['category']);
     final subcategory = _mapFromJson(json['subcategory']);
+    final parsedSubcategory = subcategory == null
+        ? null
+        : StoreSubcategoryData.fromJson(subcategory);
+    final parsedSubcategories = json['subcategories'] is List
+        ? (json['subcategories'] as List)
+              .whereType<Map<String, dynamic>>()
+              .map(StoreSubcategoryData.fromJson)
+              .where((item) => item.id.isNotEmpty)
+              .toList(growable: false)
+        : <StoreSubcategoryData>[];
+    final effectiveSubcategories = parsedSubcategories.isNotEmpty
+        ? parsedSubcategories
+        : parsedSubcategory == null
+        ? <StoreSubcategoryData>[]
+        : <StoreSubcategoryData>[parsedSubcategory];
     final market = _mapFromJson(json['market']);
     final variants = json['variants'] is List
         ? json['variants'] as List
@@ -348,10 +365,11 @@ class ProductData {
       subcategoryId:
           json['subcategoryId']?.toString() ??
           json['subcategory_id']?.toString() ??
-          subcategory?['id']?.toString(),
-      subcategory: subcategory == null
-          ? null
-          : StoreSubcategoryData.fromJson(subcategory),
+          parsedSubcategory?.id ??
+          (effectiveSubcategories.isEmpty ? null : effectiveSubcategories.first.id),
+      subcategory: parsedSubcategory ??
+          (effectiveSubcategories.isEmpty ? null : effectiveSubcategories.first),
+      subcategories: effectiveSubcategories,
       marketId:
           json['marketId']?.toString() ??
           json['market_id']?.toString() ??
@@ -411,6 +429,7 @@ class ProductData {
       'categoryId': categoryId,
       'subcategoryId': subcategoryId,
       'subcategory': subcategory?.toJson(),
+      'subcategories': subcategories.map((item) => item.toJson()).toList(),
       'marketId': marketId,
       'marketClassificationId': marketClassificationId,
       'variants': variants.map((variant) => variant.toJson()).toList(),

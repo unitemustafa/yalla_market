@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 
 import '../../../../core/cache/persistent_json_cache.dart';
@@ -24,25 +22,23 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
   final ApiClient _apiClient;
   final PersistentJsonCache? _cache;
   final GetSelectedCityUseCase? _getSelectedCity;
-  static const _freshness = Duration(minutes: 15);
-
   @override
   Future<ApiResult<HomeData>> getHome({bool forceRefresh = false}) async {
     final key = 'home.${await _scope()}';
     final cached = await _cache?.read(key);
     final cachedHome = _homeFromCache(cached);
 
-    if (!forceRefresh && cachedHome != null && cached!.isFresh(_freshness)) {
-      unawaited(_refreshCache(key));
-      return ApiResult.success(cachedHome);
+    if (!forceRefresh && cachedHome != null) {
+      return ApiResult.success(
+        cachedHome,
+        origin: DataOrigin.cache,
+        savedAt: cached!.savedAt,
+      );
     }
 
     try {
       return ApiResult.success(await _fetchAndCache(key));
     } on DioException catch (error) {
-      if (cachedHome != null && _canUseCache(error)) {
-        return ApiResult.success(cachedHome);
-      }
       if (isRegionRequiredPayload(error.response?.data)) {
         return const ApiResult.failure(
           ValidationFailure(regionRequiredMessage),
@@ -55,7 +51,6 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
       }
       return ApiResult.failure(ApiErrorHandler.handle(error));
     } catch (_) {
-      if (cachedHome != null) return ApiResult.success(cachedHome);
       return const ApiResult.failure(
         UnknownFailure('Could not load home data.'),
       );
@@ -67,14 +62,6 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
     final cachePayload = <String, dynamic>{...payload, 'location': null};
     await _cache?.write(key, cachePayload);
     return HomeData.fromJson(payload);
-  }
-
-  Future<void> _refreshCache(String key) async {
-    try {
-      await _fetchAndCache(key);
-    } catch (_) {
-      // The cached snapshot stays visible; manual refresh still reports errors.
-    }
   }
 
   HomeData? _homeFromCache(CachedJsonEntry? entry) {
@@ -95,10 +82,5 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
       success: (city) => city?.slug.trim().toLowerCase() ?? 'general',
       failure: (_) => 'general',
     );
-  }
-
-  bool _canUseCache(DioException error) {
-    final status = error.response?.statusCode;
-    return error.response == null || (status != null && status >= 500);
   }
 }

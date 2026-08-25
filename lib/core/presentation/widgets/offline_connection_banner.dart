@@ -10,10 +10,12 @@ class OfflineConnectionBanner extends StatefulWidget {
     super.key,
     required this.child,
     required this.message,
+    this.onBecameOnline,
   });
 
   final Widget child;
   final String message;
+  final VoidCallback? onBecameOnline;
 
   @override
   State<OfflineConnectionBanner> createState() =>
@@ -23,12 +25,14 @@ class OfflineConnectionBanner extends StatefulWidget {
 class _OfflineConnectionBannerState extends State<OfflineConnectionBanner>
     with WidgetsBindingObserver {
   late final InternetStatusController _internetStatusController;
+  bool? _wasOffline;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _internetStatusController = InternetStatusController();
+    _internetStatusController.addListener(_handleStatusChanged);
     unawaited(_internetStatusController.start());
   }
 
@@ -42,8 +46,16 @@ class _OfflineConnectionBannerState extends State<OfflineConnectionBanner>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _internetStatusController.removeListener(_handleStatusChanged);
     _internetStatusController.dispose();
     super.dispose();
+  }
+
+  void _handleStatusChanged() {
+    final offline = _internetStatusController.isOffline;
+    final becameOnline = _wasOffline == true && !offline;
+    _wasOffline = offline;
+    if (becameOnline) widget.onBecameOnline?.call();
   }
 
   @override

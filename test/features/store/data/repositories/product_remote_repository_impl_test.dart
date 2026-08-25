@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/cache/persistent_json_cache.dart';
 import 'package:yalla_market/core/errors/address_required_error.dart';
+import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/store/data/repositories/product_remote_repository_impl.dart';
 
 import '../../../../helpers/fake_api_client.dart';
@@ -11,7 +12,7 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('ProductRemoteRepositoryImpl', () {
-    test('falls back to the city-scoped product cache while offline', () async {
+    test('serves the city-scoped product cache before revalidation', () async {
       const cache = PersistentJsonCache();
       final online = ProductRemoteRepositoryImpl(
         FakeApiClient(
@@ -27,15 +28,37 @@ void main() {
         FakeApiClient((_) => throw _offlineException('/home/products/')),
         cache: cache,
       );
-      final result = await offline.getProducts(
-        citySlug: 'cairo',
-        forceRefresh: true,
-      );
+      final result = await offline.getProducts(citySlug: 'cairo');
+
+      expect(result, isA<ApiSuccess>());
+      expect((result as ApiSuccess).origin, DataOrigin.cache);
 
       result.when(
         success: (products) => expect(products.single.id, '42'),
         failure: (failure) => fail(failure.message),
       );
+    });
+
+    test('does not mix cached products between cities', () async {
+      const cache = PersistentJsonCache();
+      await cache.write('products.cairo', {
+        'products': [_backendProduct()],
+      });
+      await cache.write('products.alexandria', {
+        'products': [
+          {..._backendProduct(), 'id': 99, 'name': 'Alexandria Apple'},
+        ],
+      });
+      final repository = ProductRemoteRepositoryImpl(
+        FakeApiClient((_) => throw _offlineException('/home/products/')),
+        cache: cache,
+      );
+
+      final cairo = await repository.getProducts(citySlug: 'cairo');
+      final alexandria = await repository.getProducts(citySlug: 'alexandria');
+
+      expect((cairo as ApiSuccess).data.single.id, '42');
+      expect((alexandria as ApiSuccess).data.single.id, '99');
     });
 
     test('offline search filters the last cached product list', () async {

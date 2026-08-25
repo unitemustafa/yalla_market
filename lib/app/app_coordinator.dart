@@ -115,6 +115,10 @@ class _AppCoordinatorState extends State<AppCoordinator>
     _lifecycle.handleState(state, context: context, isMounted: () => mounted);
   }
 
+  void _handleBecameOnline() {
+    unawaited(_lifecycle.refreshNow(context, () => mounted));
+  }
+
   Future<void> _showForegroundBanner(Map<String, dynamic> data) async {
     final title = data['title']?.toString().trim() ?? '';
     final message = data['message']?.toString().trim() ?? '';
@@ -172,6 +176,7 @@ class _AppCoordinatorState extends State<AppCoordinator>
                     message: context.tr(
                       'You are offline. Showing saved content; checkout and updates need internet.',
                     ),
+                    onBecameOnline: _handleBecameOnline,
                     child: child ?? const SizedBox.shrink(),
                   ),
                 ),

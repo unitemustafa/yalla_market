@@ -1,7 +1,11 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/network/api_result.dart';
+import '../../../location/domain/entities/city_data.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
+import '../../domain/entities/brand_data.dart';
 import '../../domain/entities/category_data.dart';
+import '../../domain/entities/product_data.dart';
 import '../../domain/usecases/get_brands_usecase.dart';
 import '../../domain/usecases/get_categories_usecase.dart';
 import '../../domain/usecases/get_products_usecase.dart';
@@ -38,6 +42,17 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   int _requestGeneration = 0;
 
   Future<void> loadDiscovery({bool force = false}) async {
+    return _loadDiscovery(force: force, silent: false);
+  }
+
+  Future<void> refreshSilently() async {
+    return _loadDiscovery(force: true, silent: true);
+  }
+
+  Future<void> _loadDiscovery({
+    required bool force,
+    required bool silent,
+  }) async {
     if (_loadingGeneration != null) return;
     if (!force && state is ProductDiscoveryReady) return;
     final generation = ++_requestGeneration;
@@ -56,15 +71,17 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         return;
       }
 
-      emit(
-        ProductDiscoveryLoading(
-          query: state.query,
-          products: state.products,
-          categories: state.categories,
-          brands: state.brands,
-          city: selectedCity,
-        ),
-      );
+      if (!silent || state.products.isEmpty) {
+        emit(
+          ProductDiscoveryLoading(
+            query: state.query,
+            products: state.products,
+            categories: state.categories,
+            brands: state.brands,
+            city: selectedCity,
+          ),
+        );
+      }
 
       final productsFuture = _getProducts(
         citySlug: selectedCity.slug,
@@ -76,6 +93,14 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
       final categoriesResult = await categoriesFuture;
       final brandsResult = await brandsFuture;
       if (!_isCurrent(generation)) return;
+      if (silent &&
+          [
+            productsResult,
+            categoriesResult,
+            brandsResult,
+          ].any((result) => result is ApiFailure)) {
+        return;
+      }
 
       productsResult.when(
         success: (products) {
@@ -113,11 +138,59 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         },
         failure: (failure) => _emitFailure(failure.message),
       );
+      final servedCache = [productsResult, categoriesResult, brandsResult].any(
+        (result) => switch (result) {
+          ApiSuccess(origin: DataOrigin.cache) => true,
+          _ => false,
+        },
+      );
+      if (!force && servedCache && state is ProductDiscoveryReady) {
+        await _refreshDiscoveryInPlace(generation, selectedCity);
+      }
     } finally {
       if (_loadingGeneration == generation) {
         _loadingGeneration = null;
       }
     }
+  }
+
+  Future<void> _refreshDiscoveryInPlace(
+    int generation,
+    CityData selectedCity,
+  ) async {
+    final productsFuture = _getProducts(
+      citySlug: selectedCity.slug,
+      forceRefresh: true,
+    );
+    final categoriesFuture = _getCategories(forceRefresh: true);
+    final brandsFuture = _getBrands(forceRefresh: true);
+    final productsResult = await productsFuture;
+    final categoriesResult = await categoriesFuture;
+    final brandsResult = await brandsFuture;
+    if (!_isCurrent(generation)) return;
+    if (productsResult is! ApiSuccess<List<ProductData>> ||
+        categoriesResult is! ApiSuccess<List<CategoryData>> ||
+        brandsResult is! ApiSuccess<List<BrandData>>) {
+      return;
+    }
+    final products = _prepareDiscovery.products(
+      productsResult.data,
+      citySlug: selectedCity.slug,
+    );
+    final categories = _prepareDiscovery.categoriesWithProductCounts(
+      categories: categoriesResult.data,
+      products: products,
+      citySlug: selectedCity.slug,
+    );
+    emit(
+      ProductDiscoveryReady(
+        query: '',
+        products: products,
+        categories: categories,
+        brands: brandsResult.data,
+        city: selectedCity,
+      ),
+    );
   }
 
   Future<void> search(String query) async {

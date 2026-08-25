@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/cache/persistent_json_cache.dart';
 import 'package:yalla_market/core/errors/address_required_error.dart';
+import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/store/data/repositories/store_remote_repository_impl.dart';
 
 import '../../../../helpers/fake_api_client.dart';
@@ -11,7 +12,7 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('StoreRemoteRepositoryImpl', () {
-    test('falls back to the cached store while offline', () async {
+    test('serves the cached store before revalidation', () async {
       const payload = {
         'common_market_classifications': [
           {'id': 1},
@@ -37,7 +38,9 @@ void main() {
         FakeApiClient((_) => throw _offlineStoreException()),
         cache: cache,
       );
-      final result = await offline.getStore(forceRefresh: true);
+      final result = await offline.getStore();
+
+      expect((result as ApiSuccess).origin, DataOrigin.cache);
 
       result.when(
         success: (store) =>

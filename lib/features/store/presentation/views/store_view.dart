@@ -9,6 +9,7 @@ import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/brands/category_tile.dart';
 import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
+import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../../../../app/routing/app_route_arguments.dart';
@@ -44,7 +45,16 @@ class _StoreViewState extends State<StoreView> {
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
 
-    return BlocBuilder<StoreCubit, StoreState>(
+    return BlocConsumer<StoreCubit, StoreState>(
+      listener: (context, state) {
+        if (state is StoreFailure && state.data != null) {
+          CustomSnackBar.showError(
+            context: context,
+            title: context.tr('Refresh failed'),
+            message: context.tr(state.message),
+          );
+        }
+      },
       builder: (context, state) {
         final store = state.data;
         final classifications = store?.classifications ?? const [];

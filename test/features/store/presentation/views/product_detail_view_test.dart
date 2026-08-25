@@ -600,15 +600,20 @@ class _StaticProductRepository extends _EmptyProductRepository {
   final ProductData product;
 
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async =>
-      ApiResult.success(product);
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async => ApiResult.success(product);
 }
 
 class _RetryProductRepository extends _EmptyProductRepository {
   var attempts = 0;
 
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async {
     attempts++;
     if (attempts == 1) {
       return const ApiResult.failure(NetworkFailure('Offline'));
@@ -629,7 +634,10 @@ class _RetryProductRepository extends _EmptyProductRepository {
 
 class _NoVariantProductRepository extends _EmptyProductRepository {
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async {
     return ApiResult.success(
       ProductData.fromJson({
         'id': idOrSlug,
@@ -644,7 +652,10 @@ class _NoVariantProductRepository extends _EmptyProductRepository {
 
 class _FakeProductRepository extends _EmptyProductRepository {
   @override
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug) async {
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  }) async {
     return ApiResult.success(
       ProductData.fromJson({
         'id': 'product_1',

@@ -12,6 +12,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/formatters/product_pricing.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/network/api_result.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -90,7 +91,6 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   ProductData? _loadedProduct;
   bool _isLoadingProductDetails = true;
   Failure? _productLoadFailure;
-
   @override
   void initState() {
     super.initState();
@@ -175,7 +175,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
     return '$baseId:additions:${additionsKey.join(',')}';
   }
 
-  Future<void> _loadProductDetails() async {
+  Future<void> _loadProductDetails({
+    bool forceRefresh = false,
+    bool silent = false,
+  }) async {
     final id = widget.productId.trim();
     if (id.isEmpty) {
       setState(() {
@@ -194,11 +197,16 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       return;
     }
 
-    setState(() {
-      _isLoadingProductDetails = true;
-      _productLoadFailure = null;
-    });
-    final result = await sl<GetProductUseCase>()(id);
+    if (!silent) {
+      setState(() {
+        _isLoadingProductDetails = true;
+        _productLoadFailure = null;
+      });
+    }
+    final result = await sl<GetProductUseCase>()(
+      id,
+      forceRefresh: forceRefresh,
+    );
     if (!mounted) return;
 
     result.when(
@@ -212,12 +220,20 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         });
       },
       failure: (failure) {
+        if (silent && _loadedProduct != null) return;
         setState(() {
           _isLoadingProductDetails = false;
           _productLoadFailure = failure;
         });
       },
     );
+    final servedCache = switch (result) {
+      ApiSuccess(origin: DataOrigin.cache) => true,
+      _ => false,
+    };
+    if (!forceRefresh && servedCache) {
+      await _loadProductDetails(forceRefresh: true, silent: true);
+    }
   }
 
   void _syncSelectedVariant(ProductData product) {

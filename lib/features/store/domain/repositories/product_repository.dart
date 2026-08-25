@@ -9,7 +9,10 @@ abstract class ProductRepository {
     bool forceRefresh = false,
   });
 
-  Future<ApiResult<ProductData>> getProduct(String idOrSlug);
+  Future<ApiResult<ProductData>> getProduct(
+    String idOrSlug, {
+    bool forceRefresh = false,
+  });
 
   Future<ApiResult<List<ProductData>>> searchProducts(
     String query, {

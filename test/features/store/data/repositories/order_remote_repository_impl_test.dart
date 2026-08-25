@@ -49,6 +49,7 @@ void main() {
             id: 'cart-1',
             productId: 'product-1',
             variantId: '2',
+            marketId: '8',
             image: 'image.png',
             brand: 'Yalla',
             title: 'Fresh product',
@@ -64,6 +65,24 @@ void main() {
             price: 250,
             quantity: 1,
             itemType: 'offer',
+            offerProducts: [
+              CartOfferProductData(
+                marketId: '5',
+                image: 'first.png',
+                brand: 'First',
+                title: 'First offer product',
+                price: 100,
+                quantity: 1,
+              ),
+              CartOfferProductData(
+                marketId: '3',
+                image: 'second.png',
+                brand: 'Second',
+                title: 'Second offer product',
+                price: 150,
+                quantity: 1,
+              ),
+            ],
           ),
         ],
         description: 'Leave at door',
@@ -89,6 +108,7 @@ void main() {
         'offers': [
           {'offer_id': 4},
         ],
+        'market_order': [8, 5, 3],
         'shipping_company_id': 41,
       });
     });
@@ -123,6 +143,12 @@ void main() {
       expect((capturedRequest.data as Map<String, dynamic>)['offers'], [
         {'offer_id': 5},
       ]);
+      expect(
+        (capturedRequest.data as Map<String, dynamic>).containsKey(
+          'market_order',
+        ),
+        isFalse,
+      );
     });
 
     test('createOrder parses object response', () async {
@@ -140,6 +166,8 @@ void main() {
           final order = orders.single;
           expect(order.id, '9');
           expect(order.total, 1520);
+          expect(order.multiMarketFeeRate, 5);
+          expect(order.multiMarketFee, 28);
           expect(order.items, hasLength(2));
         },
         failure: (failure) => fail(failure.message),
@@ -840,7 +868,9 @@ void main() {
           expect(preview.marketGroups.last.pricing.deliveryPrice, isNull);
           expect(preview.marketGroups.last.isPendingDeliveryQuote, isFalse);
           expect(preview.hasPendingDeliveryQuote, isFalse);
-          expect(preview.summary.grandTotal, 1580);
+          expect(preview.summary.multiMarketFeeRate, 5);
+          expect(preview.summary.multiMarketFee, 28);
+          expect(preview.summary.grandTotal, 1608);
           expect(preview.hasUnavailableDelivery, isFalse);
         },
         failure: (failure) => fail(failure.message),
@@ -1072,7 +1102,9 @@ const _twoMarketFixedAreaPreviewPayload = {
     'subtotal': '1700.00',
     'discount_total': '240.00',
     'delivery_total': '120.00',
-    'grand_total': '1580.00',
+    'multi_market_fee_rate': '5.00',
+    'multi_market_fee': '28.00',
+    'grand_total': '1608.00',
   },
 };
 
@@ -1130,7 +1162,9 @@ const _twoMarketPendingDeliveryPreviewPayload = {
     'subtotal': '1700.00',
     'discount_total': '240.00',
     'delivery_total': null,
-    'grand_total': '1460.00',
+    'multi_market_fee_rate': '5.00',
+    'multi_market_fee': '28.00',
+    'grand_total': '1488.00',
   },
 };
 
@@ -1145,6 +1179,8 @@ const _createdOrderPayload = {
   'status': 'pending',
   'delivery_price': '250.00',
   'subtotal_price': '1270.00',
+  'multi_market_fee_rate': '5.00',
+  'multi_market_fee': '28.00',
   'total_price': '1520.00',
   'items': [
     {'id': 15, 'variant_id': 13, 'quantity': 1, 'unit_price': '420.00'},

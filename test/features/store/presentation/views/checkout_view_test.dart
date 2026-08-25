@@ -132,6 +132,7 @@ void main() {
     expect(find.text('Shipping Address'), findsOneWidget);
     expect(find.text('Coding with T'), findsOneWidget);
     expect(find.text('Confirm Order'), findsOneWidget);
+    expect(find.textContaining('Additional value'), findsNothing);
 
     await tester.tap(find.text('Confirm Order'));
     await tester.pumpAndSettle();
@@ -342,8 +343,10 @@ void main() {
     expect(_findPlainText('EGP 120'), findsOneWidget);
     expect(find.text('+ Delivery'), findsOneWidget);
     expect(_findTextWithColor('+ Delivery', AppColors.error), findsOneWidget);
-    expect(_findPlainText('EGP 1580'), findsWidgets);
-    expect(_findPlainText('EGP 1580.00'), findsNothing);
+    expect(find.text('Additional value (5%)'), findsOneWidget);
+    expect(_findPlainText('EGP 28'), findsOneWidget);
+    expect(_findPlainText('EGP 1608'), findsWidgets);
+    expect(_findPlainText('EGP 1608.00'), findsNothing);
   });
 
   testWidgets('pending delivery preview shows compact shipping and total', (
@@ -392,10 +395,12 @@ void main() {
     );
     expect(find.text('Courier'), findsNothing);
     expect(_findPlainText('EGP 1700'), findsOneWidget);
-    expect(_findPlainText('EGP 1460'), findsNWidgets(2));
+    expect(find.text('Additional value (5%)'), findsOneWidget);
+    expect(_findPlainText('EGP 28'), findsOneWidget);
+    expect(_findPlainText('EGP 1488'), findsNWidgets(2));
     expect(find.text('+ Courier'), findsOneWidget);
     expect(_findTextWithColor('+ Courier', AppColors.error), findsOneWidget);
-    expect(_findPlainText('EGP 1460.00 + delivery fee'), findsNothing);
+    expect(_findPlainText('EGP 1488.00 + delivery fee'), findsNothing);
     expect(find.textContaining('delivery fee'), findsNothing);
   });
 
@@ -579,10 +584,10 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(_findPlainText('EGP 1460'), findsNWidgets(2));
+    expect(_findPlainText('EGP 1488'), findsNWidgets(2));
     expect(find.text('+ Courier'), findsOneWidget);
     expect(
-      _findTextWithOverflow('EGP 1460', TextOverflow.ellipsis),
+      _findTextWithOverflow('EGP 1488', TextOverflow.ellipsis),
       findsNothing,
     );
     expect(
@@ -590,7 +595,7 @@ void main() {
       findsNothing,
     );
     expect(
-      _findTextWithOverflow('EGP 1460', TextOverflow.visible),
+      _findTextWithOverflow('EGP 1488', TextOverflow.visible),
       findsNothing,
     );
     expect(
@@ -661,7 +666,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(tester.takeException(), isNull);
-    expect(_findPlainText('EGP 1460'), findsNWidgets(2));
+    expect(_findPlainText('EGP 1488'), findsNWidgets(2));
     expect(find.text('+ Courier'), findsOneWidget);
     expect(find.text('Confirm Order'), findsOneWidget);
     expect(tester.getSize(find.text('Confirm Order')), isNot(Size.zero));
@@ -1196,7 +1201,9 @@ OrderPreviewData _twoMarketFixedAreaPreview() {
       subtotal: 1700,
       discountTotal: 240,
       deliveryTotal: 120,
-      grandTotal: 1580,
+      multiMarketFeeRate: 5,
+      multiMarketFee: 28,
+      grandTotal: 1608,
     ),
   );
 }
@@ -1273,7 +1280,9 @@ OrderPreviewData _packageOfferPreview() {
       subtotal: 92,
       discountTotal: 13.8,
       deliveryTotal: 600,
-      grandTotal: 678.2,
+      multiMarketFeeRate: 5,
+      multiMarketFee: 3,
+      grandTotal: 681.2,
     ),
   );
 }
@@ -1329,7 +1338,9 @@ OrderPreviewData _twoMarketPendingDeliveryPreview({
       subtotal: 1700,
       discountTotal: 240,
       deliveryTotal: 0,
-      grandTotal: 1460,
+      multiMarketFeeRate: 5,
+      multiMarketFee: 28,
+      grandTotal: 1488,
     ),
   );
 }

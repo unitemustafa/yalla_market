@@ -243,6 +243,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         ),
       );
     }
+    final marketOrder = _marketOrder(cartItems);
 
     return (
       failure: null,
@@ -253,10 +254,35 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         'delivery_note': deliveryNote?.trim() ?? '',
         'items': itemPayloads,
         'offers': offerPayloads,
+        if (marketOrder.isNotEmpty) 'market_order': marketOrder,
         'shipping_company_id': ?shippingCompanyId,
       },
     );
   }
+}
+
+List<int> _marketOrder(List<CartItemData> cartItems) {
+  final marketIds = <int>[];
+  final seen = <int>{};
+
+  bool add(Object? value) {
+    final id = _positiveIdFromValue(value);
+    if (id == null) return false;
+    if (seen.add(id)) marketIds.add(id);
+    return true;
+  }
+
+  for (final item in cartItems) {
+    if (item.isOffer) {
+      if (item.offerProducts.isEmpty) return const [];
+      for (final product in item.offerProducts) {
+        if (!add(product.marketId)) return const [];
+      }
+    } else {
+      if (!add(item.marketId)) return const [];
+    }
+  }
+  return marketIds;
 }
 
 ({Map<String, int>? payload, ValidationFailure? failure}) _productPayload({

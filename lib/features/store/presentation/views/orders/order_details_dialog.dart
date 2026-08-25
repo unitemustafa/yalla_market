@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/formatters/app_currency.dart';
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../domain/entities/order.dart';
@@ -206,6 +207,16 @@ void showOrderDetailsDialog(
                       value: context.productCount(order.itemCount),
                       mutedColor: mutedColor,
                     ),
+                    if (order.isMultiMarket || order.marketCount > 1) ...[
+                      const SizedBox(height: 12),
+                      OrderDetailRow(
+                        icon: AppIcons.receipt_text,
+                        label:
+                            '${context.tr('Additional value')} (${_orderFeePercentageLabel(order.multiMarketFeeRate)}%)',
+                        value: AppCurrency.format(order.multiMarketFee),
+                        mutedColor: mutedColor,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     OrderDetailRow(
                       icon: AppIcons.receipt_text,
@@ -247,4 +258,11 @@ void showOrderDetailsDialog(
       );
     },
   );
+}
+
+String _orderFeePercentageLabel(double percentage) {
+  if (percentage == percentage.roundToDouble()) {
+    return percentage.toInt().toString();
+  }
+  return percentage.toStringAsFixed(2).replaceFirst(RegExp(r'\.?0+$'), '');
 }

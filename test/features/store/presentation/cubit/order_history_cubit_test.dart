@@ -148,6 +148,7 @@ class _FakeOrderRepository implements OrderRepository {
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    int? shippingCompanyId,
     String? description,
     String? deliveryNote,
     double shippingFee = 0,

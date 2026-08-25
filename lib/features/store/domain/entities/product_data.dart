@@ -94,6 +94,7 @@ class ProductAdditionData {
     required this.id,
     required this.name,
     required this.price,
+    this.image = AppAssets.defaultAddon,
     this.classification = '',
     this.isActive = true,
   });
@@ -101,11 +102,16 @@ class ProductAdditionData {
   final String id;
   final String name;
   final String price;
+  final String image;
   final String classification;
   final bool isActive;
 
   factory ProductAdditionData.fromJson(Map<String, dynamic> json) {
     final classification = _mapFromJson(json['classification']);
+    final image = _resolveImage(
+      json['image'] ?? json['imageUrl'],
+      fallback: false,
+    );
     return ProductAdditionData(
       id: json['id']?.toString() ?? '',
       name:
@@ -114,6 +120,7 @@ class ProductAdditionData {
           json['name_en']?.toString() ??
           '',
       price: json['price']?.toString() ?? '',
+      image: image.isEmpty ? AppAssets.defaultAddon : image,
       classification:
           json['classification_name']?.toString() ??
           classification?['name']?.toString() ??
@@ -127,6 +134,7 @@ class ProductAdditionData {
       'id': id,
       'name': name,
       'price': price,
+      'image': image,
       'classification': classification,
       'isActive': isActive,
     };

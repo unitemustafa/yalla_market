@@ -159,6 +159,15 @@ void showOrderDetailsDialog(
                       value: order.paymentMethod,
                       mutedColor: mutedColor,
                     ),
+                    if (order.shippingCompany.trim().isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      OrderDetailRow(
+                        icon: AppIcons.truck_fast,
+                        label: 'Shipping Company',
+                        value: order.shippingCompany,
+                        mutedColor: mutedColor,
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     OrderDetailRow(
                       icon: AppIcons.truck_fast,

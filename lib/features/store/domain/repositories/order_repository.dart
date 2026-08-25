@@ -12,6 +12,7 @@ abstract class OrderRepository {
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    int? shippingCompanyId,
     String? description,
     String? deliveryNote,
     double shippingFee,

@@ -148,6 +148,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Choose additions'));
     await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('addition-image-addition_9')),
+      findsOneWidget,
+    );
     await tester.tap(find.text('Extra cheese').last);
     await tester.tap(find.text('OK'));
     await tester.pumpAndSettle();

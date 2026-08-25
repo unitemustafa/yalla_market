@@ -24,6 +24,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    int? shippingCompanyId,
     String? description,
     String? deliveryNote,
     double shippingFee = 0,
@@ -37,6 +38,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
       paymentMethod: paymentMethod,
       description: description,
       deliveryNote: deliveryNote,
+      shippingCompanyId: shippingCompanyId,
     );
     if (payloadResult.failure case final failure?) {
       return Future.value(ApiResult.failure(failure));
@@ -175,6 +177,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
     String? paymentMethod,
     String? description,
     String? deliveryNote,
+    int? shippingCompanyId,
   }) {
     final trimmedAddressId = addressId?.trim();
     if (trimmedAddressId == null || trimmedAddressId.isEmpty) {
@@ -250,6 +253,7 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
         'delivery_note': deliveryNote?.trim() ?? '',
         'items': itemPayloads,
         'offers': offerPayloads,
+        'shipping_company_id': ?shippingCompanyId,
       },
     );
   }
@@ -312,6 +316,9 @@ Failure _checkoutError(DioException error) {
         checkoutPaymentRequiredMessage,
         statusCode: statusCode,
       );
+    }
+    if (data.containsKey('shipping_company_id')) {
+      return const ValidationFailure(checkoutShippingCompanyRequiredMessage);
     }
     if (data.containsKey('items')) {
       return ValidationFailure(

@@ -309,22 +309,34 @@ extension _ProductDetailActions on _ProductDetailViewState {
             children: [
               for (final addition in selectedAdditions)
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 7,
-                  ),
+                  padding: const EdgeInsetsDirectional.fromSTEB(5, 5, 10, 5),
                   decoration: BoxDecoration(
                     color: isDark
                         ? Colors.white.withValues(alpha: 0.06)
                         : const Color(0xFFF1F3F8),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text(
-                    context.tr(addition.name),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: mutedColor,
-                      fontWeight: FontWeight.w800,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AppImage(
+                        source: addition.image,
+                        width: 28,
+                        height: 28,
+                        fit: BoxFit.cover,
+                        borderRadius: BorderRadius.circular(6),
+                        fallbackType: AppImagePlaceholderType.addon,
+                        semanticLabel: context.tr(addition.name),
+                      ),
+                      const SizedBox(width: 7),
+                      Text(
+                        context.tr(addition.name),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: mutedColor,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],

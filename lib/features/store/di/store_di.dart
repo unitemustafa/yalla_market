@@ -13,9 +13,11 @@ import '../../../features/store/data/repositories/product_remote_repository_impl
 import '../../../features/store/data/repositories/product_repository_impl.dart';
 import '../../../features/store/data/repositories/store_remote_repository_impl.dart';
 import '../../../features/store/data/repositories/store_repository_impl.dart';
+import '../../../features/store/data/repositories/shipping_company_remote_repository_impl.dart';
 import '../../../features/store/domain/repositories/order_repository.dart';
 import '../../../features/store/domain/repositories/product_repository.dart';
 import '../../../features/store/domain/repositories/store_repository.dart';
+import '../../../features/store/domain/repositories/shipping_company_repository.dart';
 import '../../../features/store/domain/services/market_shop_catalog.dart';
 import '../../../features/store/domain/usecases/create_order_usecase.dart';
 import '../../../features/store/domain/usecases/accept_delivery_quote_usecase.dart';
@@ -30,6 +32,7 @@ import '../../../features/store/domain/usecases/preview_order_usecase.dart';
 import '../../../features/store/domain/usecases/prepare_product_discovery_usecase.dart';
 import '../../../features/store/domain/usecases/search_products_usecase.dart';
 import '../../../features/store/domain/usecases/get_store_usecase.dart';
+import '../../../features/store/domain/usecases/get_shipping_companies_usecase.dart';
 import '../../../features/store/presentation/cubit/checkout_cubit.dart';
 import '../../../features/store/presentation/cubit/order_history_cubit.dart';
 import '../../../features/store/presentation/cubit/product_catalog_cubit.dart';
@@ -145,6 +148,16 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
   if (!sl.isRegistered<OrderRepository>()) {
     sl.registerLazySingleton<OrderRepository>(
       OrderUnavailableRepositoryImpl.new,
+    );
+  }
+  if (!sl.isRegistered<ShippingCompanyRepository>()) {
+    sl.registerLazySingleton<ShippingCompanyRepository>(
+      () => ShippingCompanyRemoteRepositoryImpl(sl<ApiClient>()),
+    );
+  }
+  if (!sl.isRegistered<GetShippingCompaniesUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetShippingCompaniesUseCase(sl<ShippingCompanyRepository>()),
     );
   }
   if (!sl.isRegistered<CreateOrderUseCase>()) {

@@ -171,6 +171,23 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                                 ),
                                 child: Row(
                                   children: [
+                                    AppImage(
+                                      key: ValueKey(
+                                        'addition-image-${addition.id}',
+                                      ),
+                                      source: addition.image,
+                                      width: 54,
+                                      height: 54,
+                                      fit: BoxFit.cover,
+                                      borderRadius: BorderRadius.circular(8),
+                                      fallbackType:
+                                          AppImagePlaceholderType.addon,
+                                      backgroundColor: isDark
+                                          ? Colors.white.withValues(alpha: 0.06)
+                                          : Colors.white,
+                                      semanticLabel: context.tr(addition.name),
+                                    ),
+                                    const SizedBox(width: 12),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:

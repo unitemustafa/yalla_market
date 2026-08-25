@@ -68,6 +68,7 @@ void main() {
         ],
         description: 'Leave at door',
         deliveryNote: '',
+        shippingCompanyId: 41,
       );
 
       result.when(
@@ -88,6 +89,7 @@ void main() {
         'offers': [
           {'offer_id': 4},
         ],
+        'shipping_company_id': 41,
       });
     });
 

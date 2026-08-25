@@ -725,6 +725,12 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Status': 'الحالة',
     'Status updated': 'تم تحديث الحالة',
     'Shipping Address': 'عنوان الشحن',
+    'Shipping Company': 'شركة الشحن',
+    'Shipping company required': 'شركة الشحن مطلوبة',
+    'Choose a shipping company before completing the order.':
+        'اختر شركة الشحن قبل إتمام الطلب.',
+    'Could not load shipping companies.': 'تعذر تحميل شركات الشحن.',
+    'Shipping companies are still loading.': 'جاري تحميل شركات الشحن.',
     'Shipping address required': 'عنوان الشحن مطلوب',
     'Complete the delivery address first.': 'أكمل بيانات عنوان التوصيل أولًا.',
     'Shipping Date': 'تاريخ الشحن',

@@ -1,4 +1,5 @@
 import '../../../cart/domain/entities/cart_item.dart';
+import 'shipping_company.dart';
 
 enum OrderStatus { pending, processing, shipped, delivered, cancelled }
 
@@ -262,6 +263,7 @@ class OrderData {
     this.marketNamesSummary = '',
     this.marketSections = const [],
     this.offers = const [],
+    this.shippingCompany,
     required this.taxTotal,
     required this.discountTotal,
     required this.total,
@@ -287,6 +289,7 @@ class OrderData {
   final String marketNamesSummary;
   final List<OrderMarketSectionData> marketSections;
   final List<Map<String, dynamic>> offers;
+  final ShippingCompanyData? shippingCompany;
   final double taxTotal;
   final double discountTotal;
   final double total;
@@ -354,6 +357,9 @@ class OrderData {
       marketNamesSummary: json['market_names_summary']?.toString() ?? '',
       marketSections: marketSections,
       offers: _mapListFromJson(json['offers']),
+      shippingCompany: _shippingCompanyFromJson(
+        json['shipping_company'] ?? json['shippingCompany'],
+      ),
       taxTotal: _doubleFromJson(json['taxTotal'] ?? json['tax_total']),
       discountTotal: _doubleFromJson(
         json['discountTotal'] ?? json['discount_total'] ?? json['discount'],
@@ -431,12 +437,27 @@ class OrderData {
           .map((section) => section.toJson())
           .toList(),
       'offers': offers,
+      'shippingCompany': shippingCompany == null
+          ? null
+          : {
+              'id': shippingCompany!.id,
+              'name': shippingCompany!.name,
+              'logoUrl': shippingCompany!.logoUrl,
+            },
       'taxTotal': taxTotal,
       'discountTotal': discountTotal,
       'total': total,
       'estimatedDeliveryAt': estimatedDeliveryAt?.toIso8601String(),
     };
   }
+}
+
+ShippingCompanyData? _shippingCompanyFromJson(Object? value) {
+  if (value is! Map) return null;
+  final company = ShippingCompanyData.fromJson(
+    Map<String, dynamic>.from(value),
+  );
+  return company.isValid ? company : null;
 }
 
 OrderDeliveryType _deliveryTypeFromJson(Object? value) {

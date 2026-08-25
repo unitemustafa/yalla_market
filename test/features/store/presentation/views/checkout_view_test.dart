@@ -17,7 +17,10 @@ import 'package:yalla_market/features/location/presentation/cubit/location_cubit
 import 'package:yalla_market/features/personalization/presentation/cubit/address_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
+import 'package:yalla_market/features/store/domain/entities/shipping_company.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
+import 'package:yalla_market/features/store/domain/repositories/shipping_company_repository.dart';
+import 'package:yalla_market/features/store/domain/usecases/get_shipping_companies_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/checkout_cubit.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
 import 'package:yalla_market/features/store/presentation/views/checkout_view.dart';
@@ -27,6 +30,72 @@ import '../../../../helpers/domain_fixtures.dart';
 import '../../../../helpers/test_order_repository.dart';
 
 void main() {
+  testWidgets(
+    'requires an explicit shipping company selection when available',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      final orderRepository = _CreateOrderRepository();
+      final cartCubit = makeCartCubit();
+      final addressCubit = makeAddressCubit();
+      final checkoutCubit = makeCheckoutCubit(repository: orderRepository);
+      final orderHistoryCubit = makeOrderHistoryCubit(
+        repository: orderRepository,
+      );
+      await cartCubit.loadCartForUser('shipping-user');
+      await cartCubit.addItem(
+        sampleCartItem.copyWith(variantId: '23'),
+        sampleCartItem.quantity,
+      );
+      await addressCubit.loadAddresses();
+      await addressCubit.saveAddress(
+        sampleAddress.copyWith(
+          id: 'shipping-address',
+          serviceCityId: 9,
+          serviceCityName: 'Cairo',
+          serviceCityIsActive: true,
+          isDefault: true,
+        ),
+      );
+      addTearDown(cartCubit.close);
+      addTearDown(addressCubit.close);
+      addTearDown(checkoutCubit.close);
+      addTearDown(orderHistoryCubit.close);
+
+      await _pumpCheckoutView(
+        tester,
+        cartCubit: cartCubit,
+        addressCubit: addressCubit,
+        checkoutCubit: checkoutCubit,
+        orderHistoryCubit: orderHistoryCubit,
+        selectedCity: const CityData(
+          name: 'Cairo',
+          slug: '9',
+          serviceCityId: 9,
+        ),
+        checkoutView: CheckoutView(
+          useDemoRepositories: false,
+          getShippingCompanies: GetShippingCompaniesUseCase(
+            _ShippingCompanyRepository(),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Shipping Company'), findsOneWidget);
+      expect(find.text('Fast Ship'), findsOneWidget);
+      await tester.tap(find.text('Confirm Order'));
+      await tester.pump();
+      expect(find.text('Shipping company required'), findsOneWidget);
+      expect(orderRepository.createCalls, 0);
+
+      await tester.ensureVisible(find.text('Fast Ship'));
+      await tester.tap(find.text('Fast Ship'));
+      await tester.tap(find.text('Confirm Order'));
+      await tester.pumpAndSettle();
+      expect(orderRepository.lastShippingCompanyId, 41);
+    },
+  );
+
   testWidgets('renders checkout summary without creating a real order', (
     tester,
   ) async {
@@ -987,6 +1056,7 @@ class _CreateOrderRepository implements OrderRepository {
   int createCalls = 0;
   int getMyOrdersCalls = 0;
   List<CartItemData> lastCartItems = const [];
+  int? lastShippingCompanyId;
 
   @override
   Future<ApiResult<List<OrderData>>> createOrder({
@@ -997,6 +1067,7 @@ class _CreateOrderRepository implements OrderRepository {
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    int? shippingCompanyId,
     String? description,
     String? deliveryNote,
     double shippingFee = 0,
@@ -1005,6 +1076,7 @@ class _CreateOrderRepository implements OrderRepository {
   }) async {
     createCalls += 1;
     lastCartItems = cartItems;
+    lastShippingCompanyId = shippingCompanyId;
     if (failure case final failure?) {
       return ApiResult.failure(failure);
     }
@@ -1039,6 +1111,17 @@ class _CreateOrderRepository implements OrderRepository {
             ),
           ),
     );
+  }
+}
+
+class _ShippingCompanyRepository implements ShippingCompanyRepository {
+  @override
+  Future<ApiResult<List<ShippingCompanyData>>> getForCity(
+    int serviceCityId,
+  ) async {
+    return const ApiResult.success([
+      ShippingCompanyData(id: 41, name: 'Fast Ship'),
+    ]);
   }
 }
 

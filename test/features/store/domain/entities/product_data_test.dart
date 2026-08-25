@@ -79,6 +79,35 @@ void main() {
       expect(product.images, [AppAssets.defaultProduct]);
     });
 
+    test('resolves addition images and uses the addon placeholder', () {
+      final product = ProductData.fromJson({
+        'id': 1,
+        'name': 'Product',
+        'additions': [
+          {
+            'id': 10,
+            'name_en': 'Extra cheese',
+            'price': '10.00',
+            'image': '/media/additions/cheese.png',
+          },
+          {'id': 11, 'name_en': 'Hot sauce', 'price': '5.00'},
+        ],
+      });
+
+      expect(
+        product.additions.first.image,
+        '${ApiEndpoints.rootBaseUrl}/media/additions/cheese.png',
+      );
+      expect(product.additions.last.image, AppAssets.defaultAddon);
+      expect(
+        (product.toJson()['additions'] as List).first,
+        containsPair(
+          'image',
+          '${ApiEndpoints.rootBaseUrl}/media/additions/cheese.png',
+        ),
+      );
+    });
+
     test('parses city metadata from API payloads', () {
       final product = ProductData.fromJson({
         'id': 'product_1',

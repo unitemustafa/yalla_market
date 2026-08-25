@@ -177,6 +177,7 @@ class _OrdersViewState extends State<OrdersView> {
       products: _productsFromOrder(order),
       reviewStatus: order.reviewStatusLabel,
       paymentMethod: order.paymentMethodLabel,
+      shippingCompany: order.shippingCompany?.name ?? '',
       deliveryType: order.deliveryTypeLabel,
       deliveryPriceStatus: order.deliveryPriceStatus,
       deliveryPrice: _formatMoney(order.shippingFee),

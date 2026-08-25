@@ -18,6 +18,7 @@ class OrderPresentationData {
     required this.products,
     this.reviewStatus = '',
     this.paymentMethod = '',
+    this.shippingCompany = '',
     this.deliveryType = '',
     this.deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
     this.deliveryPrice = '',
@@ -38,6 +39,7 @@ class OrderPresentationData {
   final List<OrderProductPresentationData> products;
   final String reviewStatus;
   final String paymentMethod;
+  final String shippingCompany;
   final String deliveryType;
   final OrderDeliveryPriceStatus deliveryPriceStatus;
   final String deliveryPrice;

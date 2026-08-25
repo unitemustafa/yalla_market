@@ -8,6 +8,7 @@ import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
+import 'package:yalla_market/features/store/domain/entities/shipping_company.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
@@ -189,6 +190,38 @@ void main() {
     expect(find.text('Approve delivery price'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('shows the selected shipping company in order details', (
+    tester,
+  ) async {
+    final orderHistoryCubit = OrderHistoryCubit(
+      GetMyOrdersUseCase(
+        _OrderRepositoryWithData([
+          _orderPlacedAt(
+            DateTime(2026, 7, 14),
+            shippingCompany: const ShippingCompanyData(
+              id: 41,
+              name: 'Fast Ship',
+            ),
+          ),
+        ]),
+      ),
+    );
+    addTearDown(orderHistoryCubit.close);
+
+    await tester.pumpWidget(
+      BlocProvider<OrderHistoryCubit>.value(
+        value: orderHistoryCubit,
+        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('6'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Shipping Company'), findsOneWidget);
+    expect(find.text('Fast Ship'), findsOneWidget);
+  });
 }
 
 OrderData _orderPlacedAt(
@@ -198,6 +231,7 @@ OrderData _orderPlacedAt(
   List<OrderMarketSectionData> marketSections = const [],
   OrderDeliveryPriceStatus deliveryPriceStatus = OrderDeliveryPriceStatus.fixed,
   double shippingFee = 0,
+  ShippingCompanyData? shippingCompany,
 }) {
   return OrderData(
     id: '6',
@@ -214,6 +248,7 @@ OrderData _orderPlacedAt(
       postalCode: '',
     ),
     paymentMethod: 'cash',
+    shippingCompany: shippingCompany,
     items: const [
       OrderItemData(
         id: 'item-1',
@@ -253,6 +288,7 @@ class _EmptyOrderRepository implements OrderRepository {
     String? deliveryType,
     String? customDeliveryArea,
     String? deliveryAreaId,
+    int? shippingCompanyId,
     String? description,
     String? deliveryNote,
     double shippingFee = 0,

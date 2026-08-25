@@ -16,6 +16,7 @@ import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../core/presentation/widgets/texts/app_currency_text.dart';
 import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
+import '../../../../app/di/service_locator.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../location/domain/entities/city_data.dart';
@@ -26,21 +27,29 @@ import '../../../personalization/presentation/cubit/address_state.dart';
 import '../../../personalization/presentation/views/address/address_region_matcher.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/entities/order_preview.dart';
+import '../../domain/entities/shipping_company.dart';
+import '../../domain/usecases/get_shipping_companies_usecase.dart';
 import '../cubit/checkout_cubit.dart';
 import '../cubit/checkout_state.dart';
 import '../cubit/order_history_cubit.dart';
 import 'checkout_address_sections.dart';
 import 'checkout_icon_tile.dart';
 import 'checkout_payment_section.dart';
+import 'checkout_shipping_company_section.dart';
 
 part 'checkout_review_items.dart';
 part 'checkout_order_summary.dart';
 part 'checkout_action_and_shared.dart';
 
 class CheckoutView extends StatefulWidget {
-  const CheckoutView({super.key, this.useDemoRepositories});
+  const CheckoutView({
+    super.key,
+    this.useDemoRepositories,
+    this.getShippingCompanies,
+  });
 
   final bool? useDemoRepositories;
+  final GetShippingCompaniesUseCase? getShippingCompanies;
 
   @override
   State<CheckoutView> createState() => _CheckoutViewState();
@@ -49,6 +58,12 @@ class CheckoutView extends StatefulWidget {
 class _CheckoutViewState extends State<CheckoutView> {
   String? _lastPreviewKey;
   bool _isSelectingRegion = false;
+  String? _shippingCompaniesAddressKey;
+  List<ShippingCompanyData> _shippingCompanies = const [];
+  int? _selectedShippingCompanyId;
+  bool _isShippingCompaniesLoading = false;
+  String? _shippingCompaniesError;
+  int _shippingCompaniesGeneration = 0;
 
   static const _checkoutPaymentMethod = 'cash';
 
@@ -65,6 +80,63 @@ class _CheckoutViewState extends State<CheckoutView> {
 
   double _subtotal(List<CartItemData> items) {
     return items.fold(0, (sum, item) => sum + item.price * item.quantity);
+  }
+
+  void _syncShippingCompanies(AddressData? address) {
+    final cityId = address?.serviceCityId;
+    final key = cityId == null ? null : '${address!.id}:$cityId';
+    if (_shippingCompaniesAddressKey == key) return;
+
+    _shippingCompaniesAddressKey = key;
+    _shippingCompanies = const [];
+    _selectedShippingCompanyId = null;
+    _shippingCompaniesError = null;
+    _isShippingCompaniesLoading = key != null && !_useDemoRepositories;
+    final generation = ++_shippingCompaniesGeneration;
+    if (key == null || _useDemoRepositories) return;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final useCase =
+          widget.getShippingCompanies ??
+          (sl.isRegistered<GetShippingCompaniesUseCase>()
+              ? sl<GetShippingCompaniesUseCase>()
+              : null);
+      if (useCase == null) {
+        if (!mounted || generation != _shippingCompaniesGeneration) return;
+        setState(() {
+          _shippingCompanies = const [];
+          _isShippingCompaniesLoading = false;
+          _shippingCompaniesError = 'Could not load shipping companies.';
+        });
+        return;
+      }
+      final result = await useCase(cityId!);
+      if (!mounted || generation != _shippingCompaniesGeneration) return;
+      result.when(
+        success: (companies) {
+          setState(() {
+            _shippingCompanies = companies;
+            _isShippingCompaniesLoading = false;
+            _shippingCompaniesError = null;
+          });
+        },
+        failure: (failure) {
+          setState(() {
+            _shippingCompanies = const [];
+            _isShippingCompaniesLoading = false;
+            _shippingCompaniesError = failure.message;
+          });
+        },
+      );
+    });
+  }
+
+  void _retryShippingCompanies() {
+    final key = _shippingCompaniesAddressKey;
+    if (key == null) return;
+    setState(() {
+      _shippingCompaniesAddressKey = null;
+    });
   }
 
   int _itemCount(List<CartItemData> items) {
@@ -202,6 +274,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                   selectedCity,
                 );
                 final hasSavedAddress = selectedAddress != null;
+                _syncShippingCompanies(selectedAddress);
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 final backgroundColor = isDark
                     ? AppColors.darkBackground
@@ -324,6 +397,24 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   ),
                                 ],
                                 const SizedBox(height: 14),
+                                if (_isShippingCompaniesLoading ||
+                                    _shippingCompaniesError != null ||
+                                    _shippingCompanies.isNotEmpty) ...[
+                                  ShippingCompanyCard(
+                                    companies: _shippingCompanies,
+                                    selectedId: _selectedShippingCompanyId,
+                                    isDark: isDark,
+                                    isLoading: _isShippingCompaniesLoading,
+                                    errorMessage: _shippingCompaniesError,
+                                    onSelected: (id) {
+                                      setState(() {
+                                        _selectedShippingCompanyId = id;
+                                      });
+                                    },
+                                    onRetry: _retryShippingCompanies,
+                                  ),
+                                  const SizedBox(height: 14),
+                                ],
                                 PaymentMethodCard(isDark: isDark),
                                 const SizedBox(height: 14),
                                 SavedAddressCheckoutCard(
@@ -355,6 +446,29 @@ class _CheckoutViewState extends State<CheckoutView> {
                                 context: context,
                                 title: 'Shipping address required',
                                 message: checkoutAddressRequiredMessage,
+                              );
+                              return;
+                            }
+
+                            if (_isShippingCompaniesLoading ||
+                                _shippingCompaniesError != null) {
+                              CustomSnackBar.showError(
+                                context: context,
+                                title: 'Cannot complete order',
+                                message: _shippingCompaniesError != null
+                                    ? 'Could not load shipping companies.'
+                                    : 'Shipping companies are still loading.',
+                              );
+                              return;
+                            }
+
+                            if (_shippingCompanies.isNotEmpty &&
+                                _selectedShippingCompanyId == null) {
+                              CustomSnackBar.showError(
+                                context: context,
+                                title: 'Shipping company required',
+                                message:
+                                    'Choose a shipping company before completing the order.',
                               );
                               return;
                             }
@@ -439,6 +553,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                   .toList(growable: false),
                               cartItems: cartItems,
                               paymentMethod: _checkoutPaymentMethod,
+                              shippingCompanyId: _selectedShippingCompanyId,
                               description: '',
                               deliveryNote: '',
                             );

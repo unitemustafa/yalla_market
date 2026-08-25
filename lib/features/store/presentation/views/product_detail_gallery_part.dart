@@ -1,5 +1,18 @@
 part of 'product_detail_view.dart';
 
+List<String> _uniqueImageSources(Iterable<String> sources) {
+  final images = <String>[];
+  final seen = <String>{};
+
+  for (final source in sources) {
+    final image = source.trim();
+    if (image.isEmpty || !seen.add(image)) continue;
+    images.add(image);
+  }
+
+  return images;
+}
+
 class _ProductGallery extends StatelessWidget {
   const _ProductGallery({
     required this.isDark,
@@ -98,10 +111,10 @@ class _ProductGallery extends StatelessWidget {
                                 source: currentImage,
                                 fallbackType: AppImagePlaceholderType.product,
                                 fit: BoxFit.contain,
-                                cacheWidth:
-                                    (galleryWidth * devicePixelRatio).round(),
-                                cacheHeight:
-                                    (imageHeight * devicePixelRatio).round(),
+                                cacheWidth: (galleryWidth * devicePixelRatio)
+                                    .round(),
+                                cacheHeight: (imageHeight * devicePixelRatio)
+                                    .round(),
                               ),
                             ),
                           ),

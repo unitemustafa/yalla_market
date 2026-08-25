@@ -116,10 +116,7 @@ class OnboardingPageItem extends StatelessWidget {
     );
   }
 
-  Widget _buildImagePanel(
-    BuildContext context, {
-    required Color panelColor,
-  }) {
+  Widget _buildImagePanel(BuildContext context, {required Color panelColor}) {
     final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
 
     return AspectRatio(

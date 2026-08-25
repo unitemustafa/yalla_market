@@ -181,7 +181,8 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                                       width: 54,
                                       height: 54,
                                       fit: BoxFit.contain,
-                                      cacheWidth: (54 * devicePixelRatio).round(),
+                                      cacheWidth: (54 * devicePixelRatio)
+                                          .round(),
                                       cacheHeight: (54 * devicePixelRatio)
                                           .round(),
                                       borderRadius: BorderRadius.circular(8),

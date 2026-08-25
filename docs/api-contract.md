@@ -515,6 +515,31 @@ Response: updated address list with exactly one address marked `isDefault`.
 
 Response: updated address list.
 
+### GET `/locations/shipping-companies/`
+
+The checkout screen requests active shipping companies for the selected saved
+address using `service_city_id`:
+
+```http
+GET /locations/shipping-companies/?service_city_id=1
+```
+
+The response may be a list or a paginated object with `results`.
+
+```json
+[
+  {
+    "id": 41,
+    "name": "Fast Ship",
+    "logo_url": "https://api.example.com/media/shipping-companies/fast.png"
+  }
+]
+```
+
+When at least one company is available for the address city, order creation
+requires the customer to select one. Inactive, archived, or companies assigned
+to another city must not be returned to the customer.
+
 ## Orders
 
 Client checkout uses the dedicated preview/create endpoints. The Flutter client
@@ -559,13 +584,17 @@ Request:
   ],
   "offers": [
     {"offer_id": 5}
-  ]
+  ],
+  "market_order": [2, 7]
 }
 ```
 
-Do not send prices, market ids, delivery fields, user/admin fields, statuses,
-review fields, `market_sections`, or client-calculated totals. The backend
-infers markets from variants/offers and calculates totals.
+`market_order` contains each shop once, in the order the customer added them.
+The first shop is exempt from the multi-market fee; the backend applies the fee
+to the net totals of every later shop. Do not send prices, delivery fields,
+user/admin fields, statuses, review fields, `market_sections`, or
+client-calculated totals. The backend infers and validates shops from
+variants/offers and calculates all monetary values authoritatively.
 
 Response:
 
@@ -598,14 +627,27 @@ Response:
     "subtotal": "600.00",
     "discount_total": "60.00",
     "delivery_total": "120.00",
+    "multi_market_fee_rate": "0.00",
+    "multi_market_fee": "0.00",
     "grand_total": "660.00"
   }
 }
 ```
 
+For a multi-shop order, the current backend rate is 5%. It is applied to the
+net totals of all shops after the first and rounded to a whole currency unit.
+The returned `grand_total` already includes `multi_market_fee`.
+
 ### POST `/orders/create/`
 
-Request: same body as preview.
+Request: same body as preview, plus the selected company when one is available
+for the saved address city.
+
+```json
+{
+  "shipping_company_id": 41
+}
+```
 
 Response is a one-item list. The app uses `response[0]` as the created order.
 
@@ -622,6 +664,14 @@ Response is a one-item list. The app uses `response[0]` as the created order.
     "discount": "60.00",
     "subtotal_price": "600.00",
     "delivery_price": "120.00",
+    "shipping_company_id": 41,
+    "shipping_company": {
+      "id": 41,
+      "name": "Fast Ship",
+      "logo_url": "https://api.example.com/media/shipping-companies/fast.png"
+    },
+    "multi_market_fee_rate": "0.00",
+    "multi_market_fee": "0.00",
     "total_price": "660.00",
     "is_multi_market": false,
     "market_count": 1,
@@ -657,6 +707,10 @@ Response: current customer orders as a list, or a paginated object with
     "payment_method": "cash",
     "subtotal_price": "600.00",
     "delivery_price": "120.00",
+    "shipping_company_id": 41,
+    "shipping_company": {"id": 41, "name": "Fast Ship", "logo_url": null},
+    "multi_market_fee_rate": "0.00",
+    "multi_market_fee": "0.00",
     "total_price": "660.00",
     "is_multi_market": false,
     "market_count": 1,

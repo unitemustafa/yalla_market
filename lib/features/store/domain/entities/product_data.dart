@@ -374,9 +374,14 @@ class ProductData {
           json['subcategoryId']?.toString() ??
           json['subcategory_id']?.toString() ??
           parsedSubcategory?.id ??
-          (effectiveSubcategories.isEmpty ? null : effectiveSubcategories.first.id),
-      subcategory: parsedSubcategory ??
-          (effectiveSubcategories.isEmpty ? null : effectiveSubcategories.first),
+          (effectiveSubcategories.isEmpty
+              ? null
+              : effectiveSubcategories.first.id),
+      subcategory:
+          parsedSubcategory ??
+          (effectiveSubcategories.isEmpty
+              ? null
+              : effectiveSubcategories.first),
       subcategories: effectiveSubcategories,
       marketId:
           json['marketId']?.toString() ??

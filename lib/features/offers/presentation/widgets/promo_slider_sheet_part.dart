@@ -616,10 +616,11 @@ class _OfferProductRow extends StatelessWidget {
                         product.brand(context),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                          color: mutedColor,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: mutedColor,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                       if (product.meta(context).trim().isNotEmpty) ...[
                         const SizedBox(height: 2),

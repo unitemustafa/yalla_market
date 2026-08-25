@@ -39,19 +39,6 @@ part 'product_detail_cart_part.dart';
 part 'product_detail_dialogs_part.dart';
 part 'product_detail_actions_part.dart';
 
-List<String> _uniqueImageSources(Iterable<String> sources) {
-  final images = <String>[];
-  final seen = <String>{};
-
-  for (final source in sources) {
-    final image = source.trim();
-    if (image.isEmpty || !seen.add(image)) continue;
-    images.add(image);
-  }
-
-  return images;
-}
-
 String? _discountBadgeLabel(BuildContext context, String? discount) {
   final percentage = ProductPricing.discountLabel(discount);
   if (percentage == null) return null;

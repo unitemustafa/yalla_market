@@ -373,26 +373,6 @@ class _SignupViewState extends State<SignupView> {
     return null;
   }
 
-  String? _activeUsernameAvailabilityError() {
-    final username = _usernameController.text.trim();
-    if (!_usernameFocusNode.hasFocus ||
-        username.isEmpty ||
-        _checker.isCheckingUsername) {
-      return null;
-    }
-
-    if (_checker.lastCheckedUsername == username &&
-        _checker.isUsernameAvailable == false) {
-      return context.tr('This username is already taken');
-    }
-
-    if (_checker.hasUsernameCheckError) {
-      return context.tr('Could not check this username.');
-    }
-
-    return null;
-  }
-
   String? _activeEmailAvailabilityError() {
     final email = _emailController.text.trim().toLowerCase();
     if (!_emailFocusNode.hasFocus ||

@@ -1,6 +1,26 @@
 part of 'signup_view.dart';
 
 extension _SignupFormFields on _SignupViewState {
+  String? _activeUsernameAvailabilityError() {
+    final username = _usernameController.text.trim();
+    if (!_usernameFocusNode.hasFocus ||
+        username.isEmpty ||
+        _checker.isCheckingUsername) {
+      return null;
+    }
+
+    if (_checker.lastCheckedUsername == username &&
+        _checker.isUsernameAvailable == false) {
+      return context.tr('This username is already taken');
+    }
+
+    if (_checker.hasUsernameCheckError) {
+      return context.tr('Could not check this username.');
+    }
+
+    return null;
+  }
+
   BoxDecoration _buildBackgroundDecoration(bool isDarkMode) {
     return BoxDecoration(
       gradient: LinearGradient(

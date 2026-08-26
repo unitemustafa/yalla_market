@@ -13,6 +13,7 @@ import '../core/localization/app_translations.dart';
 import '../core/notifications/push_notification_service.dart';
 import '../core/preferences/app_preferences_controller.dart';
 import '../core/presentation/widgets/offline_connection_banner.dart';
+import '../core/presentation/widgets/layouts/android_tablet_viewport.dart';
 import '../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../core/theme/app_theme.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
@@ -168,16 +169,18 @@ class _AppCoordinatorState extends State<AppCoordinator>
                 themeMode: preferences.themeMode,
                 locale: language.locale,
                 supportedLocales: AppTranslations.supportedLocales,
-                builder: (context, child) => Directionality(
-                  textDirection: language.isArabic
-                      ? TextDirection.rtl
-                      : TextDirection.ltr,
-                  child: OfflineConnectionBanner(
-                    message: context.tr(
-                      'You are offline. Showing saved content; checkout and updates need internet.',
+                builder: (context, child) => AndroidTabletViewport(
+                  child: Directionality(
+                    textDirection: language.isArabic
+                        ? TextDirection.rtl
+                        : TextDirection.ltr,
+                    child: OfflineConnectionBanner(
+                      message: context.tr(
+                        'You are offline. Showing saved content; checkout and updates need internet.',
+                      ),
+                      onBecameOnline: _handleBecameOnline,
+                      child: child ?? const SizedBox.shrink(),
                     ),
-                    onBecameOnline: _handleBecameOnline,
-                    child: child ?? const SizedBox.shrink(),
                   ),
                 ),
                 localizationsDelegates: const [

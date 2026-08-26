@@ -222,7 +222,7 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
     if (!_ready || _hidden) return const SizedBox.shrink();
     final teaser = widget.campaign.teaser;
     return Material(
-      color: teaser.backgroundColor,
+      color: Color(teaser.backgroundColorValue),
       child: InkWell(
         onTap: _open,
         child: SafeArea(
@@ -252,14 +252,17 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      color: teaser.textColor,
+                      color: Color(teaser.textColorValue),
                       fontSize: 14,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Icon(Icons.keyboard_arrow_up_rounded, color: teaser.textColor),
+                Icon(
+                  Icons.keyboard_arrow_up_rounded,
+                  color: Color(teaser.textColorValue),
+                ),
               ],
             ),
           ),

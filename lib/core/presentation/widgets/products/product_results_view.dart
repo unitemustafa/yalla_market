@@ -28,7 +28,7 @@ class ProductResultsView extends StatefulWidget {
     this.initialQuery = '',
     this.searchFocusNode,
     this.maxCrossAxisCount = 6,
-    this.gridMainAxisExtent = 188,
+    this.gridMainAxisExtent = ProductCardVertical.compactGridMainAxisExtent,
     this.compactProductCards = true,
     this.showSummary = true,
     this.emptyTitle = 'No products found',

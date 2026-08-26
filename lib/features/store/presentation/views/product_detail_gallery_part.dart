@@ -82,9 +82,10 @@ class _ProductGallery extends StatelessWidget {
                   height: 188,
                   width: double.infinity,
                   child: AppImage(
+                    key: const ValueKey('product_detail_main_image'),
                     source: currentImage,
                     fallbackType: AppImagePlaceholderType.product,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     cacheWidth: (imageLogicalWidth * devicePixelRatio).round(),
                     cacheHeight: (188 * devicePixelRatio).round(),
                   ),

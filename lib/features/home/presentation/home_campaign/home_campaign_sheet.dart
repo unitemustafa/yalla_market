@@ -37,10 +37,10 @@ class _HomeCampaignSheet extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final sheetBackgroundColor = sheet.useThemeColors
         ? colorScheme.surface
-        : sheet.backgroundColor;
+        : Color(sheet.backgroundColorValue);
     final sheetTextColor = sheet.useThemeColors
         ? colorScheme.onSurface
-        : sheet.textColor;
+        : Color(sheet.textColorValue);
     final alignment = sheet.alignment == 'center'
         ? TextAlign.center
         : TextAlign.start;
@@ -119,8 +119,8 @@ class _HomeCampaignSheet extends StatelessWidget {
                   height: 52,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: sheet.buttonBackgroundColor,
-                      foregroundColor: sheet.buttonTextColor,
+                      backgroundColor: Color(sheet.buttonBackgroundColorValue),
+                      foregroundColor: Color(sheet.buttonTextColorValue),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),

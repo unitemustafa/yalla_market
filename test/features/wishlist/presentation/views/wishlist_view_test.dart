@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 import 'package:yalla_market/features/wishlist/domain/entities/wishlist_item.dart';
 import 'package:yalla_market/features/wishlist/domain/repositories/market_wishlist_repository.dart';
@@ -58,6 +59,16 @@ void main() {
     final delegate =
         grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
     expect(delegate.crossAxisCount, 2);
+    expect(
+      delegate.mainAxisExtent,
+      ProductCardVertical.storefrontGridMainAxisExtent,
+    );
+    expect(
+      tester
+          .widgetList<ProductCardVertical>(find.byType(ProductCardVertical))
+          .every((card) => !card.compact),
+      isTrue,
+    );
     expect(tester.takeException(), isNull);
   });
 }

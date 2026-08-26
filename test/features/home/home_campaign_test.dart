@@ -14,7 +14,7 @@ void main() {
     expect(campaign.teaser.text, 'عرض النهارده');
     expect(campaign.sheet.template, 'hero');
     expect(campaign.action.type, 'none');
-    expect(campaign.teaser.backgroundColor, const Color(0xFFFF5A00));
+    expect(campaign.teaser.backgroundColorValue, 0xFFFF5A00);
     expect(campaign.sheet.useThemeColors, isTrue);
     expect(campaign.behavior.rotationSeconds, 1800);
   });

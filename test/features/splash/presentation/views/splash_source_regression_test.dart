@@ -30,6 +30,30 @@ void main() {
     expect(source, isNot(contains('Everything you need in one place')));
   });
 
+  test('Android 12 launch screen does not repeat the app logo', () {
+    for (final path in [
+      'android/app/src/main/res/values-v31/styles.xml',
+      'android/app/src/main/res/values-night-v31/styles.xml',
+    ]) {
+      final source = File(path).readAsStringSync();
+
+      expect(
+        source,
+        contains(
+          '<item name="android:windowSplashScreenAnimatedIcon">'
+          '@drawable/transparent_splash_icon</item>',
+        ),
+      );
+      expect(
+        source,
+        contains(
+          '<item name="android:windowSplashScreenAnimationDuration">0</item>',
+        ),
+      );
+      expect(source, isNot(contains('@mipmap/ic_launcher')));
+    }
+  });
+
   test('native launcher names are Arabic on Android and iOS', () {
     final androidManifest = File(
       'android/app/src/main/AndroidManifest.xml',

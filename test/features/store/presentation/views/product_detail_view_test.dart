@@ -8,6 +8,7 @@ import 'package:yalla_market/app/di/service_locator.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/brand_data.dart';
 import 'package:yalla_market/features/store/domain/entities/category_data.dart';
@@ -72,6 +73,15 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+
+    expect(
+      tester
+          .widget<AppImage>(
+            find.byKey(const ValueKey('product_detail_main_image')),
+          )
+          .fit,
+      BoxFit.contain,
+    );
 
     await tester.tap(find.byIcon(AppIcons.send_1));
     await tester.pumpAndSettle();

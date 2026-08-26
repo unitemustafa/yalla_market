@@ -100,6 +100,8 @@ class WishlistView extends StatelessWidget {
                                           itemCount: wishlist.length,
                                           minCrossAxisCount: 2,
                                           maxCrossAxisCount: 2,
+                                          mainAxisExtent: ProductCardVertical
+                                              .storefrontGridMainAxisExtent,
                                           itemBuilder: (_, index) {
                                             final item = wishlist[index];
                                             return ProductCardVertical(
@@ -110,6 +112,7 @@ class WishlistView extends StatelessWidget {
                                               productId: item.productId,
                                               oldPrice: item.oldPrice,
                                               discount: item.discount,
+                                              compact: false,
                                             );
                                           },
                                         ),

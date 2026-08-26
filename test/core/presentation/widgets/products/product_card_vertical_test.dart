@@ -95,7 +95,14 @@ void main() {
     final imageRect = tester.getRect(
       find.byKey(const ValueKey('product_image_backend-product-42')),
     );
+    final productImage = tester.widget<AppImage>(
+      find.descendant(
+        of: find.byKey(const ValueKey('product_image_backend-product-42')),
+        matching: find.byType(AppImage),
+      ),
+    );
     expect(imageRect.height, 90);
+    expect(productImage.fit, BoxFit.contain);
     expect(titleRect.top - imageRect.bottom, lessThanOrEqualTo(8));
     expect(priceRect.top - marketRect.bottom, lessThanOrEqualTo(6));
     expect(buttonRectBefore.top - priceRect.bottom, lessThanOrEqualTo(8));
@@ -168,7 +175,7 @@ void main() {
       discountBadge.padding,
       const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
     );
-    expect(tester.widget<AppImage>(find.byType(AppImage)).fit, BoxFit.cover);
+    expect(tester.widget<AppImage>(find.byType(AppImage)).fit, BoxFit.contain);
     final priceTexts = tester
         .widgetList<RichText>(find.byType(RichText))
         .map((widget) => widget.text.toPlainText());

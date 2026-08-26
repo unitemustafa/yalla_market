@@ -25,6 +25,11 @@ String? _discountBadgeLabel(BuildContext context, String? discount) {
 }
 
 class ProductCardVertical extends StatefulWidget {
+  static const double compactGridMainAxisExtent = 188;
+  static const double storefrontGridMainAxisExtent = 242;
+  static const double compactImageHeight = 90;
+  static const double storefrontImageHeight = 110;
+
   const ProductCardVertical({
     super.key,
     required this.image,
@@ -192,7 +197,9 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                 ),
                 child: SizedBox(
                   key: ValueKey('product_image_${widget.productId}'),
-                  height: compact ? 90 : 110,
+                  height: compact
+                      ? ProductCardVertical.compactImageHeight
+                      : ProductCardVertical.storefrontImageHeight,
                   child: ColoredBox(
                     color: imagePanelColor,
                     child: Stack(
@@ -202,7 +209,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                             child: AppImage(
                               source: widget.image,
                               fallbackType: AppImagePlaceholderType.product,
-                              fit: BoxFit.cover,
+                              fit: BoxFit.contain,
                               cacheWidth: 320,
                               cacheHeight: 264,
                               filterQuality: FilterQuality.low,

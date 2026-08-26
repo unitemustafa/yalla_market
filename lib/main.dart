@@ -10,10 +10,12 @@ import 'app/di/service_locator.dart';
 import 'core/localization/app_language_controller.dart';
 import 'core/preferences/app_preferences_controller.dart';
 import 'core/notifications/push_notification_service.dart';
+import 'core/platform/android_display_mode.dart';
 import 'yalla_market_app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await configureAndroidDisplayMode();
   AppEnvironment.validate();
   initServiceLocator();
   await AppLanguageController.instance.loadSavedLanguage();

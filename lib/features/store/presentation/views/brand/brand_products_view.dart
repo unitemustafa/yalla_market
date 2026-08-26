@@ -11,6 +11,7 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
+import '../../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -582,7 +583,8 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             showSummary: false,
             pageSize: 100,
             maxCrossAxisCount: 2,
-            gridMainAxisExtent: 242,
+            gridMainAxisExtent:
+                ProductCardVertical.storefrontGridMainAxisExtent,
             compactProductCards: false,
             contentAfterSearch: offers.isEmpty
                 ? null

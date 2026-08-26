@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 class HomeCampaignData {
   const HomeCampaignData({
     required this.id,
@@ -38,23 +36,23 @@ class HomeCampaignData {
 class HomeCampaignTeaserData {
   const HomeCampaignTeaserData({
     required this.text,
-    required this.backgroundColor,
-    required this.textColor,
+    required this.backgroundColorValue,
+    required this.textColorValue,
     required this.imageUrl,
   });
   final String text;
-  final Color backgroundColor;
-  final Color textColor;
+  final int backgroundColorValue;
+  final int textColorValue;
   final String imageUrl;
 
   factory HomeCampaignTeaserData.fromJson(Map<String, dynamic> json) =>
       HomeCampaignTeaserData(
         text: json['text']?.toString() ?? '',
-        backgroundColor: campaignColor(
+        backgroundColorValue: campaignColorValue(
           json['background_color'],
-          const Color(0xFFFF5A00),
+          0xFFFF5A00,
         ),
-        textColor: campaignColor(json['text_color'], Colors.white),
+        textColorValue: campaignColorValue(json['text_color'], 0xFFFFFFFF),
         imageUrl: json['image_url']?.toString() ?? '',
       );
 }
@@ -67,10 +65,10 @@ class HomeCampaignSheetData {
     required this.size,
     required this.alignment,
     required this.useThemeColors,
-    required this.backgroundColor,
-    required this.textColor,
-    required this.buttonBackgroundColor,
-    required this.buttonTextColor,
+    required this.backgroundColorValue,
+    required this.textColorValue,
+    required this.buttonBackgroundColorValue,
+    required this.buttonTextColorValue,
   });
   final String title;
   final String description;
@@ -78,10 +76,10 @@ class HomeCampaignSheetData {
   final String size;
   final String alignment;
   final bool useThemeColors;
-  final Color backgroundColor;
-  final Color textColor;
-  final Color buttonBackgroundColor;
-  final Color buttonTextColor;
+  final int backgroundColorValue;
+  final int textColorValue;
+  final int buttonBackgroundColorValue;
+  final int buttonTextColorValue;
 
   factory HomeCampaignSheetData.fromJson(Map<String, dynamic> json) =>
       HomeCampaignSheetData(
@@ -93,13 +91,19 @@ class HomeCampaignSheetData {
         useThemeColors: json['use_theme_colors'] is bool
             ? json['use_theme_colors'] as bool
             : true,
-        backgroundColor: campaignColor(json['background_color'], Colors.white),
-        textColor: campaignColor(json['text_color'], const Color(0xFF202124)),
-        buttonBackgroundColor: campaignColor(
-          json['button_background_color'],
-          const Color(0xFFFF5A00),
+        backgroundColorValue: campaignColorValue(
+          json['background_color'],
+          0xFFFFFFFF,
         ),
-        buttonTextColor: campaignColor(json['button_text_color'], Colors.white),
+        textColorValue: campaignColorValue(json['text_color'], 0xFF202124),
+        buttonBackgroundColorValue: campaignColorValue(
+          json['button_background_color'],
+          0xFFFF5A00,
+        ),
+        buttonTextColorValue: campaignColorValue(
+          json['button_text_color'],
+          0xFFFFFFFF,
+        ),
       );
 }
 
@@ -168,8 +172,8 @@ class HomeCampaignBehaviorData {
 Map<String, dynamic> _map(Object? value) =>
     value is Map<String, dynamic> ? value : const {};
 
-Color campaignColor(Object? value, Color fallback) {
+int campaignColorValue(Object? value, int fallback) {
   final raw = value?.toString().trim().replaceFirst('#', '') ?? '';
   if (!RegExp(r'^[0-9a-fA-F]{6}$').hasMatch(raw)) return fallback;
-  return Color(int.parse('FF$raw', radix: 16));
+  return int.parse('FF$raw', radix: 16);
 }

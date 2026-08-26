@@ -465,7 +465,7 @@ class _ProductShareSheet extends StatelessWidget {
                       child: AppImage(
                         source: image,
                         fallbackType: AppImagePlaceholderType.product,
-                        fit: BoxFit.cover,
+                        fit: BoxFit.contain,
                         cacheWidth: 128,
                         cacheHeight: 128,
                       ),

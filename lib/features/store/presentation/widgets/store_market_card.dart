@@ -158,7 +158,7 @@ class _StoreCover extends StatelessWidget {
                 key: ValueKey('${keyPrefix}_${market.id}_logo'),
                 source: market.image,
                 fallbackType: AppImagePlaceholderType.store,
-                fit: BoxFit.cover,
+                role: AppImageRole.logo,
                 borderRadius: BorderRadius.circular(11),
                 cacheWidth: 170,
                 cacheHeight: 170,

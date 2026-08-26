@@ -54,8 +54,7 @@ class CategoryTile extends StatelessWidget {
                     child: AppImage(
                       source: image,
                       fallbackType: AppImagePlaceholderType.category,
-                      fit: BoxFit.cover,
-                      borderRadius: BorderRadius.circular(8),
+                      role: AppImageRole.illustration,
                       cacheWidth: 192,
                       cacheHeight: 216,
                       filterQuality: FilterQuality.medium,

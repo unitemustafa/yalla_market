@@ -463,7 +463,7 @@ class _HomeTopBar extends StatelessWidget {
                   borderRadius: BorderRadius.circular(7),
                   child: Image.asset(
                     AppAssets.homeBrandLogo,
-                    fit: BoxFit.cover,
+                    fit: BoxFit.contain,
                     alignment: const Alignment(0, 0.02),
                     cacheWidth: 196,
                     filterQuality: FilterQuality.medium,

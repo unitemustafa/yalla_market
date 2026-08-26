@@ -59,7 +59,7 @@ class BrandCard extends StatelessWidget {
                 child: AppImage(
                   source: logo,
                   fallbackType: AppImagePlaceholderType.store,
-                  fit: BoxFit.cover,
+                  role: AppImageRole.logo,
                   borderRadius: BorderRadius.circular(8),
                   cacheWidth: 112,
                   cacheHeight: 112,

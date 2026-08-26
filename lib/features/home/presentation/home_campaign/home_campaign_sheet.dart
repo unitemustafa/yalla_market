@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/constants/app_media_specs.dart';
 import '../../domain/entities/home_campaign_data.dart';
 
 enum HomeCampaignSheetResult { dismissed, acted }
@@ -98,11 +99,7 @@ class _HomeCampaignSheet extends StatelessWidget {
                     : Column(
                         children: [
                           if (campaign.media.type != 'none') ...[
-                            _CampaignMedia(
-                              campaign.media,
-                              mediaFocus:
-                                  campaign.sheet.template == 'media_focus',
-                            ),
+                            _CampaignMedia(campaign.media),
                             const SizedBox(height: 18),
                           ],
                           content,
@@ -192,37 +189,37 @@ class _CampaignTextContent extends StatelessWidget {
 }
 
 class _CampaignMedia extends StatelessWidget {
-  const _CampaignMedia(this.media, {this.mediaFocus = false});
+  const _CampaignMedia(this.media);
   final HomeCampaignMediaData media;
-  final bool mediaFocus;
 
   @override
   Widget build(BuildContext context) {
-    final height = mediaFocus ? 300.0 : 210.0;
     if (media.type == 'video') {
-      return _CampaignVideo(media: media, height: height);
+      return _CampaignVideo(media: media);
     }
     if (media.type != 'image' || media.imageUrl.isEmpty) {
       return const SizedBox.shrink();
     }
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: CachedNetworkImage(
-        imageUrl: media.imageUrl,
-        width: double.infinity,
-        height: height,
-        fit: BoxFit.cover,
-        placeholder: (_, _) => _MediaPlaceholder(height: height),
-        errorWidget: (_, _, _) => _MediaPlaceholder(height: height),
+    return AspectRatio(
+      key: const ValueKey('campaign_image_viewport'),
+      aspectRatio: AppMediaSpecs.campaignMediaAspectRatio,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: CachedNetworkImage(
+          imageUrl: media.imageUrl,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          placeholder: (_, _) => const _MediaPlaceholder(),
+          errorWidget: (_, _, _) => const _MediaPlaceholder(),
+        ),
       ),
     );
   }
 }
 
 class _CampaignVideo extends StatefulWidget {
-  const _CampaignVideo({required this.media, required this.height});
+  const _CampaignVideo({required this.media});
   final HomeCampaignMediaData media;
-  final double height;
 
   @override
   State<_CampaignVideo> createState() => _CampaignVideoState();
@@ -291,11 +288,11 @@ class _CampaignVideoState extends State<_CampaignVideo>
   Widget build(BuildContext context) {
     final controller = _controller;
     final ready = controller?.value.isInitialized == true && _error == null;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: SizedBox(
-        width: double.infinity,
-        height: widget.height,
+    return AspectRatio(
+      key: const ValueKey('campaign_video_viewport'),
+      aspectRatio: AppMediaSpecs.campaignMediaAspectRatio,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -309,10 +306,7 @@ class _CampaignVideoState extends State<_CampaignVideo>
                 ),
               )
             else
-              _PosterOrPlaceholder(
-                posterUrl: widget.media.posterUrl,
-                height: widget.height,
-              ),
+              _PosterOrPlaceholder(posterUrl: widget.media.posterUrl),
             if (ready)
               Align(
                 alignment: Alignment.bottomLeft,
@@ -343,26 +337,23 @@ class _CampaignVideoState extends State<_CampaignVideo>
 }
 
 class _PosterOrPlaceholder extends StatelessWidget {
-  const _PosterOrPlaceholder({required this.posterUrl, required this.height});
+  const _PosterOrPlaceholder({required this.posterUrl});
   final String posterUrl;
-  final double height;
   @override
   Widget build(BuildContext context) => posterUrl.isEmpty
-      ? _MediaPlaceholder(height: height)
+      ? const _MediaPlaceholder()
       : CachedNetworkImage(
           imageUrl: posterUrl,
           fit: BoxFit.cover,
-          placeholder: (_, _) => _MediaPlaceholder(height: height),
-          errorWidget: (_, _, _) => _MediaPlaceholder(height: height),
+          placeholder: (_, _) => const _MediaPlaceholder(),
+          errorWidget: (_, _, _) => const _MediaPlaceholder(),
         );
 }
 
 class _MediaPlaceholder extends StatelessWidget {
-  const _MediaPlaceholder({required this.height});
-  final double height;
+  const _MediaPlaceholder();
   @override
   Widget build(BuildContext context) => Container(
-    height: height,
     color: Colors.black.withValues(alpha: 0.06),
     alignment: Alignment.center,
     child: const CircularProgressIndicator.adaptive(),

@@ -110,6 +110,56 @@ void main() {
       expect(find.text('missing image'), findsOneWidget);
       expect(find.byType(Image), findsNothing);
     });
+
+    testWidgets('infers contain for product and addon media', (tester) async {
+      for (final placeholderType in const [
+        AppImagePlaceholderType.product,
+        AppImagePlaceholderType.addon,
+      ]) {
+        await tester.pumpWidget(
+          _wrap(
+            AppImage(
+              source: AppAssets.defaultProduct,
+              width: 80,
+              height: 80,
+              fallbackType: placeholderType,
+            ),
+          ),
+        );
+
+        expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+      }
+    });
+
+    testWidgets('uses semantic roles without stretching the source', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          const AppImage(
+            source: AppAssets.temporaryMarketPlaceholder,
+            width: 80,
+            height: 48,
+            role: AppImageRole.logo,
+          ),
+        ),
+      );
+
+      expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.contain);
+
+      await tester.pumpWidget(
+        _wrap(
+          const AppImage(
+            source: AppAssets.temporaryMarketPlaceholder,
+            width: 80,
+            height: 48,
+            role: AppImageRole.photo,
+          ),
+        ),
+      );
+
+      expect(tester.widget<Image>(find.byType(Image)).fit, BoxFit.cover);
+    });
   });
 
   group('AppAvatar', () {

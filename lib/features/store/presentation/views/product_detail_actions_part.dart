@@ -323,7 +323,7 @@ extension _ProductDetailActions on _ProductDetailViewState {
                         source: addition.image,
                         width: 28,
                         height: 28,
-                        fit: BoxFit.cover,
+                        role: AppImageRole.product,
                         borderRadius: BorderRadius.circular(6),
                         fallbackType: AppImagePlaceholderType.addon,
                         semanticLabel: context.tr(addition.name),

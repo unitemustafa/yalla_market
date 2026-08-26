@@ -266,7 +266,7 @@ class _MarketTypeItem extends StatelessWidget {
                     source: image,
                     width: 60,
                     height: 60,
-                    fit: BoxFit.cover,
+                    role: AppImageRole.illustration,
                     fallbackType: AppImagePlaceholderType.category,
                     cacheWidth: 128,
                     cacheHeight: 128,

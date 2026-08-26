@@ -17,6 +17,24 @@ enum AppImagePlaceholderType {
   courier,
 }
 
+/// The visual contract for an image slot.
+///
+/// Product packshots, logos, and illustrations must remain fully visible.
+/// Photographic covers and avatars may crop around their center to fill the
+/// slot. Keeping this decision here prevents individual screens from silently
+/// stretching or cropping the same asset differently.
+enum AppImageRole {
+  photo(BoxFit.cover),
+  avatar(BoxFit.cover),
+  product(BoxFit.contain),
+  logo(BoxFit.contain),
+  illustration(BoxFit.contain);
+
+  const AppImageRole(this.fit);
+
+  final BoxFit fit;
+}
+
 class AppImage extends StatelessWidget {
   const AppImage({
     super.key,
@@ -24,7 +42,8 @@ class AppImage extends StatelessWidget {
     this.bytes,
     this.width,
     this.height,
-    this.fit = BoxFit.cover,
+    this.role,
+    this.fit,
     this.alignment = Alignment.center,
     this.borderRadius,
     this.cacheWidth,
@@ -41,7 +60,8 @@ class AppImage extends StatelessWidget {
   final Uint8List? bytes;
   final double? width;
   final double? height;
-  final BoxFit fit;
+  final AppImageRole? role;
+  final BoxFit? fit;
   final AlignmentGeometry alignment;
   final BorderRadius? borderRadius;
   final int? cacheWidth;
@@ -79,13 +99,14 @@ class AppImage extends StatelessWidget {
     final pickedBytes = bytes;
     final effectiveCacheWidth = _effectiveCacheWidth(context);
     final effectiveCacheHeight = _effectiveCacheHeight(context);
+    final effectiveFit = _effectiveFit;
 
     if (pickedBytes != null && pickedBytes.isNotEmpty) {
       return Image.memory(
         pickedBytes,
         width: width,
         height: height,
-        fit: fit,
+        fit: effectiveFit,
         alignment: alignment,
         cacheWidth: effectiveCacheWidth,
         cacheHeight: effectiveCacheHeight,
@@ -118,7 +139,7 @@ class AppImage extends StatelessWidget {
             image: imageProvider,
             width: width,
             height: height,
-            fit: fit,
+            fit: effectiveFit,
             alignment: alignment,
             semanticLabel: semanticLabel,
             filterQuality: filterQuality,
@@ -134,7 +155,7 @@ class AppImage extends StatelessWidget {
       value,
       width: width,
       height: height,
-      fit: fit,
+      fit: effectiveFit,
       alignment: alignment,
       cacheWidth: effectiveCacheWidth,
       cacheHeight: effectiveCacheHeight,
@@ -178,6 +199,7 @@ class AppImage extends StatelessWidget {
   }
 
   Widget? _placeholderAsset() {
+    final effectiveFit = _effectiveFit;
     final asset = switch (fallbackType) {
       AppImagePlaceholderType.user => AppAssets.defaultUserAvatar,
       AppImagePlaceholderType.store => AppAssets.defaultStore,
@@ -192,7 +214,7 @@ class AppImage extends StatelessWidget {
 
     return Image.asset(
       asset,
-      fit: fit,
+      fit: effectiveFit,
       alignment: alignment,
       semanticLabel: semanticLabel,
       filterQuality: filterQuality,
@@ -204,6 +226,20 @@ class AppImage extends StatelessWidget {
     final uri = Uri.tryParse(value);
     if (uri == null) return false;
     return uri.scheme == 'http' || uri.scheme == 'https';
+  }
+
+  BoxFit get _effectiveFit {
+    final inferredRole = switch (fallbackType) {
+      AppImagePlaceholderType.product ||
+      AppImagePlaceholderType.addon => AppImageRole.product,
+      AppImagePlaceholderType.user ||
+      AppImagePlaceholderType.courier => AppImageRole.avatar,
+      AppImagePlaceholderType.category => AppImageRole.illustration,
+      AppImagePlaceholderType.store ||
+      AppImagePlaceholderType.offer ||
+      null => AppImageRole.photo,
+    };
+    return fit ?? role?.fit ?? inferredRole.fit;
   }
 
   int? _effectiveCacheWidth(BuildContext context) {

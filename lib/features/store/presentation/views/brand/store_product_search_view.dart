@@ -249,7 +249,7 @@ class _ProductSearchRow extends StatelessWidget {
                 child: AppImage(
                   source: product.image,
                   fallbackType: AppImagePlaceholderType.product,
-                  fit: BoxFit.cover,
+                  role: AppImageRole.product,
                   borderRadius: BorderRadius.circular(14),
                   cacheWidth: 340,
                   cacheHeight: 340,

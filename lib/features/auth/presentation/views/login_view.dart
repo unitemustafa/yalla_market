@@ -411,7 +411,7 @@ class _LoginViewState extends State<LoginView> {
             borderRadius: BorderRadius.circular(14),
             child: AppImage(
               source: logoAsset,
-              fit: BoxFit.cover,
+              role: AppImageRole.logo,
               cacheWidth: 192,
               cacheHeight: 192,
             ),

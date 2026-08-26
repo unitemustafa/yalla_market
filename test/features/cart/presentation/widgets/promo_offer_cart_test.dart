@@ -74,6 +74,10 @@ void main() {
       expect(countdownLabel, findsOneWidget);
       expect(buyButton, findsOneWidget);
       expect(countdown, findsOneWidget);
+      final viewportSize = tester.getSize(
+        find.byKey(const ValueKey('promo_offer_viewport')),
+      );
+      expect(viewportSize.width / viewportSize.height, closeTo(8 / 3, 0.01));
       expect(
         tester.getRect(buyButton).overlaps(tester.getRect(countdown)),
         isFalse,

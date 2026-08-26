@@ -146,7 +146,7 @@ class MarketStorefrontHero extends StatelessWidget {
                             key: const ValueKey('storefront_logo'),
                             source: market.image,
                             fallbackType: AppImagePlaceholderType.store,
-                            fit: BoxFit.cover,
+                            role: AppImageRole.logo,
                             borderRadius: BorderRadius.circular(12),
                             cacheWidth: 180,
                             cacheHeight: 180,

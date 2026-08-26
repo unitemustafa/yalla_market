@@ -102,7 +102,7 @@ class ContentShareSheet extends StatelessWidget {
                       child: AppImage(
                         source: image,
                         fallbackType: imagePlaceholderType,
-                        fit: BoxFit.cover,
+                        role: AppImageRole.illustration,
                         cacheWidth: 128,
                         cacheHeight: 128,
                       ),

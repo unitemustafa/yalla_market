@@ -178,7 +178,7 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                                       source: addition.image,
                                       width: 54,
                                       height: 54,
-                                      fit: BoxFit.cover,
+                                      role: AppImageRole.product,
                                       borderRadius: BorderRadius.circular(8),
                                       fallbackType:
                                           AppImagePlaceholderType.addon,

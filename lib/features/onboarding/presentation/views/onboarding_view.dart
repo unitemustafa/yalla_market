@@ -159,7 +159,7 @@ class _OnboardingViewState extends State<OnboardingView> {
                             source: logoAsset,
                             width: 42,
                             height: 42,
-                            fit: BoxFit.cover,
+                            role: AppImageRole.logo,
                             borderRadius: BorderRadius.circular(8),
                             cacheWidth: 84,
                             cacheHeight: 84,

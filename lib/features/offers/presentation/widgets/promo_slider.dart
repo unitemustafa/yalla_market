@@ -11,6 +11,7 @@ import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/app_media_specs.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -451,8 +452,9 @@ class _PromoSliderState extends State<PromoSlider> {
     return Column(
       children: [
         RepaintBoundary(
-          child: SizedBox(
-            height: 160,
+          child: AspectRatio(
+            key: const ValueKey('promo_offer_viewport'),
+            aspectRatio: AppMediaSpecs.offerBannerAspectRatio,
             child: PageView.builder(
               controller: _pageController,
               itemCount: offers.length,

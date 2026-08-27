@@ -134,6 +134,7 @@ void main() {
             'username': 'mustafa_ali',
             'email': 'mustafa@example.com',
             'phone': '+201000000000',
+            'city': 'Cairo',
             'password': 'Password123!',
             'password_confirm': 'Password123!',
             'terms_accepted': true,
@@ -152,6 +153,7 @@ void main() {
           password: 'Password123!',
           username: 'mustafa_ali',
           phone: '+201000000000',
+          city: 'Cairo',
         );
 
         result.when(

@@ -14,6 +14,7 @@ class CustomTextField extends StatelessWidget {
   final bool obscureText;
   final VoidCallback? onSuffixIconPressed;
   final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
   final TextEditingController? controller;
   final FocusNode? focusNode;
   final String? Function(String?)? validator;
@@ -35,6 +36,7 @@ class CustomTextField extends StatelessWidget {
     this.obscureText = false,
     this.onSuffixIconPressed,
     this.keyboardType,
+    this.textInputAction,
     this.controller,
     this.focusNode,
     this.validator,
@@ -69,6 +71,7 @@ class CustomTextField extends StatelessWidget {
         focusNode: focusNode,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        textInputAction: textInputAction,
         autovalidateMode: autovalidateMode,
         validator: validator,
         enabled: enabled,

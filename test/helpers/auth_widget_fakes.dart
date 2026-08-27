@@ -162,6 +162,7 @@ class FakeAuthRepository implements AuthRepository {
     required String password,
     required String username,
     required String phone,
+    required String city,
   }) async {
     return ApiResult.success(
       AuthSession(
@@ -171,6 +172,7 @@ class FakeAuthRepository implements AuthRepository {
           lastName: lastName,
           username: username,
           phone: phone,
+          city: city,
         ),
       ),
     );

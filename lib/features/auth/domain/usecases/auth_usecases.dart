@@ -114,6 +114,7 @@ class SignupUseCase {
     required String password,
     required String username,
     required String phone,
+    required String city,
   }) {
     return _repository.signup(
       firstName: firstName,
@@ -122,6 +123,7 @@ class SignupUseCase {
       password: password,
       username: username,
       phone: phone,
+      city: city,
     );
   }
 }

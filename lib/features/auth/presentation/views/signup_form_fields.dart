@@ -147,6 +147,19 @@ extension _SignupFormFields on _SignupViewState {
     );
   }
 
+  Widget _buildCityField() {
+    return CustomTextField(
+      controller: _cityController,
+      labelText: 'Enter your city',
+      prefixIcon: AppIcons.location,
+      keyboardType: TextInputType.streetAddress,
+      textInputAction: TextInputAction.next,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
+      validator: Validators.required,
+      inputFormatters: [LengthLimitingTextInputFormatter(100)],
+    );
+  }
+
   Widget? _buildAvailabilityStatusSuffix(
     bool isDarkMode, {
     required bool isChecking,

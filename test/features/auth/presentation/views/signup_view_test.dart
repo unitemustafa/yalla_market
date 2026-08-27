@@ -84,6 +84,20 @@ void main() {
     expect(lastNameField.validator?.call('Ali'), isNull);
   });
 
+  testWidgets('shows a required city field that accepts names with spaces', (
+    tester,
+  ) async {
+    await _pumpSignup(tester);
+
+    final cityField = _textFormField(tester, 'Enter your city');
+    expect(cityField.validator?.call(''), 'This field is required');
+
+    await tester.enterText(_fieldByLabel('Enter your city'), 'New Cairo');
+    await tester.pump();
+
+    expect(cityField.validator?.call('New Cairo'), isNull);
+  });
+
   testWidgets('email validation clears when email becomes valid', (
     tester,
   ) async {

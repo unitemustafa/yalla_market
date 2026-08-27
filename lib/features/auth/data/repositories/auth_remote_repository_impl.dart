@@ -129,6 +129,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     required String password,
     required String username,
     required String phone,
+    required String city,
   }) {
     return _guard(() async {
       await _sessionDeadlineController.clearSession();
@@ -143,6 +144,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
           'terms_accepted': true,
           'username': username,
           'phone': phone,
+          'city': city,
         },
         options: _skipAuthOptions,
       );
@@ -153,6 +155,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         email: email,
         username: username,
         phone: phone,
+        city: city,
       );
     });
   }
@@ -304,6 +307,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     required String email,
     String? username,
     String? phone,
+    String? city,
   }) async {
     final user = _signupUserFromPayload(
       payload,
@@ -312,6 +316,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       email: email,
       username: username,
       phone: phone,
+      city: city,
     );
     final tokens = _optionalTokensFromPayload(payload);
     if (tokens != null) {
@@ -409,6 +414,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     required String email,
     String? username,
     String? phone,
+    String? city,
   }) {
     final rawUser = _asJsonMap(payload['user']);
     if (rawUser != null) return AuthUser.fromJson(rawUser);
@@ -431,6 +437,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       role: _stringFromPayload(payload, 'role') ?? 'CUSTOMER',
       username: _stringFromPayload(payload, 'username') ?? username?.trim(),
       phone: _stringFromPayload(payload, 'phone') ?? phone?.trim(),
+      city: _stringFromPayload(payload, 'city') ?? city?.trim(),
     );
   }
 

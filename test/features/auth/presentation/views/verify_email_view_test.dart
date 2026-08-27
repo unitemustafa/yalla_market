@@ -265,6 +265,7 @@ Future<void> _pumpVerifyEmail(
     password: 'Password1!',
     username: 'manual2026',
     phone: '+201000000000',
+    city: 'Cairo',
   );
   final locationCubit = LocationCubit(
     locationUseCases(FakeLocationRepository()),

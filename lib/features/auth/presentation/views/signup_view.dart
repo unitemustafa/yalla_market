@@ -46,6 +46,7 @@ class _SignupViewState extends State<SignupView> {
   late final TextEditingController _usernameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _cityController;
   late final TextEditingController _passwordController;
   late final FocusNode _usernameFocusNode;
   late final FocusNode _emailFocusNode;
@@ -65,6 +66,7 @@ class _SignupViewState extends State<SignupView> {
     _usernameController = TextEditingController();
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
+    _cityController = TextEditingController();
     _passwordController = TextEditingController();
     _usernameFocusNode = FocusNode();
     _emailFocusNode = FocusNode();
@@ -111,6 +113,7 @@ class _SignupViewState extends State<SignupView> {
     _usernameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _cityController.dispose();
     _passwordController.dispose();
     _usernameFocusNode.dispose();
     _emailFocusNode.dispose();
@@ -151,6 +154,7 @@ class _SignupViewState extends State<SignupView> {
         username: username,
         email: _emailController.text.trim(),
         phone: _phoneForLookup(),
+        city: _cityController.text.trim(),
         password: _passwordController.text,
       );
     }
@@ -233,6 +237,7 @@ class _SignupViewState extends State<SignupView> {
                                 _buildUsernameField(isDarkMode),
                                 _buildEmailField(isDarkMode),
                                 _buildPhoneField(theme, isDarkMode),
+                                _buildCityField(),
                                 CustomTextField(
                                   controller: _passwordController,
                                   labelText: AppStrings.password,

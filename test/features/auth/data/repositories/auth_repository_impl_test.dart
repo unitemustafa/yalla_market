@@ -78,6 +78,7 @@ void main() {
         email: 'mustafa@example.com',
         username: 'mustafa_ali',
         phone: '+201000000000',
+        city: 'Cairo',
         password: 'Secret123!',
       );
       await repository.logout();
@@ -111,6 +112,7 @@ void main() {
         email: 'mustafa@example.com',
         username: 'mustafa_ali',
         phone: '+201000000000',
+        city: 'Cairo',
         password: 'Secret123!',
       );
 
@@ -138,6 +140,7 @@ void main() {
         email: 'mustafa@example.com',
         username: 'mustafa_ali',
         phone: '+201000000000',
+        city: 'Cairo',
         password: 'Secret123!',
       );
 
@@ -147,6 +150,7 @@ void main() {
         email: 'mona@example.com',
         username: 'mona_ali',
         phone: '+20 100 000 0000',
+        city: 'Cairo',
         password: 'Secret123!',
       );
 

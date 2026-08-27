@@ -105,20 +105,23 @@ class LocalAuthService {
     required String password,
     required String username,
     required String phone,
+    required String city,
   }) async {
     final normalizedEmail = normalizeAuthEmail(email);
     final normalizedUsername = normalizeAuthUsername(username);
     final cleanFirstName = firstName.trim();
     final cleanLastName = lastName.trim();
+    final cleanCity = city.trim();
 
     if (cleanFirstName.isEmpty ||
         cleanLastName.isEmpty ||
         normalizedEmail.isEmpty ||
         password.isEmpty ||
         normalizedUsername.isEmpty ||
-        phone.trim().isEmpty) {
+        phone.trim().isEmpty ||
+        cleanCity.isEmpty) {
       throw const ValidationFailure(
-        'Name, username, email, phone, and password are required.',
+        'Name, username, email, phone, city, and password are required.',
       );
     }
 
@@ -140,6 +143,7 @@ class LocalAuthService {
       lastName: cleanLastName,
       username: normalizedUsername,
       phone: phone.trim(),
+      city: cleanCity,
       role: 'CUSTOMER',
     );
 

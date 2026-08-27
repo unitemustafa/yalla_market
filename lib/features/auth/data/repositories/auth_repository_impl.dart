@@ -67,6 +67,7 @@ class AuthRepositoryImpl implements AuthRepository {
     required String password,
     required String username,
     required String phone,
+    required String city,
   }) {
     return _guard(
       () => _service.signup(
@@ -76,6 +77,7 @@ class AuthRepositoryImpl implements AuthRepository {
         password: password,
         username: username,
         phone: phone,
+        city: city,
       ),
       'Could not create your account.',
     );

@@ -239,6 +239,7 @@ class AuthCubit extends Cubit<AuthState> {
     required String password,
     required String username,
     required String phone,
+    required String city,
   }) async {
     if (state is AuthLoading) return;
 
@@ -253,6 +254,7 @@ class AuthCubit extends Cubit<AuthState> {
       password: password,
       username: username.trim(),
       phone: phone.trim(),
+      city: city.trim(),
     );
     result.when(
       success: (session) {

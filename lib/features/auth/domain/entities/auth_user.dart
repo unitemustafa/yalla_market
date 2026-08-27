@@ -9,6 +9,7 @@ class AuthUser {
     this.hasPassword = true,
     this.username,
     this.phone,
+    this.city,
     this.gender,
     this.birthDate,
     this.usernameChangedAt,
@@ -24,6 +25,7 @@ class AuthUser {
   final bool hasPassword;
   final String? username;
   final String? phone;
+  final String? city;
   final String? gender;
   final DateTime? birthDate;
   final DateTime? usernameChangedAt;
@@ -49,6 +51,7 @@ class AuthUser {
           json['hasPassword'] as bool? ?? json['has_password'] as bool? ?? true,
       username: _stringFromJson(json['username']),
       phone: _stringFromJson(json['phone']),
+      city: _stringFromJson(json['city']),
       gender: _stringFromJson(json['gender']),
       birthDate: _dateFromString(json['birthDate'] ?? json['birth_date']),
       usernameChangedAt: _dateFromString(
@@ -69,6 +72,7 @@ class AuthUser {
       'hasPassword': hasPassword,
       'username': username,
       'phone': phone,
+      'city': city,
       'gender': gender,
       'birthDate': birthDate?.toIso8601String(),
       'usernameChangedAt': usernameChangedAt?.toIso8601String(),
@@ -86,6 +90,7 @@ class AuthUser {
     bool? hasPassword,
     String? username,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
     DateTime? usernameChangedAt,
@@ -101,6 +106,7 @@ class AuthUser {
       hasPassword: hasPassword ?? this.hasPassword,
       username: username ?? this.username,
       phone: phone ?? this.phone,
+      city: city ?? this.city,
       gender: gender ?? this.gender,
       birthDate: birthDate ?? this.birthDate,
       usernameChangedAt: usernameChangedAt ?? this.usernameChangedAt,

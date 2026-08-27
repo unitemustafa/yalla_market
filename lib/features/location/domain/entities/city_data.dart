@@ -307,7 +307,7 @@ class CityData {
   }
 
   static const Map<String, String> _arabicRegionNames = {
-    'general': 'عام',
+    'general': 'جاهز للشحن',
     'cairo': 'القاهرة',
     'al qahirah': 'القاهرة',
     'القاهره': 'القاهرة',

@@ -158,7 +158,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Choose your current city or the nearest one.':
         'اختر مدينتك الحالية أو أقربهم لك.',
     'If your city is not available, choose Other.':
-        'في حال عدم تواجد مدينتك اختر أخرى.',
+        'فى حاله عدم تواجد مدينتك تقدر تختار جاهز للشحن ونشحنلك المنتج المطلوب بكل سهوله',
     'Manual': 'يدوي',
     'Automatic': 'تلقائي',
     'Automatic location': 'تحديد تلقائي',
@@ -175,11 +175,11 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Detecting location...': 'بنحدد موقعك...',
     'Enable GPS and continue': 'فعّل الموقع وكمل',
     'Enable your location': 'فعّل موقعك',
-    'General': 'عام',
-    'General browsing': 'تصفح عام',
+    'General': 'جاهز للشحن',
+    'General browsing': 'تصفح المنتجات الجاهزة للشحن',
     'General products and offers will be shown.':
-        'هيتم عرض المنتجات والعروض العامة.',
-    'General region saved': 'تم حفظ المنطقة العامة',
+        'هيتم عرض المنتجات والعروض الجاهزة للشحن.',
+    'General region saved': 'تم حفظ اختيار جاهز للشحن',
     'GPS helps Yalla Market show nearby products, local offers, better delivery suggestions, and more accurate delivery pricing later.':
         'الموقع بيساعد يلا ماركت يعرض منتجات قريبة، عروض محلية، اقتراحات توصيل أفضل، وتسعير توصيل أدق بعدين.',
     'In-progress and completed orders': 'طلبات جارية ومكتملة',
@@ -212,7 +212,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'مقدرناش نحدد محافظة مدعومة. اختار محافظتك يدويًا.',
     'Yes, continue': 'نعم، كمل',
     'You will see general products and offers.':
-        'هتشوف المنتجات والعروض العامة.',
+        'هتشوف المنتجات والعروض الجاهزة للشحن.',
     'You are now in a supported region. Switch to see its offers. Your cart will be checked at checkout.':
         'أنت دلوقتي في منطقة مدعومة. بدّل المنطقة عشان تشوف عروضها، والسلة هتتراجع عند الدفع.',
     'Choose city': 'اختار المدينة',

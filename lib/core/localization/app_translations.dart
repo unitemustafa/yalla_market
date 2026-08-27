@@ -242,7 +242,7 @@ class AppTranslations {
   }) {
     if (unsupported) {
       return language.isArabic
-          ? 'يبدو أنك خارج مدن الخدمة الحالية. هل تريد التبديل إلى عام؟'
+          ? 'يبدو أنك خارج مدن الخدمة الحالية. هل تريد التبديل إلى جاهز للشحن؟'
           : 'It looks like you are outside our current service cities. Do you want to switch to General?';
     }
     return language.isArabic

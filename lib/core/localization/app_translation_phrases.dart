@@ -271,7 +271,7 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Delivery area': 'منطقة التوصيل',
     'Delivery type': 'نوع التوصيل',
     'Courier': 'دليفيري',
-    'Courier assigned': 'تم تعيين المندوب',
+    'Courier assigned': 'تم تعيين الطيار',
     'Later': 'لاحقًا',
     'Fixed-price delivery': 'توصيل بسعر ثابت',
     'Delivery - price determined later': 'دليفري - السعر يتحدد لاحقًا',

@@ -269,6 +269,23 @@ class _CampaignVideoState extends State<_CampaignVideo>
     });
   }
 
+  Future<void> _togglePlayback() async {
+    final controller = _controller;
+    if (controller == null) return;
+    controller.value.isPlaying
+        ? await controller.pause()
+        : await controller.play();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _toggleMute() async {
+    final controller = _controller;
+    if (controller == null) return;
+    final isMuted = controller.value.volume == 0;
+    await controller.setVolume(isMuted ? 1 : 0);
+    if (mounted) setState(() {});
+  }
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
@@ -312,20 +329,33 @@ class _CampaignVideoState extends State<_CampaignVideo>
                 alignment: Alignment.bottomLeft,
                 child: Padding(
                   padding: const EdgeInsets.all(10),
-                  child: IconButton.filled(
-                    onPressed: () async {
-                      final activeController = _controller;
-                      if (activeController == null) return;
-                      activeController.value.isPlaying
-                          ? await activeController.pause()
-                          : await activeController.play();
-                      if (mounted) setState(() {});
-                    },
-                    icon: Icon(
-                      controller!.value.isPlaying
-                          ? Icons.pause_rounded
-                          : Icons.play_arrow_rounded,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      IconButton.filled(
+                        tooltip: controller!.value.isPlaying
+                            ? 'إيقاف الفيديو'
+                            : 'تشغيل الفيديو',
+                        onPressed: _togglePlayback,
+                        icon: Icon(
+                          controller.value.isPlaying
+                              ? Icons.pause_rounded
+                              : Icons.play_arrow_rounded,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton.filled(
+                        tooltip: controller.value.volume == 0
+                            ? 'تشغيل الصوت'
+                            : 'كتم الصوت',
+                        onPressed: _toggleMute,
+                        icon: Icon(
+                          controller.value.volume == 0
+                              ? Icons.volume_off_rounded
+                              : Icons.volume_up_rounded,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

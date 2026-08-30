@@ -43,7 +43,7 @@ void main() {
             'name_ar': 'مشروبات',
             'name_en': 'Drinks',
             'description_ar': 'باردة وساخنة',
-            'description_en': '',
+            'description_en': 'Cold and hot',
             'sort_order': 2,
             'is_active': true,
           },
@@ -72,7 +72,7 @@ void main() {
       expect(classification.classificationType, 'featured');
       expect(classification.marketTypes.single.id, '11');
       expect(classification.marketTypes.single.localizedName('ar'), 'برجر');
-      expect(classification.marketTypes.single.localizedName('en'), 'Burger');
+      expect(classification.marketTypes.single.localizedName('en'), 'برجر');
       expect(market.id, '9');
       expect(market.classificationId, '7');
       expect(market.isPopular, isTrue);
@@ -92,7 +92,7 @@ void main() {
       expect(market.products.single.brand, 'Fresh Market');
       expect(market.products.single.marketId, '9');
       expect(market.subcategories.map((item) => item.id), ['1', '2']);
-      expect(market.subcategories.last.localizedName('en'), 'Drinks');
+      expect(market.subcategories.last.localizedName('en'), 'مشروبات');
       expect(
         market.subcategories.last.localizedDescription('en'),
         'باردة وساخنة',
@@ -142,6 +142,18 @@ void main() {
         store.featuredCandidates.map((item) => item.id),
         isNot(contains('p1')),
       );
+    });
+
+    test('falls back to the compatibility name when Arabic is missing', () {
+      const type = StoreMarketTypeData(
+        id: '11',
+        nameAr: '',
+        nameEn: 'Burger',
+        image: '',
+        sortOrder: 1,
+      );
+
+      expect(type.localizedName('en'), 'Burger');
     });
 
     test('keeps all category stores and exposes popular stores separately', () {

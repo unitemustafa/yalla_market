@@ -182,16 +182,29 @@ void main() {
           'name_ar': 'مشروبات',
           'name_en': 'Drinks',
           'description_ar': 'كل المشروبات',
-          'description_en': '',
+          'description_en': 'All drinks',
           'is_active': false,
         },
       });
 
       expect(product.subcategoryId, '12');
       expect(product.subcategory?.localizedName('ar'), 'مشروبات');
-      expect(product.subcategory?.localizedName('en'), 'Drinks');
+      expect(product.subcategory?.localizedName('en'), 'مشروبات');
       expect(product.subcategory?.localizedDescription('en'), 'كل المشروبات');
       expect(product.toJson()['subcategoryId'], '12');
+    });
+
+    test('falls back to compatibility copy when Arabic content is missing', () {
+      const subcategory = StoreSubcategoryData(
+        id: '12',
+        nameAr: '',
+        nameEn: 'Drinks',
+        descriptionAr: '',
+        descriptionEn: 'All drinks',
+      );
+
+      expect(subcategory.localizedName('en'), 'Drinks');
+      expect(subcategory.localizedDescription('en'), 'All drinks');
     });
 
     test('parses flat Django product detail variant attributes', () {

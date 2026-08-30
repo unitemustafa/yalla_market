@@ -175,18 +175,12 @@ class StoreSubcategoryData {
     );
   }
 
-  String localizedName(String languageCode) {
-    if (languageCode.toLowerCase().startsWith('ar')) {
-      return nameAr.isNotEmpty ? nameAr : nameEn;
-    }
-    return nameEn.isNotEmpty ? nameEn : nameAr;
+  String localizedName(String _) {
+    return nameAr.isNotEmpty ? nameAr : nameEn;
   }
 
-  String localizedDescription(String languageCode) {
-    if (languageCode.toLowerCase().startsWith('ar')) {
-      return descriptionAr.isNotEmpty ? descriptionAr : descriptionEn;
-    }
-    return descriptionEn.isNotEmpty ? descriptionEn : descriptionAr;
+  String localizedDescription(String _) {
+    return descriptionAr.isNotEmpty ? descriptionAr : descriptionEn;
   }
 
   Map<String, Object?> toJson() => {

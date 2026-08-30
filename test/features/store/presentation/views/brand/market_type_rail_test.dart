@@ -7,7 +7,7 @@ import 'package:yalla_market/features/store/presentation/views/brand/brand_produ
 
 void main() {
   testWidgets(
-    'market types fit an iPhone SE width and overflow into a bottom sheet',
+    'market types keep Arabic content in an English app and fit a small width',
     (tester) async {
       String? selectedId;
       final types = List.generate(
@@ -23,7 +23,7 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          locale: const Locale('ar'),
+          locale: const Locale('en'),
           supportedLocales: AppTranslations.supportedLocales,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
@@ -52,6 +52,9 @@ void main() {
       );
 
       expect(find.byKey(const ValueKey('market_type_all')), findsNothing);
+      expect(find.text('تصنيف 1'), findsOneWidget);
+      expect(find.text('Type 1'), findsNothing);
+      expect(find.text('View all'), findsOneWidget);
       expect(find.byKey(const ValueKey('market_type_4')), findsOneWidget);
       expect(find.byKey(const ValueKey('market_type_5')), findsNothing);
       expect(

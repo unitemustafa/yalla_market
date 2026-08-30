@@ -7,7 +7,7 @@ import 'package:yalla_market/features/store/presentation/views/brand/brand_produ
 import 'package:yalla_market/features/store/presentation/views/brand/brand_store_sections.dart';
 
 void main() {
-  testWidgets('subcategory rail omits All and selects the first category', (
+  testWidgets('subcategory rail keeps Arabic content in an English app', (
     tester,
   ) async {
     String? selectedId;
@@ -18,11 +18,12 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('en'),
         home: Scaffold(
           body: StoreSubcategoryRail(
             categories: categories,
             selectedId: selectedId,
-            languageCode: 'ar',
+            languageCode: 'en',
             categoryDescription: null,
             onSelected: (value) => selectedId = value,
           ),
@@ -33,6 +34,8 @@ void main() {
     expect(find.byKey(const ValueKey('store_subcategory_all')), findsNothing);
     expect(find.text('وجبات'), findsOneWidget);
     expect(find.text('مشروبات'), findsOneWidget);
+    expect(find.text('Meals'), findsNothing);
+    expect(find.text('Drinks'), findsNothing);
 
     final firstContainer = tester.widget<AnimatedContainer>(
       find.descendant(

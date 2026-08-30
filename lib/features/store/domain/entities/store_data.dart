@@ -149,10 +149,8 @@ class StoreMarketTypeData {
     );
   }
 
-  String localizedName(String languageCode) {
-    if (languageCode.toLowerCase().startsWith('ar') && nameAr.isNotEmpty) {
-      return nameAr;
-    }
+  String localizedName(String _) {
+    if (nameAr.isNotEmpty) return nameAr;
     return nameEn.isNotEmpty ? nameEn : nameAr;
   }
 }

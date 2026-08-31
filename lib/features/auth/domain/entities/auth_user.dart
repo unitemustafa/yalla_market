@@ -14,6 +14,7 @@ class AuthUser {
     this.birthDate,
     this.usernameChangedAt,
     this.isActive = true,
+    this.profileUsernamePending = false,
   });
 
   final String id;
@@ -30,6 +31,28 @@ class AuthUser {
   final DateTime? birthDate;
   final DateTime? usernameChangedAt;
   final bool isActive;
+  final bool profileUsernamePending;
+
+  List<String> get missingProfileFields {
+    return <String>[
+      if ('$firstName $lastName'.trim().isEmpty) 'name',
+      if (email.trim().isEmpty) 'email',
+      if (profileUsernamePending || (username?.trim().isEmpty ?? true))
+        'username',
+      if (phone?.trim().isEmpty ?? true) 'phone',
+      if (city?.trim().isEmpty ?? true) 'city',
+      if (gender?.trim().isEmpty ?? true) 'gender',
+      if (birthDate == null) 'birth_date',
+    ];
+  }
+
+  int get profileCompletionPercent {
+    const fieldCount = 7;
+    final completed = fieldCount - missingProfileFields.length;
+    return ((completed / fieldCount) * 100).round();
+  }
+
+  bool get isProfileComplete => missingProfileFields.isEmpty;
 
   factory AuthUser.fromJson(Map<String, dynamic> json) {
     return AuthUser(
@@ -58,6 +81,10 @@ class AuthUser {
         json['usernameChangedAt'] ?? json['username_changed_at'],
       ),
       isActive: json['is_active'] as bool? ?? json['isActive'] as bool? ?? true,
+      profileUsernamePending:
+          json['profile_username_pending'] as bool? ??
+          json['profileUsernamePending'] as bool? ??
+          false,
     );
   }
 
@@ -77,6 +104,7 @@ class AuthUser {
       'birthDate': birthDate?.toIso8601String(),
       'usernameChangedAt': usernameChangedAt?.toIso8601String(),
       'isActive': isActive,
+      'profileUsernamePending': profileUsernamePending,
     };
   }
 
@@ -95,6 +123,7 @@ class AuthUser {
     DateTime? birthDate,
     DateTime? usernameChangedAt,
     bool? isActive,
+    bool? profileUsernamePending,
   }) {
     return AuthUser(
       id: id ?? this.id,
@@ -111,6 +140,8 @@ class AuthUser {
       birthDate: birthDate ?? this.birthDate,
       usernameChangedAt: usernameChangedAt ?? this.usernameChangedAt,
       isActive: isActive ?? this.isActive,
+      profileUsernamePending:
+          profileUsernamePending ?? this.profileUsernamePending,
     );
   }
 }

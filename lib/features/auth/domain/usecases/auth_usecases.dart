@@ -4,12 +4,16 @@ import '../../../../core/network/api_result.dart';
 import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
 import '../entities/otp_delivery_result.dart';
+import '../entities/social_auth_result.dart';
 import '../repositories/auth_repository.dart';
 
 class AuthUseCases {
   const AuthUseCases({
     required this.restoreSavedSession,
     required this.login,
+    required this.socialSignIn,
+    required this.completeSocialSignup,
+    required this.linkSocialAccount,
     required this.checkUsernameAvailability,
     required this.checkEmailRegistration,
     required this.checkPhoneRegistration,
@@ -28,6 +32,9 @@ class AuthUseCases {
 
   final RestoreSavedSessionUseCase restoreSavedSession;
   final LoginUseCase login;
+  final SocialSignInUseCase socialSignIn;
+  final CompleteSocialSignupUseCase completeSocialSignup;
+  final LinkSocialAccountUseCase linkSocialAccount;
   final CheckUsernameAvailabilityUseCase checkUsernameAvailability;
   final CheckEmailRegistrationUseCase checkEmailRegistration;
   final CheckPhoneRegistrationUseCase checkPhoneRegistration;
@@ -66,6 +73,59 @@ class LoginUseCase {
   }) {
     return _repository.login(
       email: email,
+      password: password,
+      rememberMe: rememberMe,
+    );
+  }
+}
+
+class SocialSignInUseCase {
+  const SocialSignInUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<SocialAuthResult>> call({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) {
+    return _repository.socialSignIn(provider: provider, rememberMe: rememberMe);
+  }
+}
+
+class CompleteSocialSignupUseCase {
+  const CompleteSocialSignupUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<AuthSession>> call({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String phone,
+    required String city,
+    bool rememberMe = false,
+  }) {
+    return _repository.completeSocialSignup(
+      firstName: firstName,
+      lastName: lastName,
+      username: username,
+      phone: phone,
+      city: city,
+      rememberMe: rememberMe,
+    );
+  }
+}
+
+class LinkSocialAccountUseCase {
+  const LinkSocialAccountUseCase(this._repository);
+
+  final AuthRepository _repository;
+
+  Future<ApiResult<AuthSession>> call({
+    required String password,
+    bool rememberMe = false,
+  }) {
+    return _repository.linkSocialAccount(
       password: password,
       rememberMe: rememberMe,
     );
@@ -212,6 +272,7 @@ class UpdateProfileUseCase {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   }) {
@@ -221,6 +282,7 @@ class UpdateProfileUseCase {
       username: username,
       email: email,
       phone: phone,
+      city: city,
       gender: gender,
       birthDate: birthDate,
     );

@@ -2,8 +2,10 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -18,6 +20,7 @@ import '../../../../core/utils/validators.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../../domain/entities/social_auth_result.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/warning_checkbox.dart';
 
@@ -29,6 +32,11 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
+  static const _facebookAuthEnabled = bool.fromEnvironment(
+    'FACEBOOK_AUTH_ENABLED',
+  );
+  static const _appleAuthEnabled = bool.fromEnvironment('APPLE_AUTH_ENABLED');
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   late final TextEditingController _passwordController;
@@ -115,6 +123,34 @@ class _LoginViewState extends State<LoginView> {
             (route) => false,
             arguments: state.email,
           );
+        }
+
+        if (state is AuthSignupSucceeded) {
+          final cubit = context.read<AuthCubit>();
+          final resendAfter = cubit.lastOtpResendAfterSeconds;
+          if (resendAfter != null && resendAfter > 0) {
+            unawaited(
+              const OtpCooldownStore().save(
+                purpose: OtpPurpose.registration,
+                identifier: state.email,
+                seconds: resendAfter,
+              ),
+            );
+          }
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            AppRoutes.verifyEmail,
+            (route) => false,
+            arguments: state.email,
+          );
+        }
+
+        if (state is AuthSocialProfileRequired) {
+          unawaited(_showSocialProfileCompletion(state.result));
+        }
+
+        if (state is AuthSocialLinkRequired) {
+          unawaited(_showSocialLinkDialog(state.result));
         }
 
         if (state is AuthFailure) {
@@ -536,8 +572,228 @@ class _LoginViewState extends State<LoginView> {
                   Navigator.pushNamed(context, AppRoutes.signup);
                 },
         ),
+        const SizedBox(height: 22),
+        Row(
+          children: [
+            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Text(
+                context.tr('Or continue with'),
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+          ],
+        ),
+        const SizedBox(height: 14),
+        _socialButton(
+          context,
+          provider: SocialAuthProvider.google,
+          icon: const FaIcon(FontAwesomeIcons.google, size: 18),
+          label: 'Continue with Google',
+          isLoading: isLoading,
+        ),
+        if (_facebookAuthEnabled) ...[
+          const SizedBox(height: 10),
+          _socialButton(
+            context,
+            provider: SocialAuthProvider.facebook,
+            icon: const FaIcon(FontAwesomeIcons.facebookF, size: 18),
+            label: 'Continue with Facebook',
+            isLoading: isLoading,
+          ),
+        ],
+        if (_appleAuthEnabled &&
+            !kIsWeb &&
+            defaultTargetPlatform == TargetPlatform.iOS) ...[
+          const SizedBox(height: 10),
+          _socialButton(
+            context,
+            provider: SocialAuthProvider.apple,
+            icon: const FaIcon(FontAwesomeIcons.apple, size: 18),
+            label: 'Continue with Apple',
+            isLoading: isLoading,
+          ),
+        ],
       ],
     );
+  }
+
+  Widget _socialButton(
+    BuildContext context, {
+    required SocialAuthProvider provider,
+    required Widget icon,
+    required String label,
+    required bool isLoading,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: isLoading
+            ? null
+            : () => context.read<AuthCubit>().socialSignIn(
+                provider: provider,
+                rememberMe: _rememberMe,
+              ),
+        icon: icon,
+        label: Text(context.tr(label)),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showSocialProfileCompletion(SocialAuthResult result) async {
+    if (!mounted) return;
+    final formKey = GlobalKey<FormState>();
+    final firstName = TextEditingController(text: result.firstName);
+    final lastName = TextEditingController(text: result.lastName);
+    final username = TextEditingController();
+    final phone = TextEditingController();
+    final city = TextEditingController();
+    try {
+      final submitted = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(context.tr('Complete your account')),
+          content: SingleChildScrollView(
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(result.email, textAlign: TextAlign.center),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: firstName,
+                    decoration: InputDecoration(
+                      labelText: context.tr('First name'),
+                    ),
+                    validator: Validators.required,
+                  ),
+                  TextFormField(
+                    controller: lastName,
+                    decoration: InputDecoration(
+                      labelText: context.tr('Last name'),
+                    ),
+                  ),
+                  TextFormField(
+                    controller: username,
+                    decoration: InputDecoration(
+                      labelText: context.tr('Username'),
+                    ),
+                    validator: (value) {
+                      final requiredMessage = Validators.required(value);
+                      if (requiredMessage != null) return requiredMessage;
+                      return RegExp(
+                            r'^[A-Za-z][A-Za-z0-9._]{2,29}$',
+                          ).hasMatch(value!.trim())
+                          ? null
+                          : context.tr('Enter a valid username');
+                    },
+                  ),
+                  TextFormField(
+                    controller: phone,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: context.tr('Phone number'),
+                    ),
+                    validator: Validators.egyptianMobile,
+                  ),
+                  TextFormField(
+                    controller: city,
+                    decoration: InputDecoration(
+                      labelText: context.tr('City (optional)'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(context.tr('Cancel')),
+            ),
+            FilledButton(
+              onPressed: () {
+                if (!(formKey.currentState?.validate() ?? false)) return;
+                Navigator.pop(dialogContext, true);
+              },
+              child: Text(context.tr('Continue')),
+            ),
+          ],
+        ),
+      );
+      if (submitted != true || !mounted) return;
+      await context.read<AuthCubit>().completeSocialSignup(
+        firstName: firstName.text,
+        lastName: lastName.text,
+        username: username.text,
+        phone: Validators.normalizeEgyptianMobileNumber(phone.text),
+        city: city.text,
+        rememberMe: _rememberMe,
+      );
+    } finally {
+      firstName.dispose();
+      lastName.dispose();
+      username.dispose();
+      phone.dispose();
+      city.dispose();
+    }
+  }
+
+  Future<void> _showSocialLinkDialog(SocialAuthResult result) async {
+    if (!mounted) return;
+    final password = TextEditingController();
+    try {
+      final submitted = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(context.tr('Link existing account')),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                context.tr(
+                  'Enter your current password once to link this sign-in method.',
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: password,
+                obscureText: true,
+                decoration: InputDecoration(labelText: context.tr('Password')),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: Text(context.tr('Cancel')),
+            ),
+            FilledButton(
+              onPressed: () =>
+                  Navigator.pop(dialogContext, password.text.isNotEmpty),
+              child: Text(context.tr('Link account')),
+            ),
+          ],
+        ),
+      );
+      if (submitted != true || !mounted) return;
+      await context.read<AuthCubit>().linkSocialAccount(
+        password: password.text,
+        rememberMe: _rememberMe,
+      );
+    } finally {
+      password.dispose();
+    }
   }
 
   String _signInErrorTitle(String? message, AppTranslations strings) {

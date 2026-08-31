@@ -12,7 +12,28 @@
           "package_name": "com.yallamarket.app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "249021956753-16r2tpbdqe851mcm5bv8spa87kqbliu3.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yallamarket.app",
+            "certificate_hash": "80f3e4930f65440dee3519ce45d59fa62be2b636"
+          }
+        },
+        {
+          "client_id": "249021956753-ukm4hka3a3t7pmc20n7bvmgn4md7tn3d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yallamarket.app",
+            "certificate_hash": "673fd02cfee63369ab916baed3cf2cfbb9ecbf87"
+          }
+        },
+        {
+          "client_id": "249021956753-f3tq7421jsen4r6jpc9nrbalgml338j1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyArRRIqlTBtS3HzVSvAo_5iA04DQq2Jw7Y"
@@ -20,7 +41,55 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249021956753-f3tq7421jsen4r6jpc9nrbalgml338j1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "249021956753-872la58d77m3jmue7s2qfb7632h9hsvv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.yallamarket.app"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:249021956753:android:26b057d2063f3d6bc8b530",
+        "android_client_info": {
+          "package_name": "com.yallamarket.yalla_home"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "249021956753-f3tq7421jsen4r6jpc9nrbalgml338j1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyArRRIqlTBtS3HzVSvAo_5iA04DQq2Jw7Y"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "249021956753-f3tq7421jsen4r6jpc9nrbalgml338j1.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "249021956753-872la58d77m3jmue7s2qfb7632h9hsvv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.yallamarket.app"
+              }
+            }
+          ]
         }
       }
     }

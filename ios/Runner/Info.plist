@@ -26,6 +26,14 @@
 				<string>yallamarket</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>google-sign-in</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.249021956753-872la58d77m3jmue7s2qfb7632h9hsvv</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleName</key>
 	<string>يلا ماركت</string>

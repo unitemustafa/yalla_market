@@ -15,12 +15,15 @@ class UserProfileController extends ChangeNotifier
   String _username = 'guest';
   String _email = 'guest@yallamarket.local';
   String _phone = '';
+  String _city = '';
   String _gender = '';
   bool _hasPassword = true;
   DateTime? _birthDate;
   DateTime? _usernameChangedAt;
   String? _avatarUrl;
   Uint8List? _avatarBytes;
+  int _profileCompletionPercent = 100;
+  List<String> _missingProfileFields = const [];
 
   String get displayName => _displayName;
   String get id => _id;
@@ -29,12 +32,16 @@ class UserProfileController extends ChangeNotifier
   String get username => _username;
   String get email => _email;
   String get phone => _phone;
+  String get city => _city;
   String get gender => _gender;
   bool get hasPassword => _hasPassword;
   DateTime? get birthDate => _birthDate;
   DateTime? get usernameChangedAt => _usernameChangedAt;
   String? get avatarUrl => _avatarUrl;
   Uint8List? get avatarBytes => _avatarBytes;
+  int get profileCompletionPercent => _profileCompletionPercent;
+  List<String> get missingProfileFields => _missingProfileFields;
+  bool get isProfileComplete => _missingProfileFields.isEmpty;
   DateTime? get nextUsernameChangeAt {
     final changedAt = _usernameChangedAt;
     if (changedAt == null) return null;
@@ -83,17 +90,21 @@ class UserProfileController extends ChangeNotifier
     _firstName = user.firstName;
     _lastName = user.lastName;
     _displayName = nextDisplayName.isEmpty ? user.email : nextDisplayName;
-    _username = user.username?.trim().isNotEmpty == true
+    _username =
+        !user.profileUsernamePending && user.username?.trim().isNotEmpty == true
         ? user.username!.trim()
-        : user.email.split('@').first;
+        : '';
     _email = user.email;
     _phone = _displayPhone(user.phone);
+    _city = user.city ?? '';
     _gender = user.gender ?? '';
     _hasPassword = user.hasPassword;
     _birthDate = user.birthDate;
     _usernameChangedAt = user.usernameChangedAt;
     _avatarUrl = user.avatarUrl;
     _avatarBytes = null;
+    _profileCompletionPercent = user.profileCompletionPercent;
+    _missingProfileFields = List.unmodifiable(user.missingProfileFields);
     notifyListeners();
   }
 
@@ -105,12 +116,15 @@ class UserProfileController extends ChangeNotifier
     _username = 'guest';
     _email = 'guest@yallamarket.local';
     _phone = '';
+    _city = '';
     _gender = '';
     _hasPassword = true;
     _birthDate = null;
     _usernameChangedAt = null;
     _avatarUrl = null;
     _avatarBytes = null;
+    _profileCompletionPercent = 100;
+    _missingProfileFields = const [];
     notifyListeners();
   }
 

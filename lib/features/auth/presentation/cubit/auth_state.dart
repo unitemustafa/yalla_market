@@ -1,4 +1,5 @@
 import '../../domain/entities/auth_session.dart';
+import '../../domain/entities/social_auth_result.dart';
 
 sealed class AuthState {
   const AuthState();
@@ -16,6 +17,18 @@ final class AuthAuthenticated extends AuthState {
   const AuthAuthenticated(this.session);
 
   final AuthSession session;
+}
+
+final class AuthSocialProfileRequired extends AuthState {
+  const AuthSocialProfileRequired(this.result);
+
+  final SocialAuthResult result;
+}
+
+final class AuthSocialLinkRequired extends AuthState {
+  const AuthSocialLinkRequired(this.result);
+
+  final SocialAuthResult result;
 }
 
 final class AuthSignupSucceeded extends AuthState {

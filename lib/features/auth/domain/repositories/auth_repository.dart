@@ -1,9 +1,11 @@
 import 'dart:typed_data';
 
+import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_result.dart';
 import '../entities/auth_session.dart';
 import '../entities/auth_user.dart';
 import '../entities/otp_delivery_result.dart';
+import '../entities/social_auth_result.dart';
 
 abstract class AuthRepository {
   Future<ApiResult<AuthSession?>> restoreSavedSession();
@@ -13,6 +15,31 @@ abstract class AuthRepository {
     required String password,
     bool rememberMe = false,
   });
+
+  Future<ApiResult<SocialAuthResult>> socialSignIn({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) async => const ApiResult.failure(
+    ValidationFailure('Social sign-in is unavailable.'),
+  );
+
+  Future<ApiResult<AuthSession>> completeSocialSignup({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String phone,
+    required String city,
+    bool rememberMe = false,
+  }) async => const ApiResult.failure(
+    ValidationFailure('Social sign-in is unavailable.'),
+  );
+
+  Future<ApiResult<AuthSession>> linkSocialAccount({
+    required String password,
+    bool rememberMe = false,
+  }) async => const ApiResult.failure(
+    ValidationFailure('Social sign-in is unavailable.'),
+  );
 
   Future<ApiResult<bool>> isUsernameAvailable(String username);
 
@@ -56,6 +83,7 @@ abstract class AuthRepository {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   });

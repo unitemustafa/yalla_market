@@ -12,9 +12,11 @@ import 'core/preferences/app_preferences_controller.dart';
 import 'core/notifications/push_notification_service.dart';
 import 'core/platform/android_display_mode.dart';
 import 'yalla_market_app.dart';
+import 'firebase_options.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _initializeFirebase();
   await configureAndroidDisplayMode();
   AppEnvironment.validate();
   initServiceLocator();
@@ -24,6 +26,23 @@ Future<void> main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_initializeBackgroundServices());
   });
+}
+
+Future<void> _initializeFirebase() async {
+  if (kIsWeb ||
+      defaultTargetPlatform != TargetPlatform.android &&
+          defaultTargetPlatform != TargetPlatform.iOS) {
+    return;
+  }
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (error, stackTrace) {
+    debugPrint('Firebase initialization failed: $error\n$stackTrace');
+  }
 }
 
 Future<void> _initializeBackgroundServices() async {

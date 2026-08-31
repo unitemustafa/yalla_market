@@ -5,6 +5,7 @@ import '../../../../core/network/api_result.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/otp_delivery_result.dart';
+import '../../domain/entities/social_auth_result.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/local_auth_service.dart';
 
@@ -32,6 +33,40 @@ class AuthRepositoryImpl implements AuthRepository {
         rememberMe: rememberMe,
       ),
       'Could not sign you in.',
+    );
+  }
+
+  @override
+  Future<ApiResult<SocialAuthResult>> socialSignIn({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) async {
+    return const ApiResult.failure(
+      ValidationFailure('Social sign-in is unavailable in demo mode.'),
+    );
+  }
+
+  @override
+  Future<ApiResult<AuthSession>> completeSocialSignup({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String phone,
+    required String city,
+    bool rememberMe = false,
+  }) async {
+    return const ApiResult.failure(
+      ValidationFailure('Social sign-in is unavailable in demo mode.'),
+    );
+  }
+
+  @override
+  Future<ApiResult<AuthSession>> linkSocialAccount({
+    required String password,
+    bool rememberMe = false,
+  }) async {
+    return const ApiResult.failure(
+      ValidationFailure('Social sign-in is unavailable in demo mode.'),
     );
   }
 
@@ -148,6 +183,7 @@ class AuthRepositoryImpl implements AuthRepository {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   }) {
@@ -158,6 +194,7 @@ class AuthRepositoryImpl implements AuthRepository {
         username: username,
         email: email,
         phone: phone,
+        city: city,
         gender: gender,
         birthDate: birthDate,
       ),

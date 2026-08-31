@@ -136,6 +136,14 @@ class _ProfileViewState extends State<ProfileView> {
                       _RefreshProfileError(message: _refreshProfileError!),
                     ],
                     const SizedBox(height: 18),
+                    if (!profile.isProfileComplete) ...[
+                      _ProfileCompletionCard(
+                        percent: profile.profileCompletionPercent,
+                        missingFields: profile.missingProfileFields,
+                        onContinue: () => _continueProfileCompletion(profile),
+                      ),
+                      const SizedBox(height: 18),
+                    ],
                     _ProfileHeaderCard(
                       isDark: isDark,
                       profile: profile,
@@ -165,7 +173,9 @@ class _ProfileViewState extends State<ProfileView> {
                         ProfileMenuTile(
                           leadingIcon: AppIcons.user_tag,
                           title: context.tr('Username'),
-                          value: profile.username,
+                          value: profile.username.isEmpty
+                              ? context.tr('Not set')
+                              : profile.username,
                           onTap: () => _handleUsernameTap(context, profile),
                         ),
                       ],
@@ -189,6 +199,15 @@ class _ProfileViewState extends State<ProfileView> {
                               : profile.phone,
                           onTap: () =>
                               _openEditor(context, EditableProfileField.phone),
+                        ),
+                        ProfileMenuTile(
+                          leadingIcon: AppIcons.location,
+                          title: context.tr('City'),
+                          value: profile.city.isEmpty
+                              ? context.tr('Not set')
+                              : profile.city,
+                          onTap: () =>
+                              _openEditor(context, EditableProfileField.city),
                         ),
                         ProfileMenuTile(
                           leadingIcon: AppIcons.user,
@@ -225,6 +244,33 @@ class _ProfileViewState extends State<ProfileView> {
       context,
       MaterialPageRoute(builder: (_) => EditProfileFieldView(field: field)),
     );
+  }
+
+  void _continueProfileCompletion(UserProfileController profile) {
+    final missing = profile.missingProfileFields;
+    if (missing.contains('name')) {
+      _openEditor(context, EditableProfileField.name);
+      return;
+    }
+    if (missing.contains('username')) {
+      _handleUsernameTap(context, profile);
+      return;
+    }
+    if (missing.contains('phone')) {
+      _openEditor(context, EditableProfileField.phone);
+      return;
+    }
+    if (missing.contains('city')) {
+      _openEditor(context, EditableProfileField.city);
+      return;
+    }
+    if (missing.contains('gender')) {
+      _openEditor(context, EditableProfileField.gender);
+      return;
+    }
+    if (missing.contains('birth_date')) {
+      _openEditor(context, EditableProfileField.birthDate);
+    }
   }
 
   String _genderLabel(String value) {
@@ -631,5 +677,108 @@ class _ProfileInfoSection extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _ProfileCompletionCard extends StatelessWidget {
+  const _ProfileCompletionCard({
+    required this.percent,
+    required this.missingFields,
+    required this.onContinue,
+  });
+
+  final int percent;
+  final List<String> missingFields;
+  final VoidCallback onContinue;
+
+  @override
+  Widget build(BuildContext context) {
+    final isArabic = context.isArabicLanguage;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final missingLabels = missingFields
+        .map((field) => _labelFor(field, isArabic: isArabic))
+        .join(isArabic ? '، ' : ', ');
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: isDark ? 0.16 : 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.primary.withValues(alpha: isDark ? 0.34 : 0.18),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  isArabic
+                      ? 'ملفك الشخصي مكتمل بنسبة $percent%'
+                      : 'Your profile is $percent% complete',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Text(
+                '$percent%',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: LinearProgressIndicator(
+              value: percent / 100,
+              minHeight: 7,
+              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isArabic
+                ? 'البيانات المتبقية: $missingLabels'
+                : 'Missing: $missingLabels',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: isDark
+                  ? AppColors.darkTextSecondary
+                  : AppColors.lightTextSecondary,
+              height: 1.35,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onContinue,
+              child: Text(isArabic ? 'كمّل البيانات' : 'Complete profile'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _labelFor(String field, {required bool isArabic}) {
+    return switch (field) {
+      'name' => isArabic ? 'الاسم' : 'name',
+      'email' => isArabic ? 'البريد الإلكتروني' : 'email',
+      'username' => isArabic ? 'اسم المستخدم' : 'username',
+      'phone' => isArabic ? 'رقم الهاتف' : 'phone number',
+      'city' => isArabic ? 'المدينة' : 'city',
+      'gender' => isArabic ? 'النوع' : 'gender',
+      'birth_date' => isArabic ? 'تاريخ الميلاد' : 'birth date',
+      _ => field,
+    };
   }
 }

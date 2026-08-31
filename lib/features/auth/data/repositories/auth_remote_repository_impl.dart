@@ -2,6 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../../core/errors/api_error_handler.dart';
@@ -15,6 +19,7 @@ import '../../../../core/storage/token_store.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/otp_delivery_result.dart';
+import '../../domain/entities/social_auth_result.dart';
 import '../../domain/repositories/auth_repository.dart';
 
 class AuthRemoteRepositoryImpl implements AuthRepository {
@@ -35,6 +40,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   final ApiClient _apiClient;
   final TokenStore _tokenStore;
   final SessionDeadlineController _sessionDeadlineController;
+  String? _pendingSocialIdToken;
+  SocialAuthProvider? _pendingSocialProvider;
+  Future<void>? _googleInitialization;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() {
@@ -83,6 +91,228 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       );
       return _sessionFromPayload(payload);
     });
+  }
+
+  @override
+  Future<ApiResult<SocialAuthResult>> socialSignIn({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) {
+    return _guard(() async {
+      await _sessionDeadlineController.clearSession();
+      final idToken = await _firebaseIdToken(provider);
+      _pendingSocialIdToken = idToken;
+      _pendingSocialProvider = provider;
+      final payload = await _apiClient.post<Map<String, dynamic>>(
+        '/auth/social/session',
+        data: {'id_token': idToken, 'remember': rememberMe},
+        options: _skipAuthOptions,
+      );
+      final status = payload['status']?.toString();
+      if (status == 'authenticated') {
+        final session = await _sessionFromPayload(payload);
+        _clearPendingSocialAuth();
+        return SocialAuthResult(
+          action: SocialAuthAction.authenticated,
+          provider: provider,
+          email: session.user.email,
+          session: session,
+        );
+      }
+      final email = payload['email']?.toString().trim() ?? '';
+      if (status == 'account_link_required') {
+        return SocialAuthResult(
+          action: SocialAuthAction.linkAccount,
+          provider: provider,
+          email: email,
+        );
+      }
+      if (status != 'profile_completion_required' || email.isEmpty) {
+        throw const ValidationFailure('Invalid social sign-in response.');
+      }
+      return SocialAuthResult(
+        action: SocialAuthAction.completeProfile,
+        provider: provider,
+        email: email,
+        firstName: payload['first_name']?.toString() ?? '',
+        lastName: payload['last_name']?.toString() ?? '',
+        avatarUrl: payload['avatar_url']?.toString(),
+        emailVerified: payload['email_verified'] == true,
+      );
+    });
+  }
+
+  @override
+  Future<ApiResult<AuthSession>> completeSocialSignup({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String phone,
+    required String city,
+    bool rememberMe = false,
+  }) {
+    return _guard(() async {
+      final idToken = _requirePendingSocialToken();
+      final payload = await _apiClient.post<Map<String, dynamic>>(
+        '/auth/social/signup',
+        data: {
+          'id_token': idToken,
+          'first_name': firstName,
+          'last_name': lastName,
+          'username': username,
+          'phone': phone,
+          'city': city,
+          'terms_accepted': true,
+          'remember': rememberMe,
+        },
+        options: _skipAuthOptions,
+      );
+      final session = await _signupSessionFromPayload(
+        payload,
+        firstName: firstName,
+        lastName: lastName,
+        email: payload['email']?.toString() ?? '',
+        username: username,
+        phone: phone,
+        city: city,
+      );
+      _clearPendingSocialAuth();
+      return session;
+    });
+  }
+
+  @override
+  Future<ApiResult<AuthSession>> linkSocialAccount({
+    required String password,
+    bool rememberMe = false,
+  }) {
+    return _guard(() async {
+      final idToken = _requirePendingSocialToken();
+      final payload = await _apiClient.post<Map<String, dynamic>>(
+        '/auth/social/link',
+        data: {
+          'id_token': idToken,
+          'password': password,
+          'remember': rememberMe,
+        },
+        options: _skipAuthOptions,
+      );
+      final session = await _sessionFromPayload(payload);
+      _clearPendingSocialAuth();
+      return session;
+    });
+  }
+
+  Future<String> _firebaseIdToken(SocialAuthProvider provider) async {
+    if (Firebase.apps.isEmpty) {
+      throw const ValidationFailure(
+        'Social sign-in is not configured on this device.',
+      );
+    }
+    try {
+      final credential = switch (provider) {
+        SocialAuthProvider.google => await _signInWithGoogle(),
+        SocialAuthProvider.facebook => await _signInWithFacebook(),
+        SocialAuthProvider.apple => await _signInWithApple(),
+      };
+      final token = await credential.user?.getIdToken(true);
+      if (token == null || token.isEmpty) {
+        throw const ValidationFailure('Social sign-in did not return a token.');
+      }
+      return token;
+    } on GoogleSignInException catch (error) {
+      if (error.code == GoogleSignInExceptionCode.canceled) {
+        throw const ValidationFailure('Google sign-in was cancelled.');
+      }
+      throw const ValidationFailure('Google sign-in could not be completed.');
+    } on firebase_auth.FirebaseAuthException catch (error) {
+      final message = switch (error.code) {
+        'account-exists-with-different-credential' =>
+          'An account already exists with a different sign-in method.',
+        'user-disabled' => 'This social account is disabled.',
+        _ => 'Social sign-in could not be completed.',
+      };
+      throw ValidationFailure(message);
+    }
+  }
+
+  Future<firebase_auth.UserCredential> _signInWithGoogle() async {
+    final credential = await _googleCredential();
+    return firebase_auth.FirebaseAuth.instance.signInWithCredential(credential);
+  }
+
+  Future<firebase_auth.OAuthCredential> _googleCredential() async {
+    _googleInitialization ??= GoogleSignIn.instance.initialize();
+    await _googleInitialization;
+    final googleUser = await GoogleSignIn.instance.authenticate();
+    final googleIdToken = googleUser.authentication.idToken;
+    if (googleIdToken == null || googleIdToken.isEmpty) {
+      throw const ValidationFailure('Google did not return an identity token.');
+    }
+    return firebase_auth.GoogleAuthProvider.credential(idToken: googleIdToken);
+  }
+
+  Future<firebase_auth.UserCredential> _signInWithFacebook() async {
+    final credential = await _facebookCredential();
+    return firebase_auth.FirebaseAuth.instance.signInWithCredential(credential);
+  }
+
+  Future<firebase_auth.OAuthCredential> _facebookCredential() async {
+    final result = await FacebookAuth.instance.login(
+      permissions: const ['email', 'public_profile'],
+    );
+    if (result.status != LoginStatus.success || result.accessToken == null) {
+      final message = result.status == LoginStatus.cancelled
+          ? 'Facebook sign-in was cancelled.'
+          : 'Facebook sign-in could not be completed.';
+      throw ValidationFailure(message);
+    }
+    return firebase_auth.FacebookAuthProvider.credential(
+      result.accessToken!.tokenString,
+    );
+  }
+
+  Future<firebase_auth.UserCredential> _signInWithApple() {
+    return firebase_auth.FirebaseAuth.instance.signInWithProvider(
+      _appleProvider(),
+    );
+  }
+
+  firebase_auth.AppleAuthProvider _appleProvider() {
+    return firebase_auth.AppleAuthProvider()
+      ..addScope('email')
+      ..addScope('name');
+  }
+
+  Future<String?> _reauthenticateSocialUser() async {
+    final user = firebase_auth.FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+    final providerIds = user.providerData
+        .map((item) => item.providerId)
+        .toSet();
+    if (providerIds.contains('google.com')) {
+      await user.reauthenticateWithCredential(await _googleCredential());
+    } else if (providerIds.contains('facebook.com')) {
+      await user.reauthenticateWithCredential(await _facebookCredential());
+    } else if (providerIds.contains('apple.com')) {
+      await user.reauthenticateWithProvider(_appleProvider());
+    } else {
+      return null;
+    }
+    return user.getIdToken(true);
+  }
+
+  String _requirePendingSocialToken() {
+    final token = _pendingSocialIdToken;
+    if (token == null || token.isEmpty || _pendingSocialProvider == null) {
+      throw const ValidationFailure('Start social sign-in again.');
+    }
+    return token;
+  }
+
+  void _clearPendingSocialAuth() {
+    _pendingSocialIdToken = null;
+    _pendingSocialProvider = null;
   }
 
   @override
@@ -172,6 +402,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   }) {
@@ -185,6 +416,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
               'username': ?username,
               'email': ?email,
               'phone': ?phone,
+              'city': ?city,
               'gender': ?gender,
               'birth_date': ?_dateOnly(birthDate),
             },
@@ -222,6 +454,16 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       } finally {
         await _sessionDeadlineController.clearSession();
         await _clearCachedUser();
+        _clearPendingSocialAuth();
+        if (Firebase.apps.isNotEmpty) {
+          await firebase_auth.FirebaseAuth.instance.signOut();
+        }
+        try {
+          await GoogleSignIn.instance.signOut();
+        } catch (_) {}
+        try {
+          await FacebookAuth.instance.logOut();
+        } catch (_) {}
       }
       return true;
     });
@@ -230,12 +472,27 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<bool>> deleteAccount({required String password}) {
     return _guard(() async {
+      final data = <String, dynamic>{};
+      if (password.isNotEmpty) {
+        data['password'] = password;
+      } else {
+        final idToken = await _reauthenticateSocialUser();
+        if (idToken == null || idToken.isEmpty) {
+          throw const ValidationFailure(
+            'Sign in again before deleting this account.',
+          );
+        }
+        data['id_token'] = idToken;
+      }
       await _apiClient.delete<Map<String, dynamic>>(
         '/auth/client/profile/',
-        data: {'password': password},
+        data: data,
       );
       await _sessionDeadlineController.clearSession();
       await _clearCachedUser();
+      if (Firebase.apps.isNotEmpty) {
+        await firebase_auth.FirebaseAuth.instance.signOut();
+      }
       return true;
     });
   }

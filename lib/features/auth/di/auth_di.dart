@@ -31,6 +31,19 @@ void registerAuthDependencies(GetIt sl) {
   if (!sl.isRegistered<LoginUseCase>()) {
     sl.registerLazySingleton(() => LoginUseCase(sl<AuthRepository>()));
   }
+  if (!sl.isRegistered<SocialSignInUseCase>()) {
+    sl.registerLazySingleton(() => SocialSignInUseCase(sl<AuthRepository>()));
+  }
+  if (!sl.isRegistered<CompleteSocialSignupUseCase>()) {
+    sl.registerLazySingleton(
+      () => CompleteSocialSignupUseCase(sl<AuthRepository>()),
+    );
+  }
+  if (!sl.isRegistered<LinkSocialAccountUseCase>()) {
+    sl.registerLazySingleton(
+      () => LinkSocialAccountUseCase(sl<AuthRepository>()),
+    );
+  }
   if (!sl.isRegistered<CheckUsernameAvailabilityUseCase>()) {
     sl.registerLazySingleton(
       () => CheckUsernameAvailabilityUseCase(sl<AuthRepository>()),
@@ -92,6 +105,9 @@ void registerAuthDependencies(GetIt sl) {
       () => AuthUseCases(
         restoreSavedSession: sl<RestoreSavedSessionUseCase>(),
         login: sl<LoginUseCase>(),
+        socialSignIn: sl<SocialSignInUseCase>(),
+        completeSocialSignup: sl<CompleteSocialSignupUseCase>(),
+        linkSocialAccount: sl<LinkSocialAccountUseCase>(),
         checkUsernameAvailability: sl<CheckUsernameAvailabilityUseCase>(),
         checkEmailRegistration: sl<CheckEmailRegistrationUseCase>(),
         checkPhoneRegistration: sl<CheckPhoneRegistrationUseCase>(),

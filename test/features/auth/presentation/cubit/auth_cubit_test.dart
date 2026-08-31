@@ -540,6 +540,9 @@ AuthUseCases _authUseCases(AuthRepository repository) {
   return AuthUseCases(
     restoreSavedSession: RestoreSavedSessionUseCase(repository),
     login: LoginUseCase(repository),
+    socialSignIn: SocialSignInUseCase(repository),
+    completeSocialSignup: CompleteSocialSignupUseCase(repository),
+    linkSocialAccount: LinkSocialAccountUseCase(repository),
     checkUsernameAvailability: CheckUsernameAvailabilityUseCase(repository),
     checkEmailRegistration: CheckEmailRegistrationUseCase(repository),
     checkPhoneRegistration: CheckPhoneRegistrationUseCase(repository),
@@ -557,7 +560,7 @@ AuthUseCases _authUseCases(AuthRepository repository) {
   );
 }
 
-class _FakeAuthRepository implements AuthRepository {
+class _FakeAuthRepository extends AuthRepository {
   _FakeAuthRepository({
     this.restoreResult,
     this.loginResult,
@@ -700,6 +703,7 @@ class _FakeAuthRepository implements AuthRepository {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   }) async {

@@ -207,6 +207,7 @@ class SettingsView extends StatelessWidget {
   Future<void> _showDeleteAccountDialog(BuildContext context) async {
     final parentContext = context;
     final passwordController = TextEditingController();
+    final hasPassword = UserProfileController.instance.hasPassword;
     var obscurePassword = true;
     var isDeleting = false;
     String? errorMessage;
@@ -232,49 +233,53 @@ class SettingsView extends StatelessWidget {
                     children: [
                       Text(
                         context.tr(
-                          'This cannot be undone. Enter your account password to confirm permanent deletion.',
+                          hasPassword
+                              ? 'This cannot be undone. Enter your account password to confirm permanent deletion.'
+                              : 'This cannot be undone. You will be asked to confirm with your social account.',
                         ),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 16),
-                      TextField(
-                        key: const Key('delete-account-password'),
-                        controller: passwordController,
-                        enabled: !isDeleting,
-                        obscureText: obscurePassword,
-                        autofillHints: const [AutofillHints.password],
-                        textInputAction: TextInputAction.done,
-                        decoration: InputDecoration(
-                          labelText: context.tr('Password'),
-                          errorText: errorMessage == null
-                              ? null
-                              : context.tr(errorMessage!),
-                          suffixIcon: IconButton(
-                            onPressed: isDeleting
+                      if (hasPassword)
+                        TextField(
+                          key: const Key('delete-account-password'),
+                          controller: passwordController,
+                          enabled: !isDeleting,
+                          obscureText: obscurePassword,
+                          autofillHints: const [AutofillHints.password],
+                          textInputAction: TextInputAction.done,
+                          decoration: InputDecoration(
+                            labelText: context.tr('Password'),
+                            errorText: errorMessage == null
                                 ? null
-                                : () {
-                                    setDialogState(() {
-                                      obscurePassword = !obscurePassword;
-                                    });
-                                  },
-                            icon: Icon(
-                              obscurePassword
-                                  ? Icons.visibility_off_outlined
-                                  : Icons.visibility_outlined,
+                                : context.tr(errorMessage!),
+                            suffixIcon: IconButton(
+                              onPressed: isDeleting
+                                  ? null
+                                  : () {
+                                      setDialogState(() {
+                                        obscurePassword = !obscurePassword;
+                                      });
+                                    },
+                              icon: Icon(
+                                obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                              ),
                             ),
                           ),
+                          onSubmitted: isDeleting
+                              ? null
+                              : (_) => _confirmAccountDeletion(
+                                  parentContext: parentContext,
+                                  dialogContext: dialogContext,
+                                  passwordController: passwordController,
+                                  setDialogState: setDialogState,
+                                  setDeleting: (value) => isDeleting = value,
+                                  setError: (value) => errorMessage = value,
+                                  requiresPassword: hasPassword,
+                                ),
                         ),
-                        onSubmitted: isDeleting
-                            ? null
-                            : (_) => _confirmAccountDeletion(
-                                parentContext: parentContext,
-                                dialogContext: dialogContext,
-                                passwordController: passwordController,
-                                setDialogState: setDialogState,
-                                setDeleting: (value) => isDeleting = value,
-                                setError: (value) => errorMessage = value,
-                              ),
-                      ),
                     ],
                   ),
                 ),
@@ -302,6 +307,7 @@ class SettingsView extends StatelessWidget {
                                   setDialogState: setDialogState,
                                   setDeleting: (value) => isDeleting = value,
                                   setError: (value) => errorMessage = value,
+                                  requiresPassword: hasPassword,
                                 ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.error,
@@ -344,9 +350,10 @@ class SettingsView extends StatelessWidget {
     required StateSetter setDialogState,
     required ValueChanged<bool> setDeleting,
     required ValueChanged<String?> setError,
+    required bool requiresPassword,
   }) async {
     final password = passwordController.text;
-    if (password.isEmpty) {
+    if (requiresPassword && password.isEmpty) {
       setDialogState(() => setError('Password is required.'));
       return;
     }

@@ -11,6 +11,7 @@ import '../../../../core/notifications/push_notification_service.dart';
 import '../../../../core/otp/pending_verification_store.dart';
 import '../../domain/entities/auth_session.dart';
 import '../../domain/entities/auth_user.dart';
+import '../../domain/entities/social_auth_result.dart';
 import '../../domain/usecases/auth_usecases.dart';
 import 'auth_state.dart';
 
@@ -60,6 +61,8 @@ class AuthCubit extends Cubit<AuthState> {
     } else if (change.nextState is AuthInitial ||
         change.nextState is AuthSignupSucceeded ||
         change.nextState is AuthVerificationRequired ||
+        change.nextState is AuthSocialProfileRequired ||
+        change.nextState is AuthSocialLinkRequired ||
         change.nextState is AuthSessionExpired) {
       AuthGuard.clearAuthentication();
     } else if (change.nextState is AuthAccountDisabled) {
@@ -195,6 +198,97 @@ class AuthCubit extends Cubit<AuthState> {
         if (_accountInactiveNotifier.isInactive) return;
         emit(AuthFailure(failure.message));
       },
+    );
+  }
+
+  Future<void> socialSignIn({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) async {
+    if (state is AuthLoading) return;
+    _pendingVerificationEmail = null;
+    _pendingSignupSession = null;
+    _accountInactiveNotifier.reset();
+    emit(const AuthLoading());
+    final result = await _authUseCases.socialSignIn(
+      provider: provider,
+      rememberMe: rememberMe,
+    );
+    result.when(
+      success: (socialResult) {
+        switch (socialResult.action) {
+          case SocialAuthAction.authenticated:
+            final session = socialResult.session;
+            if (session == null) {
+              emit(const AuthFailure('Invalid social sign-in response.'));
+              return;
+            }
+            emit(AuthAuthenticated(session));
+          case SocialAuthAction.completeProfile:
+            emit(AuthSocialProfileRequired(socialResult));
+          case SocialAuthAction.linkAccount:
+            emit(AuthSocialLinkRequired(socialResult));
+        }
+      },
+      failure: (failure) {
+        if (failure is AccountInactiveFailure) {
+          emit(const AuthLoginAccountDisabled());
+          return;
+        }
+        emit(AuthFailure(failure.message));
+      },
+    );
+  }
+
+  Future<void> completeSocialSignup({
+    required String firstName,
+    required String lastName,
+    required String username,
+    required String phone,
+    required String city,
+    bool rememberMe = false,
+  }) async {
+    if (state is AuthLoading) return;
+    emit(const AuthLoading());
+    final result = await _authUseCases.completeSocialSignup(
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      username: username.trim(),
+      phone: phone.trim(),
+      city: city.trim(),
+      rememberMe: rememberMe,
+    );
+    result.when(
+      success: (session) {
+        if (session.accessToken != null && session.refreshToken != null) {
+          emit(AuthAuthenticated(session));
+          return;
+        }
+        _pendingSignupSession = session;
+        _setPendingVerification(
+          session.user.email,
+          expiresAt: session.registrationExpiresAt,
+        );
+        _lastOtpResendAfterSeconds = session.otpResendAfterSeconds;
+        emit(AuthSignupSucceeded(session.user.email));
+      },
+      failure: (failure) => emit(AuthFailure(failure.message)),
+    );
+  }
+
+  Future<void> linkSocialAccount({
+    required String password,
+    bool rememberMe = false,
+  }) async {
+    if (state is AuthLoading) return;
+    emit(const AuthLoading());
+    final result = await _authUseCases.linkSocialAccount(
+      password: password,
+      rememberMe: rememberMe,
+    );
+    result.when(
+      success: (session) => emit(AuthAuthenticated(session)),
+      failure: (failure) => emit(AuthFailure(failure.message)),
     );
   }
 
@@ -547,6 +641,7 @@ class AuthCubit extends Cubit<AuthState> {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   }) async {
@@ -557,6 +652,7 @@ class AuthCubit extends Cubit<AuthState> {
       username: username,
       email: email,
       phone: phone,
+      city: city,
       gender: gender,
       birthDate: birthDate,
     );

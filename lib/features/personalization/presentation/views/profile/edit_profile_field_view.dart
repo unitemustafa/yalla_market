@@ -15,7 +15,7 @@ part 'edit_profile_field_form.dart';
 part 'edit_profile_birth_date_picker.dart';
 part 'edit_profile_birth_date_widgets.dart';
 
-enum EditableProfileField { name, username, phone, gender, birthDate }
+enum EditableProfileField { name, username, phone, city, gender, birthDate }
 
 class EditProfileFieldView extends StatefulWidget {
   const EditProfileFieldView({super.key, required this.field});
@@ -55,6 +55,7 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
       EditableProfileField.name => profile.displayName,
       EditableProfileField.username => profile.username,
       EditableProfileField.phone => profile.phone,
+      EditableProfileField.city => profile.city,
       EditableProfileField.gender => profile.gender.toLowerCase(),
       EditableProfileField.birthDate => _formatDate(profile.birthDate),
     };
@@ -68,6 +69,8 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
       EditableProfileField.username => value != _initialFieldValue.trim(),
       EditableProfileField.phone =>
         _normalizePhone(value) != _normalizePhone(_initialFieldValue),
+      EditableProfileField.city =>
+        _normalizeSpaces(value) != _normalizeSpaces(_initialFieldValue),
       EditableProfileField.gender =>
         value.toLowerCase() != _initialFieldValue.trim().toLowerCase(),
       EditableProfileField.birthDate =>
@@ -312,6 +315,7 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
       lastName: widget.field == EditableProfileField.name ? names.$2 : null,
       username: widget.field == EditableProfileField.username ? value : null,
       phone: widget.field == EditableProfileField.phone ? value : null,
+      city: widget.field == EditableProfileField.city ? value : null,
       gender: widget.field == EditableProfileField.gender ? value : null,
       birthDate: widget.field == EditableProfileField.birthDate
           ? _selectedDate
@@ -405,6 +409,7 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
       EditableProfileField.name => AppIcons.user_edit,
       EditableProfileField.username => AppIcons.user_tag,
       EditableProfileField.phone => AppIcons.call,
+      EditableProfileField.city => AppIcons.location,
       EditableProfileField.gender => AppIcons.user,
       EditableProfileField.birthDate => AppIcons.calendar,
     };
@@ -415,6 +420,7 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
       EditableProfileField.name => 'Change Name',
       EditableProfileField.username => 'Change Username',
       EditableProfileField.phone => 'Change Phone',
+      EditableProfileField.city => 'Change City',
       EditableProfileField.gender => 'Change Gender',
       EditableProfileField.birthDate => 'Change Birth Date',
     };
@@ -425,6 +431,7 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
       EditableProfileField.name => 'Name',
       EditableProfileField.username => 'Username',
       EditableProfileField.phone => 'Phone',
+      EditableProfileField.city => 'City',
       EditableProfileField.gender => 'Gender',
       EditableProfileField.birthDate => 'Birth Date',
     };
@@ -438,6 +445,8 @@ class _EditProfileFieldViewState extends State<EditProfileFieldView> {
         'After saving, you can change your username again after 7 days.',
       EditableProfileField.birthDate =>
         'This helps personalize your shopping experience.',
+      EditableProfileField.city =>
+        'Your city helps us personalize availability and delivery information.',
       _ => 'This information appears on your Yalla Market profile.',
     };
   }

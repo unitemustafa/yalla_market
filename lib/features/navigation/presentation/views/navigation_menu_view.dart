@@ -24,6 +24,7 @@ import '../../../store/presentation/cubit/store_cubit.dart';
 import '../../../store/presentation/views/store_view.dart';
 import '../../../wishlist/presentation/views/wishlist_view.dart';
 import '../../../personalization/presentation/views/settings/settings_view.dart';
+import '../../../personalization/presentation/widgets/profile_completion_banner.dart';
 
 class NavigationMenuView extends StatefulWidget {
   const NavigationMenuView({
@@ -269,6 +270,9 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
                           context.read<HomeCubit>().refreshSilently(),
                     ),
             ),
+          ProfileCompletionBanner(
+            onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
+          ),
           _YallaBottomNavigationBar(
             items: _items,
             selectedIndex: selectedIndex,

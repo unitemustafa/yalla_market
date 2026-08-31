@@ -335,6 +335,7 @@ void main() {
           'username': 'mustafa_ali',
           'email': 'm@example.com',
           'phone': '+201234567890',
+          'city': 'Cairo',
           'gender': 'male',
           'birth_date': '1995-04-12',
         });
@@ -344,6 +345,7 @@ void main() {
           'last_name': 'Ali',
           'username': 'mustafa_ali',
           'phone': '+201234567890',
+          'city': 'Cairo',
           'gender': 'male',
           'birth_date': '1995-04-12',
           'username_changed_at': '2026-06-23T10:00:00Z',
@@ -357,6 +359,7 @@ void main() {
         username: 'mustafa_ali',
         email: 'm@example.com',
         phone: '+201234567890',
+        city: 'Cairo',
         gender: 'male',
         birthDate: DateTime(1995, 4, 12),
       );
@@ -365,6 +368,7 @@ void main() {
         success: (user) {
           expect(user.username, 'mustafa_ali');
           expect(user.gender, 'male');
+          expect(user.city, 'Cairo');
           expect(user.birthDate, DateTime(1995, 4, 12));
           expect(user.usernameChangedAt, isNotNull);
         },

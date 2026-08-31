@@ -245,6 +245,7 @@ class LocalAuthService {
     String? username,
     String? email,
     String? phone,
+    String? city,
     String? gender,
     DateTime? birthDate,
   }) async {
@@ -300,8 +301,10 @@ class LocalAuthService {
       lastName: lastName?.trim().isEmpty ?? true ? null : lastName?.trim(),
       username: normalizedUsername,
       phone: phone?.trim().isEmpty ?? true ? null : phone?.trim(),
+      city: city?.trim().isEmpty ?? true ? null : city?.trim(),
       gender: gender?.trim().isEmpty ?? true ? null : gender?.trim(),
       birthDate: birthDate,
+      profileUsernamePending: usernameChanged ? false : null,
       usernameChangedAt: usernameChanged
           ? DateTime.now()
           : currentUser.usernameChangedAt,

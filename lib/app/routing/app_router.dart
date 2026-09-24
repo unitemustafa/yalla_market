@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
+import '../../core/config/app_environment.dart';
+
 import '../../features/auth/presentation/views/forget_password_view.dart';
 import '../../features/auth/presentation/views/login_view.dart';
 import '../../features/auth/presentation/views/account_disabled_view.dart';
@@ -80,6 +82,9 @@ class AppRouter {
         return _buildRoute(const SplashView(), settings);
 
       case AppRoutes.onboarding:
+        if (!AppEnvironment.enableOnboarding) {
+          return _buildRoute(const LoginView(), settings);
+        }
         return _buildRoute(const OnboardingView(), settings);
 
       case AppRoutes.login:

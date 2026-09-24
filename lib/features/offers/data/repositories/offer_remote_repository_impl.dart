@@ -16,11 +16,14 @@ class OfferRemoteRepositoryImpl implements OfferRepository {
   Future<ApiResult<List<OfferData>>> getOffers() async {
     try {
       final payload = await _apiClient.get<Object?>('/offers/');
-      if (payload is! List) {
+      final rawItems = payload is Map<String, dynamic>
+          ? payload['results'] ?? payload['items'] ?? payload['data']
+          : payload;
+      if (rawItems is! List) {
         return const ApiResult.success(<OfferData>[]);
       }
       return ApiResult.success(
-        payload
+        rawItems
             .whereType<Map<String, dynamic>>()
             .map(OfferData.fromJson)
             .toList(growable: false),

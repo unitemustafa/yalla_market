@@ -172,10 +172,10 @@ extension _SignupFormFields on _SignupViewState {
           : Colors.black.withValues(alpha: 0.42);
 
       return Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: SizedBox(
-          width: 18,
-          height: 18,
+          width: 16,
+          height: 16,
           child: CircularProgressIndicator(
             strokeWidth: 2,
             valueColor: AlwaysStoppedAnimation<Color>(progressColor),
@@ -185,20 +185,26 @@ extension _SignupFormFields on _SignupViewState {
     }
 
     if (isAvailable == true) {
-      return const Icon(
-        key: ValueKey('availability_success_icon'),
-        AppIcons.tick_circle,
-        size: 23,
-        color: AppColors.success,
+      return const Padding(
+        padding: EdgeInsetsDirectional.only(end: 12),
+        child: Icon(
+          key: ValueKey('availability_success_icon'),
+          AppIcons.tick_circle,
+          size: 20,
+          color: AppColors.success,
+        ),
       );
     }
 
     if (isAvailable == false || showError) {
-      return const Icon(
-        key: ValueKey('availability_error_icon'),
-        AppIcons.danger,
-        size: 23,
-        color: AppColors.error,
+      return const Padding(
+        padding: EdgeInsetsDirectional.only(end: 12),
+        child: Icon(
+          key: ValueKey('availability_error_icon'),
+          AppIcons.danger,
+          size: 20,
+          color: AppColors.error,
+        ),
       );
     }
 
@@ -242,24 +248,33 @@ extension _SignupFormFields on _SignupViewState {
           fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
+          isDense: true,
           labelText: AppTranslations.of(context).phoneNumber,
           filled: true,
           fillColor: fillColor,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: 18,
+            horizontal: 16,
+            vertical: 11,
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 42,
+          ),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 42,
           ),
           labelStyle: TextStyle(
             color: iconColor,
             fontSize: AppFontSizes.bodyLarge,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
-          prefixIcon: Icon(AppIcons.call, color: iconColor, size: 21),
+          prefixIcon: Icon(AppIcons.call, color: iconColor, size: 20),
           hintText: '01xxxxxxxxx',
           hintStyle: TextStyle(
             color: iconColor,
             fontSize: AppFontSizes.bodyLarge,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
           suffixIcon: _buildAvailabilityStatusSuffix(
             isDarkMode,

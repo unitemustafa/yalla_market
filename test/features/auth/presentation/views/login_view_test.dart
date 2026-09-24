@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
@@ -82,56 +83,46 @@ void main() {
     expect(find.text('/verify-email|pending@example.com'), findsOneWidget);
   });
 
-  testWidgets('animates language switcher without losing keyboard focus', (
-    tester,
-  ) async {
-    await _pumpLogin(tester, FakeAuthRepository());
-    expect(
-      find.byKey(const ValueKey('login_language_switcher')),
-      findsOneWidget,
-    );
+  testWidgets(
+    'does not show language switcher and displays Google logo button',
+    (tester) async {
+      await _pumpLogin(tester, FakeAuthRepository());
+      expect(
+        find.byKey(const ValueKey('login_language_switcher')),
+        findsNothing,
+      );
 
-    await tester.showKeyboard(find.byType(TextFormField).first);
-    await tester.pump();
-    final editableFinder = find.byType(EditableText).first;
-    final focusNode = tester.widget<EditableText>(editableFinder).focusNode;
-    expect(focusNode.hasFocus, isTrue);
+      final googleLogoFinder = find.byWidgetPredicate(
+        (widget) =>
+            widget is Image &&
+            widget.image is AssetImage &&
+            (widget.image as AssetImage).assetName == AppAssets.googleLogo,
+      );
+      expect(googleLogoFinder, findsOneWidget);
 
-    tester.view.viewInsets = const FakeViewPadding(bottom: 300);
-    addTearDown(tester.view.resetViewInsets);
-    await tester.pump();
+      await tester.showKeyboard(find.byType(TextFormField).first);
+      await tester.pump();
+      final editableFinder = find.byType(EditableText).first;
+      final focusNode = tester.widget<EditableText>(editableFinder).focusNode;
+      expect(focusNode.hasFocus, isTrue);
 
-    expect(
-      find.byKey(const ValueKey('login_language_switcher')),
-      findsOneWidget,
-    );
-    final visibility = tester.widget<AnimatedOpacity>(
-      find.byKey(const ValueKey('login_language_switcher_visibility')),
-    );
-    expect(visibility.opacity, 0);
-    final ignorePointer = tester.widget<IgnorePointer>(
-      find
-          .ancestor(
-            of: find.byKey(
-              const ValueKey('login_language_switcher_visibility'),
-            ),
-            matching: find.byType(IgnorePointer),
-          )
-          .first,
-    );
-    expect(ignorePointer.ignoring, isTrue);
-    await tester.drag(
-      find.byType(SingleChildScrollView).first,
-      const Offset(0, -100),
-    );
-    await tester.pump();
-    expect(
-      tester.widget<EditableText>(editableFinder).focusNode,
-      same(focusNode),
-    );
-    expect(focusNode.hasFocus, isTrue);
-    expect(tester.takeException(), isNull);
-  });
+      tester.view.viewInsets = const FakeViewPadding(bottom: 300);
+      addTearDown(tester.view.resetViewInsets);
+      await tester.pump();
+
+      await tester.drag(
+        find.byType(SingleChildScrollView).first,
+        const Offset(0, -100),
+      );
+      await tester.pump();
+      expect(
+        tester.widget<EditableText>(editableFinder).focusNode,
+        same(focusNode),
+      );
+      expect(focusNode.hasFocus, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 Future<void> _pumpLogin(

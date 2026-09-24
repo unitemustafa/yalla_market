@@ -13,6 +13,7 @@ import '../../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../cubit/profile_image_cubit.dart';
 import '../../controllers/user_profile_controller.dart';
 import '../../widgets/profile_menu_tile.dart';
+import '../../widgets/profile_completion_floating_button.dart';
 import 'edit_profile_field_view.dart';
 import 'membership_benefits_view.dart';
 
@@ -110,13 +111,22 @@ class _ProfileViewState extends State<ProfileView> {
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
 
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: SafeArea(
-        child: ValueListenableBuilder<UserProfileController>(
-          valueListenable: UserProfileController.instance,
-          builder: (context, profile, _) {
-            return AppRefreshIndicator(
+    return ValueListenableBuilder<UserProfileController>(
+      valueListenable: UserProfileController.instance,
+      builder: (context, profile, _) {
+        final isComplete = profile.isProfileComplete;
+
+        return Scaffold(
+          backgroundColor: backgroundColor,
+          floatingActionButton: isComplete
+              ? null
+              : ProfileCompletionFloatingButton(
+                  profile: profile,
+                  onContinue: () => _continueProfileCompletion(profile),
+                  onOpenField: (field) => _openField(context, field, profile),
+                ),
+          body: SafeArea(
+            child: AppRefreshIndicator(
               onRefresh: () => _loadProfile(showInlineProgress: false),
               child: SingleChildScrollView(
                 physics: AppRefreshIndicator.scrollPhysics,
@@ -136,14 +146,6 @@ class _ProfileViewState extends State<ProfileView> {
                       _RefreshProfileError(message: _refreshProfileError!),
                     ],
                     const SizedBox(height: 18),
-                    if (!profile.isProfileComplete) ...[
-                      _ProfileCompletionCard(
-                        percent: profile.profileCompletionPercent,
-                        missingFields: profile.missingProfileFields,
-                        onContinue: () => _continueProfileCompletion(profile),
-                      ),
-                      const SizedBox(height: 18),
-                    ],
                     _ProfileHeaderCard(
                       isDark: isDark,
                       profile: profile,
@@ -232,10 +234,10 @@ class _ProfileViewState extends State<ProfileView> {
                   ],
                 ),
               ),
-            );
-          },
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -270,6 +272,35 @@ class _ProfileViewState extends State<ProfileView> {
     }
     if (missing.contains('birth_date')) {
       _openEditor(context, EditableProfileField.birthDate);
+    }
+  }
+
+  void _openField(
+    BuildContext context,
+    String field,
+    UserProfileController profile,
+  ) {
+    switch (field) {
+      case 'name':
+        _openEditor(context, EditableProfileField.name);
+        break;
+      case 'username':
+        _handleUsernameTap(context, profile);
+        break;
+      case 'phone':
+        _openEditor(context, EditableProfileField.phone);
+        break;
+      case 'city':
+        _openEditor(context, EditableProfileField.city);
+        break;
+      case 'gender':
+        _openEditor(context, EditableProfileField.gender);
+        break;
+      case 'birth_date':
+        _openEditor(context, EditableProfileField.birthDate);
+        break;
+      default:
+        _continueProfileCompletion(profile);
     }
   }
 
@@ -677,108 +708,5 @@ class _ProfileInfoSection extends StatelessWidget {
         ),
       ],
     );
-  }
-}
-
-class _ProfileCompletionCard extends StatelessWidget {
-  const _ProfileCompletionCard({
-    required this.percent,
-    required this.missingFields,
-    required this.onContinue,
-  });
-
-  final int percent;
-  final List<String> missingFields;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context) {
-    final isArabic = context.isArabicLanguage;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final missingLabels = missingFields
-        .map((field) => _labelFor(field, isArabic: isArabic))
-        .join(isArabic ? '، ' : ', ');
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: isDark ? 0.16 : 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: isDark ? 0.34 : 0.18),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  isArabic
-                      ? 'ملفك الشخصي مكتمل بنسبة $percent%'
-                      : 'Your profile is $percent% complete',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Text(
-                '$percent%',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: AppColors.primary,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: percent / 100,
-              minHeight: 7,
-              backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-              color: AppColors.primary,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            isArabic
-                ? 'البيانات المتبقية: $missingLabels'
-                : 'Missing: $missingLabels',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-              color: isDark
-                  ? AppColors.darkTextSecondary
-                  : AppColors.lightTextSecondary,
-              height: 1.35,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: onContinue,
-              child: Text(isArabic ? 'كمّل البيانات' : 'Complete profile'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _labelFor(String field, {required bool isArabic}) {
-    return switch (field) {
-      'name' => isArabic ? 'الاسم' : 'name',
-      'email' => isArabic ? 'البريد الإلكتروني' : 'email',
-      'username' => isArabic ? 'اسم المستخدم' : 'username',
-      'phone' => isArabic ? 'رقم الهاتف' : 'phone number',
-      'city' => isArabic ? 'المدينة' : 'city',
-      'gender' => isArabic ? 'النوع' : 'gender',
-      'birth_date' => isArabic ? 'تاريخ الميلاد' : 'birth date',
-      _ => field,
-    };
   }
 }

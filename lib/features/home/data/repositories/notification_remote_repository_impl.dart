@@ -37,9 +37,12 @@ class NotificationRemoteRepositoryImpl implements NotificationRepository {
         NotificationApiPaths.notifications,
         queryParameters: query.isEmpty ? null : query,
       );
-      if (payload is! List) return const <AppNotification>[];
+      final rawItems = payload is Map<String, dynamic>
+          ? payload['results'] ?? payload['items'] ?? payload['data']
+          : payload;
+      if (rawItems is! List) return const <AppNotification>[];
 
-      return payload
+      return rawItems
           .whereType<Map<String, dynamic>>()
           .map(AppNotificationModel.fromJson)
           .toList(growable: false);

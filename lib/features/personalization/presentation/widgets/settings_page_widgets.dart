@@ -7,6 +7,7 @@ import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/images/app_avatar.dart';
 import '../controllers/user_profile_controller.dart';
+import 'profile_completion_floating_button.dart';
 
 class SettingsProfileTopBar extends StatelessWidget {
   const SettingsProfileTopBar({
@@ -90,108 +91,137 @@ class SettingsAccountHero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.24),
-            blurRadius: 22,
-            offset: const Offset(0, 12),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.transparent,
+    final isComplete = profile.isProfileComplete;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.primary,
             borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: onEdit,
-              borderRadius: BorderRadius.circular(8),
-              child: AppAvatar(
-                size: 64,
-                initials: profile.initials,
-                imageBytes: profile.avatarBytes,
-                imageUrl: profile.avatarUrl,
-                gender: profile.gender,
-                backgroundColor: Colors.white,
-                borderColor: Colors.white.withValues(alpha: 0.7),
-                borderWidth: 2,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.primary.withValues(
+                  alpha: isDark ? 0.18 : 0.24,
+                ),
+                blurRadius: 22,
+                offset: const Offset(0, 12),
               ),
-            ),
+            ],
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
-                        profile.displayName,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontSize: AppFontSizes.subtitle,
-                          fontWeight: FontWeight.w900,
+          child: Row(
+            children: [
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  onTap: onEdit,
+                  borderRadius: BorderRadius.circular(8),
+                  child: AppAvatar(
+                    size: 64,
+                    initials: profile.initials,
+                    imageBytes: profile.avatarBytes,
+                    imageUrl: profile.avatarUrl,
+                    gender: profile.gender,
+                    backgroundColor: Colors.white,
+                    borderColor: Colors.white.withValues(alpha: 0.7),
+                    borderWidth: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Padding(
+                  padding: EdgeInsetsDirectional.only(end: isComplete ? 0 : 36),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              profile.displayName,
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontSize: AppFontSizes.subtitle,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          const Icon(
+                            AppIcons.verify5,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        profile.email,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.78),
+                          fontWeight: FontWeight.w600,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    const SizedBox(width: 5),
-                    const Icon(AppIcons.verify5, color: Colors.white, size: 16),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  profile.email,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.white.withValues(alpha: 0.78),
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Flexible(
-                      child: SizedBox(
-                        height: 34,
-                        child: TextButton.icon(
-                          onPressed: onEdit,
-                          icon: const Icon(AppIcons.edit, size: 16),
-                          label: Text(
-                            context.tr('Edit'),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          style: TextButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            backgroundColor: Colors.white.withValues(
-                              alpha: 0.14,
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Flexible(
+                            child: SizedBox(
+                              height: 34,
+                              child: TextButton.icon(
+                                onPressed: onEdit,
+                                icon: const Icon(AppIcons.edit, size: 16),
+                                label: Text(
+                                  context.tr('Edit'),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                style: TextButton.styleFrom(
+                                  foregroundColor: Colors.white,
+                                  backgroundColor: Colors.white.withValues(
+                                    alpha: 0.14,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          const _ConnectionStatusBadge(),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const _ConnectionStatusBadge(),
-                  ],
+                    ],
+                  ),
                 ),
-              ],
+              ),
+            ],
+          ),
+        ),
+        if (!isComplete)
+          PositionedDirectional(
+            top: -10,
+            end: 14,
+            child: ProfileCompletionFloatingButton(
+              profile: profile,
+              size: 52,
+              onContinue: onEdit,
             ),
           ),
-        ],
-      ),
+      ],
     );
   }
 }

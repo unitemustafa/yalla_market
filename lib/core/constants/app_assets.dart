@@ -7,6 +7,7 @@ class AppAssets {
 
   static const String temporaryMarketPlaceholder =
       '$_imagesPath/temporary_market_placeholder.webp';
+  static const String authMarketHeader = '$_imagesPath/auth_market_header.webp';
 
   // Frontend-only fallbacks for API images. These paths are never persisted
   // or sent to the backend.
@@ -27,6 +28,7 @@ class AppAssets {
       '$_placeholdersPath/empty_store_light.jpg';
   // Logos
   static const String homeBrandLogo = '$_logosPath/yallamarket_home_logo.png';
+  static const String googleLogo = '$_logosPath/google_logo.png';
 
   static String themedLogo({required bool isDarkMode}) {
     return homeBrandLogo;

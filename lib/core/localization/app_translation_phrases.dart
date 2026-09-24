@@ -34,6 +34,9 @@ const Map<String, Map<String, String>> _translationPhrases = {
         'قم بتسمية هذا العنوان لتتمكن من اختياره بسهولة.',
     'Confirm delivery location': 'تأكيد موقع التوصيل',
     'Continue with this location': 'كمّل بالموقع ده',
+    'Or continue with': 'أو كمل باستخدام',
+    "Don't have an account?": 'معندكش حساب؟',
+    'Sign Up': 'سجل دلوقتي',
     'Your order will be delivered to this location':
         'سيتم توصيل طلبك إلى هذا المكان',
     'Search for a place in Egypt': 'ابحث عن مكان داخل مصر',

@@ -170,6 +170,9 @@ class AppTranslations {
   String get signInSuccessTitle => _text('signInSuccessTitle');
   String get signInSuccessMessage => _text('signInSuccessMessage');
   String get createAccount => _text('createAccount');
+  String get dontHaveAccount => _text('dontHaveAccount');
+  String get signUpAction => _text('signUpAction');
+  String get orContinueWith => _text('orContinueWith');
   String get languageTooltip => _text('languageTooltip');
   String get signInCreateAccountTitle => _text('signInCreateAccountTitle');
   String get signInCredentialsTitle => _text('signInCredentialsTitle');

@@ -2,14 +2,12 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/localization/app_language_controller.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -35,7 +33,6 @@ class _LoginViewState extends State<LoginView> {
   static const _facebookAuthEnabled = bool.fromEnvironment(
     'FACEBOOK_AUTH_ENABLED',
   );
-  static const _appleAuthEnabled = bool.fromEnvironment('APPLE_AUTH_ENABLED');
 
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
@@ -171,23 +168,41 @@ class _LoginViewState extends State<LoginView> {
         }
       },
       builder: (context, authState) {
-        final isKeyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
-        return Scaffold(
-          body: DecoratedBox(
-            decoration: _buildBackgroundDecoration(isDarkMode),
-            child: SafeArea(
+        final isLoading = authState is AuthLoading;
+        final surfaceColor = isDarkMode
+            ? const Color(0xFF1A1B20)
+            : Colors.white;
+
+        return AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: isDarkMode
+                ? Brightness.light
+                : Brightness.dark,
+            statusBarBrightness: isDarkMode
+                ? Brightness.dark
+                : Brightness.light,
+            systemNavigationBarColor: surfaceColor,
+            systemNavigationBarIconBrightness: isDarkMode
+                ? Brightness.light
+                : Brightness.dark,
+          ),
+          child: Scaffold(
+            backgroundColor: surfaceColor,
+            body: SafeArea(
+              top: false,
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final horizontalPadding = constraints.maxWidth >= 500
                       ? 32.0
                       : 20.0;
-                  const languageSwitcherTopPadding = 88.0;
-                  const bottomPadding = 20.0;
-                  final minHeight =
-                      (constraints.maxHeight -
-                              languageSwitcherTopPadding -
-                              bottomPadding)
-                          .clamp(0.0, double.infinity);
+                  const bannerHeight = 240.0;
+                  const overlap = 22.0;
+                  final sheetMinHeight =
+                      (constraints.maxHeight - (bannerHeight - overlap)).clamp(
+                        300.0,
+                        double.infinity,
+                      );
 
                   return Stack(
                     clipBehavior: Clip.none,
@@ -195,101 +210,231 @@ class _LoginViewState extends State<LoginView> {
                       SingleChildScrollView(
                         keyboardDismissBehavior:
                             ScrollViewKeyboardDismissBehavior.manual,
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          languageSwitcherTopPadding,
-                          horizontalPadding,
-                          bottomPadding,
-                        ),
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(minHeight: minHeight),
-                          child: Center(
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(maxWidth: 430),
-                              child: Form(
-                                key: _formKey,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    _buildHeader(
-                                      theme,
-                                      isDarkMode,
-                                      logoAsset,
-                                      strings,
+                        child: Column(
+                          children: [
+                            // 1. Top Banner area with 3D illustration
+                            SizedBox(
+                              height: bannerHeight,
+                              width: double.infinity,
+                              child: Stack(
+                                children: [
+                                  Positioned.fill(
+                                    child: Image.asset(
+                                      AppAssets.authMarketHeader,
+                                      fit: BoxFit.cover,
+                                      alignment: Alignment.topCenter,
+                                      cacheHeight: 480,
                                     ),
-                                    const SizedBox(height: 30),
-                                    CustomTextField(
-                                      controller: _emailController,
-                                      labelText: context.tr(
-                                        'Mobile / Email / Username',
+                                  ),
+                                  Positioned.fill(
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            Colors.black.withValues(
+                                              alpha: isDarkMode ? 0.35 : 0.05,
+                                            ),
+                                            Colors.transparent,
+                                            Colors.black.withValues(
+                                              alpha: isDarkMode ? 0.40 : 0.08,
+                                            ),
+                                          ],
+                                          stops: const [0.0, 0.45, 1.0],
+                                        ),
                                       ),
-                                      prefixIcon: AppIcons.direct_right,
-                                      keyboardType: TextInputType.text,
-                                      validator: Validators.loginIdentifier,
                                     ),
-                                    CustomTextField(
-                                      controller: _passwordController,
-                                      labelText: strings.password,
-                                      prefixIcon: AppIcons.password_check,
-                                      obscureText: _obscurePassword,
-                                      suffixIcon: _obscurePassword
-                                          ? AppIcons.eye_slash
-                                          : AppIcons.eye,
-                                      onSuffixIconPressed: () {
-                                        setState(() {
-                                          _obscurePassword = !_obscurePassword;
-                                        });
-                                      },
-                                      inputFormatters: [
-                                        _noWhitespaceInputFormatter,
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // 2. Curved bottom sheet with centered floating logo on the curve
+                            Transform.translate(
+                              offset: const Offset(0, -overlap),
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                alignment: Alignment.topCenter,
+                                children: [
+                                  Container(
+                                    width: double.infinity,
+                                    constraints: BoxConstraints(
+                                      minHeight: sheetMinHeight,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: surfaceColor,
+                                      borderRadius: const BorderRadius.vertical(
+                                        top: Radius.circular(26),
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(
+                                            alpha: isDarkMode ? 0.35 : 0.07,
+                                          ),
+                                          blurRadius: 18,
+                                          offset: const Offset(0, -4),
+                                        ),
                                       ],
-                                      validator: Validators.passwordRequired,
                                     ),
-                                    _buildRememberAndForgotRow(
-                                      theme,
-                                      isDarkMode,
-                                      strings,
+                                    padding: EdgeInsets.fromLTRB(
+                                      horizontalPadding,
+                                      48,
+                                      horizontalPadding,
+                                      24,
                                     ),
-                                    const SizedBox(height: 30),
-                                    _buildActionButtons(
-                                      context,
-                                      strings,
-                                      isLoading: authState is AuthLoading,
+                                    child: Align(
+                                      alignment: Alignment.topCenter,
+                                      child: ConstrainedBox(
+                                        constraints: const BoxConstraints(
+                                          maxWidth: 430,
+                                        ),
+                                        child: Form(
+                                          key: _formKey,
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                              Text(
+                                                strings.welcomeBack,
+                                                textAlign: TextAlign.start,
+                                                style: theme
+                                                    .textTheme
+                                                    .headlineLarge
+                                                    ?.copyWith(
+                                                      fontSize: 22,
+                                                      height: 1.15,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                      color: isDarkMode
+                                                          ? Colors.white
+                                                          : AppColors
+                                                                .lightTextPrimary,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                strings.loginSubtitle,
+                                                textAlign: TextAlign.start,
+                                                style: theme
+                                                    .textTheme
+                                                    .bodyMedium
+                                                    ?.copyWith(
+                                                      fontSize: 13.5,
+                                                      color: isDarkMode
+                                                          ? Colors.white
+                                                                .withValues(
+                                                                  alpha: 0.6,
+                                                                )
+                                                          : Colors.black
+                                                                .withValues(
+                                                                  alpha: 0.55,
+                                                                ),
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                    ),
+                                              ),
+                                              const SizedBox(height: 22),
+                                              CustomTextField(
+                                                controller: _emailController,
+                                                labelText:
+                                                    'Mobile / Email / Username',
+                                                prefixIcon:
+                                                    AppIcons.direct_right,
+                                                keyboardType:
+                                                    TextInputType.text,
+                                                validator:
+                                                    Validators.loginIdentifier,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                inputFormatters: [
+                                                  _noWhitespaceInputFormatter,
+                                                ],
+                                              ),
+                                              CustomTextField(
+                                                controller: _passwordController,
+                                                labelText: strings.password,
+                                                prefixIcon:
+                                                    AppIcons.password_check,
+                                                obscureText: _obscurePassword,
+                                                borderRadius:
+                                                    BorderRadius.circular(16),
+                                                suffixIcon: _obscurePassword
+                                                    ? AppIcons.eye_slash
+                                                    : AppIcons.eye,
+                                                onSuffixIconPressed: () {
+                                                  setState(() {
+                                                    _obscurePassword =
+                                                        !_obscurePassword;
+                                                  });
+                                                },
+                                                inputFormatters: [
+                                                  _noWhitespaceInputFormatter,
+                                                ],
+                                                validator:
+                                                    Validators.passwordRequired,
+                                              ),
+                                              _buildRememberAndForgotRow(
+                                                theme,
+                                                isDarkMode,
+                                                strings,
+                                              ),
+                                              const SizedBox(height: 22),
+                                              _buildActionButtons(
+                                                context,
+                                                strings,
+                                                isLoading: isLoading,
+                                                isDarkMode: isDarkMode,
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
                                     ),
-                                  ],
-                                ),
+                                  ),
+
+                                  // Centered floating logo badge positioned on the curve
+                                  Positioned(
+                                    top: -37,
+                                    child: Container(
+                                      width: 74,
+                                      height: 74,
+                                      padding: const EdgeInsets.all(5),
+                                      decoration: BoxDecoration(
+                                        color: isDarkMode
+                                            ? const Color(0xFF013C7E)
+                                            : Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: surfaceColor,
+                                          width: 3.5,
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(
+                                              0xFF013C7E,
+                                            ).withValues(alpha: 0.35),
+                                            blurRadius: 14,
+                                            offset: const Offset(0, 4),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(15),
+                                        child: AppImage(
+                                          source: logoAsset,
+                                          role: AppImageRole.logo,
+                                          cacheWidth: 160,
+                                          cacheHeight: 160,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                          ),
-                        ),
-                      ),
-                      Positioned(
-                        key: const ValueKey('login_language_switcher'),
-                        top: 14,
-                        right: horizontalPadding,
-                        child: IgnorePointer(
-                          ignoring: isKeyboardVisible,
-                          child: AnimatedSlide(
-                            duration: const Duration(milliseconds: 180),
-                            curve: Curves.easeOutCubic,
-                            offset: isKeyboardVisible
-                                ? const Offset(0, -0.18)
-                                : Offset.zero,
-                            child: AnimatedOpacity(
-                              key: const ValueKey(
-                                'login_language_switcher_visibility',
-                              ),
-                              duration: const Duration(milliseconds: 160),
-                              curve: Curves.easeOut,
-                              opacity: isKeyboardVisible ? 0 : 1,
-                              child: _buildLanguageSwitcher(
-                                theme,
-                                isDarkMode,
-                                strings,
-                              ),
-                            ),
-                          ),
+                          ],
                         ),
                       ),
                     ],
@@ -300,180 +445,6 @@ class _LoginViewState extends State<LoginView> {
           ),
         );
       },
-    );
-  }
-
-  BoxDecoration _buildBackgroundDecoration(bool isDarkMode) {
-    return BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: isDarkMode
-            ? const [
-                Color(0xFF111214),
-                AppColors.darkBackground,
-                Color(0xFF171717),
-              ]
-            : const [
-                Color(0xFFF3F6FF),
-                AppColors.lightBackground,
-                Color(0xFFFAFBFF),
-              ],
-        stops: const [0, 0.42, 1],
-      ),
-    );
-  }
-
-  Widget _buildLanguageSwitcher(
-    ThemeData theme,
-    bool isDarkMode,
-    AppTranslations strings,
-  ) {
-    final borderColor = isDarkMode
-        ? Colors.white.withValues(alpha: 0.09)
-        : AppColors.primary.withValues(alpha: 0.13);
-    final surfaceColor = isDarkMode
-        ? Colors.white.withValues(alpha: 0.06)
-        : Colors.white.withValues(alpha: 0.92);
-    final iconColor = isDarkMode ? Colors.white : AppColors.primary;
-
-    return ValueListenableBuilder<AppLanguage>(
-      valueListenable: AppLanguageController.instance,
-      builder: (context, language, _) {
-        final nextLanguage = language.isArabic
-            ? AppLanguage.english
-            : AppLanguage.arabic;
-        final label = nextLanguage.label;
-        final textColor = isDarkMode ? Colors.white : AppColors.primary;
-
-        return Tooltip(
-          message: strings.languageTooltip,
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(999),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: AppLanguageController.instance.toggleLanguage,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                padding: const EdgeInsetsDirectional.fromSTEB(11, 9, 13, 9),
-                decoration: BoxDecoration(
-                  color: surfaceColor,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: borderColor),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(
-                        alpha: isDarkMode ? 0.18 : 0.06,
-                      ),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  textDirection: TextDirection.ltr,
-                  children: [
-                    Icon(AppIcons.global, color: iconColor, size: 19),
-                    const SizedBox(width: 8),
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 180),
-                      transitionBuilder: (child, animation) {
-                        return FadeTransition(opacity: animation, child: child);
-                      },
-                      child: Text(
-                        label,
-                        key: ValueKey(label),
-                        textDirection: nextLanguage.isArabic
-                            ? TextDirection.rtl
-                            : TextDirection.ltr,
-                        style: TextStyle(
-                          color: textColor,
-                          fontSize: AppFontSizes.body,
-                          fontWeight: FontWeight.w900,
-                          height: 1,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildHeader(
-    ThemeData theme,
-    bool isDarkMode,
-    String logoAsset,
-    AppTranslations strings,
-  ) {
-    final logoSurfaceColor = isDarkMode ? Colors.black : Colors.white;
-    final logoBorderColor = isDarkMode
-        ? Colors.white.withValues(alpha: 0.08)
-        : AppColors.primary.withValues(alpha: 0.14);
-    final shadowColor = isDarkMode
-        ? Colors.black.withValues(alpha: 0.26)
-        : AppColors.primary.withValues(alpha: 0.14);
-    final titleColor = isDarkMode ? Colors.white : AppColors.lightTextPrimary;
-    final subtitleColor = isDarkMode
-        ? Colors.white.withValues(alpha: 0.58)
-        : Colors.black.withValues(alpha: 0.56);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: 96,
-          height: 96,
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: logoSurfaceColor,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: logoBorderColor),
-            boxShadow: [
-              BoxShadow(
-                color: shadowColor,
-                blurRadius: 30,
-                offset: const Offset(0, 18),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(14),
-            child: AppImage(
-              source: logoAsset,
-              role: AppImageRole.logo,
-              cacheWidth: 192,
-              cacheHeight: 192,
-            ),
-          ),
-        ),
-        const SizedBox(height: 22),
-        Text(
-          strings.welcomeBack,
-          style: theme.textTheme.headlineLarge?.copyWith(
-            color: titleColor,
-            fontSize: AppFontSizes.pageTitle,
-            height: 1.08,
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          strings.loginSubtitle,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: subtitleColor,
-            fontSize: AppFontSizes.bodyLarge,
-            height: 1.55,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
     );
   }
 
@@ -554,7 +525,10 @@ class _LoginViewState extends State<LoginView> {
     BuildContext context,
     AppTranslations strings, {
     required bool isLoading,
+    required bool isDarkMode,
   }) {
+    final theme = Theme.of(context);
+
     return Column(
       children: [
         AppActionButton(
@@ -562,86 +536,172 @@ class _LoginViewState extends State<LoginView> {
           isLoading: isLoading,
           onPressed: isLoading ? null : _onSignIn,
         ),
-        const SizedBox(height: 14),
-        AppActionButton(
-          label: strings.createAccount,
-          variant: AppActionButtonVariant.outlined,
-          onPressed: isLoading
-              ? null
-              : () {
-                  Navigator.pushNamed(context, AppRoutes.signup);
-                },
-        ),
         const SizedBox(height: 22),
         Row(
           children: [
-            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+            Expanded(
+              child: Divider(color: theme.dividerColor.withValues(alpha: 0.6)),
+            ),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Text(
-                context.tr('Or continue with'),
-                style: Theme.of(context).textTheme.bodySmall,
+                strings.orContinueWith,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: isDarkMode
+                      ? Colors.white.withValues(alpha: 0.55)
+                      : Colors.black.withValues(alpha: 0.5),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 12.5,
+                ),
               ),
             ),
-            Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+            Expanded(
+              child: Divider(color: theme.dividerColor.withValues(alpha: 0.6)),
+            ),
           ],
         ),
-        const SizedBox(height: 14),
-        _socialButton(
-          context,
-          provider: SocialAuthProvider.google,
-          icon: const FaIcon(FontAwesomeIcons.google, size: 18),
-          label: 'Continue with Google',
-          isLoading: isLoading,
+        const SizedBox(height: 18),
+        Row(
+          children: [
+            Expanded(
+              child: _socialPillButton(
+                context,
+                provider: SocialAuthProvider.google,
+                icon: Image.asset(AppAssets.googleLogo, width: 20, height: 20),
+                label: 'Google',
+                isLoading: isLoading,
+                isDarkMode: isDarkMode,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _socialPillButton(
+                context,
+                provider: SocialAuthProvider.apple,
+                icon: FaIcon(
+                  FontAwesomeIcons.apple,
+                  size: 20,
+                  color: isDarkMode ? Colors.white : Colors.black,
+                ),
+                label: 'Apple',
+                isLoading: isLoading,
+                isDarkMode: isDarkMode,
+              ),
+            ),
+          ],
         ),
         if (_facebookAuthEnabled) ...[
-          const SizedBox(height: 10),
-          _socialButton(
+          const SizedBox(height: 12),
+          _socialPillButton(
             context,
             provider: SocialAuthProvider.facebook,
-            icon: const FaIcon(FontAwesomeIcons.facebookF, size: 18),
-            label: 'Continue with Facebook',
+            icon: const FaIcon(
+              FontAwesomeIcons.facebookF,
+              size: 18,
+              color: Color(0xFF1877F2),
+            ),
+            label: 'Facebook',
             isLoading: isLoading,
+            isDarkMode: isDarkMode,
           ),
         ],
-        if (_appleAuthEnabled &&
-            !kIsWeb &&
-            defaultTargetPlatform == TargetPlatform.iOS) ...[
-          const SizedBox(height: 10),
-          _socialButton(
-            context,
-            provider: SocialAuthProvider.apple,
-            icon: const FaIcon(FontAwesomeIcons.apple, size: 18),
-            label: 'Continue with Apple',
-            isLoading: isLoading,
-          ),
-        ],
+        const SizedBox(height: 24),
+        _buildSignUpPrompt(theme, isDarkMode, strings),
       ],
     );
   }
 
-  Widget _socialButton(
+  Widget _socialPillButton(
     BuildContext context, {
     required SocialAuthProvider provider,
     required Widget icon,
     required String label,
     required bool isLoading,
+    required bool isDarkMode,
   }) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: isLoading
+    final bgColor = isDarkMode
+        ? const Color(0xFF23242A)
+        : const Color(0xFFF3F4F6);
+    final borderColor = isDarkMode
+        ? const Color(0xFF383A42)
+        : const Color(0xFFE5E7EB);
+    final textColor = isDarkMode ? Colors.white : const Color(0xFF1F2937);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(24),
+        onTap: isLoading
             ? null
             : () => context.read<AuthCubit>().socialSignIn(
                 provider: provider,
                 rememberMe: _rememberMe,
               ),
-        icon: icon,
-        label: Text(context.tr(label)),
-        style: OutlinedButton.styleFrom(
-          minimumSize: const Size.fromHeight(50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+        child: Ink(
+          height: 48,
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: borderColor, width: 1.1),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(width: 8),
+              Text(
+                context.tr(label),
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSignUpPrompt(
+    ThemeData theme,
+    bool isDarkMode,
+    AppTranslations strings,
+  ) {
+    final textColor = isDarkMode
+        ? Colors.white.withValues(alpha: 0.65)
+        : Colors.black.withValues(alpha: 0.6);
+    final linkColor = theme.colorScheme.primary;
+
+    return Center(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () {
+          Navigator.pushNamed(context, AppRoutes.signup);
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+          child: Text.rich(
+            TextSpan(
+              text: '${strings.dontHaveAccount} ',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                fontSize: AppFontSizes.body,
+                color: textColor,
+                fontWeight: FontWeight.w600,
+              ),
+              children: [
+                TextSpan(
+                  text: strings.signUpAction,
+                  style: TextStyle(
+                    fontSize: AppFontSizes.body,
+                    color: linkColor,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            textAlign: TextAlign.center,
           ),
         ),
       ),

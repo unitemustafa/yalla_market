@@ -12,6 +12,9 @@ import 'package:yalla_market/features/personalization/presentation/views/setting
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 
 import '../../../../../helpers/auth_widget_fakes.dart';
+import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
+import 'package:yalla_market/features/personalization/presentation/controllers/user_profile_controller.dart';
+import 'package:yalla_market/features/personalization/presentation/widgets/profile_completion_floating_button.dart';
 
 void main() {
   setUp(() {
@@ -176,4 +179,28 @@ void main() {
       isTrue,
     );
   });
+
+  testWidgets(
+    'account page shows circular completion badge over hero rectangle when profile incomplete',
+    (tester) async {
+      UserProfileController.instance.updateFromAuthUser(
+        const AuthUser(
+          id: '1',
+          email: 'user@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          role: 'client',
+          username: 'johndoe',
+          profileUsernamePending: true,
+        ),
+      );
+      addTearDown(UserProfileController.instance.reset);
+
+      await tester.pumpWidget(const MaterialApp(home: SettingsView()));
+
+      expect(find.byType(ProfileCompletionFloatingButton), findsOneWidget);
+      expect(find.text('29%'), findsOneWidget);
+      expect(find.byType(FloatingActionButton), findsOneWidget);
+    },
+  );
 }

@@ -30,7 +30,26 @@ void main() {
     });
 
     test(
-      'onboarding not seen routes to onboarding and does not restore session',
+      'onboarding not seen routes to onboarding when onboarding is enabled',
+      () async {
+        final authRepository = _FakeAuthRepository();
+        final cubit = _cubit(
+          onboardingRepository: const _FakeOnboardingRepository(seen: false),
+          authRepository: authRepository,
+          enableOnboarding: true,
+        );
+
+        await cubit.determineStartupRoute();
+
+        final state = cubit.state as SplashNavigateTo;
+        expect(state.route, AppRoutes.onboarding);
+        expect(authRepository.restoreSavedSessionCalls, 0);
+        await cubit.close();
+      },
+    );
+
+    test(
+      'onboarding disabled routes directly to login even when onboarding not seen',
       () async {
         final authRepository = _FakeAuthRepository();
         final cubit = _cubit(
@@ -41,8 +60,8 @@ void main() {
         await cubit.determineStartupRoute();
 
         final state = cubit.state as SplashNavigateTo;
-        expect(state.route, AppRoutes.onboarding);
-        expect(authRepository.restoreSavedSessionCalls, 0);
+        expect(state.route, AppRoutes.login);
+        expect(authRepository.restoreSavedSessionCalls, 1);
         await cubit.close();
       },
     );
@@ -157,6 +176,7 @@ SplashCubit _cubit({
   required OnboardingRepository onboardingRepository,
   AuthRepository? authRepository,
   LocationRepository? locationRepository,
+  bool? enableOnboarding,
 }) {
   final effectiveLocationRepository =
       locationRepository ?? _FakeLocationRepository();
@@ -164,6 +184,7 @@ SplashCubit _cubit({
     _onboardingUseCases(onboardingRepository),
     _authUseCases(authRepository ?? _FakeAuthRepository()),
     _locationUseCases(effectiveLocationRepository),
+    enableOnboarding: enableOnboarding,
   );
 }
 

@@ -1,5 +1,6 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/config/app_environment.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../../../core/otp/pending_verification_store.dart';
@@ -16,25 +17,30 @@ class SplashCubit extends Cubit<SplashState> {
     this._authUseCases,
     this._locationUseCases, {
     PendingVerificationStore? pendingVerificationStore,
+    bool? enableOnboarding,
   }) : _pendingVerificationStore =
            pendingVerificationStore ?? const PendingVerificationStore(),
+       _enableOnboarding = enableOnboarding ?? AppEnvironment.enableOnboarding,
        super(const SplashLoading());
 
   final OnboardingUseCases _onboardingUseCases;
   final AuthUseCases _authUseCases;
   final LocationUseCases _locationUseCases;
   final PendingVerificationStore _pendingVerificationStore;
+  final bool _enableOnboarding;
 
   Future<void> determineStartupRoute() async {
-    final onboardingResult = await _onboardingUseCases.hasSeenOnboarding();
-    final hasSeenOnboarding = onboardingResult.when(
-      success: (seen) => seen,
-      failure: (_) => false,
-    );
+    if (_enableOnboarding) {
+      final onboardingResult = await _onboardingUseCases.hasSeenOnboarding();
+      final hasSeenOnboarding = onboardingResult.when(
+        success: (seen) => seen,
+        failure: (_) => false,
+      );
 
-    if (!hasSeenOnboarding) {
-      emit(const SplashNavigateTo(AppRoutes.onboarding));
-      return;
+      if (!hasSeenOnboarding) {
+        emit(const SplashNavigateTo(AppRoutes.onboarding));
+        return;
+      }
     }
 
     AuthSession? session;

@@ -24,6 +24,7 @@ class CustomTextField extends StatelessWidget {
   final AutovalidateMode? autovalidateMode;
   final bool enabled;
   final bool compact;
+  final BorderRadius? borderRadius;
 
   const CustomTextField({
     super.key,
@@ -46,6 +47,7 @@ class CustomTextField extends StatelessWidget {
     this.autovalidateMode,
     this.enabled = true,
     this.compact = false,
+    this.borderRadius,
   });
 
   @override
@@ -85,49 +87,63 @@ class CustomTextField extends StatelessWidget {
           fontWeight: FontWeight.w600,
         ),
         decoration: InputDecoration(
+          isDense: true,
           labelText: context.tr(labelText),
           errorText: errorText == null ? null : context.tr(errorText!),
           filled: true,
           fillColor: fillColor,
           contentPadding: EdgeInsets.symmetric(
-            horizontal: 18,
-            vertical: compact ? 14 : 18,
+            horizontal: 16,
+            vertical: compact ? 9 : 11,
+          ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 42,
+          ),
+          suffixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 42,
           ),
           labelStyle: TextStyle(
             color: iconColor,
             fontSize: AppFontSizes.bodyLarge,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w600,
           ),
-          prefixIcon: Icon(prefixIcon, size: 21, color: iconColor),
+          prefixIcon: Icon(prefixIcon, size: 20, color: iconColor),
           suffixIcon:
               suffix ??
               (suffixIcon != null
                   ? IconButton(
                       icon: Icon(
                         suffixIcon,
-                        size: 21,
+                        size: 20,
                         color: suffixIconColor ?? iconColor,
+                      ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(
+                        minWidth: 44,
+                        minHeight: 42,
                       ),
                       onPressed: onSuffixIconPressed,
                     )
                   : null),
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: borderRadius ?? BorderRadius.circular(12),
             borderSide: BorderSide(color: borderColor),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: borderRadius ?? BorderRadius.circular(12),
             borderSide: BorderSide(
               color: theme.colorScheme.primary,
               width: 1.4,
             ),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: borderRadius ?? BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFEF4444)),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: borderRadius ?? BorderRadius.circular(12),
             borderSide: const BorderSide(color: Color(0xFFEF4444), width: 1.4),
           ),
         ),

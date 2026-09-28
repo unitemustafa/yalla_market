@@ -10,6 +10,7 @@ import '../../../../app/routing/app_routes.dart';
 import '../../domain/entities/onboarding_model.dart';
 import '../cubit/onboarding_cubit.dart';
 import '../widgets/onboarding_page_item.dart';
+import '../../../app_media/presentation/app_media_cubit.dart';
 
 class OnboardingView extends StatefulWidget {
   const OnboardingView({super.key});
@@ -23,20 +24,27 @@ class _OnboardingViewState extends State<OnboardingView> {
   int _currentIndex = 0;
   bool _isFinishing = false;
 
-  List<OnboardingModel> _pages(AppTranslations strings) {
+  List<OnboardingModel> _pages(
+    AppTranslations strings, [
+    AppMediaState? state,
+  ]) {
+    final media = state is AppMediaReady ? state.media : null;
     return [
       OnboardingModel(
-        imagePath: AppAssets.onboardingProducts,
+        imagePath: media?.onboardingOne ?? AppAssets.onboardingProducts,
+        fallbackImagePath: AppAssets.onboardingProducts,
         title: strings.onboardingTitle1,
         description: strings.onboardingDesc1,
       ),
       OnboardingModel(
-        imagePath: AppAssets.onboardingCashOnDelivery,
+        imagePath: media?.onboardingTwo ?? AppAssets.onboardingCashOnDelivery,
+        fallbackImagePath: AppAssets.onboardingCashOnDelivery,
         title: strings.onboardingTitle2,
         description: strings.onboardingDesc2,
       ),
       OnboardingModel(
-        imagePath: AppAssets.onboardingFastDelivery,
+        imagePath: media?.onboardingThree ?? AppAssets.onboardingFastDelivery,
+        fallbackImagePath: AppAssets.onboardingFastDelivery,
         title: strings.onboardingTitle3,
         description: strings.onboardingDesc3,
       ),
@@ -124,7 +132,7 @@ class _OnboardingViewState extends State<OnboardingView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final strings = AppTranslations.of(context);
-    final pages = _pages(strings);
+    final pages = _pages(strings, context.watch<AppMediaCubit>().state);
     final isDarkMode = theme.brightness == Brightness.dark;
     final isLastPage = _currentIndex == pages.length - 1;
     final accentColor = _accentColors[_currentIndex];

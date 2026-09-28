@@ -10,6 +10,11 @@ import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/views/login_view.dart';
 import 'package:yalla_market/features/auth/presentation/widgets/warning_checkbox.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
+import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/features/app_media/domain/app_media.dart';
+import 'package:yalla_market/features/app_media/domain/app_media_repository.dart';
+import 'package:yalla_market/features/app_media/domain/load_app_media.dart';
+import 'package:yalla_market/features/app_media/presentation/app_media_cubit.dart';
 
 import '../../../../helpers/auth_widget_fakes.dart';
 
@@ -144,6 +149,10 @@ Future<void> _pumpLogin(
       providers: [
         BlocProvider.value(value: authCubit),
         BlocProvider.value(value: locationCubit),
+        BlocProvider(
+          create: (_) =>
+              AppMediaCubit(LoadAppMedia(_EmptyAppMediaRepository())),
+        ),
       ],
       child: MaterialApp(
         localizationsDelegates: const [
@@ -161,6 +170,12 @@ Future<void> _pumpLogin(
       ),
     ),
   );
+}
+
+class _EmptyAppMediaRepository implements AppMediaRepository {
+  @override
+  Future<ApiResult<AppMedia>> load() async =>
+      const ApiResult.success(AppMedia());
 }
 
 Future<void> _submitLogin(WidgetTester tester) async {

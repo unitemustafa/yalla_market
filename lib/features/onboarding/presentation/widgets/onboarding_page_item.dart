@@ -81,12 +81,22 @@ class OnboardingPageItem extends StatelessWidget {
                                 isNarrow ? 18 : 28,
                                 isCompactHeight ? 18 : 28,
                               ),
-                              child: Image.asset(
-                                model.imagePath,
-                                fit: BoxFit.contain,
-                                cacheWidth: 760,
-                                cacheHeight: 760,
-                              ),
+                              child: model.imagePath.startsWith('http')
+                                  ? Image.network(
+                                      model.imagePath,
+                                      fit: BoxFit.contain,
+                                      errorBuilder: (_, _, _) => Image.asset(
+                                        model.fallbackImagePath ??
+                                            model.imagePath,
+                                        fit: BoxFit.contain,
+                                      ),
+                                    )
+                                  : Image.asset(
+                                      model.imagePath,
+                                      fit: BoxFit.contain,
+                                      cacheWidth: 760,
+                                      cacheHeight: 760,
+                                    ),
                             ),
                           ),
                         ],

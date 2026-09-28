@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../core/config/app_environment.dart';
 
 import '../../features/auth/presentation/views/forget_password_view.dart';
 import '../../features/auth/presentation/views/login_view.dart';
+import '../../features/app_media/presentation/app_media_cubit.dart';
+import '../di/service_locator.dart';
 import '../../features/auth/presentation/views/account_disabled_view.dart';
 import '../../features/auth/presentation/views/password_reset_sent_view.dart';
 import '../../features/auth/presentation/views/reset_password_view.dart';
@@ -75,7 +78,7 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     if (_protectedRoutes.contains(settings.name) &&
         !AuthGuard.isAuthenticated) {
-      return _buildRoute(const LoginView(), settings);
+      return _buildRoute(_loginWithMedia(), settings);
     }
     switch (settings.name) {
       case AppRoutes.splash:
@@ -83,12 +86,18 @@ class AppRouter {
 
       case AppRoutes.onboarding:
         if (!AppEnvironment.enableOnboarding) {
-          return _buildRoute(const LoginView(), settings);
+          return _buildRoute(_loginWithMedia(), settings);
         }
-        return _buildRoute(const OnboardingView(), settings);
+        return _buildRoute(
+          BlocProvider<AppMediaCubit>(
+            create: (_) => sl<AppMediaCubit>()..load(),
+            child: const OnboardingView(),
+          ),
+          settings,
+        );
 
       case AppRoutes.login:
-        return _buildRoute(const LoginView(), settings);
+        return _buildRoute(_loginWithMedia(), settings);
 
       case AppRoutes.accountDisabled:
         return _buildRoute(const AccountDisabledView(), settings);
@@ -281,6 +290,11 @@ class AppRouter {
   ) {
     return MaterialPageRoute(builder: (_) => page, settings: settings);
   }
+
+  static Widget _loginWithMedia() => BlocProvider<AppMediaCubit>(
+    create: (_) => sl<AppMediaCubit>()..load(),
+    child: const LoginView(),
+  );
 
   static Route<dynamic> _buildMissingArgumentsRoute(RouteSettings settings) {
     return _buildRoute(

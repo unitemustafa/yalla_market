@@ -12,6 +12,10 @@ import 'package:yalla_market/features/onboarding/domain/repositories/onboarding_
 import 'package:yalla_market/features/onboarding/domain/usecases/onboarding_usecases.dart';
 import 'package:yalla_market/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:yalla_market/features/onboarding/presentation/views/onboarding_view.dart';
+import 'package:yalla_market/features/app_media/domain/app_media.dart';
+import 'package:yalla_market/features/app_media/domain/app_media_repository.dart';
+import 'package:yalla_market/features/app_media/domain/load_app_media.dart';
+import 'package:yalla_market/features/app_media/presentation/app_media_cubit.dart';
 
 void main() {
   setUp(() {
@@ -79,8 +83,14 @@ class _TestApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (_) => OnboardingCubit(_useCases(repository)),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (_) => OnboardingCubit(_useCases(repository))),
+        BlocProvider(
+          create: (_) =>
+              AppMediaCubit(LoadAppMedia(_EmptyAppMediaRepository())),
+        ),
+      ],
       child: ValueListenableBuilder<AppLanguage>(
         valueListenable: AppLanguageController.instance,
         builder: (context, language, _) {
@@ -103,6 +113,12 @@ class _TestApp extends StatelessWidget {
       ),
     );
   }
+}
+
+class _EmptyAppMediaRepository implements AppMediaRepository {
+  @override
+  Future<ApiResult<AppMedia>> load() async =>
+      const ApiResult.success(AppMedia());
 }
 
 OnboardingUseCases _useCases(OnboardingRepository repository) {

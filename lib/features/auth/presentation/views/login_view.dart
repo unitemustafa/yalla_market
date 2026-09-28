@@ -21,6 +21,8 @@ import '../cubit/auth_state.dart';
 import '../../domain/entities/social_auth_result.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/warning_checkbox.dart';
+import '../../../app_media/presentation/app_media_cubit.dart';
+import '../../../app_media/presentation/login_media_banner.dart';
 
 class LoginView extends StatefulWidget {
   const LoginView({super.key});
@@ -219,11 +221,15 @@ class _LoginViewState extends State<LoginView> {
                               child: Stack(
                                 children: [
                                   Positioned.fill(
-                                    child: Image.asset(
-                                      AppAssets.authMarketHeader,
-                                      fit: BoxFit.cover,
-                                      alignment: Alignment.topCenter,
-                                      cacheHeight: 480,
+                                    child: LoginMediaBanner(
+                                      url: switch (context
+                                          .watch<AppMediaCubit>()
+                                          .state) {
+                                        AppMediaReady(:final media) =>
+                                          media.marketLogin,
+                                        _ => null,
+                                      },
+                                      fallback: AppAssets.authMarketHeader,
                                     ),
                                   ),
                                   Positioned.fill(

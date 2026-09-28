@@ -4,44 +4,28 @@ class HomeCampaignPreferences {
   HomeCampaignPreferences._();
 
   static final Set<String> _openedThisSession = {};
-  static final Set<String> _hiddenThisSession = {};
+  static final Map<String, String> _imageThisSession = {};
 
-  static bool hiddenInSession(String identity) =>
-      _hiddenThisSession.contains(identity);
+  static Future<String> imageForSession(
+    String identity,
+    List<String> urls,
+  ) async {
+    if (urls.isEmpty) return '';
+    final cached = _imageThisSession[identity];
+    if (cached != null && urls.contains(cached)) return cached;
+    try {
+      final preferences = await SharedPreferences.getInstance();
+      final key = 'home_campaign.image_index.$identity';
+      final index = ((preferences.getInt(key) ?? -1) + 1) % urls.length;
+      await preferences.setInt(key, index);
+      return _imageThisSession[identity] = urls[index];
+    } catch (_) {
+      return _imageThisSession[identity] = urls.first;
+    }
+  }
+
   static bool openedInSession(String identity) =>
       _openedThisSession.contains(identity);
   static void markOpenedInSession(String identity) =>
       _openedThisSession.add(identity);
-  static void hideForSession(String identity) =>
-      _hiddenThisSession.add(identity);
-
-  static Future<bool> hiddenToday(String identity) async {
-    final preferences = await SharedPreferences.getInstance();
-    final until = preferences.getInt('home_campaign.hide_until.$identity') ?? 0;
-    return until > DateTime.now().millisecondsSinceEpoch;
-  }
-
-  static Future<void> hideForDay(String identity) async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setInt(
-      'home_campaign.hide_until.$identity',
-      DateTime.now().add(const Duration(days: 1)).millisecondsSinceEpoch,
-    );
-  }
-
-  static Future<bool> openedToday(String identity) async {
-    final preferences = await SharedPreferences.getInstance();
-    return preferences.getString('home_campaign.open_day.$identity') ==
-        _dayKey();
-  }
-
-  static Future<void> markOpenedToday(String identity) async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.setString('home_campaign.open_day.$identity', _dayKey());
-  }
-
-  static String _dayKey() {
-    final now = DateTime.now();
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-  }
 }

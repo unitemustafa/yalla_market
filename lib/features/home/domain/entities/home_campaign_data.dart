@@ -113,17 +113,30 @@ class HomeCampaignMediaData {
     required this.imageUrl,
     required this.videoUrl,
     required this.posterUrl,
+    this.imageUrls = const [],
   });
   final String type;
   final String imageUrl;
   final String videoUrl;
   final String posterUrl;
+  final List<String> imageUrls;
+  List<String> get availableImageUrls => imageUrls.isNotEmpty
+      ? imageUrls
+      : imageUrl.isNotEmpty
+      ? [imageUrl]
+      : const [];
   factory HomeCampaignMediaData.fromJson(Map<String, dynamic> json) =>
       HomeCampaignMediaData(
         type: json['type']?.toString() ?? 'none',
         imageUrl: json['image_url']?.toString() ?? '',
         videoUrl: json['video_url']?.toString() ?? '',
         posterUrl: json['poster_url']?.toString() ?? '',
+        imageUrls: json['image_urls'] is List
+            ? (json['image_urls'] as List)
+                  .whereType<String>()
+                  .where((url) => url.isNotEmpty)
+                  .toList(growable: false)
+            : const [],
       );
 }
 

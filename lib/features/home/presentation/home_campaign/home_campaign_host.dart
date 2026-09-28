@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -26,9 +25,8 @@ class HomeCampaignHost extends StatefulWidget {
 }
 
 class _HomeCampaignHostState extends State<HomeCampaignHost> {
-  bool _ready = false;
-  bool _hidden = false;
   bool _sheetOpen = false;
+  String _selectedImageUrl = '';
   Timer? _rotationTimer;
 
   @override
@@ -42,8 +40,6 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
   void didUpdateWidget(covariant HomeCampaignHost oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.campaign.storageIdentity != widget.campaign.storageIdentity) {
-      _ready = false;
-      _hidden = false;
       _prepare();
       _scheduleRotation();
     }
@@ -70,60 +66,37 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
 
   Future<void> _prepare() async {
     final identity = widget.campaign.storageIdentity;
-    final hidden =
-        HomeCampaignPreferences.hiddenInSession(identity) ||
-        await HomeCampaignPreferences.hiddenToday(identity);
+    final imageUrl = await HomeCampaignPreferences.imageForSession(
+      identity,
+      widget.campaign.media.availableImageUrls,
+    );
     if (!mounted || identity != widget.campaign.storageIdentity) return;
-    setState(() {
-      _hidden = hidden;
-      _ready = true;
-    });
-    if (!hidden) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoOpen());
-    }
+    _selectedImageUrl = imageUrl;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeAutoOpen());
   }
 
   Future<void> _maybeAutoOpen() async {
-    if (!mounted || _sheetOpen || _hidden) return;
+    if (!mounted || _sheetOpen) return;
     final campaign = widget.campaign;
     final identity = campaign.storageIdentity;
-    if (campaign.behavior.openMode == 'once_per_session') {
-      if (HomeCampaignPreferences.openedInSession(identity)) return;
-      HomeCampaignPreferences.markOpenedInSession(identity);
-      await _open();
-    } else if (campaign.behavior.openMode == 'once_per_day') {
-      if (await HomeCampaignPreferences.openedToday(identity)) return;
-      await HomeCampaignPreferences.markOpenedToday(identity);
-      if (mounted) await _open();
-    }
+    if (HomeCampaignPreferences.openedInSession(identity)) return;
+    HomeCampaignPreferences.markOpenedInSession(identity);
+    await _open();
   }
 
   Future<void> _open() async {
-    if (_sheetOpen || _hidden) return;
+    if (_sheetOpen) return;
     _sheetOpen = true;
-    final result = await showHomeCampaignSheet(context, widget.campaign);
+    final result = await showHomeCampaignSheet(
+      context,
+      widget.campaign,
+      imageUrl: _selectedImageUrl,
+    );
     _sheetOpen = false;
     if (!mounted) return;
     if (result == HomeCampaignSheetResult.acted) {
       await _performAction();
       return;
-    }
-    await _applyDismissBehavior();
-  }
-
-  Future<void> _applyDismissBehavior() async {
-    final identity = widget.campaign.storageIdentity;
-    switch (widget.campaign.behavior.dismissBehavior) {
-      case 'hide_session':
-        HomeCampaignPreferences.hideForSession(identity);
-        if (mounted) setState(() => _hidden = true);
-        return;
-      case 'hide_day':
-        await HomeCampaignPreferences.hideForDay(identity);
-        if (mounted) setState(() => _hidden = true);
-        return;
-      default:
-        return;
     }
   }
 
@@ -219,55 +192,6 @@ class _HomeCampaignHostState extends State<HomeCampaignHost> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_ready || _hidden) return const SizedBox.shrink();
-    final teaser = widget.campaign.teaser;
-    return Material(
-      color: Color(teaser.backgroundColorValue),
-      child: InkWell(
-        onTap: _open,
-        child: SafeArea(
-          top: false,
-          bottom: false,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            child: Row(
-              children: [
-                if (teaser.imageUrl.isNotEmpty) ...[
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: CachedNetworkImage(
-                      imageUrl: teaser.imageUrl,
-                      width: 42,
-                      height: 42,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, _, _) => const SizedBox.shrink(),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                Expanded(
-                  child: Text(
-                    teaser.text,
-                    textDirection: TextDirection.rtl,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: Color(teaser.textColorValue),
-                      fontSize: 14,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Icon(
-                  Icons.keyboard_arrow_up_rounded,
-                  color: Color(teaser.textColorValue),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
+    return const SizedBox.shrink();
   }
 }

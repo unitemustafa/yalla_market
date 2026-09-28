@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
@@ -9,22 +11,21 @@ enum HomeCampaignSheetResult { dismissed, acted }
 
 Future<HomeCampaignSheetResult?> showHomeCampaignSheet(
   BuildContext context,
-  HomeCampaignData campaign,
-) {
-  return showModalBottomSheet<HomeCampaignSheetResult>(
+  HomeCampaignData campaign, {
+  String? imageUrl,
+}) {
+  return showDialog<HomeCampaignSheetResult>(
     context: context,
-    isScrollControlled: true,
-    useSafeArea: true,
-    backgroundColor: Colors.transparent,
     barrierColor: Colors.black.withValues(alpha: 0.58),
-    builder: (_) => _HomeCampaignSheet(campaign: campaign),
+    builder: (_) => _HomeCampaignSheet(campaign: campaign, imageUrl: imageUrl),
   );
 }
 
 class _HomeCampaignSheet extends StatelessWidget {
-  const _HomeCampaignSheet({required this.campaign});
+  const _HomeCampaignSheet({required this.campaign, this.imageUrl});
 
   final HomeCampaignData campaign;
+  final String? imageUrl;
 
   double _heightFactor() => switch (campaign.sheet.size) {
     'medium' => 0.58,
@@ -50,91 +51,101 @@ class _HomeCampaignSheet extends StatelessWidget {
       textAlign: alignment,
       textColor: sheetTextColor,
     );
-    return SizedBox(
-      height: MediaQuery.sizeOf(context).height * _heightFactor(),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: sheetBackgroundColor,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-        ),
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 10, 12, 4),
-              child: Row(
-                children: [
-                  Container(
-                    width: 42,
-                    height: 5,
-                    decoration: BoxDecoration(
-                      color: sheetTextColor.withValues(alpha: 0.18),
-                      borderRadius: BorderRadius.circular(99),
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final availableHeight =
+        screenHeight - MediaQuery.paddingOf(context).vertical - 48;
+    return Dialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      backgroundColor: Colors.transparent,
+      child: SizedBox(
+        width: double.infinity,
+        height: math.min(screenHeight * _heightFactor(), availableHeight),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: sheetBackgroundColor,
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 12, 4),
+                child: Row(
+                  children: [
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'إغلاق',
+                      onPressed: () => Navigator.pop(
+                        context,
+                        HomeCampaignSheetResult.dismissed,
+                      ),
+                      icon: const Icon(Icons.close_rounded),
+                      color: sheetTextColor,
                     ),
-                  ),
-                  const Spacer(),
-                  IconButton(
-                    tooltip: 'إغلاق',
-                    onPressed: () => Navigator.pop(
-                      context,
-                      HomeCampaignSheetResult.dismissed,
-                    ),
-                    icon: const Icon(Icons.close_rounded),
-                    color: sheetTextColor,
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
-                child: campaign.sheet.template == 'split'
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: _CampaignMedia(campaign.media)),
-                          const SizedBox(width: 14),
-                          Expanded(child: content),
-                        ],
-                      )
-                    : Column(
-                        children: [
-                          if (campaign.media.type != 'none') ...[
-                            _CampaignMedia(campaign.media),
-                            const SizedBox(height: 18),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
+                  child: campaign.sheet.template == 'split'
+                      ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _CampaignMedia(
+                                campaign.media,
+                                imageUrl: imageUrl,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(child: content),
                           ],
-                          content,
-                        ],
-                      ),
+                        )
+                      : Column(
+                          children: [
+                            if (campaign.media.type != 'none') ...[
+                              _CampaignMedia(
+                                campaign.media,
+                                imageUrl: imageUrl,
+                              ),
+                              const SizedBox(height: 18),
+                            ],
+                            content,
+                          ],
+                        ),
+                ),
               ),
-            ),
-            if (campaign.action.hasButton)
-              SafeArea(
-                top: false,
-                minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: FilledButton(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Color(sheet.buttonBackgroundColorValue),
-                      foregroundColor: Color(sheet.buttonTextColorValue),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+              if (campaign.action.hasButton)
+                SafeArea(
+                  top: false,
+                  minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 52,
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Color(
+                          sheet.buttonBackgroundColorValue,
+                        ),
+                        foregroundColor: Color(sheet.buttonTextColorValue),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
                       ),
-                    ),
-                    onPressed: () =>
-                        Navigator.pop(context, HomeCampaignSheetResult.acted),
-                    child: Text(
-                      campaign.action.label,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
+                      onPressed: () =>
+                          Navigator.pop(context, HomeCampaignSheetResult.acted),
+                      child: Text(
+                        campaign.action.label,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -189,15 +200,17 @@ class _CampaignTextContent extends StatelessWidget {
 }
 
 class _CampaignMedia extends StatelessWidget {
-  const _CampaignMedia(this.media);
+  const _CampaignMedia(this.media, {this.imageUrl});
   final HomeCampaignMediaData media;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
     if (media.type == 'video') {
       return _CampaignVideo(media: media);
     }
-    if (media.type != 'image' || media.imageUrl.isEmpty) {
+    final selectedUrl = imageUrl ?? media.imageUrl;
+    if (media.type != 'image' || selectedUrl.isEmpty) {
       return const SizedBox.shrink();
     }
     return AspectRatio(
@@ -206,7 +219,7 @@ class _CampaignMedia extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: CachedNetworkImage(
-          imageUrl: media.imageUrl,
+          imageUrl: selectedUrl,
           width: double.infinity,
           fit: BoxFit.cover,
           placeholder: (_, _) => const _MediaPlaceholder(),

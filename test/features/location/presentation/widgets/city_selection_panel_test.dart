@@ -5,6 +5,26 @@ import 'package:yalla_market/features/location/presentation/cubit/location_state
 import 'package:yalla_market/features/location/presentation/widgets/city_selection_panel.dart';
 
 void main() {
+  testWidgets('manual mode shows a failed city save', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CitySelectionPanel(
+            state: const LocationFailure(
+              'Could not save your selected city.',
+              null,
+            ),
+            manualOnly: true,
+            onCitySelected: (_) {},
+            onUseCurrentLocation: () {},
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Could not save your selected city.'), findsOneWidget);
+  });
+
   testWidgets('manual mode shows cities and general region', (tester) async {
     CityData? selectedCity;
 

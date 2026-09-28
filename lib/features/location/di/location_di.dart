@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 
+import '../../../core/config/app_environment.dart';
+import '../../../core/network/api_client.dart';
 import '../../../features/location/data/datasources/device_location_data_source.dart'
     show GeolocatorLocationDataSource;
 import '../../../features/location/data/datasources/location_preferences.dart';
@@ -12,7 +14,8 @@ import '../../../features/location/domain/usecases/location_usecases.dart';
 import '../../../features/location/domain/usecases/region_suggestion_usecases.dart';
 import '../../../features/location/presentation/cubit/location_cubit.dart';
 
-void registerLocationDependencies(GetIt sl) {
+void registerLocationDependencies(GetIt sl, {bool? useDemoRepositories}) {
+  final useDemo = useDemoRepositories ?? AppEnvironment.useDemoRepositories;
   if (!sl.isRegistered<LocationPreferences>()) {
     sl.registerLazySingleton(LocationPreferences.new);
   }
@@ -26,7 +29,7 @@ void registerLocationDependencies(GetIt sl) {
       () => LocationRepositoryImpl(
         sl<LocationPreferences>(),
         sl<DeviceLocationService>(),
-        sl(),
+        useDemo ? null : sl<ApiClient>(),
       ),
     );
   }

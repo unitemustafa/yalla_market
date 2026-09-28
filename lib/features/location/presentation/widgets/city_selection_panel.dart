@@ -89,7 +89,7 @@ class _CitySelectionPanelState extends State<CitySelectionPanel> {
             manualEnabled: widget.manualEnabled,
             onChanged: _setMode,
           ),
-        if (error != null && _mode == LocationChoiceMode.automatic) ...[
+        if (error != null) ...[
           const SizedBox(height: 12),
           _LocationError(message: error),
         ],

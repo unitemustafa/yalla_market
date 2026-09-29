@@ -90,6 +90,64 @@ void main() {
     expect(find.text('Campaign teaser'), findsNothing);
   });
 
+  testWidgets('text-only campaign dialog fits its content', (tester) async {
+    final campaign = HomeCampaignData.fromJson(_payload()..['id'] = 44);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: HomeCampaignHost(campaign: campaign),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final surface = find.byKey(const ValueKey('home_campaign_surface'));
+    expect(tester.getSize(surface).height, lessThan(250));
+    final descriptionBottom = tester
+        .getBottomLeft(find.text('Campaign description'))
+        .dy;
+    final surfaceBottom = tester.getBottomLeft(surface).dy;
+    expect(surfaceBottom - descriptionBottom, lessThan(35));
+  });
+
+  testWidgets('long campaign content scrolls within the height limit', (
+    tester,
+  ) async {
+    final payload = _payload()..['id'] = 45;
+    (payload['sheet'] as Map<String, dynamic>)['description'] =
+        'Long campaign description. ' * 120;
+    payload['action'] = {
+      'type': 'copy_text',
+      'label': 'Copy code',
+      'value': 'SAVE',
+      'target': null,
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          bottomNavigationBar: HomeCampaignHost(
+            campaign: HomeCampaignData.fromJson(payload),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final surface = find.byKey(const ValueKey('home_campaign_surface'));
+    expect(tester.getSize(surface).height, lessThanOrEqualTo(350));
+    await tester.ensureVisible(find.text('Copy code'));
+    await tester.pumpAndSettle();
+    expect(find.text('Copy code'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('Copy code')).dy,
+      greaterThan(tester.getTopLeft(surface).dy),
+    );
+    expect(
+      tester.getBottomLeft(find.text('Copy code')).dy,
+      lessThan(tester.getBottomLeft(surface).dy),
+    );
+  });
+
   testWidgets('centered campaign follows the dark app theme', (tester) async {
     final payload = _payload()..['id'] = 43;
     const darkText = Color(0xFFE9EEF8);

@@ -100,7 +100,9 @@ abstract final class ApiErrorHandler {
     if (data is Map<String, dynamic>) {
       final detail = data['detail'];
       if (detail is String && detail.trim().isNotEmpty) {
-        return detail;
+        return detail == 'This login is only for client accounts.'
+            ? 'Invalid email or password.'
+            : detail;
       }
 
       final message = data['message'];

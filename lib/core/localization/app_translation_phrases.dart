@@ -2,6 +2,10 @@ part of 'app_translations.dart';
 
 const Map<String, Map<String, String>> _translationPhrases = {
   'ar': {
+    'Change your region': 'تغيير المنطقة',
+    'You can change your region here anytime to see products and offers for your area.':
+        'تقدر تغيّر المنطقة من هنا في أي وقت وتشوف المنتجات والعروض المناسبة ليها.',
+    'I understand': 'فهمت',
     'Offers': 'العروض',
     'Favorite products': 'المنتجات المفضلة',
     'Favorite stores': 'المحلات المفضلة',
@@ -133,7 +137,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'No internet connection. Check your network to continue updates.':
         'مفيش اتصال بالإنترنت. راجع الشبكة عشان نحدّث البيانات.',
     'This login is only for client accounts.':
-        'تسجيل الدخول ده مخصص لحسابات العملاء فقط.',
+        'الإيميل أو كلمة السر مش صحيحين.',
+    'Invalid sign-in credentials.': 'تعذر تسجيل الدخول بهذه البيانات.',
     'Enter a valid Egyptian mobile number starting with 01, 1, 201, or +201.':
         'اكتب رقم موبايل مصري صحيح يبدأ بـ 01 أو 1 أو 201 أو +201.',
     'Sign in again to continue. Remember Me keeps you signed in after closing the app.':

@@ -19,10 +19,13 @@ import '../../../../app/routing/app_routes.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
 import '../cubit/home_cubit.dart';
 import '../cubit/home_state.dart';
+import '../cubit/region_hint_cubit.dart';
 import '../cubit/notification_cubit.dart';
 import '../cubit/notification_state.dart';
 import '../../domain/entities/home_data.dart';
 import '../../../location/domain/entities/city_data.dart';
+import '../../../auth/presentation/cubit/auth_cubit.dart';
+import '../../../auth/presentation/cubit/auth_state.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../location/presentation/cubit/location_state.dart';
 import '../../../location/presentation/widgets/city_selector_sheet.dart';
@@ -63,6 +66,13 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      final authState = context.read<AuthCubit>().state;
+      if (authState is AuthAuthenticated) {
+        context.read<RegionHintCubit>().load(
+          userId: authState.session.user.id,
+          dateJoined: authState.session.user.dateJoined,
+        );
+      }
       _loadHomeData(force: widget.focusOfferId?.trim().isNotEmpty == true);
     });
   }
@@ -163,6 +173,18 @@ class _HomeViewState extends State<HomeView> {
                         _HomeTopBar(
                           isDark: isDark,
                           onRegionTap: _openCitySelector,
+                        ),
+                        BlocBuilder<RegionHintCubit, bool>(
+                          builder: (context, showHint) => showHint
+                              ? Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: _RegionHintCard(
+                                    onDismiss: () => context
+                                        .read<RegionHintCubit>()
+                                        .dismiss(),
+                                  ),
+                                )
+                              : const SizedBox.shrink(),
                         ),
                         const SizedBox(height: 18),
                         _HomeSearchActionsRow(isDark: isDark),
@@ -579,6 +601,88 @@ class _HomeRegionBadge extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _RegionHintCard extends StatelessWidget {
+  const _RegionHintCard({required this.onDismiss});
+
+  final VoidCallback onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final cardColor = isDark ? const Color(0xFF203246) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 390),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsetsDirectional.only(start: 72),
+            child: Icon(Icons.arrow_drop_up, size: 26, color: cardColor),
+          ),
+          Transform.translate(
+            offset: const Offset(0, -8),
+            child: Container(
+              key: const ValueKey('home_region_hint'),
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+              decoration: BoxDecoration(
+                color: cardColor,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.16),
+                    blurRadius: 16,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    context.tr('Change your region'),
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: textColor,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(
+                    context.tr(
+                      'You can change your region here anytime to see products and offers for your area.',
+                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: textColor.withValues(alpha: 0.78),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: onDismiss,
+                        child: Text(context.tr('Cancel')),
+                      ),
+                      const SizedBox(width: 4),
+                      FilledButton(
+                        onPressed: onDismiss,
+                        child: Text(context.tr('I understand')),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -60,6 +60,19 @@ void main() {
       );
     });
 
+    test('wrong-app sign-in messages do not identify the account type', () {
+      final translations = AppTranslations.current;
+
+      expect(
+        translations.phrase('This login is only for client accounts.'),
+        translations.phrase('Invalid email or password.'),
+      );
+      expect(
+        translations.phrase('Invalid sign-in credentials.'),
+        'تعذر تسجيل الدخول بهذه البيانات.',
+      );
+    });
+
     testWidgets(
       'updates visible auth and session text after AppLanguageController changes',
       (tester) async {

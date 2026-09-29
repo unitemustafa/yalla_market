@@ -35,6 +35,24 @@ void main() {
       expect(failure.message, 'Please sign in again.');
     });
 
+    test('hides legacy wrong-role login details in every language', () {
+      final options = RequestOptions(path: '/auth/login/client');
+      final error = DioException(
+        requestOptions: options,
+        response: Response<dynamic>(
+          requestOptions: options,
+          statusCode: 403,
+          data: const {'detail': 'This login is only for client accounts.'},
+        ),
+        type: DioExceptionType.badResponse,
+      );
+
+      final failure = ApiErrorHandler.handle(error);
+
+      expect(failure, isA<UnauthorizedFailure>());
+      expect(failure.message, 'Invalid email or password.');
+    });
+
     test('maps general 429 responses to rate limit failure', () {
       final options = RequestOptions(path: '/orders/create');
       final error = DioException(

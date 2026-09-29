@@ -6,15 +6,32 @@ import '../../../core/network/api_client.dart';
 import '../../location/domain/usecases/location_usecases.dart';
 import '../data/repositories/home_remote_repository_impl.dart';
 import '../data/repositories/home_repository_impl.dart';
+import '../data/repositories/region_hint_preferences_repository.dart';
 import '../data/repositories/notification_remote_repository_impl.dart';
 import '../domain/repositories/home_repository.dart';
+import '../domain/repositories/region_hint_repository.dart';
 import '../domain/repositories/notification_repository.dart';
 import '../domain/usecases/get_home_usecase.dart';
+import '../domain/usecases/region_hint_usecases.dart';
 import '../domain/usecases/notification_usecases.dart';
 import '../presentation/cubit/home_cubit.dart';
+import '../presentation/cubit/region_hint_cubit.dart';
 import '../presentation/cubit/notification_cubit.dart';
 
 void registerHomeDependencies(GetIt sl) {
+  if (!sl.isRegistered<RegionHintRepository>()) {
+    sl.registerLazySingleton<RegionHintRepository>(
+      RegionHintPreferencesRepository.new,
+    );
+  }
+  if (!sl.isRegistered<RegionHintUseCases>()) {
+    sl.registerLazySingleton(
+      () => RegionHintUseCases(sl<RegionHintRepository>()),
+    );
+  }
+  if (!sl.isRegistered<RegionHintCubit>()) {
+    sl.registerFactory(() => RegionHintCubit(sl<RegionHintUseCases>()));
+  }
   if (!sl.isRegistered<HomeRepository>()) {
     sl.registerLazySingleton<HomeRepository>(
       () => AppEnvironment.useDemoRepositories

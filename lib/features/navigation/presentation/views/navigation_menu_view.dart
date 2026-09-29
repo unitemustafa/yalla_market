@@ -8,11 +8,13 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
+import '../../../../app/di/service_locator.dart';
 import '../../../../app/routing/app_navigator.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../home/presentation/views/home_view.dart';
 import '../../../home/presentation/cubit/home_cubit.dart';
+import '../../../home/presentation/cubit/region_hint_cubit.dart';
 import '../../../home/presentation/cubit/home_state.dart';
 import '../../../home/domain/entities/home_campaign_data.dart';
 import '../../../home/presentation/home_campaign/home_campaign_host.dart';
@@ -226,7 +228,10 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
 
   Widget _screenAt(int index) {
     return switch (index) {
-      0 => HomeView(focusOfferId: widget.focusOfferId),
+      0 => BlocProvider(
+        create: (_) => sl<RegionHintCubit>(),
+        child: HomeView(focusOfferId: widget.focusOfferId),
+      ),
       1 => const StoreView(),
       2 => const WishlistView(),
       _ => const SettingsView(),

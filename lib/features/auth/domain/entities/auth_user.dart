@@ -15,6 +15,7 @@ class AuthUser {
     this.usernameChangedAt,
     this.isActive = true,
     this.profileUsernamePending = false,
+    this.dateJoined,
   });
 
   final String id;
@@ -32,6 +33,7 @@ class AuthUser {
   final DateTime? usernameChangedAt;
   final bool isActive;
   final bool profileUsernamePending;
+  final DateTime? dateJoined;
 
   List<String> get missingProfileFields {
     return <String>[
@@ -85,6 +87,7 @@ class AuthUser {
           json['profile_username_pending'] as bool? ??
           json['profileUsernamePending'] as bool? ??
           false,
+      dateJoined: _dateFromString(json['dateJoined'] ?? json['date_joined']),
     );
   }
 
@@ -105,6 +108,7 @@ class AuthUser {
       'usernameChangedAt': usernameChangedAt?.toIso8601String(),
       'isActive': isActive,
       'profileUsernamePending': profileUsernamePending,
+      'dateJoined': dateJoined?.toIso8601String(),
     };
   }
 
@@ -124,6 +128,7 @@ class AuthUser {
     DateTime? usernameChangedAt,
     bool? isActive,
     bool? profileUsernamePending,
+    DateTime? dateJoined,
   }) {
     return AuthUser(
       id: id ?? this.id,
@@ -142,6 +147,7 @@ class AuthUser {
       isActive: isActive ?? this.isActive,
       profileUsernamePending:
           profileUsernamePending ?? this.profileUsernamePending,
+      dateJoined: dateJoined ?? this.dateJoined,
     );
   }
 }

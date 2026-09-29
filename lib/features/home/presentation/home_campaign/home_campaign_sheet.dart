@@ -57,94 +57,99 @@ class _HomeCampaignSheet extends StatelessWidget {
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
       backgroundColor: Colors.transparent,
-      child: SizedBox(
-        width: double.infinity,
-        height: math.min(screenHeight * _heightFactor(), availableHeight),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: sheetBackgroundColor,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 12, 4),
-                child: Row(
-                  children: [
-                    const Spacer(),
-                    IconButton(
-                      tooltip: 'إغلاق',
-                      onPressed: () => Navigator.pop(
-                        context,
-                        HomeCampaignSheetResult.dismissed,
-                      ),
-                      icon: const Icon(Icons.close_rounded),
-                      color: sheetTextColor,
-                    ),
-                  ],
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
-                  child: campaign.sheet.template == 'split'
-                      ? Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(
-                              child: _CampaignMedia(
-                                campaign.media,
-                                imageUrl: imageUrl,
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(child: content),
-                          ],
-                        )
-                      : Column(
-                          children: [
-                            if (campaign.media.type != 'none') ...[
-                              _CampaignMedia(
-                                campaign.media,
-                                imageUrl: imageUrl,
-                              ),
-                              const SizedBox(height: 18),
-                            ],
-                            content,
-                          ],
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: math.min(screenHeight * _heightFactor(), availableHeight),
+        ),
+        child: ClipRRect(
+          key: const ValueKey('home_campaign_surface'),
+          borderRadius: BorderRadius.circular(24),
+          child: DecoratedBox(
+            decoration: BoxDecoration(color: sheetBackgroundColor),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 10, 12, 4),
+                    child: Row(
+                      children: [
+                        const Spacer(),
+                        IconButton(
+                          tooltip: 'إغلاق',
+                          onPressed: () => Navigator.pop(
+                            context,
+                            HomeCampaignSheetResult.dismissed,
+                          ),
+                          icon: const Icon(Icons.close_rounded),
+                          color: sheetTextColor,
                         ),
-                ),
-              ),
-              if (campaign.action.hasButton)
-                SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: FilledButton(
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Color(
-                          sheet.buttonBackgroundColorValue,
-                        ),
-                        foregroundColor: Color(sheet.buttonTextColorValue),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                      ),
-                      onPressed: () =>
-                          Navigator.pop(context, HomeCampaignSheetResult.acted),
-                      child: Text(
-                        campaign.action.label,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                      ],
                     ),
                   ),
-                ),
-            ],
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
+                    child: campaign.sheet.template == 'split'
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: _CampaignMedia(
+                                  campaign.media,
+                                  imageUrl: imageUrl,
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(child: content),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              if (campaign.media.type != 'none') ...[
+                                _CampaignMedia(
+                                  campaign.media,
+                                  imageUrl: imageUrl,
+                                ),
+                                const SizedBox(height: 18),
+                              ],
+                              content,
+                            ],
+                          ),
+                  ),
+                  if (campaign.action.hasButton)
+                    SafeArea(
+                      top: false,
+                      minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton(
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Color(
+                              sheet.buttonBackgroundColorValue,
+                            ),
+                            foregroundColor: Color(sheet.buttonTextColorValue),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () => Navigator.pop(
+                            context,
+                            HomeCampaignSheetResult.acted,
+                          ),
+                          child: Text(
+                            campaign.action.label,
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

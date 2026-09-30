@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/features/location/data/datasources/device_location_data_source.dart';
+import 'package:yalla_market/features/personalization/domain/entities/geocoding_place.dart';
 import 'package:yalla_market/features/personalization/presentation/views/address/address_location_picker_view.dart';
 
 void main() {
@@ -48,7 +51,9 @@ void main() {
       expect(controller.canConfirm, isTrue);
       expect(controller.usesCurrentLocation, isFalse);
       expect(controller.errorMessage, 'Location permission denied.');
-      expect(controller.gateStatus, LocationGateStatus.ready);
+      expect(controller.gateStatus, LocationGateStatus.permissionDeniedForever);
+      await controller.openRequiredSettings();
+      expect(source.openedAppSettings, isTrue);
 
       controller.selectManual(const DeviceCoordinates(29.99, 31.11));
 
@@ -129,6 +134,9 @@ void main() {
     expect(controller.canConfirm, isTrue);
     expect(controller.target, same(fallback));
     expect(controller.errorMessage, 'GPS disabled.');
+    expect(controller.gateStatus, LocationGateStatus.serviceDisabled);
+    await controller.openRequiredSettings();
+    expect(source.openedLocationSettings, isTrue);
   });
 
   test('GPS outside the selected city never replaces its center', () async {
@@ -150,6 +158,95 @@ void main() {
     expect(controller.usesCurrentLocation, isFalse);
     expect(controller.errorMessage, isNull);
   });
+
+  test('late GPS result does not replace a manual map selection', () async {
+    final source = _DeferredLocationDataSource();
+    final controller = AddressLocationPickerController(
+      locationDataSource: source,
+      fallbackCoordinates: fallback,
+    );
+    await controller.initialize();
+    source.lastKnown.complete(null);
+    await Future<void>.delayed(Duration.zero);
+
+    const manual = DeviceCoordinates(30.1, 31.1);
+    controller.selectManual(manual);
+    source.current.complete(const DeviceCoordinates(30.2, 31.2));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.target, same(manual));
+    expect(controller.usesCurrentLocation, isFalse);
+    controller.dispose();
+  });
+
+  test('late last known position does not replace a search result', () async {
+    final source = _DeferredLocationDataSource();
+    final controller = AddressLocationPickerController(
+      locationDataSource: source,
+      fallbackCoordinates: fallback,
+    );
+    await controller.initialize();
+    controller.selectSearchResult(
+      const GeocodingPlace(
+        latitude: 30.3,
+        longitude: 31.3,
+        formattedAddress: 'Selected place',
+      ),
+    );
+    source.lastKnown.complete(const DeviceCoordinates(30.2, 31.2));
+    await Future<void>.delayed(Duration.zero);
+
+    expect(controller.target.latitude, 30.3);
+    expect(controller.formattedAddress, 'Selected place');
+    expect(source.currentRequested, isFalse);
+    controller.dispose();
+  });
+
+  test(
+    'closing picker while GPS is pending does not notify after dispose',
+    () async {
+      final source = _DeferredLocationDataSource();
+      final controller = AddressLocationPickerController(
+        locationDataSource: source,
+        fallbackCoordinates: fallback,
+      );
+      await controller.initialize();
+      controller.dispose();
+      source.lastKnown.complete(null);
+      await Future<void>.delayed(Duration.zero);
+      expect(source.currentRequested, isFalse);
+    },
+  );
+}
+
+class _DeferredLocationDataSource implements DeviceLocationDataSource {
+  final lastKnown = Completer<DeviceCoordinates?>();
+  final current = Completer<DeviceCoordinates>();
+  bool currentRequested = false;
+
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) => lastKnown.future;
+
+  @override
+  Future<DeviceCoordinates> resolveCurrentCoordinates({
+    bool requestPermission = true,
+  }) {
+    currentRequested = true;
+    return current.future;
+  }
+
+  @override
+  Future<String?> resolveCurrentCityName({
+    bool requestPermission = true,
+  }) async => null;
+
+  @override
+  Future<void> openAppSettings() async {}
+
+  @override
+  Future<void> openLocationSettings() async {}
 }
 
 class _FakeLocationDataSource implements DeviceLocationDataSource {

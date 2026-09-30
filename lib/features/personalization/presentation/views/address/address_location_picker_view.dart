@@ -124,7 +124,30 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
 
   Future<void> _moveToCurrentLocation() async {
     final coordinates = await _selectionController.useCurrentLocation();
-    if (!mounted || coordinates == null) return;
+    if (!mounted) return;
+    if (coordinates == null) {
+      final message = _selectionController.errorMessage;
+      if (message != null) {
+        final needsSettings =
+            _selectionController.gateStatus ==
+                LocationGateStatus.permissionDeniedForever ||
+            _selectionController.gateStatus ==
+                LocationGateStatus.serviceDisabled;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(context.tr(message)),
+            action: needsSettings
+                ? SnackBarAction(
+                    label: context.tr('Settings'),
+                    onPressed: () =>
+                        unawaited(_selectionController.openRequiredSettings()),
+                  )
+                : null,
+          ),
+        );
+      }
+      return;
+    }
     _moveMap(coordinates, zoom: 16);
     _scheduleReverse(coordinates);
   }
@@ -288,7 +311,7 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
       );
       if (!mounted || generation != _searchGeneration) return;
       setState(() {
-        _searchResults = results.take(5).toList(growable: false);
+        _searchResults = results.take(10).toList(growable: false);
         _isSearching = false;
         _searchFailed = false;
       });

@@ -56,6 +56,39 @@ void main() {
     expect(find.text('Old Cairo result'), findsNothing);
   });
 
+  testWidgets('shows suggestions beyond the first five', (tester) async {
+    final geocoding = _FakeGeocodingDataSource();
+    await tester.pumpWidget(_picker(geocoding: geocoding));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('map-picker-search-open')));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(
+      find.byKey(const ValueKey('map-picker-search-field')),
+      'Cairo',
+    );
+    await tester.pump(const Duration(milliseconds: 500));
+    geocoding.completeSearch('Cairo', [
+      for (var index = 0; index < 8; index++)
+        GeoapifyPlace(
+          addressLine1: 'Place $index',
+          latitude: 30.0 + index / 1000,
+          longitude: 31.0,
+        ),
+    ]);
+    await tester.pump();
+
+    await tester.scrollUntilVisible(
+      find.text('Place 7'),
+      200,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('map-picker-search-page')),
+        matching: find.byType(Scrollable),
+      ).last,
+    );
+    expect(find.text('Place 7'), findsOneWidget);
+  });
+
   testWidgets('reverse-geocoding failure keeps confirmation enabled', (
     tester,
   ) async {
@@ -76,6 +109,26 @@ void main() {
       ),
     );
     expect(button.onPressed, isNotNull);
+  });
+
+  testWidgets('GPS permission failure offers app settings', (tester) async {
+    final location = _DeniedLocationDataSource();
+    await tester.pumpWidget(
+      _picker(
+        geocoding: _FakeGeocodingDataSource(),
+        locationDataSource: location,
+      ),
+    );
+    await tester.pump();
+
+    await tester.tap(find.byKey(const ValueKey('map-picker-current-location')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.text('Location permission denied.'), findsOneWidget);
+    await tester.tap(find.text('Settings'));
+    await tester.pump();
+    expect(location.openedAppSettings, isTrue);
   });
 
   testWidgets('uses compact controls and constrains the confirmation button', (
@@ -269,6 +322,36 @@ class _OutsideCairoLocationDataSource implements DeviceLocationDataSource {
 
   @override
   Future<void> openAppSettings() async {}
+
+  @override
+  Future<void> openLocationSettings() async {}
+}
+
+class _DeniedLocationDataSource implements DeviceLocationDataSource {
+  bool openedAppSettings = false;
+
+  @override
+  Future<DeviceCoordinates?> resolveLastKnownCoordinates({
+    bool requestPermission = false,
+  }) async => null;
+
+  @override
+  Future<DeviceCoordinates> resolveCurrentCoordinates({
+    bool requestPermission = true,
+  }) async => throw const LocationSelectionException(
+    'Location permission denied.',
+    reason: LocationSelectionFailure.permissionDeniedForever,
+  );
+
+  @override
+  Future<String?> resolveCurrentCityName({
+    bool requestPermission = true,
+  }) async => null;
+
+  @override
+  Future<void> openAppSettings() async {
+    openedAppSettings = true;
+  }
 
   @override
   Future<void> openLocationSettings() async {}

@@ -2,9 +2,11 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get_it/get_it.dart';
 import 'package:yalla_market/core/network/api_client.dart';
 import 'package:yalla_market/features/store/di/store_di.dart';
+import 'package:yalla_market/features/store/data/datasources/pending_order_request_store.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
 
 import '../../../helpers/fake_api_client.dart';
+import '../../../helpers/pending_order_request_store_fake.dart';
 
 void main() {
   group('registerStoreDependencies', () {
@@ -12,6 +14,9 @@ void main() {
 
     setUp(() {
       sl = GetIt.asNewInstance();
+      sl.registerLazySingleton<PendingOrderRequestStore>(
+        FakePendingOrderRequestStore.new,
+      );
     });
 
     test(

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
 
 import '../../../../core/errors/api_error_handler.dart';
@@ -9,11 +11,16 @@ import '../../../cart/domain/entities/cart_item.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/entities/order_preview.dart';
 import '../../domain/repositories/order_repository.dart';
+import '../datasources/pending_order_request_store.dart';
 
 class OrderRemoteRepositoryImpl implements OrderRepository {
-  OrderRemoteRepositoryImpl(this._apiClient);
+  OrderRemoteRepositoryImpl(
+    this._apiClient, {
+    required PendingOrderRequestStore requestStore,
+  }) : _requestStore = requestStore;
 
   final ApiClient _apiClient;
+  final PendingOrderRequestStore _requestStore;
 
   @override
   Future<ApiResult<List<OrderData>>> createOrder({
@@ -46,15 +53,24 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
 
     return _guard(
       () async {
+        final attempt = await _requestStore.prepare(
+          jsonEncode(payloadResult.payload),
+        );
         final payload = await _apiClient.post<Object?>(
           '/orders/create/',
           data: payloadResult.payload,
+          options: Options(headers: {'Idempotency-Key': attempt.key}),
         );
         final orders = _ordersFromCreatePayload(payload);
         if (orders.isEmpty) {
           throw const FormatException(
             'Create order response did not contain orders.',
           );
+        }
+        try {
+          await _requestStore.complete(attempt);
+        } catch (_) {
+          // Retain the key on cleanup failure; the order was already confirmed.
         }
         return orders;
       },
@@ -160,6 +176,8 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
   }) async {
     try {
       return ApiResult.success(await action());
+    } on Failure catch (failure) {
+      return ApiResult.failure(failure);
     } on DioException catch (error) {
       return ApiResult.failure(
         errorMapper?.call(error) ?? ApiErrorHandler.handle(error),

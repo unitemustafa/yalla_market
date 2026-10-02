@@ -607,6 +607,20 @@ Response:
 
 Request: same body as preview.
 
+The client sends an `Idempotency-Key` header for each order attempt. It is an
+opaque 8–128 character key containing letters, digits, `.`, `_`, `:`, or `-`.
+Persist the key before sending the request and reuse it with the same body after
+a timeout or application restart. A first successful submission returns HTTP
+201; a retry returns HTTP 200 with the existing order and creates no additional
+order, event, or notification. Reusing a key with different checkout details
+returns HTTP 409. Keys are isolated by authenticated account.
+
+Discard the pending key only after receiving a valid successful order response.
+Generate a new key for a subsequent intentional order. Older clients without a
+key retain their existing behavior. Deploy the backend migration
+`orders.0016_order_client_request_hash_order_client_request_key_and_more` before
+releasing the updated client.
+
 Response is a one-item list. The app uses `response[0]` as the created order.
 
 ```json

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
+import 'package:yalla_market/features/home/data/repositories/region_hint_preferences_repository.dart';
+import 'package:yalla_market/features/home/domain/usecases/region_hint_usecases.dart';
+import 'package:yalla_market/features/home/presentation/cubit/region_hint_cubit.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/home/domain/entities/home_data.dart';
@@ -32,6 +37,7 @@ import '../../../../helpers/cubit_factories.dart';
 import '../../helpers/notification_test_helpers.dart';
 
 void main() {
+  setUp(() => SharedPreferences.setMockInitialValues({}));
   group('home notification badge', () {
     testWidgets('home header fits a compact iPhone viewport', (tester) async {
       await tester.binding.setSurfaceSize(const Size(320, 568));
@@ -206,6 +212,10 @@ Future<void> _pumpHome(
     getSelectedCity: locationUseCases(locationRepository).getSelectedCity,
   );
   final storeCubit = StoreCubit(GetStoreUseCase(storeRepository));
+  final authCubit = AuthCubit(authUseCases(FakeAuthRepository()));
+  final regionHintCubit = RegionHintCubit(
+    RegionHintUseCases(RegionHintPreferencesRepository()),
+  );
 
   addTearDown(cartCubit.close);
   addTearDown(homeCubit.close);
@@ -213,10 +223,14 @@ Future<void> _pumpHome(
   addTearDown(productCatalogCubit.close);
   addTearDown(productDiscoveryCubit.close);
   addTearDown(storeCubit.close);
+  addTearDown(authCubit.close);
+  addTearDown(regionHintCubit.close);
 
   await tester.pumpWidget(
     MultiBlocProvider(
       providers: [
+        BlocProvider<AuthCubit>.value(value: authCubit),
+        BlocProvider<RegionHintCubit>.value(value: regionHintCubit),
         BlocProvider<HomeCubit>.value(value: homeCubit),
         BlocProvider<CartCubit>.value(value: cartCubit),
         BlocProvider<LocationCubit>.value(value: locationCubit),

@@ -2,6 +2,9 @@
 
 ## Automated gates
 
+- Deploy the backend order-idempotency update and apply migration
+  `orders.0016_order_client_request_hash_order_client_request_key_and_more`
+  before distributing the updated client.
 - `flutter analyze`
 - `flutter test`
 - `flutter build appbundle --release --dart-define-from-file=env/production.local.json`

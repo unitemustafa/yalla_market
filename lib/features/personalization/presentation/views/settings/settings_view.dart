@@ -280,6 +280,15 @@ class SettingsView extends StatelessWidget {
                                   requiresPassword: hasPassword,
                                 ),
                         ),
+                      if (!hasPassword && errorMessage != null)
+                        Text(
+                          context.tr(errorMessage!),
+                          key: const Key('delete-account-error'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
                     ],
                   ),
                 ),

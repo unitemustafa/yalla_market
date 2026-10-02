@@ -7,12 +7,14 @@ class FakeApiRequest {
     required this.path,
     this.data,
     this.queryParameters,
+    this.options,
   });
 
   final String method;
   final String path;
   final Object? data;
   final Map<String, dynamic>? queryParameters;
+  final Options? options;
 }
 
 class FakeApiClient implements ApiClient {
@@ -38,7 +40,9 @@ class FakeApiClient implements ApiClient {
 
   @override
   Future<T> post<T>(String path, {Object? data, Options? options}) async {
-    return _send<T>(FakeApiRequest(method: 'POST', path: path, data: data));
+    return _send<T>(
+      FakeApiRequest(method: 'POST', path: path, data: data, options: options),
+    );
   }
 
   @override

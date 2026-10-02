@@ -488,6 +488,8 @@ const Map<String, Map<String, String>> _translationPhrases = {
     'Delete': 'حذف',
     'Delete Account': 'حذف الحساب',
     'Delete account permanently?': 'تحذف الحساب نهائي؟',
+    'Sign in again before placing an order.':
+        'سجّل الدخول تاني قبل تأكيد الطلب.',
     'Delete address?': 'تحذف العنوان؟',
     'Approved': 'تمت الموافقة',
     'Cancelled': 'ملغي',

@@ -3,6 +3,8 @@ import 'package:get_it/get_it.dart';
 import '../../../core/cache/persistent_json_cache.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/storage/token_store.dart';
+import '../data/datasources/pending_order_request_store.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
 import '../../../features/store/data/repositories/order_unavailable_repository_impl.dart';
 import '../../../features/store/data/demo/demo_order_history_supplement.dart';
@@ -41,6 +43,12 @@ import '../../../features/store/presentation/cubit/store_cubit.dart';
 
 void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
   final useDemo = useDemoRepositories ?? AppEnvironment.useDemoRepositories;
+
+  if (!useDemo && !sl.isRegistered<PendingOrderRequestStore>()) {
+    sl.registerLazySingleton<PendingOrderRequestStore>(
+      () => SecurePendingOrderRequestStore(sl<TokenStore>()),
+    );
+  }
 
   if (!sl.isRegistered<MarketShopCatalog>()) {
     sl.registerLazySingleton<MarketShopCatalog>(
@@ -165,7 +173,10 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
       () => CreateOrderUseCase(
         useDemo
             ? sl<OrderRepository>()
-            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+            : OrderRemoteRepositoryImpl(
+                sl<ApiClient>(),
+                requestStore: sl<PendingOrderRequestStore>(),
+              ),
       ),
     );
   }
@@ -174,7 +185,10 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
       () => PreviewOrderUseCase(
         useDemo
             ? sl<OrderRepository>()
-            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+            : OrderRemoteRepositoryImpl(
+                sl<ApiClient>(),
+                requestStore: sl<PendingOrderRequestStore>(),
+              ),
       ),
     );
   }
@@ -183,7 +197,10 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
       () => GetMyOrdersUseCase(
         useDemo
             ? sl<OrderRepository>()
-            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+            : OrderRemoteRepositoryImpl(
+                sl<ApiClient>(),
+                requestStore: sl<PendingOrderRequestStore>(),
+              ),
         supplement: useDemo
             ? const DemoOrderHistorySupplement()
             : const EmptyOrderHistorySupplement(),
@@ -195,7 +212,10 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
       () => AcceptDeliveryQuoteUseCase(
         useDemo
             ? sl<OrderRepository>()
-            : OrderRemoteRepositoryImpl(sl<ApiClient>()),
+            : OrderRemoteRepositoryImpl(
+                sl<ApiClient>(),
+                requestStore: sl<PendingOrderRequestStore>(),
+              ),
       ),
     );
   }

@@ -1,21 +1,102 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/checkout_error_messages.dart';
+import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/data/repositories/order_remote_repository_impl.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
+import 'package:yalla_market/features/store/data/datasources/pending_order_request_store.dart';
 
 import '../../../../helpers/fake_api_client.dart';
+import '../../../../helpers/pending_order_request_store_fake.dart';
 
 void main() {
   group('OrderRemoteRepositoryImpl', () {
+    test(
+      'lost response retries the same key after repository recreation',
+      () async {
+        final store = FakePendingOrderRequestStore();
+        var failNext = true;
+        final apiClient = FakeApiClient((request) {
+          if (failNext) {
+            failNext = false;
+            throw DioException(
+              requestOptions: RequestOptions(path: request.path),
+              type: DioExceptionType.receiveTimeout,
+            );
+          }
+          return _createdOrderPayload;
+        });
+        final first = OrderRemoteRepositoryImpl(apiClient, requestStore: store);
+        final failed = await first.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+        );
+        expect(failed, isA<ApiFailure<List<OrderData>>>());
+        final restarted = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: store,
+        );
+        final recovered = await restarted.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+        );
+        expect(recovered, isA<ApiSuccess<List<OrderData>>>());
+        final retriedKey =
+            apiClient.requests.first.options?.headers?['Idempotency-Key'];
+        expect(retriedKey, isNotEmpty);
+        expect(
+          apiClient.requests[1].options?.headers?['Idempotency-Key'],
+          retriedKey,
+        );
+        await restarted.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+        );
+        expect(
+          apiClient.requests[2].options?.headers?['Idempotency-Key'],
+          isNot(retriedKey),
+        );
+      },
+    );
+
+    test('pending storage failure prevents an unsafe POST', () async {
+      final apiClient = FakeApiClient((_) => _createdOrderPayload);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: _FailingRequestStore(failPrepare: true),
+      );
+      final result = await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+      );
+      expect(result, isA<ApiFailure<List<OrderData>>>());
+      expect(apiClient.requests, isEmpty);
+    });
+
+    test('confirmed response remains successful when cleanup fails', () async {
+      final apiClient = FakeApiClient((_) => _createdOrderPayload);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: _FailingRequestStore(failPrepare: false),
+      );
+      final result = await repository.createOrder(
+        shippingAddress: _address,
+        items: const [_item],
+      );
+      expect(result, isA<ApiSuccess<List<OrderData>>>());
+      expect(apiClient.requests, hasLength(1));
+    });
     test('uses one authenticated request for preview and create', () async {
       final apiClient = FakeApiClient((request) {
         if (request.path == '/orders/preview/') return _previewPayload;
         if (request.path == '/orders/create/') return _createdOrderPayload;
         return <String, dynamic>{'is_active': true};
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       await repository.previewOrder(
         cartItems: const [_cartItem],
@@ -39,7 +120,10 @@ void main() {
         capturedRequest = request;
         return _createdOrderPayload;
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.createOrder(
         shippingAddress: _address,
@@ -119,7 +203,10 @@ void main() {
         capturedRequest = request;
         return _createdOrderPayload;
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.createOrder(
         shippingAddress: _address,
@@ -153,7 +240,10 @@ void main() {
 
     test('createOrder parses object response', () async {
       final apiClient = FakeApiClient((request) => _createdOrderPayload);
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.createOrder(
         shippingAddress: _address,
@@ -176,7 +266,10 @@ void main() {
 
     test('createOrder parses list response with one order', () async {
       final apiClient = FakeApiClient((request) => [_createdOrderPayload]);
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.createOrder(
         shippingAddress: _address,
@@ -199,7 +292,10 @@ void main() {
             {..._createdOrderPayload, 'id': 10},
           ],
         );
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.createOrder(
           shippingAddress: _address,
@@ -232,7 +328,10 @@ void main() {
             },
           ],
         );
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.createOrder(
           shippingAddress: _address,
@@ -252,7 +351,10 @@ void main() {
 
     test('createOrder 201 list response returns success', () async {
       final apiClient = FakeApiClient((request) => [_createdOrderPayload]);
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.createOrder(
         shippingAddress: _address,
@@ -277,7 +379,10 @@ void main() {
 
       for (final response in responses) {
         final apiClient = FakeApiClient((request) => response);
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.createOrder(
           shippingAddress: _address,
@@ -296,7 +401,10 @@ void main() {
       'createOrder parser failure does not say could not load orders',
       () async {
         final apiClient = FakeApiClient((request) => {'detail': 'Created'});
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.createOrder(
           shippingAddress: _address,
@@ -320,7 +428,10 @@ void main() {
         final apiClient = FakeApiClient((request) {
           fail('API should not be called for invalid cart items.');
         });
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.createOrder(
           shippingAddress: _address,
@@ -384,7 +495,10 @@ void main() {
           ],
         };
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.getMyOrders();
 
@@ -407,7 +521,10 @@ void main() {
           'delivery_price_status': 'quoted',
         };
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.acceptDeliveryQuote('9');
 
@@ -466,7 +583,10 @@ void main() {
           },
         ];
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.getMyOrders();
 
@@ -499,7 +619,10 @@ void main() {
         capturedRequest = request;
         return _previewPayload;
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -539,7 +662,10 @@ void main() {
         capturedRequest = request;
         return _previewPayload;
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -584,7 +710,10 @@ void main() {
         capturedRequest = request;
         return _previewPayload;
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -612,7 +741,10 @@ void main() {
       final apiClient = FakeApiClient((request) {
         fail('API should not be called for invalid offer ids.');
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -645,7 +777,10 @@ void main() {
         final apiClient = FakeApiClient((request) {
           fail('API should not be called for invalid offer ids.');
         });
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.createOrder(
           shippingAddress: _address,
@@ -680,7 +815,10 @@ void main() {
         final apiClient = FakeApiClient((request) {
           fail('API should not be called for an empty checkout payload.');
         });
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.previewOrder(
           addressId: '12',
@@ -702,7 +840,10 @@ void main() {
       final apiClient = FakeApiClient((request) {
         fail('API should not be called for invalid quantities.');
       });
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -782,7 +923,10 @@ void main() {
         final apiClient = FakeApiClient((request) {
           throw _dioValidationError(request.path, entry.data);
         });
-        final repository = OrderRemoteRepositoryImpl(apiClient);
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
 
         final result = await repository.previewOrder(
           addressId: '12',
@@ -798,7 +942,10 @@ void main() {
 
     test('parses preview summary', () async {
       final apiClient = FakeApiClient((request) => _previewPayload);
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -831,7 +978,10 @@ void main() {
       final apiClient = FakeApiClient(
         (request) => _twoMarketFixedAreaPreviewPayload,
       );
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -881,7 +1031,10 @@ void main() {
       final apiClient = FakeApiClient(
         (request) => _twoMarketPendingDeliveryPreviewPayload,
       );
-      final repository = OrderRemoteRepositoryImpl(apiClient);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
 
       final result = await repository.previewOrder(
         addressId: '12',
@@ -1018,6 +1171,22 @@ void main() {
       );
     });
   });
+}
+
+class _FailingRequestStore extends FakePendingOrderRequestStore {
+  _FailingRequestStore({required this.failPrepare});
+  final bool failPrepare;
+
+  @override
+  Future<PendingOrderRequest> prepare(String fingerprint) {
+    if (failPrepare) throw StateError('Storage unavailable');
+    return super.prepare(fingerprint);
+  }
+
+  @override
+  Future<void> complete(PendingOrderRequest request) async {
+    throw StateError('Storage unavailable');
+  }
 }
 
 const _previewPayload = {

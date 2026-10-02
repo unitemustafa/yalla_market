@@ -527,7 +527,7 @@ ResponseBody _jsonResponse(Object value, {int statusCode = 200}) {
   );
 }
 
-final class _CountingTokenStore implements TokenStore {
+final class _CountingTokenStore extends TokenStore {
   _CountingTokenStore(this.tokens);
 
   StoredAuthTokens? tokens;
@@ -545,6 +545,7 @@ final class _CountingTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async {
+    markSessionChanged();
     clearCount += 1;
     tokens = null;
   }

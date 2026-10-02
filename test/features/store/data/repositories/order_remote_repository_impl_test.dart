@@ -13,6 +13,58 @@ import '../../../../helpers/pending_order_request_store_fake.dart';
 void main() {
   group('OrderRemoteRepositoryImpl', () {
     test(
+      'preview and checkout send the selected additions in stable order',
+      () async {
+        final apiClient = FakeApiClient(
+          (request) => request.path == '/orders/preview/'
+              ? _previewPayload
+              : _createdOrderPayload,
+        );
+        final repository = OrderRemoteRepositoryImpl(
+          apiClient,
+          requestStore: FakePendingOrderRequestStore(),
+        );
+        final cartItem = _cartItem.copyWith(additionIds: ['9', '3']);
+        await repository.previewOrder(
+          cartItems: [cartItem],
+          addressId: _address.id!,
+        );
+        await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: [cartItem],
+        );
+        expect(apiClient.requests, hasLength(2));
+        for (final request in apiClient.requests) {
+          final payload = request.data as Map;
+          expect((payload['items'] as List).single['addition_ids'], [3, 9]);
+        }
+      },
+    );
+
+    test('invalid additions stop checkout before posting', () async {
+      final apiClient = FakeApiClient((_) => _createdOrderPayload);
+      final repository = OrderRemoteRepositoryImpl(
+        apiClient,
+        requestStore: FakePendingOrderRequestStore(),
+      );
+      for (final ids in [
+        ['9', '9'],
+        ['invalid'],
+        ['0'],
+        ['offer_9'],
+      ]) {
+        final result = await repository.createOrder(
+          shippingAddress: _address,
+          items: const [_item],
+          cartItems: [_cartItem.copyWith(additionIds: ids)],
+        );
+        expect(result, isA<ApiFailure<List<OrderData>>>());
+      }
+      expect(apiClient.requests, isEmpty);
+    });
+
+    test(
       'lost response retries the same key after repository recreation',
       () async {
         final store = FakePendingOrderRequestStore();

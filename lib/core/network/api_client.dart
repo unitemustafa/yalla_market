@@ -31,7 +31,11 @@ class ApiClient {
                  sessionExpiredNotifier ?? SessionExpiredNotifier.instance,
            ) {
     _dio.interceptors.add(
-      InterceptorsWrapper(onRequest: _onRequest, onError: _onError),
+      InterceptorsWrapper(
+        onRequest: _onRequest,
+        onResponse: _onResponse,
+        onError: _onError,
+      ),
     );
   }
 
@@ -42,6 +46,7 @@ class ApiClient {
   final SessionDeadlineController _sessionDeadlineController;
   final Future<void> Function(Duration duration) _delay;
   Future<StoredAuthTokens>? _refreshInFlight;
+  int? _refreshGeneration;
 
   Future<T> get<T>(
     String path, {
@@ -51,7 +56,7 @@ class ApiClient {
     final response = await _dio.get<Object?>(
       path,
       queryParameters: queryParameters,
-      options: options,
+      options: _sessionOptions(options),
     );
     return _unwrap<T>(response.data);
   }
@@ -60,7 +65,7 @@ class ApiClient {
     final response = await _dio.post<Object?>(
       path,
       data: data,
-      options: options,
+      options: _sessionOptions(options),
     );
     return _unwrap<T>(response.data);
   }
@@ -69,7 +74,7 @@ class ApiClient {
     final response = await _dio.patch<Object?>(
       path,
       data: data,
-      options: options,
+      options: _sessionOptions(options),
     );
     return _unwrap<T>(response.data);
   }
@@ -78,7 +83,7 @@ class ApiClient {
     final response = await _dio.put<Object?>(
       path,
       data: data,
-      options: options,
+      options: _sessionOptions(options),
     );
     return _unwrap<T>(response.data);
   }
@@ -87,7 +92,7 @@ class ApiClient {
     final response = await _dio.delete<Object?>(
       path,
       data: data,
-      options: options,
+      options: _sessionOptions(options),
     );
     return _unwrap<T>(response.data);
   }
@@ -96,6 +101,12 @@ class ApiClient {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
+    final generation =
+        options.extra.putIfAbsent(
+              'sessionGeneration',
+              () => _tokenStore.sessionGeneration,
+            )
+            as int;
     if (options.extra['skipAuth'] == true) {
       handler.next(options);
       return;
@@ -114,6 +125,7 @@ class ApiClient {
 
     try {
       var tokens = await _tokenStore.read();
+      _ensureCurrentSession(generation, options);
       if (tokens != null) {
         final usable = await _sessionDeadlineController.activate(tokens);
         if (!usable) {
@@ -125,13 +137,15 @@ class ApiClient {
         }
         if (tokens.accessExpiresSoon(DateTime.now()) &&
             !_isRefreshRequest(options)) {
-          tokens = await _refreshTokens(tokens);
+          tokens = await _refreshTokens(tokens, generation);
         }
+        _ensureCurrentSession(generation, options);
         _synchronizeAuthRequest(options, tokens);
         options.headers['Authorization'] = 'Bearer ${tokens.accessToken}';
       }
     } catch (error) {
-      if (!_accountInactiveNotifier.isInactive &&
+      if (_tokenStore.sessionGeneration == generation &&
+          !_accountInactiveNotifier.isInactive &&
           !_isTransientSessionFailure(error)) {
         await _expireSession();
       }
@@ -150,10 +164,43 @@ class ApiClient {
     handler.next(options);
   }
 
+  Options _sessionOptions(Options? options) {
+    return (options ?? Options()).copyWith(
+      extra: {
+        ...?options?.extra,
+        'sessionGeneration': _tokenStore.sessionGeneration,
+      },
+    );
+  }
+
+  void _onResponse(
+    Response<dynamic> response,
+    ResponseInterceptorHandler handler,
+  ) {
+    final request = response.requestOptions;
+    if (request.extra['sessionGeneration'] != _tokenStore.sessionGeneration) {
+      handler.reject(
+        DioException(
+          requestOptions: request,
+          type: DioExceptionType.cancel,
+          error: 'session_changed',
+        ),
+      );
+      return;
+    }
+    handler.next(response);
+  }
+
   Future<void> _onError(
     DioException error,
     ErrorInterceptorHandler handler,
   ) async {
+    final request = error.requestOptions;
+    final generation = request.extra['sessionGeneration'];
+    if (generation != _tokenStore.sessionGeneration) {
+      handler.next(error);
+      return;
+    }
     if (_isAccountInactiveResponse(error.response?.data)) {
       if (_isClientLoginRequest(error.requestOptions)) {
         await _sessionDeadlineController.clearSession();
@@ -164,7 +211,6 @@ class ApiClient {
       return;
     }
 
-    final request = error.requestOptions;
     final alreadyRetried = request.extra['authRetried'] == true;
     if (error.response?.statusCode != 401 || _isRefreshRequest(request)) {
       handler.next(error);
@@ -177,7 +223,7 @@ class ApiClient {
     }
 
     final tokens = await _tokenStore.read();
-    if (tokens == null) {
+    if (tokens == null || generation != _tokenStore.sessionGeneration) {
       handler.next(error);
       return;
     }
@@ -191,14 +237,19 @@ class ApiClient {
       final expectedAuthorization = 'Bearer ${tokens.accessToken}';
       final recovered = requestAuthorization != expectedAuthorization
           ? tokens
-          : await _refreshTokens(tokens);
+          : await _refreshTokens(tokens, generation as int);
+      _ensureCurrentSession(generation as int, request);
       request.extra['authRetried'] = true;
+      if (request.data case final FormData data) {
+        request.data = data.clone();
+      }
       _synchronizeAuthRequest(request, recovered);
       request.headers['Authorization'] = 'Bearer ${recovered.accessToken}';
       final retryResponse = await _dio.fetch<Object?>(request);
       handler.resolve(retryResponse);
     } catch (refreshError) {
-      if (!_accountInactiveNotifier.isInactive &&
+      if (generation == _tokenStore.sessionGeneration &&
+          !_accountInactiveNotifier.isInactive &&
           !_isTransientSessionFailure(refreshError)) {
         await _expireSession();
       }
@@ -206,12 +257,15 @@ class ApiClient {
     }
   }
 
-  Future<StoredAuthTokens> _refreshTokens(StoredAuthTokens current) async {
+  Future<StoredAuthTokens> _refreshTokens(
+    StoredAuthTokens current,
+    int generation,
+  ) async {
     var pending = _refreshInFlight;
-    if (pending != null) return pending;
+    if (pending != null && _refreshGeneration == generation) return pending;
 
     final latest = await _tokenStore.read();
-    if (latest == null) {
+    if (latest == null || generation != _tokenStore.sessionGeneration) {
       throw StateError('Authentication session is no longer available.');
     }
     if (latest.refreshToken != current.refreshToken) {
@@ -220,20 +274,28 @@ class ApiClient {
     }
 
     pending = _refreshInFlight;
-    if (pending != null) return pending;
+    if (pending != null && _refreshGeneration == generation) return pending;
 
-    final operation = _performRefresh(current);
+    final operation = _performRefresh(current, generation);
     _refreshInFlight = operation;
+    _refreshGeneration = generation;
     try {
       return await operation;
     } finally {
       if (identical(_refreshInFlight, operation)) {
         _refreshInFlight = null;
+        _refreshGeneration = null;
       }
     }
   }
 
-  Future<StoredAuthTokens> _performRefresh(StoredAuthTokens current) async {
+  Future<StoredAuthTokens> _performRefresh(
+    StoredAuthTokens current,
+    int generation,
+  ) async {
+    if (generation != _tokenStore.sessionGeneration) {
+      throw StateError('Authentication session changed.');
+    }
     if (!await _sessionDeadlineController.activate(current)) {
       throw StateError('Session expired.');
     }
@@ -246,12 +308,16 @@ class ApiClient {
         options: Options(extra: const {'skipAuth': true}),
       );
     } on DioException catch (error) {
-      if (_isAccountInactiveResponse(error.response?.data)) {
+      if (generation == _tokenStore.sessionGeneration &&
+          _isAccountInactiveResponse(error.response?.data)) {
         await _disableAccount();
       }
       if (error.response?.statusCode != 429) rethrow;
       final retryAfter = _rateLimitRetryAfter(error.response);
       await _delay(Duration(seconds: retryAfter.clamp(1, 60).toInt()));
+      if (generation != _tokenStore.sessionGeneration) {
+        throw StateError('Authentication session changed.');
+      }
       if (!await _sessionDeadlineController.activate(current)) {
         throw StateError('Session expired.');
       }
@@ -265,9 +331,23 @@ class ApiClient {
     final payload = _unwrap<Map<String, dynamic>>(response.data);
     final next = tokensFromApiPayload(payload);
     _validateSessionContinuity(current, next);
-    await _tokenStore.save(next);
+    if (!await _tokenStore.saveIfCurrent(next, generation)) {
+      throw StateError('Authentication session changed.');
+    }
+    if (generation != _tokenStore.sessionGeneration) {
+      throw StateError('Authentication session changed.');
+    }
     await _sessionDeadlineController.activate(next);
     return next;
+  }
+
+  void _ensureCurrentSession(int generation, RequestOptions request) {
+    if (_tokenStore.sessionGeneration == generation) return;
+    throw DioException(
+      requestOptions: request,
+      type: DioExceptionType.cancel,
+      error: 'session_changed',
+    );
   }
 
   void _validateSessionContinuity(
@@ -310,8 +390,10 @@ class ApiClient {
   }
 
   Future<void> _disableAccount() async {
+    final generation = _tokenStore.sessionGeneration;
     await _accountInactiveNotifier.inactivateAfter(
       _sessionDeadlineController.clearSession,
+      shouldNotify: () => _tokenStore.sessionGeneration == generation + 1,
     );
   }
 

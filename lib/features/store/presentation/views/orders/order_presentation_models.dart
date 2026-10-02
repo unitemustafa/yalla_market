@@ -62,11 +62,13 @@ class OrderProductPresentationData {
     required this.title,
     required this.quantity,
     this.brand = '',
+    this.additionNames = const [],
     this.total,
   });
 
   final String title;
   final int quantity;
   final String brand;
+  final List<String> additionNames;
   final String? total;
 }

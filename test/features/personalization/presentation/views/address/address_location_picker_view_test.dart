@@ -81,10 +81,12 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('Place 7'),
       200,
-      scrollable: find.descendant(
-        of: find.byKey(const ValueKey('map-picker-search-page')),
-        matching: find.byType(Scrollable),
-      ).last,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('map-picker-search-page')),
+            matching: find.byType(Scrollable),
+          )
+          .last,
     );
     expect(find.text('Place 7'), findsOneWidget);
   });

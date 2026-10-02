@@ -33,8 +33,8 @@ class _LoginMediaBannerState extends State<LoginMediaBanner> {
       cacheHeight: 480,
     );
     final rawUrl = widget.url?.trim() ?? '';
-    final isVideo = Uri.tryParse(rawUrl)?.path.toLowerCase().endsWith('.mp4') ??
-        false;
+    final isVideo =
+        Uri.tryParse(rawUrl)?.path.toLowerCase().endsWith('.mp4') ?? false;
     if (!isVideo) {
       return AppImage(
         source: rawUrl,

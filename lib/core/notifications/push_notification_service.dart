@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -17,6 +18,7 @@ import 'account_notification_presenter.dart';
 export 'account_notification_presenter.dart';
 
 const _pendingAccountDisabledKey = 'push.pending_account_disabled';
+const _pendingAccountDisabledDataKey = 'push.pending_account_disabled.v2';
 const _lastRegisteredTokenKey = 'push.last_registered_token';
 
 bool get pushNotificationsSupported {
@@ -36,7 +38,10 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
   if (message.data['event'] == 'account_disabled') {
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setBool(_pendingAccountDisabledKey, true);
+    await preferences.setString(
+      _pendingAccountDisabledDataKey,
+      jsonEncode(message.data),
+    );
   }
 }
 
@@ -96,9 +101,20 @@ class PushNotificationService {
 
   Future<void> _initialize() async {
     final preferences = await SharedPreferences.getInstance();
+    await preferences.reload();
+    final pendingData = preferences.getString(_pendingAccountDisabledDataKey);
+    if (pendingData != null) {
+      await preferences.remove(_pendingAccountDisabledDataKey);
+      try {
+        final data = jsonDecode(pendingData);
+        if (data is Map<String, dynamic>) await _handleAccountDisabled(data);
+      } on FormatException {
+        // An invalid persisted notification must not change authentication.
+      }
+    }
     if (preferences.getBool(_pendingAccountDisabledKey) == true) {
       await preferences.remove(_pendingAccountDisabledKey);
-      await _disableAccount();
+      await _handleAccountDisabled(const {});
     }
     if (!pushNotificationsSupported) return;
     try {
@@ -232,7 +248,7 @@ class PushNotificationService {
   }) async {
     final event = data['event']?.toString();
     if (event == 'account_disabled') {
-      await _disableAccount();
+      await _handleAccountDisabled(data);
       return;
     }
     if (event == 'account_restored') {
@@ -363,6 +379,11 @@ class PushNotificationService {
     required bool opened,
     required bool queueForAppStart,
   }) async {
+    final tokens = await _tokenStore.read();
+    final recipient = data['recipient_id']?.toString();
+    if (tokens != null && recipient != null && recipient != tokens.accountId) {
+      return;
+    }
     _accountRestoredNotifier.markRestored();
     final key = _restoredNotificationKey(data);
     if (opened) {
@@ -383,6 +404,26 @@ class PushNotificationService {
     _events.add(pushEvent);
   }
 
+  Future<void> _handleAccountDisabled(Map<String, dynamic> data) async {
+    final generation = _tokenStore.sessionGeneration;
+    final tokens = await _tokenStore.read();
+    if (tokens == null || generation != _tokenStore.sessionGeneration) return;
+    final recipient = data['recipient_id']?.toString();
+    if (recipient != null && recipient != tokens.accountId) return;
+    try {
+      // A delayed push is only a hint: check the current authenticated account.
+      await _apiClient.get<Object?>('/auth/me/');
+    } on DioException catch (error) {
+      if (generation != _tokenStore.sessionGeneration) return;
+      final response = error.response?.data;
+      if (response is Map && response['code'] == 'account_inactive') {
+        await _disableAccount();
+      }
+    } catch (_) {
+      // Offline or unavailable verification preserves the current session.
+    }
+  }
+
   String _restoredNotificationKey(Map<String, dynamic> data) {
     final notificationId = data['notification_id']?.toString().trim();
     if (notificationId != null && notificationId.isNotEmpty) {
@@ -396,8 +437,12 @@ class PushNotificationService {
   }
 
   Future<void> _disableAccount() async {
+    final generation = _tokenStore.sessionGeneration;
     _accountRestoredNotifier.reset();
-    await _accountInactiveNotifier.inactivateAfter(_tokenStore.clear);
+    await _accountInactiveNotifier.inactivateAfter(
+      _tokenStore.clear,
+      shouldNotify: () => _tokenStore.sessionGeneration == generation + 1,
+    );
   }
 
   Future<void> dispose() async {

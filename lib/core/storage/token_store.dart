@@ -27,6 +27,15 @@ class StoredAuthTokens {
 
   bool get isRemembered => mode.isRemembered;
 
+  String? get accountId {
+    try {
+      final payload = _jwtPayload(accessToken);
+      return (payload['user_id'] ?? payload['sub'])?.toString();
+    } catch (_) {
+      return null;
+    }
+  }
+
   DateTime get sessionDeadline => mode == AuthSessionMode.temporary
       ? absoluteExpiresAt ?? refreshExpiresAt
       : refreshExpiresAt;
@@ -118,6 +127,24 @@ class StoredAuthTokens {
 }
 
 abstract class TokenStore {
+  int _sessionGeneration = 0;
+
+  int get sessionGeneration => _sessionGeneration;
+
+  void markSessionChanged() => _sessionGeneration++;
+
+  Future<bool> saveIfCurrent(StoredAuthTokens tokens, int generation) async {
+    if (sessionGeneration != generation) return false;
+    await save(tokens);
+    return sessionGeneration == generation;
+  }
+
+  Future<bool> clearIfCurrent(int generation) async {
+    if (sessionGeneration != generation) return false;
+    await clear();
+    return sessionGeneration == generation + 1;
+  }
+
   Future<StoredAuthTokens?> read();
 
   Future<void> save(StoredAuthTokens tokens);
@@ -125,7 +152,7 @@ abstract class TokenStore {
   Future<void> clear();
 }
 
-class SecureTokenStore implements TokenStore {
+class SecureTokenStore extends TokenStore {
   SecureTokenStore({
     FlutterSecureStorage? storage,
     BrowserSessionStorage? browserSessionStorage,
@@ -142,9 +169,18 @@ class SecureTokenStore implements TokenStore {
   final BrowserSessionStorage _browserSessionStorage;
   final bool _isWeb;
   StoredAuthTokens? _sessionTokens;
+  Future<void> _pendingMutation = Future<void>.value();
+
+  Future<T> _mutate<T>(Future<T> Function() action) {
+    final operation = _pendingMutation.then((_) => action());
+    _pendingMutation = operation.then<void>((_) {}, onError: (Object _) {});
+    return operation;
+  }
 
   @override
-  Future<StoredAuthTokens?> read() async {
+  Future<StoredAuthTokens?> read() => _mutate(_read);
+
+  Future<StoredAuthTokens?> _read() async {
     if (_sessionTokens case final tokens?) return tokens;
 
     if (_isWeb) {
@@ -162,7 +198,10 @@ class SecureTokenStore implements TokenStore {
     final rawTokens = await _storage.read(key: _tokensKey);
     final tokens = _decodeTokens(rawTokens);
     if (tokens == null) {
-      if (rawTokens != null) await clear();
+      if (rawTokens != null) {
+        markSessionChanged();
+        await _storage.delete(key: _tokensKey);
+      }
       return null;
     }
 
@@ -181,6 +220,20 @@ class SecureTokenStore implements TokenStore {
 
   @override
   Future<void> save(StoredAuthTokens tokens) async {
+    markSessionChanged();
+    await _mutate(() => _save(tokens));
+  }
+
+  @override
+  Future<bool> saveIfCurrent(StoredAuthTokens tokens, int generation) {
+    return _mutate(() async {
+      if (sessionGeneration != generation) return false;
+      await _save(tokens);
+      return sessionGeneration == generation;
+    });
+  }
+
+  Future<void> _save(StoredAuthTokens tokens) async {
     final encoded = jsonEncode(tokens.toJson());
     if (!tokens.isRemembered) {
       await _storage.delete(key: _tokensKey);
@@ -198,9 +251,12 @@ class SecureTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async {
-    _sessionTokens = null;
-    _browserSessionStorage.delete(_browserSessionKey);
-    await _storage.delete(key: _tokensKey);
+    markSessionChanged();
+    await _mutate(() async {
+      _sessionTokens = null;
+      _browserSessionStorage.delete(_browserSessionKey);
+      await _storage.delete(key: _tokensKey);
+    });
   }
 
   StoredAuthTokens? _decodeTokens(String? rawTokens) {
@@ -215,7 +271,7 @@ class SecureTokenStore implements TokenStore {
   }
 }
 
-class InMemoryTokenStore implements TokenStore {
+class InMemoryTokenStore extends TokenStore {
   StoredAuthTokens? _tokens;
 
   @override
@@ -223,11 +279,20 @@ class InMemoryTokenStore implements TokenStore {
 
   @override
   Future<void> save(StoredAuthTokens tokens) async {
+    markSessionChanged();
     _tokens = tokens;
   }
 
   @override
+  Future<bool> saveIfCurrent(StoredAuthTokens tokens, int generation) async {
+    if (sessionGeneration != generation) return false;
+    _tokens = tokens;
+    return true;
+  }
+
+  @override
   Future<void> clear() async {
+    markSessionChanged();
     _tokens = null;
   }
 }

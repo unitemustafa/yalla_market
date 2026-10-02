@@ -47,19 +47,11 @@ void main() {
           findsOneWidget,
         );
         expect(
-          find.text(
-            locale.languageCode == 'ar'
-                ? 'ادفع كاش وأونلاين'
-                : 'Pay cash & online',
-          ),
+          find.text(locale.languageCode == 'ar' ? 'ادفع كاش' : 'Pay cash'),
           findsOneWidget,
         );
         final paymentLabel = tester.widget<Text>(
-          find.text(
-            locale.languageCode == 'ar'
-                ? 'ادفع كاش وأونلاين'
-                : 'Pay cash & online',
-          ),
+          find.text(locale.languageCode == 'ar' ? 'ادفع كاش' : 'Pay cash'),
         );
         expect(paymentLabel.style?.fontSize, AppFontSizes.micro);
         expect(paymentLabel.maxLines, 1);

@@ -1,5 +1,8 @@
 import '../../../cart/domain/entities/cart_item.dart';
 import 'shipping_company.dart';
+import 'order_addition.dart';
+
+export 'order_addition.dart';
 
 enum OrderStatus { pending, processing, shipped, delivered, cancelled }
 
@@ -73,6 +76,8 @@ class OrderItemData {
     required this.id,
     this.productId,
     this.variantId,
+    this.additionIds = const [],
+    this.additions = const [],
     required this.image,
     required this.brand,
     required this.title,
@@ -86,6 +91,7 @@ class OrderItemData {
       id: item.id,
       productId: item.productId,
       variantId: item.variantId,
+      additionIds: item.additionIds,
       image: item.image,
       brand: item.brand,
       title: item.title,
@@ -98,6 +104,8 @@ class OrderItemData {
   final String id;
   final String? productId;
   final String? variantId;
+  final List<String> additionIds;
+  final List<OrderAdditionData> additions;
   final String image;
   final String brand;
   final String title;
@@ -150,6 +158,13 @@ class OrderItemData {
             variant['price'],
       ),
       quantity: _intFromJson(json['quantity']) ?? 1,
+      additionIds: (json['additionIds'] as List? ?? const [])
+          .map((id) => id.toString())
+          .toList(growable: false),
+      additions: (json['additions'] as List? ?? const [])
+          .whereType<Map<String, dynamic>>()
+          .map(OrderAdditionData.fromJson)
+          .toList(growable: false),
       attributes: _attributesFromJson(json['attributes']),
     );
   }
@@ -161,6 +176,8 @@ class OrderItemData {
       'id': id,
       'productId': productId,
       'variantId': variantId,
+      'additionIds': additionIds,
+      'additions': additions.map((addition) => addition.toJson()).toList(),
       'image': image,
       'brand': brand,
       'title': title,

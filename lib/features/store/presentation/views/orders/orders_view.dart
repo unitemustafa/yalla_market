@@ -200,6 +200,9 @@ class _OrdersViewState extends State<OrdersView> {
           (item) => OrderProductPresentationData(
             title: item.title.trim().isEmpty ? 'Item' : item.title,
             brand: item.brand,
+            additionNames: item.additions
+                .map((addition) => addition.name)
+                .toList(),
             quantity: item.quantity,
             total: _formatMoney(item.lineTotal),
           ),

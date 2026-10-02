@@ -18,14 +18,61 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Configure Android release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_STORE_PASSWORD: ${{ secrets.ANDROID_STORE_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          from pathlib import Path
+
+          names = (
+              "ANDROID_KEYSTORE_BASE64", "ANDROID_KEY_ALIAS",
+              "ANDROID_KEY_PASSWORD", "ANDROID_STORE_PASSWORD",
+          )
+          for name in names:
+              if not os.environ.get(name):
+                  raise SystemExit(f"Required Android signing secret is missing: {name}")
+          Path("android/app/yalla-release.jks").write_bytes(
+              base64.b64decode(os.environ["ANDROID_KEYSTORE_BASE64"], validate=True)
+          )
+          def property_value(value):
+              return json.dumps(value, ensure_ascii=True)[1:-1].replace(" ", "\\ ")
+          values = {
+              "storeFile": "yalla-release.jks",
+              "keyAlias": os.environ["ANDROID_KEY_ALIAS"],
+              "keyPassword": os.environ["ANDROID_KEY_PASSWORD"],
+              "storePassword": os.environ["ANDROID_STORE_PASSWORD"],
+          }
+          Path("android/key.properties").write_text(
+              "".join(f"{name}={property_value(value)}\n" for name, value in values.items()),
+              encoding="ascii",
+          )
+          PY
       - name: Build Android release
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
+          SKIP_CRASHLYTICS_MAPPING_UPLOAD: ${{ vars.SKIP_CRASHLYTICS_MAPPING_UPLOAD || 'false' }}
         run: >-
-          flutter build apk --release
+          flutter build appbundle --release
           --dart-define=API_BASE_URL="$API_BASE_URL"
           --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY"
+      - name: Save signed Android bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: yalla-market-android-release
+          path: build/app/outputs/bundle/release/app-release.aab
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove signing files
+        if: always()
+        run: rm -f android/key.properties android/app/yalla-release.jks
 
   ios-release:
     runs-on: macos-latest
@@ -38,6 +85,24 @@ jobs:
           channel: stable
           cache: true
       - run: flutter pub get
+      - name: Configure iOS Firebase
+        env:
+          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+        run: |
+          python3 - <<'PY'
+          import base64
+          import os
+          import plistlib
+          from pathlib import Path
+
+          encoded = os.environ.get("GOOGLE_SERVICE_INFO_PLIST_BASE64")
+          if not encoded:
+              raise SystemExit("Required Firebase secret is missing: GOOGLE_SERVICE_INFO_PLIST_BASE64")
+          data = base64.b64decode(encoded, validate=True)
+          if plistlib.loads(data).get("BUNDLE_ID") != "com.yallamarket.app":
+              raise SystemExit("Firebase iOS bundle identifier does not match this app")
+          Path("ios/Runner/GoogleService-Info.plist").write_bytes(data)
+          PY
       - name: Build iOS without signing
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
@@ -46,3 +111,6 @@ jobs:
           flutter build ios --release --no-codesign
           --dart-define=API_BASE_URL="$API_BASE_URL"
           --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY"
+      - name: Remove iOS Firebase configuration
+        if: always()
+        run: rm -f ios/Runner/GoogleService-Info.plist

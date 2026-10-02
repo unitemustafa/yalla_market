@@ -1,3 +1,6 @@
+import 'dart:convert';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -31,23 +34,75 @@ void main() {
     expect(presenter.initializeCalls, 0);
   });
 
-  test('account_disabled data clears tokens before notifying auth', () async {
-    final tokenStore = InMemoryTokenStore();
-    await tokenStore.save(_tokens());
+  test(
+    'server-confirmed account_disabled clears tokens before notifying auth',
+    () async {
+      final tokenStore = InMemoryTokenStore();
+      await tokenStore.save(_tokens());
+      final notifier = AccountInactiveNotifier();
+      final service = PushNotificationService(
+        FakeApiClient(
+          (request) => throw DioException(
+            requestOptions: RequestOptions(path: request.path),
+            response: Response(
+              requestOptions: RequestOptions(path: request.path),
+              statusCode: 403,
+              data: {'code': 'account_inactive'},
+            ),
+          ),
+        ),
+        tokenStore,
+        accountInactiveNotifier: notifier,
+      );
+
+      await service.handleDataForTesting({
+        'event': 'account_disabled',
+        'code': 'account_inactive',
+      }, opened: false);
+
+      expect(await tokenStore.read(), isNull);
+      expect(notifier.isInactive, isTrue);
+    },
+  );
+
+  test('delayed disable push preserves a currently active account', () async {
+    final store = InMemoryTokenStore();
+    final tokens = _tokens();
+    await store.save(tokens);
     final notifier = AccountInactiveNotifier();
+    final api = FakeApiClient((_) => {'is_active': true});
     final service = PushNotificationService(
-      FakeApiClient((_) => null),
-      tokenStore,
+      api,
+      store,
       accountInactiveNotifier: notifier,
     );
-
     await service.handleDataForTesting({
       'event': 'account_disabled',
-      'code': 'account_inactive',
     }, opened: false);
+    expect(await store.read(), same(tokens));
+    expect(notifier.isInactive, isFalse);
+    expect(api.requests.single.path, '/auth/me/');
+  });
 
-    expect(await tokenStore.read(), isNull);
-    expect(notifier.isInactive, isTrue);
+  test('a push for a different account cannot disable this session', () async {
+    final store = InMemoryTokenStore();
+    final payload = base64Url.encode(utf8.encode(jsonEncode({'user_id': 22})));
+    final tokens = _tokens().copyWith(accessToken: 'header.$payload.signature');
+    await store.save(tokens);
+    final notifier = AccountInactiveNotifier();
+    final api = FakeApiClient((_) => throw StateError('No request expected'));
+    final service = PushNotificationService(
+      api,
+      store,
+      accountInactiveNotifier: notifier,
+    );
+    await service.handleDataForTesting({
+      'event': 'account_disabled',
+      'recipient_id': '11',
+    }, opened: false);
+    expect(await store.read(), same(tokens));
+    expect(notifier.isInactive, isFalse);
+    expect(api.requests, isEmpty);
   });
 
   test('structured offer event is emitted without routing from text', () async {

@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/session/session_metadata.dart';
@@ -55,6 +58,27 @@ void main() {
   });
 
   group('SecureTokenStore', () {
+    test(
+      'an in-flight storage read cannot repopulate a cleared session',
+      () async {
+        final storage = _DelayedReadStorage(
+          jsonEncode(_tokens(now, remembered: false).toJson()),
+        );
+        final store = SecureTokenStore(
+          storage: storage,
+          isWeb: false,
+          browserSessionStorage: _FakeBrowserSessionStorage(),
+        );
+        final read = store.read();
+        await storage.started.future;
+        final clear = store.clear();
+        storage.finish.complete();
+        await read;
+        await clear;
+        expect(await store.read(), isNull);
+      },
+    );
+
     test(
       'persists remembered sessions across mobile process restarts',
       () async {
@@ -194,4 +218,30 @@ final class _FakeBrowserSessionStorage implements BrowserSessionStorage {
 
   @override
   void write(String key, String value) => values[key] = value;
+}
+
+final class _DelayedReadStorage extends FlutterSecureStorage {
+  _DelayedReadStorage(this.initialValue);
+
+  final String initialValue;
+  final started = Completer<void>();
+  final finish = Completer<void>();
+  bool firstRead = true;
+
+  @override
+  Future<String?> read({
+    required String key,
+    AppleOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    AppleOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async {
+    if (!firstRead) return null;
+    firstRead = false;
+    started.complete();
+    await finish.future;
+    return initialValue;
+  }
 }

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,8 +9,61 @@ import '../../domain/entities/cart_item.dart';
 import '../../domain/repositories/cart_repository.dart';
 
 class CartRepositoryImpl implements CartRepository {
+  static final _pending = <String, Future<void>>{};
+
+  Future<ApiResult<List<CartItemData>>> _serialized(
+    String userKey,
+    Future<ApiResult<List<CartItemData>>> Function() action,
+  ) async {
+    final key = userKey.trim();
+    final previous = _pending[key] ?? Future<void>.value();
+    final finished = Completer<void>();
+    _pending[key] = finished.future;
+    try {
+      await previous;
+      return await action();
+    } catch (_) {
+      return const ApiResult.failure(
+        UnknownFailure('Could not save the cart. Please try again.'),
+      );
+    } finally {
+      finished.complete();
+      if (identical(_pending[key], finished.future)) _pending.remove(key);
+    }
+  }
+
   @override
-  Future<ApiResult<List<CartItemData>>> getItems(String userKey) async {
+  Future<ApiResult<List<CartItemData>>> getItems(String userKey) =>
+      _serialized(userKey, () => _getItems(userKey));
+
+  @override
+  Future<ApiResult<List<CartItemData>>> addItem(
+    String userKey,
+    CartItemData item,
+    int quantityToAdd,
+  ) => _serialized(userKey, () => _addItem(userKey, item, quantityToAdd));
+
+  @override
+  Future<ApiResult<List<CartItemData>>> incrementQuantity(
+    String userKey,
+    String id,
+  ) => _serialized(userKey, () => _incrementQuantity(userKey, id));
+
+  @override
+  Future<ApiResult<List<CartItemData>>> decrementQuantity(
+    String userKey,
+    String id,
+  ) => _serialized(userKey, () => _decrementQuantity(userKey, id));
+
+  @override
+  Future<ApiResult<List<CartItemData>>> removeItem(String userKey, String id) =>
+      _serialized(userKey, () => _removeItem(userKey, id));
+
+  @override
+  Future<ApiResult<List<CartItemData>>> clear(String userKey) =>
+      _serialized(userKey, () => _clear(userKey));
+
+  Future<ApiResult<List<CartItemData>>> _getItems(String userKey) async {
     final normalizedUserKey = userKey.trim();
     if (normalizedUserKey.isEmpty) {
       return const ApiResult.success([]);
@@ -20,8 +74,7 @@ class CartRepositoryImpl implements CartRepository {
     return ApiResult.success(List.unmodifiable(items));
   }
 
-  @override
-  Future<ApiResult<List<CartItemData>>> addItem(
+  Future<ApiResult<List<CartItemData>>> _addItem(
     String userKey,
     CartItemData item,
     int quantityToAdd,
@@ -62,8 +115,7 @@ class CartRepositoryImpl implements CartRepository {
     return ApiResult.success(List.unmodifiable(items));
   }
 
-  @override
-  Future<ApiResult<List<CartItemData>>> incrementQuantity(
+  Future<ApiResult<List<CartItemData>>> _incrementQuantity(
     String userKey,
     String id,
   ) async {
@@ -86,8 +138,7 @@ class CartRepositoryImpl implements CartRepository {
     return ApiResult.success(List.unmodifiable(items));
   }
 
-  @override
-  Future<ApiResult<List<CartItemData>>> decrementQuantity(
+  Future<ApiResult<List<CartItemData>>> _decrementQuantity(
     String userKey,
     String id,
   ) async {
@@ -115,8 +166,7 @@ class CartRepositoryImpl implements CartRepository {
     return ApiResult.success(List.unmodifiable(items));
   }
 
-  @override
-  Future<ApiResult<List<CartItemData>>> removeItem(
+  Future<ApiResult<List<CartItemData>>> _removeItem(
     String userKey,
     String id,
   ) async {
@@ -134,8 +184,7 @@ class CartRepositoryImpl implements CartRepository {
     return ApiResult.success(List.unmodifiable(items));
   }
 
-  @override
-  Future<ApiResult<List<CartItemData>>> clear(String userKey) async {
+  Future<ApiResult<List<CartItemData>>> _clear(String userKey) async {
     final normalizedUserKey = userKey.trim();
     if (normalizedUserKey.isEmpty) {
       return const ApiResult.failure(
@@ -144,7 +193,8 @@ class CartRepositoryImpl implements CartRepository {
     }
 
     final preferences = await SharedPreferences.getInstance();
-    await preferences.remove(_storageKey(normalizedUserKey));
+    final removed = await preferences.remove(_storageKey(normalizedUserKey));
+    if (!removed) throw StateError('Cart storage clear failed.');
     return const ApiResult.success([]);
   }
 
@@ -176,10 +226,11 @@ class CartRepositoryImpl implements CartRepository {
     SharedPreferences preferences,
     String userKey,
     List<CartItemData> items,
-  ) {
-    return preferences.setString(
+  ) async {
+    final saved = await preferences.setString(
       _storageKey(userKey),
       jsonEncode(items.map((item) => item.toJson()).toList()),
     );
+    if (!saved) throw StateError('Cart storage write failed.');
   }
 }

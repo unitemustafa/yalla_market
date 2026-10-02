@@ -9,14 +9,17 @@ class AccountInactiveNotifier extends ChangeNotifier {
   Future<void>? _inactivationFuture;
   bool get isInactive => _isInactive;
 
-  Future<void> inactivateAfter(Future<void> Function() clearSession) async {
+  Future<void> inactivateAfter(
+    Future<void> Function() clearSession, {
+    bool Function()? shouldNotify,
+  }) async {
     if (_isInactive) return;
     final pending = _inactivationFuture;
     if (pending != null) return pending;
 
     final operation = () async {
       await clearSession();
-      notifyInactive();
+      if (shouldNotify?.call() ?? true) notifyInactive();
     }();
     _inactivationFuture = operation;
     try {

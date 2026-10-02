@@ -142,6 +142,9 @@ class OrderMarketSectionsSection extends StatelessWidget {
                       product: OrderProductPresentationData(
                         title: item.title.trim().isEmpty ? 'Item' : item.title,
                         brand: item.brand,
+                        additionNames: item.additions
+                            .map((addition) => addition.name)
+                            .toList(),
                         quantity: item.quantity,
                         total: AppCurrency.format(
                           item.lineTotal,
@@ -288,6 +291,15 @@ class _OrderProductRow extends StatelessWidget {
                   context,
                 ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
               ),
+              if (product.additionNames.isNotEmpty) ...[
+                const SizedBox(height: 2),
+                Text(
+                  product.additionNames.join('، '),
+                  style: Theme.of(
+                    context,
+                  ).textTheme.labelSmall?.copyWith(color: mutedColor),
+                ),
+              ],
               if (brand.isNotEmpty) ...[
                 const SizedBox(height: 2),
                 Text(

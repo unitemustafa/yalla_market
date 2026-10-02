@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/session/session_deadline_controller.dart';
@@ -6,6 +8,63 @@ import 'package:yalla_market/core/session/session_metadata.dart';
 import 'package:yalla_market/core/storage/token_store.dart';
 
 void main() {
+  test(
+    'expiration finishing after new login does not notify that account',
+    () async {
+      final store = _DelayedClearStore();
+      final notifier = SessionExpiredNotifier();
+      var expiredEvents = 0;
+      notifier.addListener(() => expiredEvents++);
+      final base = DateTime.utc(2030, 1, 1, 8);
+      final controller = SessionDeadlineController(
+        tokenStore: store,
+        sessionExpiredNotifier: notifier,
+        now: () => base,
+      );
+      await store.save(_temporaryTokens(base));
+      await controller.validateCurrentSession();
+      final expiration = controller.expireSession();
+      await store.clearStarted.future;
+      final next = _temporaryTokens(base.add(const Duration(hours: 1)));
+      await store.save(next);
+      store.finishClear.complete();
+      await expiration;
+      expect(await store.read(), same(next));
+      expect(expiredEvents, 0);
+      controller.dispose();
+    },
+  );
+
+  test('old session deadline cannot expire a newly saved account', () {
+    fakeAsync((async) {
+      final base = DateTime.utc(2030, 1, 1, 8);
+      final store = InMemoryTokenStore();
+      final notifier = SessionExpiredNotifier();
+      var expiredEvents = 0;
+      notifier.addListener(() => expiredEvents++);
+      final controller = SessionDeadlineController(
+        tokenStore: store,
+        sessionExpiredNotifier: notifier,
+        now: () => base.add(async.elapsed),
+      );
+      final first = _temporaryTokens(base);
+      store.save(first);
+      controller.activate(first);
+      async.flushMicrotasks();
+      async.elapse(const Duration(hours: 7));
+      store.clear();
+      final next = _temporaryTokens(base.add(async.elapsed));
+      store.save(next);
+      async.flushMicrotasks();
+      async.elapse(const Duration(hours: 1));
+      async.flushMicrotasks();
+      expect(expiredEvents, 0);
+      store.read().then((tokens) => expect(tokens, same(next)));
+      async.flushMicrotasks();
+      controller.dispose();
+    });
+  });
+
   test('temporary session logs out at the exact eight-hour deadline', () {
     fakeAsync((async) {
       final base = DateTime.utc(2030, 1, 1, 8);
@@ -138,7 +197,7 @@ StoredAuthTokens _persistentTokens(
   );
 }
 
-final class _TestTokenStore implements TokenStore {
+final class _TestTokenStore extends TokenStore {
   StoredAuthTokens? tokens;
 
   @override
@@ -151,6 +210,19 @@ final class _TestTokenStore implements TokenStore {
 
   @override
   Future<void> clear() async {
+    markSessionChanged();
     tokens = null;
+  }
+}
+
+final class _DelayedClearStore extends InMemoryTokenStore {
+  final clearStarted = Completer<void>();
+  final finishClear = Completer<void>();
+
+  @override
+  Future<void> clear() async {
+    await super.clear();
+    clearStarted.complete();
+    await finishClear.future;
   }
 }

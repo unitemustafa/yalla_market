@@ -45,15 +45,21 @@ class SessionDeadlineController {
     _activeSessionKey = key;
     _expiredSessionKey = null;
     final delay = tokens.sessionDeadline.difference(_now());
+    final generation = _tokenStore.sessionGeneration;
     _deadlineTimer = _timerFactory(delay, () {
-      unawaited(expireSession());
+      if (_tokenStore.sessionGeneration == generation) {
+        unawaited(expireSession());
+      }
     });
     return true;
   }
 
   Future<bool> validateCurrentSession() async {
+    final generation = _tokenStore.sessionGeneration;
     final tokens = await _tokenStore.read();
-    if (tokens == null) return false;
+    if (tokens == null || generation != _tokenStore.sessionGeneration) {
+      return false;
+    }
     return activate(tokens);
   }
 
@@ -65,11 +71,13 @@ class SessionDeadlineController {
     }
 
     final operation = () async {
+      final generation = _tokenStore.sessionGeneration;
       _deadlineTimer?.cancel();
       _deadlineTimer = null;
       _expiredSessionKey = _activeSessionKey;
-      await _tokenStore.clear();
-      _sessionExpiredNotifier.notifyExpired();
+      if (await _tokenStore.clearIfCurrent(generation)) {
+        _sessionExpiredNotifier.notifyExpired();
+      }
     }();
     _expirationInFlight = operation;
     try {

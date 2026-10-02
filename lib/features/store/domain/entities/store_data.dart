@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/domain/media_focal_point.dart';
 import '../../../../core/network/api_endpoints.dart';
 import 'category_data.dart';
 import 'product_data.dart';
@@ -167,6 +168,7 @@ class StoreMarketData {
     this.marketTypeIds = const [],
     required this.image,
     this.coverImage = AppAssets.temporaryMarketPlaceholder,
+    this.coverFocus = MediaFocalPoint.center,
     this.description = '',
     this.deliveryTimeMinMinutes,
     this.deliveryTimeMaxMinutes,
@@ -188,6 +190,7 @@ class StoreMarketData {
   final List<String> marketTypeIds;
   final String image;
   final String coverImage;
+  final MediaFocalPoint coverFocus;
   final String description;
   final int? deliveryTimeMinMinutes;
   final int? deliveryTimeMaxMinutes;
@@ -234,6 +237,7 @@ class StoreMarketData {
       marketTypeIds: List.unmodifiable(marketTypeIds),
       image: _resolveImage(json['image']),
       coverImage: _resolveImage(json['cover_image']),
+      coverFocus: MediaFocalPoint.fromJson(json['cover_focus']),
       description: json['description']?.toString().trim() ?? '',
       deliveryTimeMinMinutes: _intFromJson(json['delivery_time_min_minutes']),
       deliveryTimeMaxMinutes: _intFromJson(json['delivery_time_max_minutes']),
@@ -260,6 +264,7 @@ class StoreMarketData {
       marketTypeIds: marketTypeIds,
       image: image,
       coverImage: coverImage,
+      coverFocus: coverFocus,
       description: description,
       deliveryTimeMinMinutes: deliveryTimeMinMinutes,
       deliveryTimeMaxMinutes: deliveryTimeMaxMinutes,
@@ -292,6 +297,7 @@ class StoreMarketData {
       marketTypeIds: marketTypeIds,
       image: image,
       coverImage: coverImage,
+      coverFocus: coverFocus,
       description: description,
       deliveryTimeMinMinutes: deliveryTimeMinMinutes,
       deliveryTimeMaxMinutes: deliveryTimeMaxMinutes,

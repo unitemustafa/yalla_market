@@ -5,6 +5,9 @@ import 'package:yalla_market/features/home/domain/entities/home_campaign_data.da
 import 'package:yalla_market/features/home/domain/entities/home_data.dart';
 import 'package:yalla_market/features/home/presentation/home_campaign/home_campaign_host.dart';
 import 'package:yalla_market/features/home/presentation/home_campaign/home_campaign_preferences.dart';
+import 'package:yalla_market/core/presentation/media/app_video.dart';
+import 'package:yalla_market/core/constants/app_assets.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
@@ -62,6 +65,37 @@ void main() {
     expect(home.categories, isEmpty);
     expect(home.products, isEmpty);
   });
+
+  testWidgets(
+    'unavailable campaign video uses a static fallback without an endless loader',
+    (tester) async {
+      final payload = _payload()..['id'] = 49;
+      (payload['media'] as Map<String, dynamic>)['type'] = 'video';
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            bottomNavigationBar: HomeCampaignHost(
+              campaign: HomeCampaignData.fromJson(payload),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(AppVideo), findsOneWidget);
+      expect(
+        tester.widget<AppVideo>(find.byType(AppVideo)).fit,
+        BoxFit.contain,
+      );
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (widget) =>
+              widget is AppImage && widget.source == AppAssets.defaultOffer,
+        ),
+        findsOneWidget,
+      );
+    },
+  );
 
   testWidgets('automatically opens a centered dialog and leaves no bar', (
     tester,

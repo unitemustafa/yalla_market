@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import '../../../core/errors/failure.dart';
 import '../../../core/network/api_result.dart';
 import '../../../core/network/dio_factory.dart';
+import '../../../core/domain/media_focal_point.dart';
 import '../domain/app_media.dart';
 import '../domain/app_media_repository.dart';
 
@@ -32,6 +33,11 @@ class RemoteAppMediaRepository implements AppMediaRepository {
           onboardingTwo: url('onboarding_two_url'),
           onboardingThree: url('onboarding_three_url'),
           marketLogin: url('market_login_url'),
+          marketLoginPoster: url('market_login_poster_url'),
+          marketLoginFocus: MediaFocalPoint.fromJson(
+            data['market_login_focus'],
+            fallback: MediaFocalPoint.topCenter,
+          ),
         ),
       );
     } on DioException {

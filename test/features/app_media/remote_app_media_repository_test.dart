@@ -15,6 +15,8 @@ void main() {
                 'onboarding_one_url': 'https://example.com/one.webp',
                 'onboarding_two_url': 'javascript:alert(1)',
                 'market_login_url': 'https://example.com/intro.mp4',
+                'market_login_poster_url': 'https://example.com/poster.webp',
+                'market_login_focus': {'x': 0.8, 'y': 0.15},
               },
             ),
           );
@@ -29,6 +31,9 @@ void main() {
         expect(media.onboardingOne, 'https://example.com/one.webp');
         expect(media.onboardingTwo, isNull);
         expect(media.marketLogin, 'https://example.com/intro.mp4');
+        expect(media.marketLoginPoster, 'https://example.com/poster.webp');
+        expect(media.marketLoginFocus.x, 0.8);
+        expect(media.marketLoginFocus.y, 0.15);
       },
       failure: (_) => fail('Expected media response.'),
     );

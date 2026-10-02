@@ -1,10 +1,11 @@
 import 'dart:math' as math;
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
 
 import '../../../../core/constants/app_media_specs.dart';
+import '../../../../core/constants/app_assets.dart';
+import '../../../../core/presentation/media/app_video.dart';
+import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../domain/entities/home_campaign_data.dart';
 
 enum HomeCampaignSheetResult { dismissed, acted }
@@ -223,161 +224,34 @@ class _CampaignMedia extends StatelessWidget {
       aspectRatio: AppMediaSpecs.campaignMediaAspectRatio,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: CachedNetworkImage(
-          imageUrl: selectedUrl,
+        child: AppImage(
+          source: selectedUrl,
+          fallbackType: AppImagePlaceholderType.offer,
           width: double.infinity,
           fit: BoxFit.cover,
-          placeholder: (_, _) => const _MediaPlaceholder(),
-          errorWidget: (_, _, _) => const _MediaPlaceholder(),
         ),
       ),
     );
   }
 }
 
-class _CampaignVideo extends StatefulWidget {
+class _CampaignVideo extends StatelessWidget {
   const _CampaignVideo({required this.media});
   final HomeCampaignMediaData media;
 
   @override
-  State<_CampaignVideo> createState() => _CampaignVideoState();
-}
-
-class _CampaignVideoState extends State<_CampaignVideo>
-    with WidgetsBindingObserver {
-  VideoPlayerController? _controller;
-  Object? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initialize();
-  }
-
-  Future<void> _initialize() async {
-    final uri = Uri.tryParse(widget.media.videoUrl);
-    if (uri == null || !uri.hasScheme) {
-      setState(() => _error = StateError('Invalid video URL'));
-      return;
-    }
-    final controller = VideoPlayerController.networkUrl(uri);
-    _controller = controller;
-    controller.addListener(_handleVideoError);
-    try {
-      await controller.initialize();
-      await controller.setVolume(0);
-      await controller.setLooping(true);
-      await controller.play();
-      if (mounted) setState(() {});
-    } catch (error) {
-      if (mounted) setState(() => _error = error);
-    }
-  }
-
-  void _handleVideoError() {
-    final controller = _controller;
-    if (!mounted || _error != null || controller?.value.hasError != true) {
-      return;
-    }
-    setState(() {
-      _error = StateError(
-        controller?.value.errorDescription ?? 'Video playback failed',
-      );
-    });
-  }
-
-  Future<void> _togglePlayback() async {
-    final controller = _controller;
-    if (controller == null) return;
-    controller.value.isPlaying
-        ? await controller.pause()
-        : await controller.play();
-    if (mounted) setState(() {});
-  }
-
-  Future<void> _toggleMute() async {
-    final controller = _controller;
-    if (controller == null) return;
-    final isMuted = controller.value.volume == 0;
-    await controller.setVolume(isMuted ? 1 : 0);
-    if (mounted) setState(() {});
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state != AppLifecycleState.resumed) {
-      _controller?.pause();
-      if (mounted) setState(() {});
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _controller?.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final controller = _controller;
-    final ready = controller?.value.isInitialized == true && _error == null;
     return AspectRatio(
       key: const ValueKey('campaign_video_viewport'),
       aspectRatio: AppMediaSpecs.campaignMediaAspectRatio,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            if (ready)
-              FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: controller!.value.size.width,
-                  height: controller.value.size.height,
-                  child: VideoPlayer(controller),
-                ),
-              )
-            else
-              _PosterOrPlaceholder(posterUrl: widget.media.posterUrl),
-            if (ready)
-              Align(
-                alignment: Alignment.bottomLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton.filled(
-                        tooltip: controller!.value.isPlaying
-                            ? 'إيقاف الفيديو'
-                            : 'تشغيل الفيديو',
-                        onPressed: _togglePlayback,
-                        icon: Icon(
-                          controller.value.isPlaying
-                              ? Icons.pause_rounded
-                              : Icons.play_arrow_rounded,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton.filled(
-                        tooltip: controller.value.volume == 0
-                            ? 'تشغيل الصوت'
-                            : 'كتم الصوت',
-                        onPressed: _toggleMute,
-                        icon: Icon(
-                          controller.value.volume == 0
-                              ? Icons.volume_off_rounded
-                              : Icons.volume_up_rounded,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-          ],
+        child: AppVideo(
+          url: media.videoUrl,
+          poster: _PosterOrPlaceholder(posterUrl: media.posterUrl),
+          fallback: const _MediaPlaceholder(),
+          fit: BoxFit.contain,
+          showControls: true,
         ),
       ),
     );
@@ -388,22 +262,16 @@ class _PosterOrPlaceholder extends StatelessWidget {
   const _PosterOrPlaceholder({required this.posterUrl});
   final String posterUrl;
   @override
-  Widget build(BuildContext context) => posterUrl.isEmpty
-      ? const _MediaPlaceholder()
-      : CachedNetworkImage(
-          imageUrl: posterUrl,
-          fit: BoxFit.cover,
-          placeholder: (_, _) => const _MediaPlaceholder(),
-          errorWidget: (_, _, _) => const _MediaPlaceholder(),
-        );
+  Widget build(BuildContext context) => AppImage(
+    source: posterUrl,
+    fallbackType: AppImagePlaceholderType.offer,
+    fit: BoxFit.contain,
+  );
 }
 
 class _MediaPlaceholder extends StatelessWidget {
   const _MediaPlaceholder();
   @override
-  Widget build(BuildContext context) => Container(
-    color: Colors.black.withValues(alpha: 0.06),
-    alignment: Alignment.center,
-    child: const CircularProgressIndicator.adaptive(),
-  );
+  Widget build(BuildContext context) =>
+      const AppImage(source: AppAssets.defaultOffer, fit: BoxFit.contain);
 }

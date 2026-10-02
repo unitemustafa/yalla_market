@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/icons/app_icons.dart';
+import '../../../../core/presentation/media/media_focal_point_alignment.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
@@ -54,6 +55,7 @@ class MarketStorefrontHero extends StatelessWidget {
                   source: market.coverImage,
                   fallbackType: AppImagePlaceholderType.store,
                   fit: BoxFit.cover,
+                  alignment: market.coverFocus.alignment,
                   cacheWidth: 1080,
                   cacheHeight: 720,
                 ),

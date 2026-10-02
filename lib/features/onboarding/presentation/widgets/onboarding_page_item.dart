@@ -1,5 +1,6 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../domain/entities/onboarding_model.dart';
 
 class OnboardingPageItem extends StatelessWidget {
@@ -81,22 +82,18 @@ class OnboardingPageItem extends StatelessWidget {
                                 isNarrow ? 18 : 28,
                                 isCompactHeight ? 18 : 28,
                               ),
-                              child: model.imagePath.startsWith('http')
-                                  ? Image.network(
-                                      model.imagePath,
-                                      fit: BoxFit.contain,
-                                      errorBuilder: (_, _, _) => Image.asset(
-                                        model.fallbackImagePath ??
-                                            model.imagePath,
+                              child: AppImage(
+                                source: model.imagePath,
+                                role: AppImageRole.illustration,
+                                cacheWidth: 760,
+                                cacheHeight: 760,
+                                fallback: model.fallbackImagePath == null
+                                    ? null
+                                    : Image.asset(
+                                        model.fallbackImagePath!,
                                         fit: BoxFit.contain,
                                       ),
-                                    )
-                                  : Image.asset(
-                                      model.imagePath,
-                                      fit: BoxFit.contain,
-                                      cacheWidth: 760,
-                                      cacheHeight: 760,
-                                    ),
+                              ),
                             ),
                           ),
                         ],

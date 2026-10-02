@@ -102,14 +102,16 @@ class AppImage extends StatelessWidget {
     final effectiveFit = _effectiveFit;
 
     if (pickedBytes != null && pickedBytes.isNotEmpty) {
-      return Image.memory(
-        pickedBytes,
+      return Image(
+        image: _resizeProvider(
+          MemoryImage(pickedBytes),
+          effectiveCacheWidth,
+          effectiveCacheHeight,
+        ),
         width: width,
         height: height,
         fit: effectiveFit,
         alignment: alignment,
-        cacheWidth: effectiveCacheWidth,
-        cacheHeight: effectiveCacheHeight,
         semanticLabel: semanticLabel,
         filterQuality: filterQuality,
         gaplessPlayback: true,
@@ -125,44 +127,57 @@ class AppImage extends StatelessWidget {
         value,
         targetWidth: effectiveCacheWidth,
       );
-      return CachedNetworkImage(
-        imageUrl: optimizedSource,
-        memCacheWidth: effectiveCacheWidth,
-        memCacheHeight: effectiveCacheHeight,
+      return Image(
+        image: _resizeProvider(
+          CachedNetworkImageProvider(optimizedSource),
+          effectiveCacheWidth,
+          effectiveCacheHeight,
+        ),
+        width: width,
+        height: height,
+        fit: effectiveFit,
+        alignment: alignment,
+        semanticLabel: semanticLabel,
         filterQuality: filterQuality,
-        useOldImageOnUrlChange: true,
-        fadeInDuration: Duration.zero,
-        fadeOutDuration: Duration.zero,
-        placeholderFadeInDuration: Duration.zero,
-        imageBuilder: (context, imageProvider) {
-          return Image(
-            image: imageProvider,
-            width: width,
-            height: height,
-            fit: effectiveFit,
-            alignment: alignment,
-            semanticLabel: semanticLabel,
-            filterQuality: filterQuality,
-            gaplessPlayback: true,
-          );
+        gaplessPlayback: true,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          if (wasSynchronouslyLoaded || frame != null) return child;
+          return placeholder ?? _buildPlaceholder(context);
         },
-        placeholder: (context, _) => placeholder ?? _buildPlaceholder(context),
-        errorWidget: (context, _, _) => _buildFallback(context),
+        errorBuilder: (_, _, _) => _buildFallback(context),
       );
     }
 
-    return Image.asset(
-      value,
+    return Image(
+      image: _resizeProvider(
+        AssetImage(value),
+        effectiveCacheWidth,
+        effectiveCacheHeight,
+      ),
       width: width,
       height: height,
       fit: effectiveFit,
       alignment: alignment,
-      cacheWidth: effectiveCacheWidth,
-      cacheHeight: effectiveCacheHeight,
       semanticLabel: semanticLabel,
       filterQuality: filterQuality,
       gaplessPlayback: true,
       errorBuilder: (_, _, _) => _buildFallback(context),
+    );
+  }
+
+  ImageProvider _resizeProvider(
+    ImageProvider provider,
+    int? targetWidth,
+    int? targetHeight,
+  ) {
+    if (targetWidth == null && targetHeight == null) return provider;
+    // Decode bounds must not change the original aspect ratio before BoxFit
+    // decides whether to show the whole image or crop it.
+    return ResizeImage(
+      provider,
+      width: targetWidth,
+      height: targetHeight,
+      policy: ResizeImagePolicy.fit,
     );
   }
 
@@ -245,15 +260,25 @@ class AppImage extends StatelessWidget {
   int? _effectiveCacheWidth(BuildContext context) {
     if (cacheWidth != null) return cacheWidth;
     final imageWidth = width;
-    if (imageWidth == null || imageWidth <= 0) return null;
-    return (imageWidth * MediaQuery.devicePixelRatioOf(context)).round();
+    if (imageWidth == null || !imageWidth.isFinite || imageWidth <= 0) {
+      return null;
+    }
+    return (imageWidth * MediaQuery.devicePixelRatioOf(context)).round().clamp(
+      1,
+      12000,
+    );
   }
 
   int? _effectiveCacheHeight(BuildContext context) {
     if (cacheHeight != null) return cacheHeight;
     final imageHeight = height;
-    if (imageHeight == null || imageHeight <= 0) return null;
-    return (imageHeight * MediaQuery.devicePixelRatioOf(context)).round();
+    if (imageHeight == null || !imageHeight.isFinite || imageHeight <= 0) {
+      return null;
+    }
+    return (imageHeight * MediaQuery.devicePixelRatioOf(context)).round().clamp(
+      1,
+      12000,
+    );
   }
 }
 

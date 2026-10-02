@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/icons/app_icons.dart';
+import '../../../../core/presentation/media/media_focal_point_alignment.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
@@ -94,6 +95,7 @@ class _StoreCover extends StatelessWidget {
             source: market.coverImage,
             fallbackType: AppImagePlaceholderType.store,
             fit: BoxFit.cover,
+            alignment: market.coverFocus.alignment,
             cacheWidth: 340,
             cacheHeight: 340,
           ),

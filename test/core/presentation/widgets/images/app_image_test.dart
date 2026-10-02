@@ -1,4 +1,6 @@
 import 'dart:typed_data';
+import 'dart:async';
+import 'dart:convert';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -18,6 +20,62 @@ void main() {
   });
 
   group('AppImage', () {
+    testWidgets('decodes a rectangular source without turning it into a square', (
+      tester,
+    ) async {
+      final bytes = base64Decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAHgAAAA8CAIAAAAiz+n/AAAAnElEQVR4nO3SQQ0AMAwDsbb8OW8s/DoTiHTKvolwZCWFVno0Umik0EihkUIjhUYKjRQaKTRSaKTQSKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0EihkUIjhUYKjRQaKTRSaKTQSKGRQiOFRgqNFBopNFJopNBIoZFCI4VGCo0UGik0Umik0EihkUIjhUYKjRQaKfQYH3WpAXcqY4kYAAAAAElFTkSuQmCC',
+      );
+      await tester.pumpWidget(
+        _wrap(
+          AppImage(
+            bytes: bytes,
+            width: 60,
+            height: 60,
+            cacheWidth: 60,
+            cacheHeight: 60,
+            role: AppImageRole.product,
+          ),
+        ),
+      );
+      final provider = tester.widget<Image>(find.byType(Image)).image;
+      final dimensions = await tester.runAsync(() async {
+        final completer = Completer<ImageInfo>();
+        final stream = provider.resolve(ImageConfiguration.empty);
+        final listener = ImageStreamListener(
+          (info, _) => completer.complete(info),
+        );
+        stream.addListener(listener);
+        try {
+          final info = await completer.future.timeout(
+            const Duration(seconds: 5),
+          );
+          final result = (info.image.width, info.image.height);
+          info.dispose();
+          return result;
+        } finally {
+          stream.removeListener(listener);
+        }
+      });
+      expect(dimensions, (60, 30));
+    });
+
+    testWidgets('accepts an unconstrained display width', (tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const AppImage(
+            source: AppAssets.defaultProduct,
+            width: double.infinity,
+            height: 60,
+          ),
+        ),
+      );
+      expect(tester.takeException(), isNull);
+      final resized =
+          tester.widget<Image>(find.byType(Image)).image as ResizeImage;
+      expect(resized.width, isNull);
+    });
+
     testWidgets('uses AssetImage for local asset paths', (tester) async {
       await tester.pumpWidget(
         _wrap(
@@ -39,23 +97,23 @@ void main() {
       );
     });
 
-    testWidgets('uses CachedNetworkImage for http URLs', (tester) async {
+    testWidgets('uses a cached image provider for http URLs', (tester) async {
       const imageUrl = 'https://cdn.example.com/products/shoe.png';
 
       await tester.pumpWidget(
         _wrap(const AppImage(source: imageUrl, width: 40, height: 40)),
       );
 
-      final image = tester.widget<CachedNetworkImage>(
-        find.byType(CachedNetworkImage),
+      final image = tester.widget<Image>(find.byType(Image));
+      final resized = image.image as ResizeImage;
+      expect(
+        (resized.imageProvider as CachedNetworkImageProvider).url,
+        imageUrl,
       );
-
-      expect(image.imageUrl, imageUrl);
-      expect(image.placeholder, isNotNull);
-      expect(image.errorWidget, isNotNull);
-      expect(image.fadeInDuration, Duration.zero);
-      expect(image.fadeOutDuration, Duration.zero);
-      expect(image.placeholderFadeInDuration, Duration.zero);
+      expect(resized.policy, ResizeImagePolicy.fit);
+      expect(image.frameBuilder, isNotNull);
+      expect(image.errorBuilder, isNotNull);
+      expect(image.gaplessPlayback, isTrue);
     });
 
     testWidgets('prioritizes in-memory bytes over source', (tester) async {
@@ -87,12 +145,11 @@ void main() {
         ),
       );
 
-      final image = tester.widget<CachedNetworkImage>(
-        find.byType(CachedNetworkImage),
-      );
-
-      expect(image.memCacheWidth, 80);
-      expect(image.memCacheHeight, 60);
+      final resized =
+          tester.widget<Image>(find.byType(Image)).image as ResizeImage;
+      expect(resized.width, 80);
+      expect(resized.height, 60);
+      expect(resized.policy, ResizeImagePolicy.fit);
     });
 
     testWidgets('shows fallback when source is empty', (tester) async {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Reports changes to the app's active route.
-class AppRouteObserver extends NavigatorObserver {
+class AppRouteObserver extends RouteObserver<ModalRoute<dynamic>> {
   AppRouteObserver(this.onRouteChanged);
 
   final VoidCallback onRouteChanged;

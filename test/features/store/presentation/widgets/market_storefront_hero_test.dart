@@ -45,6 +45,19 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  test('market data accepts normalized cover focal points', () {
+    final market = StoreMarketData.fromJson({
+      'id': 1,
+      'name': 'Store',
+      'image': AppAssets.defaultStore,
+      'cover_image': AppAssets.emptyStoreLight,
+      'cover_focus': {'x': 0.75, 'y': 0.2},
+    });
+
+    expect(market.coverFocus.x, 0.75);
+    expect(market.coverFocus.y, 0.2);
+  });
 }
 
 const _market = StoreMarketData(

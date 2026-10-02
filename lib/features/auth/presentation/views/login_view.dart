@@ -8,6 +8,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/domain/media_focal_point.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -228,6 +229,20 @@ class _LoginViewState extends State<LoginView> {
                                         AppMediaReady(:final media) =>
                                           media.marketLogin,
                                         _ => null,
+                                      },
+                                      posterUrl: switch (context
+                                          .watch<AppMediaCubit>()
+                                          .state) {
+                                        AppMediaReady(:final media) =>
+                                          media.marketLoginPoster,
+                                        _ => null,
+                                      },
+                                      focus: switch (context
+                                          .watch<AppMediaCubit>()
+                                          .state) {
+                                        AppMediaReady(:final media) =>
+                                          media.marketLoginFocus,
+                                        _ => MediaFocalPoint.topCenter,
                                       },
                                       fallback: AppAssets.authMarketHeader,
                                     ),

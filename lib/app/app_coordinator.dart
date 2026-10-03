@@ -193,6 +193,13 @@ class _AppCoordinatorState extends State<AppCoordinator>
                   GlobalWidgetsLocalizations.delegate,
                 ],
                 initialRoute: AppRoutes.splash,
+                // Native routes can come from notification extras or links.
+                // Restore auth first; the coordinators retain pending targets.
+                onGenerateInitialRoutes: (_) => [
+                  AppRouter.generateRoute(
+                    const RouteSettings(name: AppRoutes.splash),
+                  ),
+                ],
                 onGenerateRoute: AppRouter.generateRoute,
               );
             },

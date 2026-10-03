@@ -22,6 +22,35 @@ are supported and release-tested only on mobile.
 - Deep links, Firebase push notifications, and Crashlytics reporting
 - Offline-aware networking with local demo repositories for development
 
+## Editing display text
+
+All translation text lives in `lib/core/localization/`:
+
+- `app_texts_ar.dart`: Arabic text, grouped by screen and section.
+- `app_texts_en.dart`: English text with the same constant names and sections.
+- `app_text_catalog.dart`: references that connect existing translation keys to
+  the named constants in both languages.
+- `app_translations.dart`: locale selection and the existing `context.tr` API.
+- `app_language_controller.dart`: language selection and persistence.
+
+Edit the named constant in the appropriate section, such as `CommonTexts.retry`
+or `AuthTexts.invalidCredentials`, to change the displayed text. Keep its name
+unchanged; the compatibility catalog references that constant directly. Both
+language files use the same names, so their order does not need to match. Count
+and region formatting helpers are beside their section's text.
+
+To add new text, add the same constant name to both language files, then register
+its Arabic and English references in `app_text_catalog.dart`. Its phrase key is
+the original English string passed to `context.tr`. Existing translations and
+`context.translations` getters keep their current API.
+
+Check both catalogs after editing:
+
+```bash
+dart run tool/check_translations.dart
+flutter test test/core/localization
+```
+
 ## Tech stack
 
 - **Flutter and Dart** for the application and shared mobile codebase

@@ -113,12 +113,13 @@ void main() {
 
     test('does not keep the old long session message in display files', () {
       final appFile = File('lib/yalla_market_app.dart').readAsStringSync();
-      final phrasesFile = File(
-        'lib/core/localization/app_translation_phrases.dart',
-      ).readAsStringSync();
-
       expect(appFile, isNot(contains(_oldSessionExpiredMessage)));
-      expect(phrasesFile, isNot(contains(_oldSessionExpiredMessage)));
+      for (final language in ['ar', 'en']) {
+        final textsFile = File(
+          'lib/core/localization/app_texts_$language.dart',
+        ).readAsStringSync();
+        expect(textsFile, isNot(contains(_oldSessionExpiredMessage)));
+      }
     });
 
     test(

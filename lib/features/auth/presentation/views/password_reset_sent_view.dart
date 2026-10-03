@@ -4,7 +4,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../app/routing/app_routes.dart';
@@ -232,7 +231,7 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
 
   Widget _buildDoneButton(BuildContext context) {
     return AppActionButton(
-      label: AppStrings.done,
+      label: context.tr('Done'),
       onPressed: () {
         Navigator.pushNamedAndRemoveUntil(
           context,
@@ -248,7 +247,7 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
         ? context.isArabicLanguage
               ? 'إعادة الإرسال خلال ${_formatCooldown(_remainingSeconds)}'
               : 'Resend in ${_formatCooldown(_remainingSeconds)}'
-        : AppStrings.resendEmail;
+        : context.translations.resendEmail;
     final enabledColor = isDarkMode
         ? Colors.white.withValues(alpha: 0.78)
         : AppColors.lightTextPrimary;

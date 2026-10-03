@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
@@ -231,7 +230,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                   const SizedBox(height: 24),
                   CustomTextField(
                     controller: _emailController,
-                    labelText: AppStrings.email,
+                    labelText: context.translations.email,
                     prefixIcon: AppIcons.direct_right,
                     keyboardType: TextInputType.emailAddress,
                     inputFormatters: [_noWhitespaceInputFormatter],

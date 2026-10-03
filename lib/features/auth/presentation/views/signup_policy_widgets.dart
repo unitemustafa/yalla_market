@@ -46,13 +46,13 @@ extension _SignupPolicyWidgets on _SignupViewState {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(context.tr(AppStrings.iAgreeTo), style: textStyle),
+                      Text(context.translations.iAgreeTo, style: textStyle),
                       PolicyLink(
-                        text: context.tr(AppStrings.privacyPolicy),
+                        text: context.translations.privacyPolicy,
                         style: linkStyle,
                         onTap: () => _openPolicy(
                           uri: LegalUrls.privacy,
-                          title: AppStrings.privacyPolicy,
+                          title: context.translations.privacyPolicy,
                           icon: AppIcons.shield_tick,
                           points: const [
                             'We use your account details to secure your profile and personalize shopping.',
@@ -61,13 +61,13 @@ extension _SignupPolicyWidgets on _SignupViewState {
                           ],
                         ),
                       ),
-                      Text(context.tr(AppStrings.and), style: textStyle),
+                      Text(context.translations.and, style: textStyle),
                       PolicyLink(
-                        text: context.tr(AppStrings.termsOfUse),
+                        text: context.translations.termsOfUse,
                         style: linkStyle,
                         onTap: () => _openPolicy(
                           uri: LegalUrls.terms,
-                          title: AppStrings.termsOfUse,
+                          title: context.translations.termsOfUse,
                           icon: AppIcons.document_text,
                           points: const [
                             'Keep your account information accurate and protect your password.',
@@ -235,7 +235,7 @@ extension _SignupPolicyWidgets on _SignupViewState {
 
   Widget _buildCreateAccountButton({required bool isLoading}) {
     return AppActionButton(
-      label: AppStrings.createAccount,
+      label: context.translations.createAccount,
       isLoading: isLoading,
       onPressed: isLoading ? null : _onCreateAccount,
     );

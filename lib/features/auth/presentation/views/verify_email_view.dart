@@ -7,7 +7,6 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/otp/otp_cooldown_store.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
@@ -548,7 +547,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
             ar: 'إعادة الإرسال خلال ${_formatCooldown(_remainingSeconds)}',
             en: 'Resend in ${_formatCooldown(_remainingSeconds)}',
           )
-        : context.tr(AppStrings.resendEmail);
+        : context.translations.resendEmail;
     final enabledColor = isDarkMode
         ? Colors.white.withValues(alpha: 0.78)
         : AppColors.lightTextPrimary;

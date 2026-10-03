@@ -42,7 +42,7 @@ extension _SignupFormFields on _SignupViewState {
         children: [
           CustomTextField(
             controller: _firstNameController,
-            labelText: AppStrings.firstName,
+            labelText: context.translations.firstName,
             prefixIcon: AppIcons.user,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
@@ -50,7 +50,7 @@ extension _SignupFormFields on _SignupViewState {
           ),
           CustomTextField(
             controller: _lastNameController,
-            labelText: AppStrings.lastName,
+            labelText: context.translations.lastName,
             prefixIcon: AppIcons.user,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
@@ -65,7 +65,7 @@ extension _SignupFormFields on _SignupViewState {
         Expanded(
           child: CustomTextField(
             controller: _firstNameController,
-            labelText: AppStrings.firstName,
+            labelText: context.translations.firstName,
             prefixIcon: AppIcons.user,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
@@ -76,7 +76,7 @@ extension _SignupFormFields on _SignupViewState {
         Expanded(
           child: CustomTextField(
             controller: _lastNameController,
-            labelText: AppStrings.lastName,
+            labelText: context.translations.lastName,
             prefixIcon: AppIcons.user,
             autovalidateMode: AutovalidateMode.onUserInteraction,
             validator: _validateRequiredNoWhitespace,
@@ -97,7 +97,7 @@ extension _SignupFormFields on _SignupViewState {
       fieldKey: _usernameFieldKey,
       controller: _usernameController,
       focusNode: _usernameFocusNode,
-      labelText: AppStrings.username,
+      labelText: context.translations.username,
       prefixIcon: AppIcons.user_edit,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       validator: _validateUsername,
@@ -132,7 +132,7 @@ extension _SignupFormFields on _SignupViewState {
       fieldKey: _emailFieldKey,
       controller: _emailController,
       focusNode: _emailFocusNode,
-      labelText: AppStrings.email,
+      labelText: context.translations.email,
       prefixIcon: AppIcons.direct_right,
       keyboardType: TextInputType.emailAddress,
       autovalidateMode: AutovalidateMode.onUserInteraction,

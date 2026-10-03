@@ -7,7 +7,6 @@ import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/legal/legal_urls.dart';
 import '../../../../core/otp/otp_cooldown_store.dart';
@@ -240,7 +239,7 @@ class _SignupViewState extends State<SignupView> {
                                 _buildCityField(),
                                 CustomTextField(
                                   controller: _passwordController,
-                                  labelText: AppStrings.password,
+                                  labelText: context.translations.password,
                                   prefixIcon: AppIcons.password_check,
                                   obscureText: _obscurePassword,
                                   suffixIcon: _obscurePassword

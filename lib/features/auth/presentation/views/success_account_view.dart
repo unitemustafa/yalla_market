@@ -2,7 +2,6 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
-import '../../../../core/constants/app_strings.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../app/routing/app_routes.dart';
@@ -118,7 +117,7 @@ class SuccessAccountView extends StatelessWidget {
 
   Widget _buildContinueButton(BuildContext context) {
     return AppActionButton(
-      label: AppStrings.continueText,
+      label: context.translations.continueText,
       onPressed: () {
         Navigator.pushNamedAndRemoveUntil(
           context,

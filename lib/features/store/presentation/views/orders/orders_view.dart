@@ -8,6 +8,8 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../domain/entities/order.dart';
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
+import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../cubit/order_history_cubit.dart';
 import '../../cubit/order_history_state.dart';
 import 'widgets/custom_date_range_sheet.dart';
@@ -66,11 +68,23 @@ class _OrdersViewState extends State<OrdersView> {
     final backgroundColor = isDark
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
-    return BlocBuilder<OrderHistoryCubit, OrderHistoryState>(
+    return BlocConsumer<OrderHistoryCubit, OrderHistoryState>(
+      listener: (context, state) {
+        if (state is OrderHistoryFailure &&
+            (state.hasLoaded || state.orders.isNotEmpty)) {
+          CustomSnackBar.showError(
+            context: context,
+            title: 'Refresh failed',
+            message: state.message,
+          );
+        }
+      },
       builder: (context, state) {
         final loadedOrders = state is OrderHistoryReady
             ? state.orders.map(_mapStoredOrder).toList(growable: false)
             : state is OrderHistoryFailure
+            ? state.orders.map(_mapStoredOrder).toList(growable: false)
+            : state is OrderHistoryLoading
             ? state.orders.map(_mapStoredOrder).toList(growable: false)
             : const <OrderPresentationData>[];
         final orders = loadedOrders;
@@ -79,85 +93,116 @@ class _OrdersViewState extends State<OrdersView> {
         return Scaffold(
           backgroundColor: backgroundColor,
           body: SafeArea(
-            child: state is OrderHistoryLoading
-                ? const AppLoadingState(message: 'Loading orders...')
-                : state is OrderHistoryFailure && loadedOrders.isEmpty
-                ? AppErrorState(
-                    title: 'Orders could not load',
-                    message: state.message,
-                    onRetry: () => context.read<OrderHistoryCubit>().loadOrders(
-                      force: true,
-                    ),
-                  )
-                : AppRefreshIndicator(
-                    onRefresh: () => context
-                        .read<OrderHistoryCubit>()
-                        .loadOrders(force: true),
-                    child: ListView.separated(
+            child: AppRefreshIndicator(
+              onRefresh: () =>
+                  context.read<OrderHistoryCubit>().loadOrders(force: true),
+              child:
+                  (state is OrderHistoryInitial ||
+                          state is OrderHistoryLoading && !state.hasLoaded) &&
+                      loadedOrders.isEmpty
+                  ? ListView(
                       physics: AppRefreshIndicator.scrollPhysics,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                      itemCount: filteredOrders.isEmpty
-                          ? 4
-                          : filteredOrders.length + 3,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return const PageTopBar(
-                            title: 'My Orders',
-                            subtitle: 'Track current and previous purchases',
-                          );
-                        }
-
-                        if (index == 1) {
-                          return OrdersDateFilterBar(
-                            selected: _dateFilter,
-                            customRange: _customDateRange,
-                            onChanged: (filter) =>
-                                _selectDateFilter(context, filter),
-                          );
-                        }
-
-                        if (index == 2) {
-                          return OrdersSummaryCard(
-                            isDark: isDark,
-                            orders: filteredOrders,
-                          );
-                        }
-
-                        if (filteredOrders.isEmpty) {
-                          return orders.isEmpty
-                              ? const OrdersEmptyState()
-                              : OrdersEmptyFilterState(isDark: isDark);
-                        }
-
-                        final order = filteredOrders[index - 3];
-
-                        return OrderListItem(
-                          status: order.status,
-                          date: order.date,
-                          orderId: order.orderId,
-                          shippingDate: order.shippingDate,
-                          itemCount: order.itemCount,
-                          total: order.total,
-                          statusColor: order.statusColor,
-                          products: order.products
-                              .map(
-                                (product) => OrderListItemProduct(
-                                  title: product.title,
-                                  brand: product.brand,
-                                  quantity: product.quantity,
+                      children: const [
+                        PageTopBar(
+                          title: 'My Orders',
+                          subtitle: 'Track current and previous purchases',
+                        ),
+                        AppRefreshAnchor(),
+                        SizedBox(height: 18),
+                        AppSkeletonList(rows: 4, rowHeight: 140),
+                      ],
+                    )
+                  : state is OrderHistoryFailure &&
+                        !state.hasLoaded &&
+                        loadedOrders.isEmpty
+                  ? ListView(
+                      physics: AppRefreshIndicator.scrollPhysics,
+                      padding: const EdgeInsets.all(16),
+                      children: [
+                        const AppRefreshAnchor(),
+                        AppErrorState(
+                          title: 'Orders could not load',
+                          message: state.message,
+                          onRetry: () => context
+                              .read<OrderHistoryCubit>()
+                              .loadOrders(force: true),
+                        ),
+                      ],
+                    )
+                  : AppContentReveal(
+                      child: ListView.separated(
+                        physics: AppRefreshIndicator.scrollPhysics,
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                        itemCount: filteredOrders.isEmpty
+                            ? 4
+                            : filteredOrders.length + 3,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return const Column(
+                              children: [
+                                PageTopBar(
+                                  title: 'My Orders',
+                                  subtitle:
+                                      'Track current and previous purchases',
                                 ),
-                              )
-                              .toList(growable: false),
-                          isMultiMarket: order.isMultiMarket,
-                          marketCount: order.marketCount,
-                          marketSummary: order.marketSummary,
-                          onTap: () => _showOrderDetails(context, order),
-                        );
-                      },
+                                AppRefreshAnchor(),
+                              ],
+                            );
+                          }
+
+                          if (index == 1) {
+                            return OrdersDateFilterBar(
+                              selected: _dateFilter,
+                              customRange: _customDateRange,
+                              onChanged: (filter) =>
+                                  _selectDateFilter(context, filter),
+                            );
+                          }
+
+                          if (index == 2) {
+                            return OrdersSummaryCard(
+                              isDark: isDark,
+                              orders: filteredOrders,
+                            );
+                          }
+
+                          if (filteredOrders.isEmpty) {
+                            return orders.isEmpty
+                                ? const OrdersEmptyState()
+                                : OrdersEmptyFilterState(isDark: isDark);
+                          }
+
+                          final order = filteredOrders[index - 3];
+
+                          return OrderListItem(
+                            status: order.status,
+                            date: order.date,
+                            orderId: order.orderId,
+                            shippingDate: order.shippingDate,
+                            itemCount: order.itemCount,
+                            total: order.total,
+                            statusColor: order.statusColor,
+                            products: order.products
+                                .map(
+                                  (product) => OrderListItemProduct(
+                                    title: product.title,
+                                    brand: product.brand,
+                                    quantity: product.quantity,
+                                  ),
+                                )
+                                .toList(growable: false),
+                            isMultiMarket: order.isMultiMarket,
+                            marketCount: order.marketCount,
+                            marketSummary: order.marketSummary,
+                            onTap: () => _showOrderDetails(context, order),
+                          );
+                        },
+                      ),
                     ),
-                  ),
+            ),
           ),
         );
       },

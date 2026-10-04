@@ -1,3 +1,4 @@
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -65,7 +66,9 @@ class ServiceCityFields extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         if (isLoading)
-          const Center(child: CircularProgressIndicator())
+          const AppSkeleton(
+            child: SkeletonBox(height: 64, width: double.infinity),
+          )
         else if (error != null)
           AddressRetryTile(message: error!, onRetry: onRetry)
         else

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
@@ -240,7 +242,10 @@ class _AddressesViewState extends State<AddressesView>
       builder: (context, state) {
         final addresses = state.addresses;
         final selectedAddressId = state.selectedAddressId;
-        final isInitialLoading = state is AddressLoading && addresses.isEmpty;
+        final isInitialLoading =
+            (state is AddressInitial ||
+                state is AddressLoading && !state.hasLoaded) &&
+            addresses.isEmpty;
         final selectedCity = context.watch<LocationCubit>().state.selectedCity;
         final availableAddresses = <AddressData>[];
         final unavailableAddresses = <AddressData>[];
@@ -276,77 +281,96 @@ class _AddressesViewState extends State<AddressesView>
             ),
           ),
           body: SafeArea(
-            child: isInitialLoading
-                ? const Center(child: CircularProgressIndicator())
-                : AppRefreshIndicator(
-                    onRefresh: _refreshAddresses,
-                    child: ListView.separated(
+            child: AppRefreshIndicator(
+              onRefresh: _refreshAddresses,
+              child: isInitialLoading
+                  ? ListView(
                       physics: AppRefreshIndicator.scrollPhysics,
-                      padding: const EdgeInsets.fromLTRB(
-                        16.0,
-                        12.0,
-                        16.0,
-                        90.0,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 90),
+                      children: const [
+                        PageTopBar(
+                          title: 'Addresses',
+                          subtitle: 'Choose where orders should arrive',
+                        ),
+                        AppRefreshAnchor(),
+                        SizedBox(height: 18),
+                        AppSkeletonList(rowHeight: 160),
+                      ],
+                    )
+                  : AppContentReveal(
+                      child: ListView.separated(
+                        physics: AppRefreshIndicator.scrollPhysics,
+                        padding: const EdgeInsets.fromLTRB(
+                          16.0,
+                          12.0,
+                          16.0,
+                          90.0,
+                        ),
+                        itemCount: orderedAddresses.length + 2,
+                        separatorBuilder: (context, index) =>
+                            const SizedBox(height: 12),
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return const Column(
+                              children: [
+                                PageTopBar(
+                                  title: 'Addresses',
+                                  subtitle: 'Choose where orders should arrive',
+                                ),
+                                AppRefreshAnchor(),
+                              ],
+                            );
+                          }
+
+                          if (index == 1) {
+                            return _AddressSummaryCard(
+                              isDark: isDark,
+                              totalCount: addresses.length,
+                              selectedName: selectedAvailableAddress?.name,
+                            );
+                          }
+
+                          final address = orderedAddresses[index - 2];
+                          final isAvailable = isAddressAvailableForCity(
+                            address,
+                            selectedCity,
+                          );
+                          final isDeliveryAvailable = isAddressDeliverable(
+                            address,
+                          );
+
+                          return SingleAddress(
+                            selectedAddress:
+                                selectedAvailableAddress?.id == address.id,
+                            isAvailable: isAvailable,
+                            unavailableLabel: !isDeliveryAvailable
+                                ? 'Disabled'
+                                : !isAvailable
+                                ? 'Not supported here'
+                                : null,
+                            unavailableMessage: isDeliveryAvailable
+                                ? null
+                                : 'Delivery is no longer available for this address',
+                            name: address.name,
+                            phoneNumber: address.phoneNumber,
+                            address: localizedAddressText(context, address),
+                            city: address.cityLabel,
+                            area: address.areaLabel,
+                            deliveryPriceLabel: _deliveryPriceLabel(
+                              context,
+                              address.deliveryAreaPrice,
+                            ),
+                            onTap: isAvailable
+                                ? () => _selectAddress(context, address)
+                                : null,
+                            onEdit: () =>
+                                _openAddressForm(context, address: address),
+                            onDelete: () => _deleteAddress(context, address),
+                          );
+                        },
                       ),
-                      itemCount: orderedAddresses.length + 2,
-                      separatorBuilder: (context, index) =>
-                          const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        if (index == 0) {
-                          return const PageTopBar(
-                            title: 'Addresses',
-                            subtitle: 'Choose where orders should arrive',
-                          );
-                        }
-
-                        if (index == 1) {
-                          return _AddressSummaryCard(
-                            isDark: isDark,
-                            totalCount: addresses.length,
-                            selectedName: selectedAvailableAddress?.name,
-                          );
-                        }
-
-                        final address = orderedAddresses[index - 2];
-                        final isAvailable = isAddressAvailableForCity(
-                          address,
-                          selectedCity,
-                        );
-                        final isDeliveryAvailable = isAddressDeliverable(
-                          address,
-                        );
-
-                        return SingleAddress(
-                          selectedAddress:
-                              selectedAvailableAddress?.id == address.id,
-                          isAvailable: isAvailable,
-                          unavailableLabel: !isDeliveryAvailable
-                              ? 'Disabled'
-                              : !isAvailable
-                              ? 'Not supported here'
-                              : null,
-                          unavailableMessage: isDeliveryAvailable
-                              ? null
-                              : 'Delivery is no longer available for this address',
-                          name: address.name,
-                          phoneNumber: address.phoneNumber,
-                          address: localizedAddressText(context, address),
-                          city: address.cityLabel,
-                          area: address.areaLabel,
-                          deliveryPriceLabel: _deliveryPriceLabel(
-                            context,
-                            address.deliveryAreaPrice,
-                          ),
-                          onTap: isAvailable
-                              ? () => _selectAddress(context, address)
-                              : null,
-                          onEdit: () =>
-                              _openAddressForm(context, address: address),
-                          onDelete: () => _deleteAddress(context, address),
-                        );
-                      },
                     ),
-                  ),
+            ),
           ),
         );
       },

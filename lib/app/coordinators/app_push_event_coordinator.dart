@@ -33,11 +33,13 @@ class AppPushEventCoordinator {
     required this.context,
     required this.isMounted,
     required this.showForegroundBanner,
+    this.onCatalogChanged,
   });
 
   final BuildContext Function() context;
   final bool Function() isMounted;
   final Future<void> Function(Map<String, dynamic> data) showForegroundBanner;
+  final VoidCallback? onCatalogChanged;
 
   Future<void> handle(PushEvent pushEvent) async {
     if (!isMounted()) return;
@@ -85,9 +87,12 @@ class AppPushEventCoordinator {
     }
 
     if (event == 'offer_created') {
+      homeCubit.invalidate();
+      offerCatalogCubit.invalidate();
+      onCatalogChanged?.call();
       await Future.wait([
-        homeCubit.loadHome(force: true),
-        offerCatalogCubit.loadOffers(force: true),
+        homeCubit.refreshIfStale(),
+        offerCatalogCubit.refreshIfStale(),
       ]);
       if (!isMounted()) return;
       if (pushEvent.opened) {
@@ -107,11 +112,16 @@ class AppPushEventCoordinator {
     }
 
     if (event == 'market_created') {
+      homeCubit.invalidate();
+      storeCubit.invalidate();
+      productCatalogCubit.invalidate();
+      productDiscoveryCubit.invalidate();
+      onCatalogChanged?.call();
       await Future.wait([
-        homeCubit.loadHome(force: true),
-        storeCubit.loadStore(force: true),
-        productCatalogCubit.loadProducts(force: true),
-        productDiscoveryCubit.loadDiscovery(force: true),
+        homeCubit.refreshIfStale(),
+        storeCubit.refreshIfStale(),
+        productCatalogCubit.refreshIfStale(),
+        productDiscoveryCubit.refreshIfStale(),
       ]);
       if (!isMounted()) return;
       if (pushEvent.opened) {
@@ -138,10 +148,16 @@ class AppPushEventCoordinator {
     }
 
     if (event == 'product_created') {
+      homeCubit.invalidate();
+      storeCubit.invalidate();
+      productCatalogCubit.invalidate();
+      productDiscoveryCubit.invalidate();
+      onCatalogChanged?.call();
       await Future.wait([
-        homeCubit.loadHome(force: true),
-        productCatalogCubit.loadProducts(force: true),
-        productDiscoveryCubit.loadDiscovery(force: true),
+        homeCubit.refreshIfStale(),
+        storeCubit.refreshIfStale(),
+        productCatalogCubit.refreshIfStale(),
+        productDiscoveryCubit.refreshIfStale(),
       ]);
       if (!isMounted()) return;
       if (pushEvent.opened) {

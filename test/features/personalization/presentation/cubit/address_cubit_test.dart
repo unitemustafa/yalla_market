@@ -104,6 +104,55 @@ void main() {
         await cubit.close();
       },
     );
+
+    test('concurrent address loads wait for the active request', () async {
+      final loadDelay = Completer<void>();
+      final cubit = AddressCubit(
+        _addressUseCases(
+          _FakeAddressRepository(
+            addresses: [sampleAddress],
+            loadDelay: loadDelay,
+          ),
+        ),
+      );
+
+      final first = cubit.loadAddresses();
+      final second = cubit.loadAddresses();
+      var secondFinished = false;
+      second.whenComplete(() => secondFinished = true);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(secondFinished, isFalse);
+      loadDelay.complete();
+      await Future.wait([first, second]);
+
+      expect(cubit.state, isA<AddressReady>());
+      await cubit.close();
+    });
+
+    test('preserves a loaded empty result when a refresh fails', () async {
+      final repository = _FakeAddressRepository();
+      final cubit = AddressCubit(_addressUseCases(repository));
+      await cubit.loadAddresses();
+      final delay = Completer<void>();
+      repository.nextLoadDelay = delay;
+      repository.nextFailure = const ServerFailure('Address API failed.');
+
+      final refresh = cubit.loadAddresses();
+      await Future<void>.delayed(Duration.zero);
+
+      final loading = cubit.state as AddressLoading;
+      expect(loading.addresses, isEmpty);
+      expect(loading.hasLoaded, isTrue);
+
+      delay.complete();
+      await refresh;
+
+      final failure = cubit.state as AddressFailure;
+      expect(failure.addresses, isEmpty);
+      expect(failure.hasLoaded, isTrue);
+      await cubit.close();
+    });
   });
 }
 
@@ -125,6 +174,7 @@ class _FakeAddressRepository implements AddressRepository {
 
   final List<AddressData> _addresses;
   final Completer<void>? loadDelay;
+  Completer<void>? nextLoadDelay;
   String? _selectedAddressId;
   Failure? nextFailure;
   AddressData? lastSavedAddress;
@@ -132,7 +182,9 @@ class _FakeAddressRepository implements AddressRepository {
 
   @override
   Future<ApiResult<List<AddressData>>> getAddresses() async {
-    await loadDelay?.future;
+    final delay = nextLoadDelay ?? loadDelay;
+    nextLoadDelay = null;
+    await delay?.future;
     return _result();
   }
 

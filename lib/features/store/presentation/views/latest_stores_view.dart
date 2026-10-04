@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -62,12 +64,14 @@ class _LatestStoresViewState extends State<LatestStoresView> {
                   title: 'Latest Stores',
                   subtitle: 'Browse the newest stores',
                 ),
+                const AppRefreshAnchor(),
                 const SizedBox(height: 18),
                 BlocBuilder<StoreCubit, StoreState>(
                   builder: (context, state) {
                     final stores = state.data?.latestMarkets ?? const [];
-                    if (state is StoreLoading && stores.isEmpty) {
-                      return const AppLoadingState(message: 'Loading store...');
+                    if ((state is StoreInitial || state is StoreLoading) &&
+                        state.data == null) {
+                      return const AppSkeletonList(rowHeight: 150);
                     }
                     if (state is StoreFailure && stores.isEmpty) {
                       return AppErrorState(
@@ -84,23 +88,25 @@ class _LatestStoresViewState extends State<LatestStoresView> {
                       );
                     }
 
-                    return Column(
-                      children: stores
-                          .take(15)
-                          .map(
-                            (market) => Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: StoreMarketCard(
-                                key: ValueKey(
-                                  'latest_stores_page_${market.id}',
+                    return AppContentReveal(
+                      child: Column(
+                        children: stores
+                            .take(15)
+                            .map(
+                              (market) => Padding(
+                                padding: const EdgeInsets.only(bottom: 12),
+                                child: StoreMarketCard(
+                                  key: ValueKey(
+                                    'latest_stores_page_${market.id}',
+                                  ),
+                                  market: market,
+                                  keyPrefix: 'latest_stores_page',
+                                  onTap: () => _openStore(market),
                                 ),
-                                market: market,
-                                keyPrefix: 'latest_stores_page',
-                                onTap: () => _openStore(market),
                               ),
-                            ),
-                          )
-                          .toList(growable: false),
+                            )
+                            .toList(growable: false),
+                      ),
                     );
                   },
                 ),

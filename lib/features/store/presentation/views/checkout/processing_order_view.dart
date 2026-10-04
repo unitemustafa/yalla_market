@@ -1,3 +1,4 @@
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -112,14 +113,7 @@ class _ProcessingOrderViewState extends State<ProcessingOrderView>
                 const SizedBox(height: 28),
                 SizedBox(
                   width: 170,
-                  child: LinearProgressIndicator(
-                    minHeight: 6,
-                    borderRadius: BorderRadius.circular(999),
-                    backgroundColor: AppColors.primary.withValues(alpha: 0.12),
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                      AppColors.primary,
-                    ),
-                  ),
+                  child: const AppLoadingPlaceholder(width: 170, height: 6),
                 ),
               ],
             ),

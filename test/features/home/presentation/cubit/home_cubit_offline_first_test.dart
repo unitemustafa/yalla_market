@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -53,6 +55,96 @@ void main() {
     expect(cubit.state, isA<HomeFailure>());
     expect(cubit.state.data?.location?.name, 'network');
   });
+
+  test(
+    'reloads a ready home only when its network data is 60 seconds old',
+    () async {
+      var now = DateTime.utc(2030, 1, 1, 12);
+      final repository = _OfflineFirstHomeRepository();
+      final cubit = HomeCubit(GetHomeUseCase(repository), now: () => now);
+      addTearDown(cubit.close);
+
+      await cubit.loadHome();
+      expect(repository.forceRefreshValues, [false, true]);
+
+      now = now.add(const Duration(seconds: 59));
+      await cubit.loadHome();
+      expect(repository.forceRefreshValues, [false, true]);
+
+      now = now.add(const Duration(seconds: 1));
+      await cubit.loadHome();
+      expect(repository.forceRefreshValues, [false, true, true]);
+    },
+  );
+
+  test('retries stale home revalidation after a silent failure', () async {
+    var now = DateTime.utc(2030, 1, 1, 12);
+    final repository = _RetryingHomeRepository();
+    final cubit = HomeCubit(GetHomeUseCase(repository), now: () => now);
+    addTearDown(cubit.close);
+
+    await cubit.loadHome();
+    now = now.add(const Duration(seconds: 60));
+    await cubit.loadHome();
+    await cubit.loadHome();
+
+    expect(repository.forceRefreshValues, [false, true, true]);
+    expect(cubit.state.data?.location?.name, 'network');
+  });
+
+  test('clearSession invalidates home freshness for the next load', () async {
+    final repository = _OfflineFirstHomeRepository();
+    final cubit = HomeCubit(GetHomeUseCase(repository));
+    addTearDown(cubit.close);
+
+    await cubit.loadHome();
+    cubit.clearSession();
+    await cubit.loadHome();
+
+    expect(repository.forceRefreshValues, [false, true, false, true]);
+  });
+
+  test('an invalidated in-flight response does not make home fresh', () async {
+    final repository = _BlockingHomeRepository();
+    final cubit = HomeCubit(GetHomeUseCase(repository));
+    addTearDown(cubit.close);
+
+    await cubit.loadHome();
+    final refresh = cubit.refreshSilently();
+    await Future<void>.delayed(Duration.zero);
+    cubit.invalidate();
+    repository.networkResponses
+        .removeAt(0)
+        .complete(ApiResult.success(_homeNamed('stale network response')));
+    await refresh;
+
+    expect(cubit.lastNetworkSuccessAt, isNull);
+    await cubit.refreshIfStale();
+    expect(repository.forceRefreshValues, [false, true, true]);
+  });
+
+  test(
+    'an old refresh waiter cannot reload after the session is cleared',
+    () async {
+      final repository = _BlockingHomeRepository();
+      final cubit = HomeCubit(GetHomeUseCase(repository));
+      addTearDown(cubit.close);
+      await cubit.loadHome();
+      final refresh = cubit.refreshSilently();
+      cubit.invalidate();
+      final waiter = cubit.refreshIfStale();
+      cubit.clearSession();
+
+      repository.networkResponses.single.complete(
+        ApiResult.success(_homeNamed('old session')),
+      );
+      await Future.wait([refresh, waiter]);
+
+      expect(cubit.state, isA<HomeInitial>());
+      expect(repository.forceRefreshValues, [false, true]);
+      expect(cubit.lastNetworkSuccessAt, isNull);
+    },
+  );
 }
 
 class _OfflineFirstHomeRepository implements HomeRepository {
@@ -101,6 +193,45 @@ class _ManualRefreshFailureRepository implements HomeRepository {
       return const ApiResult.failure(NetworkFailure('offline'));
     }
     return ApiResult.success(_homeNamed('network'));
+  }
+}
+
+class _RetryingHomeRepository implements HomeRepository {
+  final List<bool> forceRefreshValues = [];
+  var _networkAttempts = 0;
+
+  @override
+  Future<ApiResult<HomeData>> getHome({bool forceRefresh = false}) async {
+    forceRefreshValues.add(forceRefresh);
+    if (!forceRefresh) return ApiResult.success(_homeNamed('network'));
+    _networkAttempts++;
+    if (_networkAttempts == 1) {
+      return const ApiResult.failure(NetworkFailure('offline'));
+    }
+    return ApiResult.success(_homeNamed('network'));
+  }
+}
+
+class _BlockingHomeRepository implements HomeRepository {
+  final List<bool> forceRefreshValues = [];
+  final List<Completer<ApiResult<HomeData>>> networkResponses = [];
+  var _networkRequests = 0;
+
+  @override
+  Future<ApiResult<HomeData>> getHome({bool forceRefresh = false}) {
+    forceRefreshValues.add(forceRefresh);
+    if (!forceRefresh) {
+      return Future.value(ApiResult.success(_homeNamed('home')));
+    }
+    _networkRequests++;
+    final completer = Completer<ApiResult<HomeData>>();
+    networkResponses.add(completer);
+    if (_networkRequests > 1) {
+      completer.complete(
+        ApiResult.success(_homeNamed('fresh network response')),
+      );
+    }
+    return completer.future;
   }
 }
 

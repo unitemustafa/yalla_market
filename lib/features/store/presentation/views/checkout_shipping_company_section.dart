@@ -1,3 +1,4 @@
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -37,7 +38,7 @@ class ShippingCompanyCard extends StatelessWidget {
           ? const Center(
               child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
-                child: CircularProgressIndicator(strokeWidth: 2.5),
+                child: AppSkeletonList(rows: 2, rowHeight: 48),
               ),
             )
           : errorMessage != null

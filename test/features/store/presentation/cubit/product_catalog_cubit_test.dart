@@ -59,10 +59,12 @@ void main() {
     });
 
     test('does not reload a ready catalog unless forced', () async {
+      var now = DateTime.utc(2030, 1, 1, 12);
       final repository = _FakeProductRepository(products: [sampleProduct]);
       final cubit = ProductCatalogCubit(
         GetProductsUseCase(repository),
         GetSelectedCityUseCase(_FakeLocationRepository()),
+        now: () => now,
       );
       await Future<void>.delayed(Duration.zero);
 
@@ -71,6 +73,44 @@ void main() {
       expect(repository.lastCitySlug, 'sharm-el-sheikh');
 
       await cubit.loadProducts(force: true);
+      expect(repository.loadCount, 2);
+      await cubit.close();
+    });
+
+    test(
+      'reloads a ready catalog when it becomes stale at 60 seconds',
+      () async {
+        var now = DateTime.utc(2030, 1, 1, 12);
+        final repository = _FakeProductRepository(products: [sampleProduct]);
+        final cubit = ProductCatalogCubit(
+          GetProductsUseCase(repository),
+          GetSelectedCityUseCase(_FakeLocationRepository()),
+          now: () => now,
+        );
+        await Future<void>.delayed(Duration.zero);
+
+        now = now.add(const Duration(seconds: 59));
+        await cubit.loadProducts();
+        expect(repository.loadCount, 1);
+
+        now = now.add(const Duration(seconds: 1));
+        await cubit.loadProducts();
+        expect(repository.loadCount, 2);
+        await cubit.close();
+      },
+    );
+
+    test('clearSession makes the next catalog load fetch again', () async {
+      final repository = _FakeProductRepository(products: [sampleProduct]);
+      final cubit = ProductCatalogCubit(
+        GetProductsUseCase(repository),
+        GetSelectedCityUseCase(_FakeLocationRepository()),
+      );
+      await Future<void>.delayed(Duration.zero);
+
+      cubit.clearSession();
+      await cubit.loadProducts();
+
       expect(repository.loadCount, 2);
       await cubit.close();
     });

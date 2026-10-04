@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
+import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../home/presentation/cubit/home_cubit.dart';
+import '../../../../home/presentation/cubit/home_state.dart';
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
@@ -62,18 +67,58 @@ class BrandsView extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               if (categories?.isNotEmpty == true)
-                _AllCategoriesGrid(categories: categories!)
+                BlocBuilder<HomeCubit, HomeState>(
+                  builder: (context, state) {
+                    final currentCategories =
+                        state.data?.categories ?? categories!;
+                    if (currentCategories.isEmpty) {
+                      return const AppEmptyState(
+                        title: 'No categories available',
+                        message:
+                            'Categories will appear here once the catalog is ready.',
+                      );
+                    }
+                    return _AllCategoriesGrid(categories: currentCategories);
+                  },
+                )
               else
                 BlocBuilder<ProductDiscoveryCubit, ProductDiscoveryState>(
                   builder: (context, state) {
-                    if (state is ProductDiscoveryLoading &&
+                    if ((state is ProductDiscoveryInitial ||
+                            state is ProductDiscoveryLoading) &&
                         state.categories.isEmpty) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const AppCategorySkeletonGrid();
                     }
 
-                    return _AllCategoriesGrid(
-                      categories: categoriesForAllCategories(
-                        discoveryCategories: state.categories,
+                    if (state is ProductDiscoveryFailure &&
+                        state.categories.isEmpty) {
+                      return AppErrorState(
+                        title: 'Categories could not load',
+                        message: state.message,
+                        onRetry: () => context
+                            .read<ProductDiscoveryCubit>()
+                            .loadDiscovery(force: true),
+                      );
+                    }
+                    if (state is ProductDiscoveryNeedsCity) {
+                      return const AppEmptyState(
+                        title: 'Choose your city',
+                        message:
+                            'So we can show categories available in your area.',
+                      );
+                    }
+                    if (state.categories.isEmpty) {
+                      return const AppEmptyState(
+                        title: 'No categories available',
+                        message:
+                            'Categories will appear here once the catalog is ready.',
+                      );
+                    }
+                    return AppContentReveal(
+                      child: _AllCategoriesGrid(
+                        categories: categoriesForAllCategories(
+                          discoveryCategories: state.categories,
+                        ),
                       ),
                     );
                   },

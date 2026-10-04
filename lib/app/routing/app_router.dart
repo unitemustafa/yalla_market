@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/presentation/widgets/refresh_on_return.dart';
+import '../coordinators/app_catalog_refresh_coordinator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
@@ -78,7 +80,7 @@ class AppRouter {
   static Route<dynamic> generateRoute(RouteSettings settings) {
     if (_protectedRoutes.contains(settings.name) &&
         !AuthGuard.isAuthenticated) {
-      return _buildRoute(_loginWithMedia(), settings);
+      return _buildRoute(_loginWithMedia(), settings, refreshCatalog: false);
     }
     switch (settings.name) {
       case AppRoutes.splash:
@@ -88,13 +90,7 @@ class AppRouter {
         if (!AppEnvironment.enableOnboarding) {
           return _buildRoute(_loginWithMedia(), settings);
         }
-        return _buildRoute(
-          BlocProvider<AppMediaCubit>(
-            create: (_) => sl<AppMediaCubit>()..load(),
-            child: const OnboardingView(),
-          ),
-          settings,
-        );
+        return _buildRoute(const OnboardingView(), settings);
 
       case AppRoutes.login:
         return _buildRoute(_loginWithMedia(), settings);
@@ -286,9 +282,20 @@ class AppRouter {
 
   static MaterialPageRoute<dynamic> _buildRoute(
     Widget page,
-    RouteSettings settings,
-  ) {
-    return MaterialPageRoute(builder: (_) => page, settings: settings);
+    RouteSettings settings, {
+    bool refreshCatalog = true,
+  }) {
+    return MaterialPageRoute(
+      builder: (context) =>
+          refreshCatalog && AppCatalogRefreshCoordinator.handles(settings.name)
+          ? RefreshOnReturn(
+              onRefresh: () =>
+                  AppCatalogRefreshCoordinator.refreshRoute(context, settings),
+              child: page,
+            )
+          : page,
+      settings: settings,
+    );
   }
 
   static Widget _loginWithMedia() => BlocProvider<AppMediaCubit>(

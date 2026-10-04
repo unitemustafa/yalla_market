@@ -68,19 +68,31 @@ class AppLifecycleCoordinator {
     }
     if (state == AppLifecycleState.resumed && _wasBackgrounded) {
       _wasBackgrounded = false;
-      final lastSuccessfulSync = context.read<HomeCubit>().lastNetworkSuccessAt;
-      if (lastSuccessfulSync == null ||
-          _now().toUtc().difference(lastSuccessfulSync.toUtc()) >=
-              minimumBackgroundDuration) {
-        unawaited(refreshNow(context, isMounted));
+      final syncTimes = [
+        context.read<HomeCubit>().lastNetworkSuccessAt,
+        context.read<ProductCatalogCubit>().lastNetworkSuccessAt,
+        context.read<ProductDiscoveryCubit>().lastNetworkSuccessAt,
+        context.read<StoreCubit>().lastNetworkSuccessAt,
+        context.read<OrderHistoryCubit>().lastNetworkSuccessAt,
+        context.read<OfferCatalogCubit>().lastNetworkSuccessAt,
+      ];
+      final now = _now().toUtc();
+      if (syncTimes.any(
+        (time) =>
+            time == null ||
+            now.isBefore(time) ||
+            now.difference(time) >= minimumBackgroundDuration,
+      )) {
+        unawaited(refreshNow(context, isMounted, onlyStale: true));
       }
     }
   }
 
   Future<void> refreshNow(
     BuildContext context,
-    bool Function() isMounted,
-  ) async {
+    bool Function() isMounted, {
+    bool onlyStale = false,
+  }) async {
     if (!isMounted()) return;
     final authCubit = context.read<AuthCubit>();
     if (authCubit.state is! AuthAuthenticated) return;
@@ -92,16 +104,24 @@ class AppLifecycleCoordinator {
               sessionIsValid &&
               authCubit.state is AuthAuthenticated;
         },
-        refreshHome: () => context.read<HomeCubit>().refreshSilently(),
-        refreshProducts: () =>
-            context.read<ProductCatalogCubit>().refreshSilently(),
-        refreshDiscovery: () =>
-            context.read<ProductDiscoveryCubit>().refreshSilently(),
-        refreshStore: () => context.read<StoreCubit>().refreshSilently(),
-        refreshOrders: () =>
-            context.read<OrderHistoryCubit>().loadOrders(force: true),
-        refreshOffers: () =>
-            context.read<OfferCatalogCubit>().loadOffers(force: true),
+        refreshHome: () => onlyStale
+            ? context.read<HomeCubit>().refreshIfStale()
+            : context.read<HomeCubit>().refreshSilently(),
+        refreshProducts: () => onlyStale
+            ? context.read<ProductCatalogCubit>().refreshIfStale()
+            : context.read<ProductCatalogCubit>().refreshSilently(),
+        refreshDiscovery: () => onlyStale
+            ? context.read<ProductDiscoveryCubit>().refreshIfStale()
+            : context.read<ProductDiscoveryCubit>().refreshSilently(),
+        refreshStore: () => onlyStale
+            ? context.read<StoreCubit>().refreshIfStale()
+            : context.read<StoreCubit>().refreshSilently(),
+        refreshOrders: () => onlyStale
+            ? context.read<OrderHistoryCubit>().refreshIfStale()
+            : context.read<OrderHistoryCubit>().loadOrders(force: true),
+        refreshOffers: () => onlyStale
+            ? context.read<OfferCatalogCubit>().refreshIfStale()
+            : context.read<OfferCatalogCubit>().loadOffers(force: true),
       );
     } catch (_) {
       // A background refresh failure must not invalidate a valid session.

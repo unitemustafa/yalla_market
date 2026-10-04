@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -16,6 +17,7 @@ import 'package:yalla_market/features/home/presentation/cubit/home_state.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_state.dart';
 import 'package:yalla_market/features/home/presentation/views/home_view.dart';
+import 'package:yalla_market/features/home/presentation/widgets/promo_slider.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/brand_data.dart';
 import 'package:yalla_market/features/store/domain/entities/category_data.dart';
@@ -186,13 +188,48 @@ void main() {
         findsNothing,
       );
     });
+
+    testWidgets(
+      'Android Material 3 pull does not stretch the benefits strip while content below the anchor moves',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        final cubit = SpyNotificationCubit()
+          ..seed(const NotificationState(unreadCount: 0));
+        addTearDown(cubit.close);
+        await _pumpHome(tester, cubit, theme: ThemeData(useMaterial3: true));
+
+        final benefits = find.byKey(const ValueKey('home_benefits_strip'));
+        final content = find.byType(PromoSlider);
+        expect(content, findsOneWidget);
+        final benefitsBefore = tester.getTopLeft(benefits);
+        final contentBefore = tester.getTopLeft(content);
+
+        final gesture = await tester.startGesture(const Offset(200, 300));
+        await gesture.moveBy(const Offset(0, 100));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 16));
+        await tester.pump(const Duration(milliseconds: 16));
+
+        expect(tester.getTopLeft(benefits).dy, closeTo(benefitsBefore.dy, 1));
+        expect(tester.getTopLeft(content).dy, greaterThan(contentBefore.dy));
+        expect(
+          find.byKey(const ValueKey('home_refresh_anchor')),
+          findsOneWidget,
+        );
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+        debugDefaultTargetPlatformOverride = null;
+      },
+    );
   });
 }
 
 Future<void> _pumpHome(
   WidgetTester tester,
-  NotificationCubit notificationCubit,
-) async {
+  NotificationCubit notificationCubit, {
+  ThemeData? theme,
+}) async {
   final locationRepository = FakeLocationRepository();
   final productRepository = _EmptyProductRepository();
   final storeRepository = _EmptyStoreRepository();
@@ -239,7 +276,7 @@ Future<void> _pumpHome(
         BlocProvider<ProductDiscoveryCubit>.value(value: productDiscoveryCubit),
         BlocProvider<StoreCubit>.value(value: storeCubit),
       ],
-      child: const MaterialApp(home: HomeView()),
+      child: MaterialApp(theme: theme, home: const HomeView()),
     ),
   );
   await tester.pump();

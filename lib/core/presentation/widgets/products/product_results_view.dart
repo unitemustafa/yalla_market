@@ -9,6 +9,7 @@ import '../buttons/app_action_button.dart';
 import '../layouts/grid_layout.dart';
 import '../search/app_search_actions_bar.dart';
 import '../states/app_state_view.dart';
+import '../states/app_skeleton.dart';
 import 'product_cards/product_card_vertical.dart';
 import 'product_sort_button.dart';
 
@@ -91,9 +92,21 @@ class _ProductResultsViewState extends State<ProductResultsView> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (widget.status == ProductResultsStatus.loading) {
-      return AppLoadingState(message: widget.loadingMessage);
+  Widget build(BuildContext context) => AppLoadingTransition(
+    isLoading:
+        widget.status == ProductResultsStatus.loading &&
+        widget.products.isEmpty,
+    loading: AppProductSkeletonGrid(
+      maxCrossAxisCount: widget.maxCrossAxisCount,
+      mainAxisExtent: widget.gridMainAxisExtent,
+    ),
+    child: _buildResults(context),
+  );
+
+  Widget _buildResults(BuildContext context) {
+    if (widget.status == ProductResultsStatus.loading &&
+        widget.products.isEmpty) {
+      return const SizedBox.shrink();
     }
 
     if (widget.status == ProductResultsStatus.error) {

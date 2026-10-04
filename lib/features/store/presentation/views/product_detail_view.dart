@@ -1,5 +1,10 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import '../../../../core/cache/data_freshness.dart';
+import '../../../../core/presentation/widgets/refresh_on_return.dart';
+import '../../../../core/utils/coalesced_operation.dart';
+
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
@@ -91,6 +96,8 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   ProductData? _loadedProduct;
   bool _isLoadingProductDetails = true;
   Failure? _productLoadFailure;
+  final _productFreshness = DataFreshness();
+  final _detailLoads = CoalescedOperation();
   @override
   void initState() {
     super.initState();
@@ -178,6 +185,29 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   Future<void> _loadProductDetails({
     bool forceRefresh = false,
     bool silent = false,
+  }) => _detailLoads.run(
+    () => _fetchProductDetails(forceRefresh: forceRefresh, silent: silent),
+  );
+
+  Future<void> _refreshProductIfStale({bool invalidated = false}) async {
+    if (invalidated) _productFreshness.invalidate();
+    if (!_productFreshness.isStale) return;
+    final joinedActiveLoad = _detailLoads.isRunning;
+    final revision = _productFreshness.revision;
+    await _loadProductDetails(forceRefresh: true, silent: true);
+    // An event arriving during another load must not be swallowed by that load.
+    if (mounted &&
+        invalidated &&
+        joinedActiveLoad &&
+        _productFreshness.isStale &&
+        revision == _productFreshness.revision) {
+      await _loadProductDetails(forceRefresh: true, silent: true);
+    }
+  }
+
+  Future<void> _fetchProductDetails({
+    bool forceRefresh = false,
+    bool silent = false,
   }) async {
     final id = widget.productId.trim();
     if (id.isEmpty) {
@@ -203,11 +233,15 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         _productLoadFailure = null;
       });
     }
+    final revision = _productFreshness.revision;
     final result = await sl<GetProductUseCase>()(
       id,
       forceRefresh: forceRefresh,
     );
     if (!mounted) return;
+    if (result case ApiSuccess(origin: DataOrigin.network)) {
+      _productFreshness.markNetworkSuccess(revision: revision);
+    }
 
     result.when(
       success: (product) {
@@ -232,7 +266,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
       _ => false,
     };
     if (!forceRefresh && servedCache) {
-      await _loadProductDetails(forceRefresh: true, silent: true);
+      await _fetchProductDetails(forceRefresh: true, silent: true);
     }
   }
 
@@ -287,7 +321,14 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   void _updateState(VoidCallback update) => setState(update);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => RefreshOnReturn(
+    refreshOnMount: false,
+    onRefresh: _refreshProductIfStale,
+    onInvalidated: () => _refreshProductIfStale(invalidated: true),
+    child: _buildContent(context),
+  );
+
+  Widget _buildContent(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     if (_loadedProduct == null) {
       final failure = _productLoadFailure;
@@ -301,7 +342,7 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         ),
         body: Center(
           child: _isLoadingProductDetails
-              ? const CircularProgressIndicator()
+              ? const AppProductDetailsSkeleton()
               : Padding(
                   padding: const EdgeInsets.all(24),
                   child: Column(
@@ -370,106 +411,108 @@ class _ProductDetailViewState extends State<ProductDetailView> {
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _ProductGallery(
-              isDark: isDark,
-              currentImage: currentImage,
-              thumbnailImages: thumbnailImages,
-              isFavorite: isFavorite,
-              onBack: () => Navigator.pop(context),
-              onShare: _showProductShareSheet,
-              onImageTap: () => _showImageDialog(context, currentImage),
-              onWishlistTap: () => _toggleWishlist(context, isFavorite),
-              onThumbnailTap: (asset) => setState(() => currentImage = asset),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _PriceHeader(
-                    discount: _discountBadgeLabel(context, _productDiscount),
-                    price: _selectedDisplayPrice,
-                    oldPrice: _selectedOriginalPrice.isNotEmpty
-                        ? _selectedOriginalPrice
-                        : _formatPrice(_productOldPrice),
-                    isDark: isDark,
-                  ),
-                  if (_isLoadingProductDetails) ...[
-                    const SizedBox(height: 8),
-                    const LinearProgressIndicator(minHeight: 2),
-                  ],
-                  if (_variants.isEmpty) ...[
+      body: AppContentReveal(
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ProductGallery(
+                isDark: isDark,
+                currentImage: currentImage,
+                thumbnailImages: thumbnailImages,
+                isFavorite: isFavorite,
+                onBack: () => Navigator.pop(context),
+                onShare: _showProductShareSheet,
+                onImageTap: () => _showImageDialog(context, currentImage),
+                onWishlistTap: () => _toggleWishlist(context, isFavorite),
+                onThumbnailTap: (asset) => setState(() => currentImage = asset),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _PriceHeader(
+                      discount: _discountBadgeLabel(context, _productDiscount),
+                      price: _selectedDisplayPrice,
+                      oldPrice: _selectedOriginalPrice.isNotEmpty
+                          ? _selectedOriginalPrice
+                          : _formatPrice(_productOldPrice),
+                      isDark: isDark,
+                    ),
+                    if (_isLoadingProductDetails) ...[
+                      const SizedBox(height: 8),
+                      const AppLoadingPlaceholder(width: 80),
+                    ],
+                    if (_variants.isEmpty) ...[
+                      const SizedBox(height: 12),
+                      Text(
+                        'هذا المنتج غير متاح للطلب حاليًا.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     Text(
-                      'هذا المنتج غير متاح للطلب حاليًا.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w800,
+                      context.tr(_productTitle),
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: textColor,
+                        fontSize: AppFontSizes.title,
+                        height: 1.12,
+                        fontWeight: FontWeight.w900,
                       ),
                     ),
-                  ],
-                  const SizedBox(height: 12),
-                  Text(
-                    context.tr(_productTitle),
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      color: textColor,
-                      fontSize: AppFontSizes.title,
-                      height: 1.12,
-                      fontWeight: FontWeight.w900,
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _StatusPill(
+                          label: stock,
+                          color: stockColor,
+                          isDark: isDark,
+                        ),
+                        const SizedBox(width: 10),
+                        _BrandPill(brand: _productBrand, isDark: isDark),
+                      ],
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      _StatusPill(
-                        label: stock,
-                        color: stockColor,
-                        isDark: isDark,
+                    const SizedBox(height: 20),
+                    _buildVariantSelectors(isDark: isDark),
+                    if (hasUnavailableCombination) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'هذا الاختيار غير متاح حاليًا.',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: AppColors.error,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
-                      const SizedBox(width: 10),
-                      _BrandPill(brand: _productBrand, isDark: isDark),
                     ],
-                  ),
-                  const SizedBox(height: 20),
-                  _buildVariantSelectors(isDark: isDark),
-                  if (hasUnavailableCombination) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'هذا الاختيار غير متاح حاليًا.',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: AppColors.error,
-                        fontWeight: FontWeight.w800,
+                    if (_productAdditions.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      _buildAdditionsButton(
+                        isDark: isDark,
+                        mutedColor: mutedColor,
                       ),
-                    ),
-                  ],
-                  if (_productAdditions.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    _buildAdditionsButton(
+                    ],
+                    const SizedBox(height: 20),
+                    _InfoCard(
                       isDark: isDark,
-                      mutedColor: mutedColor,
-                    ),
-                  ],
-                  const SizedBox(height: 20),
-                  _InfoCard(
-                    isDark: isDark,
-                    title: 'Description',
-                    child: Text(
-                      _productDescription,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: mutedColor,
-                        height: 1.45,
-                        fontWeight: FontWeight.w600,
+                      title: 'Description',
+                      child: Text(
+                        _productDescription,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: mutedColor,
+                          height: 1.45,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: _BottomAddToCartBar(

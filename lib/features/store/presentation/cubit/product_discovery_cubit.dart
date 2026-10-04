@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/cache/data_freshness.dart';
+import '../../../../core/utils/coalesced_operation.dart';
 import '../../../../core/network/api_result.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
@@ -22,12 +24,14 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     required GetSelectedCityUseCase getSelectedCity,
     PrepareProductDiscoveryUseCase prepareDiscovery =
         const PrepareProductDiscoveryUseCase(),
+    DateTime Function()? now,
   }) : _getProducts = getProducts,
        _searchProducts = searchProducts,
        _getCategories = getCategories,
        _getBrands = getBrands,
        _getSelectedCity = getSelectedCity,
        _prepareDiscovery = prepareDiscovery,
+       _freshness = DataFreshness(now: now),
        super(const ProductDiscoveryInitial()) {
     loadDiscovery();
   }
@@ -40,13 +44,41 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   final PrepareProductDiscoveryUseCase _prepareDiscovery;
   int? _loadingGeneration;
   int _requestGeneration = 0;
+  final DataFreshness _freshness;
+  final _loads = CoalescedOperation();
+  int? _activeRevision;
+
+  DateTime? get lastNetworkSuccessAt => _freshness.lastNetworkSuccessAt;
+
+  void invalidate() => _freshness.invalidate();
+
+  Future<void> refreshIfStale() async {
+    if (_freshness.isStale) await refreshSilently();
+  }
 
   Future<void> loadDiscovery({bool force = false}) async {
-    return _loadDiscovery(force: force, silent: false);
+    return _loads.run(() async {
+      if (!force && state is ProductDiscoveryReady) {
+        if (!_freshness.isStale) return;
+        await _loadDiscovery(force: true, silent: true);
+      } else {
+        await _loadDiscovery(force: force, silent: false);
+      }
+    });
   }
 
   Future<void> refreshSilently() async {
-    return _loadDiscovery(force: true, silent: true);
+    final generation = _requestGeneration;
+    final joinedActiveLoad = _loads.isRunning;
+    final invalidatedWhileLoading =
+        _loads.isRunning && _activeRevision != _freshness.revision;
+    await _loads.run(() => _loadDiscovery(force: true, silent: true));
+    if (!isClosed &&
+        (!joinedActiveLoad || generation == _requestGeneration) &&
+        invalidatedWhileLoading &&
+        _freshness.isStale) {
+      await refreshSilently();
+    }
   }
 
   Future<void> _loadDiscovery({
@@ -56,6 +88,11 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     if (_loadingGeneration != null) return;
     if (!force && state is ProductDiscoveryReady) return;
     final generation = ++_requestGeneration;
+    final revision = _freshness.revision;
+    _activeRevision = revision;
+    final query = state.query;
+    final hadLoaded =
+        state is ProductDiscoveryReady || state is ProductDiscoveryFailure;
     _loadingGeneration = generation;
 
     try {
@@ -71,7 +108,9 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         return;
       }
 
-      if (!silent || state.products.isEmpty) {
+      if (!silent ||
+          state is ProductDiscoveryInitial ||
+          state is ProductDiscoveryNeedsCity) {
         emit(
           ProductDiscoveryLoading(
             query: state.query,
@@ -83,22 +122,41 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         );
       }
 
-      final productsFuture = _getProducts(
-        citySlug: selectedCity.slug,
-        forceRefresh: force,
-      );
+      final productsFuture = query.isEmpty
+          ? _getProducts(citySlug: selectedCity.slug, forceRefresh: force)
+          : _searchProducts(query, citySlug: selectedCity.slug);
       final categoriesFuture = _getCategories(forceRefresh: force);
       final brandsFuture = _getBrands(forceRefresh: force);
       final productsResult = await productsFuture;
       final categoriesResult = await categoriesFuture;
       final brandsResult = await brandsFuture;
       if (!_isCurrent(generation)) return;
+      if ([productsResult, categoriesResult, brandsResult].every(
+        (result) => switch (result) {
+          ApiSuccess(origin: DataOrigin.network) => true,
+          _ => false,
+        },
+      )) {
+        _freshness.markNetworkSuccess(revision: revision);
+      }
       if (silent &&
           [
             productsResult,
             categoriesResult,
             brandsResult,
           ].any((result) => result is ApiFailure)) {
+        if (!hadLoaded) {
+          for (final result in [
+            productsResult,
+            categoriesResult,
+            brandsResult,
+          ]) {
+            if (result case ApiFailure(:final failure)) {
+              _emitFailure(failure.message);
+              break;
+            }
+          }
+        }
         return;
       }
 
@@ -107,6 +165,7 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
           final allProducts = _prepareDiscovery.products(
             products,
             citySlug: selectedCity.slug,
+            query: query,
           );
 
           categoriesResult.when(
@@ -122,9 +181,9 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
                 success: (brands) {
                   emit(
                     ProductDiscoveryReady(
-                      query: '',
+                      query: query,
                       products: allProducts,
-                      categories: countedCategories,
+                      categories: _filterCategories(query, countedCategories),
                       brands: brands,
                       city: selectedCity,
                     ),
@@ -145,7 +204,12 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
         },
       );
       if (!force && servedCache && state is ProductDiscoveryReady) {
-        await _refreshDiscoveryInPlace(generation, selectedCity);
+        await _refreshDiscoveryInPlace(
+          generation,
+          selectedCity,
+          revision,
+          query,
+        );
       }
     } finally {
       if (_loadingGeneration == generation) {
@@ -157,11 +221,12 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   Future<void> _refreshDiscoveryInPlace(
     int generation,
     CityData selectedCity,
+    int revision,
+    String query,
   ) async {
-    final productsFuture = _getProducts(
-      citySlug: selectedCity.slug,
-      forceRefresh: true,
-    );
+    final productsFuture = query.isEmpty
+        ? _getProducts(citySlug: selectedCity.slug, forceRefresh: true)
+        : _searchProducts(query, citySlug: selectedCity.slug);
     final categoriesFuture = _getCategories(forceRefresh: true);
     final brandsFuture = _getBrands(forceRefresh: true);
     final productsResult = await productsFuture;
@@ -176,6 +241,7 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     final products = _prepareDiscovery.products(
       productsResult.data,
       citySlug: selectedCity.slug,
+      query: query,
     );
     final categories = _prepareDiscovery.categoriesWithProductCounts(
       categories: categoriesResult.data,
@@ -184,13 +250,20 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
     );
     emit(
       ProductDiscoveryReady(
-        query: '',
+        query: query,
         products: products,
-        categories: categories,
+        categories: _filterCategories(query, categories),
         brands: brandsResult.data,
         city: selectedCity,
       ),
     );
+    if ([
+      productsResult,
+      categoriesResult,
+      brandsResult,
+    ].every((result) => result.origin == DataOrigin.network)) {
+      _freshness.markNetworkSuccess(revision: revision);
+    }
   }
 
   Future<void> search(String query) async {
@@ -275,6 +348,8 @@ class ProductDiscoveryCubit extends Cubit<ProductDiscoveryState> {
   }
 
   void clearSession() {
+    _loads.reset();
+    _freshness.invalidate();
     _requestGeneration++;
     _loadingGeneration = null;
     emit(const ProductDiscoveryInitial());

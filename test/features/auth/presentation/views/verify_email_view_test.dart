@@ -1,3 +1,4 @@
+import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 import 'dart:ui' show PointerDeviceKind;
 
@@ -186,7 +187,8 @@ void main() {
     await _tapResend(tester);
     await tester.pump();
 
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    expect(find.byType(AppLoadingPlaceholder), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
     expect(find.text('Sending...'), findsOneWidget);
     expect(
       tester.widget<TextButton>(find.byType(TextButton)).onPressed,

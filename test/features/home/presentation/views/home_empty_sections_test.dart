@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
+import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart';
 import 'package:yalla_market/app/routing/app_route_arguments.dart';
 import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
@@ -185,12 +186,78 @@ void main() {
     );
     expect(find.byKey(const ValueKey('latest_product_latest-5')), findsNothing);
   });
+
+  testWidgets(
+    'keeps loaded categories visible while the product catalog is loading',
+    (tester) async {
+      await _pumpSections(
+        tester,
+        home: HomeData(
+          location: null,
+          offers: const [],
+          categories: const [_category],
+          products: const [],
+        ),
+        catalogState: const ProductCatalogLoading(),
+      );
+
+      expect(find.text('Popular Categories'), findsOneWidget);
+      expect(find.text('Category'), findsOneWidget);
+      expect(find.byType(AppProductSkeletonRail), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'ends the catalog skeleton after failure while retaining loaded categories',
+    (tester) async {
+      await _pumpSections(
+        tester,
+        home: HomeData(
+          location: null,
+          offers: const [],
+          categories: const [_category],
+          products: const [],
+        ),
+        catalogState: const ProductCatalogFailure('Catalog unavailable.'),
+      );
+
+      expect(find.text('Popular Categories'), findsOneWidget);
+      expect(find.text('Category'), findsOneWidget);
+      expect(find.byType(AppProductSkeletonRail), findsNothing);
+      expect(find.text('Products could not load'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'uses catalog skeletons only while an absent home payload is loading',
+    (tester) async {
+      await _pumpSections(
+        tester,
+        home: null,
+        homeLoading: true,
+        catalogState: const ProductCatalogReady([], city: _city),
+      );
+
+      expect(find.byType(AppProductSkeletonRail), findsOneWidget);
+      expect(find.byKey(const ValueKey('home_empty_products')), findsNothing);
+
+      await _pumpSections(
+        tester,
+        home: null,
+        catalogState: const ProductCatalogReady([], city: _city),
+      );
+
+      expect(find.byType(AppProductSkeletonRail), findsNothing);
+      expect(find.byKey(const ValueKey('home_empty_products')), findsOneWidget);
+    },
+  );
 }
 
 Future<void> _pumpSections(
   WidgetTester tester, {
-  required HomeData home,
+  required HomeData? home,
   required ProductCatalogState catalogState,
+  bool homeLoading = false,
   RouteFactory? onGenerateRoute,
 }) async {
   final cartCubit = makeCartCubit();
@@ -208,7 +275,11 @@ Future<void> _pumpSections(
         onGenerateRoute: onGenerateRoute,
         home: Scaffold(
           body: SingleChildScrollView(
-            child: HomeCatalogSections(home: home, catalogState: catalogState),
+            child: HomeCatalogSections(
+              home: home,
+              homeLoading: homeLoading,
+              catalogState: catalogState,
+            ),
           ),
         ),
       ),

@@ -158,6 +158,26 @@ void main() {
       expect(cubit.state.unreadCount, 0);
       await cubit.close();
     });
+
+    test('concurrent refresh waits for the active notification load', () async {
+      final completer = Completer<ApiResult<List<AppNotification>>>();
+      final cubit = _notificationCubit(
+        _FakeNotificationRepository(loadCompleter: completer),
+      );
+
+      final first = cubit.loadNotifications();
+      final second = cubit.refreshNotifications();
+      var secondFinished = false;
+      second.whenComplete(() => secondFinished = true);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(secondFinished, isFalse);
+      completer.complete(ApiResult.success([_notification(id: 1)]));
+      await Future.wait([first, second]);
+
+      expect(cubit.state.hasLoaded, isTrue);
+      await cubit.close();
+    });
   });
 }
 

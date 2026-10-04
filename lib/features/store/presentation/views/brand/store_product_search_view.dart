@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../cubit/store_cubit.dart';
+import '../../cubit/store_state.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
@@ -79,10 +82,16 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
               color: Theme.of(context).dividerColor.withValues(alpha: 0.45),
             ),
             Expanded(
-              child: Builder(
-                builder: (context) {
+              child: BlocBuilder<StoreCubit, StoreState>(
+                builder: (context, state) {
                   final query = _controller.text.trim();
-                  final products = widget.market.products
+                  final market =
+                      state.data
+                          ?.marketsFor(widget.market.classificationId)
+                          .where((item) => item.id == widget.market.id)
+                          .firstOrNull ??
+                      widget.market;
+                  final products = market.products
                       .where((product) => _matches(product, query))
                       .toList(growable: false);
 

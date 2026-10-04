@@ -42,7 +42,9 @@ void main() {
   });
 
   for (final width in [320.0, 390.0, 430.0, 768.0, 1024.0]) {
-    testWidgets('full cover stays unobscured at ${width}px', (tester) async {
+    testWidgets('restored banner and overlaid actions fit at ${width}px', (
+      tester,
+    ) async {
       await tester.binding.setSurfaceSize(Size(width, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(
@@ -74,17 +76,18 @@ void main() {
       final coverFinder = find.byKey(const ValueKey('storefront_cover'));
       final cover = tester.getRect(coverFinder);
       expect(cover.width, width);
-      expect(cover.height, closeTo(width * 9 / 16, 0.01));
-      expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.contain);
+      expect(cover.height, 238);
+      expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.cover);
       final details = tester.getRect(
         find.byKey(const ValueKey('storefront_details')),
       );
-      expect(details.top, greaterThan(cover.bottom));
+      expect(details.top, lessThan(cover.bottom));
+      expect(details.bottom, lessThanOrEqualTo(342));
       for (final action in ['back', 'search', 'share', 'favorite']) {
         final button = tester.getRect(
           find.byKey(ValueKey('storefront_${action}_button')),
         );
-        expect(button.bottom, lessThan(cover.top));
+        expect(button.bottom, lessThan(details.top));
         expect(button.top, greaterThanOrEqualTo(24));
       }
       expect(tester.takeException(), isNull);

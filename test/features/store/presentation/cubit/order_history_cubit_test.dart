@@ -50,6 +50,30 @@ void main() {
       await cubit.close();
     });
 
+    test('preserves a loaded empty result when a refresh fails', () async {
+      final repository = _FakeOrderRepository(orders: const []);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+      await cubit.loadOrders();
+      final delay = Completer<void>();
+      repository.nextDelay = delay;
+      repository.nextFailure = const ServerFailure('Orders are unavailable.');
+
+      final refresh = cubit.loadOrders(force: true);
+      await Future<void>.delayed(Duration.zero);
+
+      final loading = cubit.state as OrderHistoryLoading;
+      expect(loading.orders, isEmpty);
+      expect(loading.hasLoaded, isTrue);
+
+      delay.complete();
+      await refresh;
+
+      final failure = cubit.state as OrderHistoryFailure;
+      expect(failure.orders, isEmpty);
+      expect(failure.hasLoaded, isTrue);
+      await cubit.close();
+    });
+
     test('does not reload ready orders unless forced', () async {
       final repository = _FakeOrderRepository(orders: [sampleOrder]);
       final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
@@ -74,8 +98,12 @@ void main() {
 
       final firstLoad = cubit.loadOrders();
       final secondLoad = cubit.loadOrders(force: true);
+      var secondLoadFinished = false;
+      secondLoad.whenComplete(() => secondLoadFinished = true);
+      await Future<void>.delayed(Duration.zero);
 
       expect(repository.getMyOrdersCalls, 1);
+      expect(secondLoadFinished, isFalse);
 
       repository.completeDelay();
       await Future.wait([firstLoad, secondLoad]);
@@ -124,6 +152,7 @@ class _FakeOrderRepository implements OrderRepository {
 
   final List<OrderData> orders;
   final Completer<void>? _delay;
+  Completer<void>? nextDelay;
   Failure? nextFailure;
   int getMyOrdersCalls = 0;
 
@@ -161,7 +190,9 @@ class _FakeOrderRepository implements OrderRepository {
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() async {
     getMyOrdersCalls += 1;
-    await _delay?.future;
+    final delay = nextDelay ?? _delay;
+    nextDelay = null;
+    await delay?.future;
 
     if (nextFailure case final failure?) {
       nextFailure = null;

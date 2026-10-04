@@ -2,6 +2,8 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../../../../core/presentation/widgets/refresh_on_return.dart';
+import '../../../../app/coordinators/app_catalog_refresh_coordinator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -244,19 +246,21 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
       selectedIndex = index;
       _screens[index] ??= _screenAt(index);
     });
-    if (index == 0) {
-      unawaited(context.read<HomeCubit>().refreshSilently());
-    }
+    unawaited(AppCatalogRefreshCoordinator.refreshTab(context, index));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: selectedIndex,
-        children: List<Widget>.generate(
-          _screens.length,
-          (index) => _screens[index] ?? const SizedBox.shrink(),
+      body: RefreshOnReturn(
+        onRefresh: () =>
+            AppCatalogRefreshCoordinator.refreshTab(context, selectedIndex),
+        child: IndexedStack(
+          index: selectedIndex,
+          children: List<Widget>.generate(
+            _screens.length,
+            (index) => _screens[index] ?? const SizedBox.shrink(),
+          ),
         ),
       ),
       bottomNavigationBar: Column(

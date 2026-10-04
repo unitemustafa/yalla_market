@@ -1,3 +1,4 @@
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -571,10 +572,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                   SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(disabledColor),
-                    ),
+                    child: AppLoadingPlaceholder(),
                   ),
                   const SizedBox(width: 8),
                   Text(

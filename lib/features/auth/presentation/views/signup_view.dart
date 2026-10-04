@@ -1,3 +1,4 @@
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 
 import 'package:yalla_market/core/constants/app_constants.dart';

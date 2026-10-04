@@ -44,10 +44,7 @@ class _MarkAllReadButton extends StatelessWidget {
                 ? SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: mutedColor,
-                    ),
+                    child: AppLoadingPlaceholder(),
                   )
                 : Icon(
                     AppIcons.tick_circle,
@@ -108,10 +105,7 @@ class _DeleteAllNotificationsButton extends StatelessWidget {
                 ? const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.error,
-                    ),
+                    child: AppLoadingPlaceholder(),
                   )
                 : Icon(
                     AppIcons.trash,

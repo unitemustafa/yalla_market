@@ -13,6 +13,7 @@ import '../core/localization/app_translations.dart';
 import '../core/notifications/push_notification_service.dart';
 import '../core/preferences/app_preferences_controller.dart';
 import '../core/presentation/widgets/offline_connection_banner.dart';
+import '../core/presentation/widgets/refresh_on_return.dart';
 import '../core/presentation/widgets/layouts/android_tablet_viewport.dart';
 import '../core/presentation/media/media_route_observer_scope.dart';
 import '../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -20,6 +21,8 @@ import '../core/theme/app_theme.dart';
 import '../features/auth/presentation/cubit/auth_cubit.dart';
 import '../features/auth/presentation/cubit/auth_state.dart';
 import '../features/location/presentation/cubit/location_cubit.dart';
+import '../features/location/presentation/cubit/location_state.dart';
+import 'coordinators/app_catalog_refresh_coordinator.dart';
 import 'coordinators/app_deep_link_coordinator.dart';
 import 'coordinators/app_lifecycle_coordinator.dart';
 import 'coordinators/app_push_event_coordinator.dart';
@@ -43,6 +46,8 @@ class _AppCoordinatorState extends State<AppCoordinator>
   StreamSubscription<Uri>? _deepLinkSubscription;
   late bool _mobileNotificationsEnabled;
   final AppLifecycleCoordinator _lifecycle = AppLifecycleCoordinator();
+  final _pageRefreshObserver = RouteObserver<PageRoute<dynamic>>();
+  final _catalogChanges = ValueNotifier<int>(0);
   final AppSessionCoordinator _session = AppSessionCoordinator();
   late final AppDeepLinkCoordinator _deepLinks = AppDeepLinkCoordinator(
     canOpen: () =>
@@ -54,6 +59,7 @@ class _AppCoordinatorState extends State<AppCoordinator>
     context: () => context,
     isMounted: () => mounted,
     showForegroundBanner: _showForegroundBanner,
+    onCatalogChanged: () => _catalogChanges.value++,
   );
 
   @override
@@ -94,6 +100,7 @@ class _AppCoordinatorState extends State<AppCoordinator>
     WidgetsBinding.instance.removeObserver(this);
     _pushSubscription?.cancel();
     _deepLinkSubscription?.cancel();
+    _catalogChanges.dispose();
     super.dispose();
   }
 
@@ -118,7 +125,15 @@ class _AppCoordinatorState extends State<AppCoordinator>
   }
 
   void _handleBecameOnline() {
+    if (context.read<AuthCubit>().state is! AuthAuthenticated) return;
+    AppCatalogRefreshCoordinator.invalidateAll(context);
+    _catalogChanges.value++;
     unawaited(_lifecycle.refreshNow(context, () => mounted));
+  }
+
+  void _handleRegionChanged() {
+    AppCatalogRefreshCoordinator.resetForRegion(context);
+    _catalogChanges.value++;
   }
 
   Future<void> _showForegroundBanner(Map<String, dynamic> data) async {
@@ -143,14 +158,24 @@ class _AppCoordinatorState extends State<AppCoordinator>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthCubit, AuthState>(
-      listener: (context, state) => _session.handleAuthState(
-        context,
-        state,
-        schedulePendingDeepLink: _deepLinks.schedulePending,
-        showAccountDisabledDialog: _showAccountDisabledDialog,
-        showSessionExpiredDialog: _showSessionExpiredDialog,
-      ),
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthCubit, AuthState>(
+          listener: (context, state) => _session.handleAuthState(
+            context,
+            state,
+            schedulePendingDeepLink: _deepLinks.schedulePending,
+            showAccountDisabledDialog: _showAccountDisabledDialog,
+            showSessionExpiredDialog: _showSessionExpiredDialog,
+          ),
+        ),
+        BlocListener<LocationCubit, LocationState>(
+          listenWhen: (previous, current) =>
+              current.selectedCity != null &&
+              previous.selectedCity?.slug != current.selectedCity?.slug,
+          listener: (_, _) => _handleRegionChanged(),
+        ),
+      ],
       child: ValueListenableBuilder<AppLanguage>(
         valueListenable: AppLanguageController.instance,
         builder: (context, language, _) {
@@ -160,7 +185,10 @@ class _AppCoordinatorState extends State<AppCoordinator>
               return MaterialApp(
                 navigatorKey: AppNavigator.key,
                 scaffoldMessengerKey: AppNavigator.scaffoldMessengerKey,
-                navigatorObservers: [_deepLinks.routeObserver],
+                navigatorObservers: [
+                  _deepLinks.routeObserver,
+                  _pageRefreshObserver,
+                ],
                 debugShowCheckedModeBanner: false,
                 title: AppConstants.appName,
                 onGenerateTitle: (context) =>
@@ -177,12 +205,16 @@ class _AppCoordinatorState extends State<AppCoordinator>
                       textDirection: language.isArabic
                           ? TextDirection.rtl
                           : TextDirection.ltr,
-                      child: OfflineConnectionBanner(
-                        message: context.tr(
-                          'You are offline. Showing saved content; checkout and updates need internet.',
+                      child: PageRefreshScope(
+                        observer: _pageRefreshObserver,
+                        catalogChanges: _catalogChanges,
+                        child: OfflineConnectionBanner(
+                          message: context.tr(
+                            'You are offline. Showing saved content; checkout and updates need internet.',
+                          ),
+                          onBecameOnline: _handleBecameOnline,
+                          child: child ?? const SizedBox.shrink(),
                         ),
-                        onBecameOnline: _handleBecameOnline,
-                        child: child ?? const SizedBox.shrink(),
                       ),
                     ),
                   ),

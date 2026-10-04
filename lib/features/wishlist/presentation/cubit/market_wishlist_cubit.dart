@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/utils/coalesced_operation.dart';
 
 import '../../../store/domain/entities/store_data.dart';
 import '../../domain/usecases/market_wishlist_usecases.dart';
@@ -7,6 +8,7 @@ class MarketWishlistState {
   const MarketWishlistState({
     this.items = const [],
     this.loading = false,
+    this.hasLoaded = false,
     this.busyIds = const {},
     this.errorMessage,
     this.errorRevision = 0,
@@ -14,6 +16,7 @@ class MarketWishlistState {
 
   final List<StoreMarketData> items;
   final bool loading;
+  final bool hasLoaded;
   final Set<String> busyIds;
   final String? errorMessage;
   final int errorRevision;
@@ -21,6 +24,7 @@ class MarketWishlistState {
   MarketWishlistState copyWith({
     List<StoreMarketData>? items,
     bool? loading,
+    bool? hasLoaded,
     Set<String>? busyIds,
     String? errorMessage,
     bool clearError = false,
@@ -29,6 +33,7 @@ class MarketWishlistState {
     return MarketWishlistState(
       items: items ?? this.items,
       loading: loading ?? this.loading,
+      hasLoaded: hasLoaded ?? this.hasLoaded,
       busyIds: busyIds ?? this.busyIds,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       errorRevision: errorRevision ?? this.errorRevision,
@@ -42,10 +47,16 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
   final MarketWishlistUseCases _useCases;
   final Map<String, bool> _overrides = {};
   String? _currentUserKey;
+  final _loads = CoalescedOperation();
   int _generation = 0;
   bool _loaded = false;
 
-  Future<void> loadForUser(String userKey) async {
+  Future<void> loadForUser(String userKey) {
+    if (_currentUserKey != userKey.trim()) _loads.reset();
+    return _loads.run(() => _loadForUser(userKey));
+  }
+
+  Future<void> _loadForUser(String userKey) async {
     final normalized = userKey.trim();
     if (normalized.isEmpty) {
       clearSession();
@@ -70,6 +81,7 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
         _overrides.clear();
         emit(
           MarketWishlistState(
+            hasLoaded: true,
             items: List.unmodifiable(
               items.map((item) => item.copyWithFavorite(true)),
             ),
@@ -165,6 +177,7 @@ class MarketWishlistCubit extends Cubit<MarketWishlistState> {
   }
 
   void clearSession() {
+    _loads.reset();
     _generation++;
     _currentUserKey = null;
     _loaded = false;

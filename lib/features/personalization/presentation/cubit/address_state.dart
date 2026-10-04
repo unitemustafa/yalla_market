@@ -5,6 +5,8 @@ sealed class AddressState {
 
   List<AddressData> get addresses => const [];
 
+  bool get hasLoaded => addresses.isNotEmpty;
+
   String? get selectedAddressId => null;
 
   AddressData? get selectedAddress {
@@ -23,7 +25,14 @@ final class AddressInitial extends AddressState {
 }
 
 final class AddressLoading extends AddressState {
-  const AddressLoading({this.addresses = const [], this.selectedAddressId});
+  const AddressLoading({
+    this.addresses = const [],
+    this.selectedAddressId,
+    this.hasLoaded = false,
+  });
+
+  @override
+  final bool hasLoaded;
 
   @override
   final List<AddressData> addresses;
@@ -33,6 +42,8 @@ final class AddressLoading extends AddressState {
 }
 
 final class AddressReady extends AddressState {
+  @override
+  bool get hasLoaded => true;
   const AddressReady({
     required this.addresses,
     required this.selectedAddressId,
@@ -48,11 +59,15 @@ final class AddressReady extends AddressState {
 final class AddressFailure extends AddressState {
   const AddressFailure(
     this.message, {
+    this.hasLoaded = false,
     this.addresses = const [],
     this.selectedAddressId,
   });
 
   final String message;
+
+  @override
+  final bool hasLoaded;
 
   @override
   final List<AddressData> addresses;

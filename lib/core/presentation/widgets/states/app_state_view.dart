@@ -5,6 +5,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../constants/app_colors.dart';
 import '../../../localization/app_translations.dart';
 import '../buttons/app_action_button.dart';
+import 'app_skeleton.dart';
 
 class AppStateView extends StatelessWidget {
   const AppStateView({
@@ -100,20 +101,7 @@ class AppLoadingState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 84,
-            height: 84,
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: isDark ? 0.18 : 0.10),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Center(
-              child: CircularProgressIndicator(
-                color: AppColors.primary,
-                strokeWidth: 2.8,
-              ),
-            ),
-          ),
+          const AppSkeletonList(rows: 3, rowHeight: 72),
           const SizedBox(height: 18),
           Text(
             context.tr(message),

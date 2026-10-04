@@ -12,7 +12,9 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
-  testWidgets('shows ten products per page by default', (tester) async {
+  testWidgets('keeps page and scroll position when existing products refresh', (
+    tester,
+  ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     SharedPreferences.setMockInitialValues({});
@@ -22,6 +24,10 @@ void main() {
     addTearDown(cartCubit.close);
     addTearDown(wishlistCubit.close);
 
+    final status = ValueNotifier(ProductResultsStatus.ready);
+    final controller = ScrollController();
+    addTearDown(status.dispose);
+    addTearDown(controller.dispose);
     await tester.pumpWidget(
       MultiBlocProvider(
         providers: [
@@ -30,10 +36,15 @@ void main() {
         ],
         child: MaterialApp(
           home: Scaffold(
-            body: SingleChildScrollView(
-              child: ProductResultsView(
-                products: List.generate(11, _product),
-                initialSortOption: 'Newest',
+            body: ValueListenableBuilder<ProductResultsStatus>(
+              valueListenable: status,
+              builder: (_, status, _) => SingleChildScrollView(
+                controller: controller,
+                child: ProductResultsView(
+                  status: status,
+                  products: List.generate(11, _product),
+                  initialSortOption: 'Newest',
+                ),
               ),
             ),
           ),
@@ -62,6 +73,17 @@ void main() {
       find.byKey(const ValueKey('product_add_to_cart_product-10')),
       findsOneWidget,
     );
+    await tester.pumpAndSettle();
+    final offset = controller.offset;
+    status.value = ProductResultsStatus.loading;
+    await tester.pump();
+    expect(find.text('2/2'), findsOneWidget);
+    expect(find.byType(ProductCardVertical), findsOneWidget);
+    expect(controller.offset, offset);
+    status.value = ProductResultsStatus.ready;
+    await tester.pumpAndSettle();
+    expect(find.text('2/2'), findsOneWidget);
+    expect(controller.offset, offset);
   });
 
   testWidgets(

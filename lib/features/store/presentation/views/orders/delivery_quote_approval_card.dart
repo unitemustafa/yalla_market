@@ -1,3 +1,4 @@
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -96,10 +97,7 @@ class _DeliveryQuoteApprovalCardState extends State<DeliveryQuoteApprovalCard> {
               icon: _submitting
                   ? const SizedBox.square(
                       dimension: 18,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: Colors.white,
-                      ),
+                      child: AppLoadingPlaceholder(),
                     )
                   : const Icon(AppIcons.tick_circle, color: Colors.white),
               label: Text(

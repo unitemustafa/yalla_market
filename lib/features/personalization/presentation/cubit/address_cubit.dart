@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/coalesced_operation.dart';
+
 import '../../../../core/network/api_result.dart';
 import '../../domain/entities/address.dart';
 import '../../domain/usecases/address_usecases.dart';
@@ -9,23 +11,29 @@ class AddressCubit extends Cubit<AddressState> {
   AddressCubit(this._addressUseCases) : super(const AddressInitial());
 
   final AddressUseCases _addressUseCases;
+  final _loads = CoalescedOperation();
   int _generation = 0;
   int? _loadingGeneration;
 
   void clearSession() {
+    _loads.reset();
     _generation++;
     _loadingGeneration = null;
     emit(const AddressInitial());
   }
 
-  Future<void> loadAddresses() async {
+  Future<void> loadAddresses() => _loads.run(() => _loadAddresses());
+
+  Future<void> _loadAddresses() async {
     final generation = _generation;
     if (_loadingGeneration == generation) return;
     _loadingGeneration = generation;
+    final hasLoaded = state.hasLoaded;
     final staleAddresses = state.addresses;
     final staleSelectedId = state.selectedAddressId;
     emit(
       AddressLoading(
+        hasLoaded: hasLoaded,
         addresses: staleAddresses,
         selectedAddressId: staleSelectedId,
       ),
@@ -54,6 +62,7 @@ class AddressCubit extends Cubit<AddressState> {
           emit(
             AddressFailure(
               failure.message,
+              hasLoaded: hasLoaded,
               addresses: staleAddresses,
               selectedAddressId: staleSelectedId,
             ),
@@ -104,6 +113,7 @@ class AddressCubit extends Cubit<AddressState> {
         emit(
           AddressFailure(
             failure.message,
+            hasLoaded: state.hasLoaded,
             addresses: state.addresses,
             selectedAddressId: state.selectedAddressId,
           ),

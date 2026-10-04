@@ -31,6 +31,8 @@ class CategoryTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        splashFactory: NoSplash.splashFactory,
+        highlightColor: Colors.transparent,
         onTap: onTap,
         borderRadius: BorderRadius.circular(10),
         child: Ink(

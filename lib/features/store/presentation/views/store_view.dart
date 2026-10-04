@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -59,12 +61,12 @@ class _StoreViewState extends State<StoreView> {
         final store = state.data;
         final classifications = store?.classifications ?? const [];
 
-        if (state is StoreLoading && store == null) {
+        if ((state is StoreInitial || state is StoreLoading) && store == null) {
           return _StorePlainScaffold(
             backgroundColor: backgroundColor,
             isDark: isDark,
             onRefresh: _refreshStore,
-            child: AppLoadingState(message: context.tr('Loading store...')),
+            child: const AppCategorySkeletonGrid(),
           );
         }
 
@@ -126,6 +128,7 @@ class _StoreViewState extends State<StoreView> {
                           _StoreTopBar(isDark: isDark),
                           const SizedBox(height: 18),
                           _StoreSearchField(isDark: isDark),
+                          const AppRefreshAnchor(),
                           const SizedBox(height: 22),
                           const SectionHeading(
                             title: 'Categories',
@@ -133,7 +136,11 @@ class _StoreViewState extends State<StoreView> {
                             showActionButton: false,
                           ),
                           const SizedBox(height: 12),
-                          _StoreCategoriesGrid(categories: classifications),
+                          AppContentReveal(
+                            child: _StoreCategoriesGrid(
+                              categories: classifications,
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -177,6 +184,7 @@ class _StorePlainScaffold extends StatelessWidget {
                 _StoreTopBar(isDark: isDark),
                 const SizedBox(height: 18),
                 _StoreSearchField(isDark: isDark),
+                const AppRefreshAnchor(),
                 const SizedBox(height: 24),
                 child,
               ],

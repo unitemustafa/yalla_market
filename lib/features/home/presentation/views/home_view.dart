@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -38,6 +40,7 @@ import '../../../store/presentation/cubit/store_cubit.dart';
 import '../../../store/presentation/cubit/store_state.dart';
 import '../../../store/presentation/widgets/store_highlights_sections.dart';
 import '../widgets/home_categories.dart';
+import '../widgets/home_loading_sections.dart';
 import '../widgets/home_benefits_strip.dart';
 import '../widgets/home_popular_products_slider.dart';
 import '../widgets/promo_slider.dart';
@@ -190,6 +193,9 @@ class _HomeViewState extends State<HomeView> {
                         _HomeSearchActionsRow(isDark: isDark),
                         const SizedBox(height: 12),
                         const HomeBenefitsStrip(),
+                        const AppRefreshAnchor(
+                          key: ValueKey('home_refresh_anchor'),
+                        ),
                         const SizedBox(height: 12),
                         BlocConsumer<HomeCubit, HomeState>(
                           listener: (context, homeState) {
@@ -219,19 +225,27 @@ class _HomeViewState extends State<HomeView> {
                                 showActionIcon: false,
                               );
                             }
-                            if (homeState is HomeFailure && home == null) {
-                              return AppErrorState(
-                                title: 'Home could not load',
-                                message: homeState.message,
-                                onRetry: () => _loadHomeData(force: true),
-                              );
-                            }
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                PromoSlider(
-                                  offers: home?.offers,
-                                  focusOfferId: widget.focusOfferId,
+                                AppLoadingTransition(
+                                  isLoading:
+                                      home == null &&
+                                      (homeState is HomeInitial ||
+                                          homeState is HomeLoading),
+                                  loading: const HomePromoSkeleton(),
+                                  child:
+                                      homeState is HomeFailure && home == null
+                                      ? AppErrorState(
+                                          title: 'Home could not load',
+                                          message: homeState.message,
+                                          onRetry: () =>
+                                              _loadHomeData(force: true),
+                                        )
+                                      : PromoSlider(
+                                          offers: home?.offers ?? const [],
+                                          focusOfferId: widget.focusOfferId,
+                                        ),
                                 ),
                                 const SizedBox(height: 24),
                                 BlocBuilder<StoreCubit, StoreState>(
@@ -259,8 +273,36 @@ class _HomeViewState extends State<HomeView> {
                                           children: [
                                             HomeCatalogSections(
                                               home: home,
+                                              homeLoading:
+                                                  homeState is HomeInitial ||
+                                                  homeState is HomeLoading,
                                               catalogState: catalogState,
                                             ),
+                                            if (store == null &&
+                                                !(homeState is HomeFailure &&
+                                                    home == null &&
+                                                    storeState
+                                                        is StoreInitial) &&
+                                                (storeState is StoreInitial ||
+                                                    storeState
+                                                        is StoreLoading)) ...[
+                                              const SizedBox(height: 22),
+                                              const AppSkeletonList(
+                                                rows: 2,
+                                                rowHeight: 150,
+                                              ),
+                                            ],
+                                            if (storeState is StoreFailure &&
+                                                store == null) ...[
+                                              const SizedBox(height: 22),
+                                              AppErrorState(
+                                                title: 'Stores could not load',
+                                                message: storeState.message,
+                                                onRetry: () => context
+                                                    .read<StoreCubit>()
+                                                    .loadStore(force: true),
+                                              ),
+                                            ],
                                             if (store != null &&
                                                 hasStoreHighlights) ...[
                                               const SizedBox(height: 22),
@@ -297,9 +339,11 @@ class HomeCatalogSections extends StatelessWidget {
     super.key,
     required this.home,
     required this.catalogState,
+    this.homeLoading = false,
   });
 
   final HomeData? home;
+  final bool homeLoading;
   final ProductCatalogState catalogState;
 
   @override
@@ -311,13 +355,22 @@ class HomeCatalogSections extends StatelessWidget {
         ? (catalogState as ProductCatalogReady).products
         : const <ProductData>[];
     final categories = home?.categories ?? const <CategoryData>[];
+    final catalogLoading =
+        catalogState is ProductCatalogInitial ||
+        catalogState is ProductCatalogLoading;
+
+    if (home == null && !homeLoading && catalogState is ProductCatalogInitial) {
+      return const SizedBox.shrink();
+    }
 
     if (categories.isEmpty &&
         popularProducts.isEmpty &&
         latestProducts.isEmpty) {
       if (catalogState is ProductCatalogInitial ||
           catalogState is ProductCatalogLoading) {
-        return const AppLoadingState(message: 'Loading products...');
+        return home == null && homeLoading
+            ? const HomeCatalogSkeleton()
+            : const AppProductSkeletonRail();
       }
       if (catalogState is ProductCatalogFailure) {
         return AppErrorState(
@@ -333,6 +386,7 @@ class HomeCatalogSections extends StatelessWidget {
           message: 'So we can show products available in your area.',
         );
       }
+      if (home == null && homeLoading) return const HomeCatalogSkeleton();
       return const AppEmptyState(
         key: ValueKey('home_empty_products'),
         title: 'No products available',
@@ -340,75 +394,94 @@ class HomeCatalogSections extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (categories.isNotEmpty) ...[
-          SectionHeading(
-            title: 'Popular Categories',
-            showActionButton: categories.length > 4,
-            titleFontSize: AppFontSizes.sectionTitle,
-            onPressed: categories.length > 4
-                ? () => Navigator.pushNamed(
-                    context,
-                    AppRoutes.categories,
-                    arguments: CategoriesRouteArgs(categories: categories),
-                  )
-                : null,
-          ),
-          const SizedBox(height: 12),
-          HomeCategories(categories: categories),
-        ],
-        if (popularProducts.isNotEmpty) ...[
-          if (categories.isNotEmpty) const SizedBox(height: 22),
-          const SectionHeading(
-            title: 'Popular Products',
-            titleFontSize: AppFontSizes.sectionTitle,
-            showActionButton: false,
-          ),
-          const SizedBox(height: 14),
-          HomeProductsSlider(
-            products: popularProducts,
-            limit: 5,
-            onViewAll: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.allProducts,
-                arguments: const AllProductsRouteArgs(
-                  collection: ProductCollectionType.popular,
-                ),
-              );
-            },
-          ),
-        ],
-        if (latestProducts.isNotEmpty) ...[
-          if (categories.isNotEmpty || popularProducts.isNotEmpty)
+    return AppContentReveal(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (home == null && homeLoading) ...[
+            const HomeCatalogSkeleton(),
             const SizedBox(height: 22),
-          const SectionHeading(
-            title: 'Latest Products',
-            titleFontSize: AppFontSizes.sectionTitle,
-            showActionButton: false,
-          ),
-          const SizedBox(height: 14),
-          HomeProductsSlider(
-            products: latestProducts,
-            mode: HomeProductsSliderMode.latest,
-            limit: 5,
-            onViewAll: () {
-              Navigator.pushNamed(
-                context,
-                AppRoutes.allProducts,
-                arguments: const AllProductsRouteArgs(
-                  title: 'Latest Products',
-                  subtitle: 'Browse the latest products',
-                  collection: ProductCollectionType.latest,
-                  maxItems: 15,
-                ),
-              );
-            },
-          ),
+          ],
+          if (categories.isNotEmpty) ...[
+            SectionHeading(
+              title: 'Popular Categories',
+              showActionButton: categories.length > 4,
+              titleFontSize: AppFontSizes.sectionTitle,
+              onPressed: categories.length > 4
+                  ? () => Navigator.pushNamed(
+                      context,
+                      AppRoutes.categories,
+                      arguments: CategoriesRouteArgs(categories: categories),
+                    )
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            HomeCategories(categories: categories),
+          ],
+          if (popularProducts.isNotEmpty) ...[
+            if (categories.isNotEmpty) const SizedBox(height: 22),
+            const SectionHeading(
+              title: 'Popular Products',
+              titleFontSize: AppFontSizes.sectionTitle,
+              showActionButton: false,
+            ),
+            const SizedBox(height: 14),
+            HomeProductsSlider(
+              products: popularProducts,
+              limit: 5,
+              onViewAll: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.allProducts,
+                  arguments: const AllProductsRouteArgs(
+                    collection: ProductCollectionType.popular,
+                  ),
+                );
+              },
+            ),
+          ],
+          if (catalogLoading) ...[
+            const SizedBox(height: 22),
+            const AppProductSkeletonRail(),
+          ],
+          if (catalogState is ProductCatalogFailure) ...[
+            const SizedBox(height: 22),
+            AppErrorState(
+              title: 'Products could not load',
+              message: (catalogState as ProductCatalogFailure).message,
+              onRetry: () =>
+                  context.read<ProductCatalogCubit>().loadProducts(force: true),
+            ),
+          ],
+          if (latestProducts.isNotEmpty) ...[
+            if (categories.isNotEmpty || popularProducts.isNotEmpty)
+              const SizedBox(height: 22),
+            const SectionHeading(
+              title: 'Latest Products',
+              titleFontSize: AppFontSizes.sectionTitle,
+              showActionButton: false,
+            ),
+            const SizedBox(height: 14),
+            HomeProductsSlider(
+              products: latestProducts,
+              mode: HomeProductsSliderMode.latest,
+              limit: 5,
+              onViewAll: () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.allProducts,
+                  arguments: const AllProductsRouteArgs(
+                    title: 'Latest Products',
+                    subtitle: 'Browse the latest products',
+                    collection: ProductCollectionType.latest,
+                    maxItems: 15,
+                  ),
+                );
+              },
+            ),
+          ],
         ],
-      ],
+      ),
     );
   }
 }

@@ -107,6 +107,7 @@ class _AllProductsViewState extends State<AllProductsView> {
                 ? _limited(state.products)
                 : const <ProductData>[];
             final status = switch (state) {
+              ProductCatalogInitial() ||
               ProductCatalogLoading() => ProductResultsStatus.loading,
               ProductCatalogFailure() => ProductResultsStatus.error,
               ProductCatalogNeedsCity() => ProductResultsStatus.empty,
@@ -164,6 +165,7 @@ class _AllProductsViewState extends State<AllProductsView> {
                           subtitle: widget.subtitle,
                           isDark: isDark,
                         ),
+                        const AppRefreshAnchor(),
                         const SizedBox(height: 18),
                         _buildProductResults(),
                       ],

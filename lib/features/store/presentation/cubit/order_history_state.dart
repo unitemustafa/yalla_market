@@ -2,6 +2,8 @@ import '../../domain/entities/order.dart';
 
 sealed class OrderHistoryState {
   const OrderHistoryState();
+
+  bool get hasLoaded => false;
 }
 
 final class OrderHistoryInitial extends OrderHistoryState {
@@ -9,7 +11,10 @@ final class OrderHistoryInitial extends OrderHistoryState {
 }
 
 final class OrderHistoryLoading extends OrderHistoryState {
-  const OrderHistoryLoading({this.orders = const []});
+  const OrderHistoryLoading({this.orders = const [], this.hasLoaded = false});
+
+  @override
+  final bool hasLoaded;
 
   final List<OrderData> orders;
 }
@@ -17,11 +22,21 @@ final class OrderHistoryLoading extends OrderHistoryState {
 final class OrderHistoryReady extends OrderHistoryState {
   const OrderHistoryReady(this.orders);
 
+  @override
+  bool get hasLoaded => true;
+
   final List<OrderData> orders;
 }
 
 final class OrderHistoryFailure extends OrderHistoryState {
-  const OrderHistoryFailure(this.message, {this.orders = const []});
+  const OrderHistoryFailure(
+    this.message, {
+    this.orders = const [],
+    this.hasLoaded = false,
+  });
+
+  @override
+  final bool hasLoaded;
 
   final String message;
 

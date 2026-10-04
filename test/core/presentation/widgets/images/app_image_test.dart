@@ -9,6 +9,7 @@ import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_avatar.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:yalla_market/core/preferences/app_preferences_controller.dart';
+import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart';
 
 void main() {
   setUp(() {
@@ -115,6 +116,153 @@ void main() {
       expect(image.errorBuilder, isNotNull);
       expect(image.gaplessPlayback, isTrue);
     });
+
+    testWidgets(
+      'uses a shimmer placeholder with the image slot dimensions until a network frame arrives',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            const AppImage(
+              source: 'https://cdn.example.com/products/shoe.png',
+              width: 72,
+              height: 48,
+            ),
+          ),
+        );
+        final frameBuilder = tester
+            .widget<Image>(find.byType(Image))
+            .frameBuilder!;
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) => frameBuilder(
+                context,
+                const SizedBox(key: ValueKey('network-child')),
+                null,
+                false,
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(AppImageSkeleton), findsOneWidget);
+        expect(
+          tester.getSize(find.byType(AppImageSkeleton)),
+          const Size(72, 48),
+        );
+        expect(find.byType(CircularProgressIndicator), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'uses a supplied image placeholder while the network frame is pending',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            const AppImage(
+              source: 'https://cdn.example.com/products/shoe.png',
+              placeholder: Text('custom image placeholder'),
+            ),
+          ),
+        );
+        final frameBuilder = tester
+            .widget<Image>(find.byType(Image))
+            .frameBuilder!;
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) =>
+                  frameBuilder(context, const SizedBox.shrink(), null, false),
+            ),
+          ),
+        );
+
+        expect(find.text('custom image placeholder'), findsOneWidget);
+        expect(find.byType(AppImageSkeleton), findsNothing);
+      },
+    );
+
+    testWidgets(
+      'reveals the decoded network child and preserves the error fallback',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            const AppImage(
+              source: 'https://cdn.example.com/products/shoe.png',
+              fallback: Text('network image failed'),
+            ),
+          ),
+        );
+        final image = tester.widget<Image>(find.byType(Image));
+        final frameBuilder = image.frameBuilder!;
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) => frameBuilder(
+                context,
+                const SizedBox(key: ValueKey('decoded-network-child')),
+                1,
+                false,
+              ),
+            ),
+          ),
+        );
+        expect(find.byType(AppContentReveal), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('decoded-network-child')),
+          findsOneWidget,
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) => image.errorBuilder!(
+                context,
+                StateError('network failed'),
+                null,
+              ),
+            ),
+          ),
+        );
+        expect(find.text('network image failed'), findsOneWidget);
+      },
+    );
+
+    testWidgets(
+      'returns a synchronously cached network frame without a reveal wrapper',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            const AppImage(source: 'https://cdn.example.com/products/shoe.png'),
+          ),
+        );
+        final frameBuilder = tester
+            .widget<Image>(find.byType(Image))
+            .frameBuilder!;
+
+        await tester.pumpWidget(
+          _wrap(
+            Builder(
+              builder: (context) => frameBuilder(
+                context,
+                const SizedBox(key: ValueKey('cached-network-child')),
+                1,
+                true,
+              ),
+            ),
+          ),
+        );
+
+        expect(
+          find.byKey(const ValueKey('cached-network-child')),
+          findsOneWidget,
+        );
+        expect(find.byType(AppContentReveal), findsNothing);
+      },
+    );
 
     testWidgets('prioritizes in-memory bytes over source', (tester) async {
       final bytes = Uint8List.fromList(_transparentPngBytes);

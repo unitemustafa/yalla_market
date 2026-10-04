@@ -1,3 +1,4 @@
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 import 'package:yalla_market/core/constants/app_constants.dart';
 
@@ -390,20 +391,9 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     if (email.isEmpty || Validators.email(email) != null) return null;
 
     if (_isCheckingEmail) {
-      final progressColor = isDarkMode
-          ? Colors.white.withValues(alpha: 0.62)
-          : Colors.black.withValues(alpha: 0.42);
-
       return Padding(
         padding: const EdgeInsets.all(14),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-          ),
-        ),
+        child: SizedBox(width: 18, height: 18, child: AppLoadingPlaceholder()),
       );
     }
 

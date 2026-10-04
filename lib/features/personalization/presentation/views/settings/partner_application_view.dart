@@ -1,3 +1,4 @@
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -322,10 +323,7 @@ class _PartnerApplicationViewState extends State<PartnerApplicationView> {
                     icon: _isSubmitting
                         ? const SizedBox.square(
                             dimension: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
+                            child: AppLoadingPlaceholder(),
                           )
                         : const Icon(AppIcons.send_1, size: 19),
                     label: Text(

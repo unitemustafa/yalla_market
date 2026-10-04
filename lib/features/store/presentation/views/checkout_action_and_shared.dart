@@ -76,12 +76,7 @@ class _CheckoutActionBar extends StatelessWidget {
                         ? const SizedBox(
                             width: 18,
                             height: 18,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
+                            child: AppLoadingPlaceholder(),
                           )
                         : Text(
                             context.tr('Confirm Order'),

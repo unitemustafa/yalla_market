@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -35,8 +37,9 @@ class HomeProductsSlider extends StatelessWidget {
     var loadedProducts = const <ProductData>[];
     if (products == null) {
       final catalogState = context.watch<ProductCatalogCubit>().state;
-      if (catalogState is ProductCatalogLoading) {
-        return const AppLoadingState(message: 'Loading products...');
+      if (catalogState is ProductCatalogInitial ||
+          catalogState is ProductCatalogLoading) {
+        return const AppProductSkeletonRail();
       }
       if (catalogState is ProductCatalogFailure) {
         return AppErrorState(

@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../constants/app_assets.dart';
 import '../../../icons/app_icons.dart';
 import '../../../network/cloudinary_image_url.dart';
+import '../states/app_skeleton.dart';
 
 enum AppImagePlaceholderType {
   user,
@@ -141,8 +142,9 @@ class AppImage extends StatelessWidget {
         filterQuality: filterQuality,
         gaplessPlayback: true,
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-          if (wasSynchronouslyLoaded || frame != null) return child;
-          return placeholder ?? _buildPlaceholder(context);
+          if (wasSynchronouslyLoaded) return child;
+          if (frame != null) return AppContentReveal(child: child);
+          return placeholder ?? AppImageSkeleton(width: width, height: height);
         },
         errorBuilder: (_, _, _) => _buildFallback(context),
       );
@@ -178,30 +180,6 @@ class AppImage extends StatelessWidget {
       width: targetWidth,
       height: targetHeight,
       policy: ResizeImagePolicy.fit,
-    );
-  }
-
-  Widget _buildPlaceholder(BuildContext context) {
-    final indicator = const SizedBox.square(
-      dimension: 18,
-      child: CircularProgressIndicator(strokeWidth: 2),
-    );
-
-    if (width == null && height == null) {
-      return Center(child: indicator);
-    }
-
-    return SizedBox(
-      width: width,
-      height: height,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(
-            context,
-          ).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
-        ),
-        child: Center(child: indicator),
-      ),
     );
   }
 

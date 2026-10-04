@@ -1,3 +1,4 @@
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 import 'package:yalla_market/core/constants/app_constants.dart';
 
@@ -100,7 +101,8 @@ class _SearchViewState extends State<SearchView> {
                     final hasResults =
                         productResults.isNotEmpty || categoryResults.isNotEmpty;
                     final isInitialLoading =
-                        discoveryState is ProductDiscoveryLoading &&
+                        (discoveryState is ProductDiscoveryInitial ||
+                            discoveryState is ProductDiscoveryLoading) &&
                         products.isEmpty &&
                         categories.isEmpty;
                     final needsCity =
@@ -133,11 +135,11 @@ class _SearchViewState extends State<SearchView> {
                                     setState(() => _filter = filter),
                               ),
                               const SizedBox(height: 18),
-                              if (isInitialLoading) ...[
-                                const LinearProgressIndicator(),
-                                const SizedBox(height: 12),
-                              ],
-                              if (needsCity)
+                              if (isInitialLoading)
+                                _filter == SearchFilter.categories
+                                    ? const AppCategorySkeletonGrid()
+                                    : const AppProductSkeletonGrid()
+                              else if (needsCity)
                                 _EmptySearchState(
                                   query: '',
                                   isDark: isDark,

@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/coalesced_operation.dart';
+
 import '../../domain/entities/app_notification.dart';
 import '../../domain/usecases/notification_usecases.dart';
 import 'notification_state.dart';
@@ -8,10 +10,13 @@ class NotificationCubit extends Cubit<NotificationState> {
   NotificationCubit(this._useCases) : super(const NotificationState());
 
   final NotificationUseCases _useCases;
+  final _loads = CoalescedOperation();
   int _generation = 0;
 
-  Future<void> loadNotifications({bool forceRefresh = false}) async {
-    if (state.isInitialLoading || state.isRefreshing) return;
+  Future<void> loadNotifications({bool forceRefresh = false}) =>
+      _loads.run(() => _loadNotifications(forceRefresh: forceRefresh));
+
+  Future<void> _loadNotifications({bool forceRefresh = false}) async {
     if (state.hasLoaded && !forceRefresh) return;
 
     final generation = _generation;
@@ -244,6 +249,7 @@ class NotificationCubit extends Cubit<NotificationState> {
   }
 
   void clear() {
+    _loads.reset();
     _generation++;
     emit(const NotificationState());
   }

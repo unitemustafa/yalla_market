@@ -49,19 +49,24 @@ class ProductCategoryCampaignView extends StatelessWidget {
             child: SingleChildScrollView(
               physics: AppRefreshIndicator.scrollPhysics,
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
-              child: ProductResultsView(
-                products: products,
-                status: status,
-                initialSortOption: 'Newest',
-                onRetry: () => context.read<ProductCatalogCubit>().loadProducts(
-                  force: true,
-                ),
-                errorMessage: state is ProductCatalogFailure
-                    ? state.message
-                    : 'تعذر تحميل المنتجات.',
-                emptyTitle: 'لا توجد منتجات متاحة',
-                emptyMessage:
-                    'لا توجد منتجات متاحة في هذا التصنيف لمنطقتك حاليًا.',
+              child: Column(
+                children: [
+                  const AppRefreshAnchor(),
+                  ProductResultsView(
+                    products: products,
+                    status: status,
+                    initialSortOption: 'Newest',
+                    onRetry: () => context
+                        .read<ProductCatalogCubit>()
+                        .loadProducts(force: true),
+                    errorMessage: state is ProductCatalogFailure
+                        ? state.message
+                        : 'تعذر تحميل المنتجات.',
+                    emptyTitle: 'لا توجد منتجات متاحة',
+                    emptyMessage:
+                        'لا توجد منتجات متاحة في هذا التصنيف لمنطقتك حاليًا.',
+                  ),
+                ],
               ),
             ),
           );

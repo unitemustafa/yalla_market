@@ -1,3 +1,4 @@
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
@@ -5,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../../core/constants/app_colors.dart';
+import '../../../../../core/utils/coalesced_operation.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/images/app_avatar.dart';
@@ -25,6 +27,7 @@ class ProfileView extends StatefulWidget {
 }
 
 class _ProfileViewState extends State<ProfileView> {
+  final _profileRefresh = CoalescedOperation();
   bool _isRefreshingProfile = false;
   bool _showInlineRefreshProgress = false;
   bool _isUploadingProfilePhoto = false;
@@ -36,7 +39,14 @@ class _ProfileViewState extends State<ProfileView> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadProfile());
   }
 
-  Future<void> _loadProfile({bool showInlineProgress = true}) async {
+  Future<void> _loadProfile({bool showInlineProgress = true}) =>
+      _profileRefresh.run(
+        () => _performProfileRefresh(showInlineProgress: showInlineProgress),
+      );
+
+  Future<void> _performProfileRefresh({
+    required bool showInlineProgress,
+  }) async {
     if (!mounted || _isRefreshingProfile) return;
     setState(() {
       _isRefreshingProfile = true;
@@ -137,9 +147,10 @@ class _ProfileViewState extends State<ProfileView> {
                       title: 'Profile',
                       subtitle: 'Edit personal details',
                     ),
+                    const AppRefreshAnchor(),
                     if (_isRefreshingProfile && _showInlineRefreshProgress) ...[
                       const SizedBox(height: 10),
-                      const LinearProgressIndicator(minHeight: 2),
+                      const AppLoadingPlaceholder(width: 80),
                     ],
                     if (_refreshProfileError != null) ...[
                       const SizedBox(height: 10),
@@ -496,10 +507,7 @@ class _ProfileHeaderCard extends StatelessWidget {
                             child: SizedBox(
                               width: 24,
                               height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
+                              child: AppLoadingPlaceholder(),
                             ),
                           ),
                         ),

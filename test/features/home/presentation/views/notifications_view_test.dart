@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/app_refresh_indicator.dart';
+import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/features/home/presentation/cubit/notification_cubit.dart';
@@ -22,7 +24,8 @@ void main() {
 
       await _pumpNotificationsView(tester, cubit);
 
-      expect(find.text('Loading notifications...'), findsOneWidget);
+      expect(find.byType(AppSkeletonList), findsOneWidget);
+      expect(find.text('Loading notifications...'), findsNothing);
       expect(find.text('Order confirmed'), findsNothing);
       expect(find.text('Popular categories updated'), findsNothing);
       expect(find.text('Shipment update'), findsNothing);
@@ -36,7 +39,7 @@ void main() {
         ..seed(
           const NotificationState(
             errorMessage: 'Server error.',
-            hasLoaded: true,
+            hasLoaded: false,
           ),
         );
       addTearDown(cubit.close);
@@ -62,6 +65,25 @@ void main() {
 
       expect(find.text('No notifications yet'), findsOneWidget);
       expect(find.textContaining('unread notifications'), findsNothing);
+    });
+
+    testWidgets('retains a loaded empty result when refresh fails', (
+      tester,
+    ) async {
+      final cubit = SpyNotificationCubit()
+        ..seed(const NotificationState(hasLoaded: true, isRefreshing: true));
+      addTearDown(cubit.close);
+      await _pumpNotificationsView(tester, cubit);
+      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.byType(AppSkeletonList), findsNothing);
+      cubit.seed(
+        const NotificationState(hasLoaded: true, errorMessage: 'Unavailable'),
+      );
+      await tester.pump();
+      expect(find.text('No notifications yet'), findsOneWidget);
+      expect(find.text('Notifications could not load'), findsNothing);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Could not refresh notifications.'), findsOneWidget);
     });
 
     testWidgets('shows backend data and removes demo delete UI', (
@@ -128,7 +150,8 @@ void main() {
       await tester.pump();
 
       expect(cubit.markAllCalls, 1);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byType(AppLoadingPlaceholder), findsOneWidget);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
 
       cubit.seed(
         NotificationState(
@@ -320,17 +343,15 @@ void main() {
 
       expect(find.text('Your order #12 was rejected.'), findsOneWidget);
 
-      final refreshIndicator = tester.widget<RefreshIndicator>(
-        find.byType(RefreshIndicator),
+      final refreshIndicator = tester.widget<AppRefreshIndicator>(
+        find.byType(AppRefreshIndicator),
       );
-      expect(refreshIndicator.color, isNull);
-      expect(refreshIndicator.displacement, 40);
       await refreshIndicator.onRefresh();
       await tester.pump();
 
       expect(cubit.refreshCalls, 1);
       expect(find.text('Your order #12 was rejected.'), findsOneWidget);
-      expect(find.text('Notifications updated'), findsOneWidget);
+      expect(find.text('Notifications updated'), findsNothing);
     });
 
     testWidgets('dragging down the notification list triggers refresh', (

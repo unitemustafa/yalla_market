@@ -1,13 +1,18 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/cache/data_freshness.dart';
 import '../../../../core/network/api_result.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
 import '../../domain/usecases/get_products_usecase.dart';
 import 'product_catalog_state.dart';
 
 class ProductCatalogCubit extends Cubit<ProductCatalogState> {
-  ProductCatalogCubit(this._getProductsUseCase, this._getSelectedCityUseCase)
-    : super(const ProductCatalogInitial()) {
+  ProductCatalogCubit(
+    this._getProductsUseCase,
+    this._getSelectedCityUseCase, {
+    DateTime Function()? now,
+  }) : _freshness = DataFreshness(now: now),
+       super(const ProductCatalogInitial()) {
     loadProducts();
   }
 
@@ -15,11 +20,21 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
   final GetSelectedCityUseCase _getSelectedCityUseCase;
   int _generation = 0;
   Future<void>? _loadInFlight;
+  final DataFreshness _freshness;
+  int? _activeRevision;
+
+  DateTime? get lastNetworkSuccessAt => _freshness.lastNetworkSuccessAt;
+
+  void invalidate() => _freshness.invalidate();
+
+  Future<void> refreshIfStale() async {
+    if (_freshness.isStale) await refreshSilently();
+  }
 
   Future<void> loadProducts({bool force = false}) async {
     final activeLoad = _loadInFlight;
     if (activeLoad != null) return activeLoad;
-    if (!force && state is ProductCatalogReady) return;
+    if (!force && state is ProductCatalogReady) return refreshIfStale();
     final operation = _load(force: force, silent: false);
     _loadInFlight = operation;
     try {
@@ -31,7 +46,18 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
 
   Future<void> refreshSilently() async {
     final activeLoad = _loadInFlight;
-    if (activeLoad != null) return activeLoad;
+    if (activeLoad != null) {
+      final generation = _generation;
+      final invalidatedWhileLoading = _activeRevision != _freshness.revision;
+      await activeLoad;
+      if (!isClosed &&
+          generation == _generation &&
+          invalidatedWhileLoading &&
+          _freshness.isStale) {
+        await refreshSilently();
+      }
+      return;
+    }
     final operation = _load(force: true, silent: true);
     _loadInFlight = operation;
     try {
@@ -46,6 +72,8 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
         ? state as ProductCatalogReady
         : null;
     final generation = ++_generation;
+    final revision = _freshness.revision;
+    _activeRevision = revision;
 
     final cityResult = await _getSelectedCityUseCase();
     if (!_isCurrent(generation)) return;
@@ -68,6 +96,9 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
     if (!_isCurrent(generation)) return;
     switch (result) {
       case ApiSuccess(:final data, :final origin):
+        if (origin == DataOrigin.network) {
+          _freshness.markNetworkSuccess(revision: revision);
+        }
         emit(ProductCatalogReady(data, city: selectedCity));
         if (!force && origin == DataOrigin.cache) {
           final refreshed = await _getProductsUseCase(
@@ -75,7 +106,10 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
             forceRefresh: true,
           );
           if (!_isCurrent(generation)) return;
-          if (refreshed case ApiSuccess(:final data)) {
+          if (refreshed case ApiSuccess(:final data, :final origin)) {
+            if (origin == DataOrigin.network) {
+              _freshness.markNetworkSuccess(revision: revision);
+            }
             emit(ProductCatalogReady(data, city: selectedCity));
           }
         }
@@ -97,6 +131,7 @@ class ProductCatalogCubit extends Cubit<ProductCatalogState> {
   void clearSession() {
     _generation++;
     _loadInFlight = null;
+    _freshness.invalidate();
     emit(const ProductCatalogInitial());
   }
 

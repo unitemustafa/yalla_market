@@ -12,7 +12,7 @@ import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_u
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 void main() {
-  testWidgets('renders a full cover, unobscured by logo and store actions', (
+  testWidgets('restores compact store covers with overlaid logo and actions', (
     tester,
   ) async {
     for (var productCount = 0; productCount <= 3; productCount++) {
@@ -44,13 +44,14 @@ void main() {
       expect(find.text('20-30 min'), findsOneWidget);
       final coverFinder = find.byKey(const ValueKey('test_store_market_cover'));
       final cover = tester.getRect(coverFinder);
-      expect(cover.width / cover.height, closeTo(16 / 9, 0.01));
-      expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.contain);
+      expect(cover.width, 112);
+      expect(cover.height, 110);
+      expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.cover);
       for (final item in ['logo', 'favorite']) {
         final bounds = tester.getRect(
           find.byKey(ValueKey('test_store_market_$item')),
         );
-        expect(bounds.top, greaterThan(cover.bottom));
+        expect(cover.overlaps(bounds), isTrue);
       }
       expect(
         tester.getSize(find.byType(StoreMarketCard)).height,

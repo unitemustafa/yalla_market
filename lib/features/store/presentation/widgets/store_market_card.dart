@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/icons/app_icons.dart';
+import '../../../../core/presentation/media/media_focal_point_alignment.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
@@ -10,8 +11,10 @@ import '../../domain/entities/store_data.dart';
 
 /// The shared store row used everywhere a market is listed.
 ///
-/// The complete cover sits above the logo and favorite action, with delivery
-/// information beside it. Controls never obscure the cover.
+/// Its proportions intentionally mirror a compact delivery-app store row:
+/// square cover at the leading edge, logo over the cover and the useful
+/// delivery information beside it. App colors, typography and icons remain
+/// the Yalla Market design language.
 class StoreMarketCard extends StatelessWidget {
   const StoreMarketCard({
     super.key,
@@ -41,6 +44,8 @@ class StoreMarketCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(15),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
+          splashFactory: NoSplash.splashFactory,
+          highlightColor: Colors.transparent,
           onTap: onTap,
           child: Ink(
             decoration: BoxDecoration(
@@ -82,41 +87,36 @@ class _StoreCover extends StatelessWidget {
       wishlist = null;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        AspectRatio(
-          aspectRatio: 16 / 9,
-          child: AppImage(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(12),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          AppImage(
             key: ValueKey('${keyPrefix}_${market.id}_cover'),
             source: market.coverImage,
             fallbackType: AppImagePlaceholderType.store,
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
+            alignment: market.coverFocus.alignment,
             cacheWidth: 340,
+            cacheHeight: 340,
           ),
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Container(
-              width: 42,
-              height: 42,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCardColor : Colors.white,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: AppImage(
-                key: ValueKey('${keyPrefix}_${market.id}_logo'),
-                source: market.image,
-                fallbackType: AppImagePlaceholderType.store,
-                role: AppImageRole.logo,
-                cacheWidth: 170,
-                cacheHeight: 170,
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.02),
+                  Colors.black.withValues(alpha: 0.20),
+                ],
               ),
             ),
-            wishlist == null
+          ),
+          PositionedDirectional(
+            top: 6,
+            start: 6,
+            child: wishlist == null
                 ? _FavoriteButton(
                     key: ValueKey('${keyPrefix}_${market.id}_favorite'),
                     favorite: market.isLiked,
@@ -143,9 +143,31 @@ class _StoreCover extends StatelessWidget {
                       );
                     },
                   ),
-          ],
-        ),
-      ],
+          ),
+          PositionedDirectional(
+            end: 6,
+            bottom: 6,
+            child: Container(
+              width: 56,
+              height: 56,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: isDark ? AppColors.darkCardColor : Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: AppImage(
+                key: ValueKey('${keyPrefix}_${market.id}_logo'),
+                source: market.image,
+                fallbackType: AppImagePlaceholderType.store,
+                role: AppImageRole.logo,
+                borderRadius: BorderRadius.circular(11),
+                cacheWidth: 170,
+                cacheHeight: 170,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

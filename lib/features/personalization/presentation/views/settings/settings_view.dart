@@ -1,3 +1,4 @@
+import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -325,10 +326,7 @@ class SettingsView extends StatelessWidget {
                           child: isDeleting
                               ? const SizedBox.square(
                                   dimension: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
+                                  child: AppLoadingPlaceholder(),
                                 )
                               : Text(context.tr('Delete')),
                         ),

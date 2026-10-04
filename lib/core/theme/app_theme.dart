@@ -2,9 +2,21 @@ import 'package:flutter/material.dart';
 
 import '../constants/app_colors.dart';
 import '../constants/app_constants.dart';
+import 'app_page_transitions.dart';
 
 class AppTheme {
   AppTheme._();
+
+  static const _pageTransitions = PageTransitionsTheme(
+    builders: {
+      TargetPlatform.android: AppPageTransitionsBuilder(),
+      TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.windows: AppPageTransitionsBuilder(),
+      TargetPlatform.macOS: CupertinoPageTransitionsBuilder(),
+      TargetPlatform.linux: AppPageTransitionsBuilder(),
+      TargetPlatform.fuchsia: AppPageTransitionsBuilder(),
+    },
+  );
 
   static const String fontFamily = 'Cairo';
 
@@ -171,6 +183,7 @@ class AppTheme {
   }
 
   static ThemeData get lightTheme => ThemeData(
+    pageTransitionsTheme: _pageTransitions,
     fontFamily: fontFamily,
     brightness: Brightness.light,
     primaryColor: AppColors.primary,
@@ -252,6 +265,7 @@ class AppTheme {
   );
 
   static ThemeData get darkTheme => ThemeData(
+    pageTransitionsTheme: _pageTransitions,
     fontFamily: fontFamily,
     brightness: Brightness.dark,
     primaryColor: AppColors.primary,

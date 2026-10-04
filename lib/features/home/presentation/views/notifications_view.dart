@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
@@ -40,12 +42,6 @@ class _NotificationsViewState extends State<NotificationsView> {
 
   Future<void> _refresh() async {
     await context.read<NotificationCubit>().refreshNotifications();
-    if (!mounted) return;
-    if (context.read<NotificationCubit>().state.errorMessage != null) return;
-    CustomSnackBar.showSuccess(
-      context: context,
-      title: 'Notifications updated',
-    );
   }
 
   Future<void> _markAllRead() async {
@@ -203,7 +199,7 @@ class _NotificationsViewState extends State<NotificationsView> {
           listenWhen: (previous, current) {
             return previous.isRefreshing &&
                 !current.isRefreshing &&
-                previous.notifications.isNotEmpty &&
+                previous.hasLoaded &&
                 current.errorMessage != null;
           },
           listener: (context, state) {
@@ -224,7 +220,6 @@ class _NotificationsViewState extends State<NotificationsView> {
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     child: AppRefreshIndicator(
                       onRefresh: _refresh,
-                      showSuccessSnackBar: false,
                       child: ListView(
                         physics: AppRefreshIndicator.scrollPhysics,
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -248,15 +243,12 @@ class _NotificationsViewState extends State<NotificationsView> {
                               ),
                             ],
                           ),
+                          const AppRefreshAnchor(),
                           const SizedBox(height: 18),
                           if (state.isInitialLoading)
-                            const SizedBox(
-                              height: 420,
-                              child: AppLoadingState(
-                                message: 'Loading notifications...',
-                              ),
-                            )
-                          else if (state.notifications.isEmpty &&
+                            const AppSkeletonList(rows: 4, rowHeight: 92)
+                          else if (!state.hasLoaded &&
+                              state.notifications.isEmpty &&
                               state.errorMessage != null)
                             SizedBox(
                               height: 420,
@@ -280,17 +272,23 @@ class _NotificationsViewState extends State<NotificationsView> {
                             ),
                             const SizedBox(height: 22),
                             for (final notification in state.notifications)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 10),
-                                child: _NotificationCard(
-                                  notification: notification,
-                                  isDark: isDark,
-                                  onTap: () => _openNotification(notification),
-                                  onDelete: () =>
-                                      _deleteNotification(notification),
-                                  onDeleted: () => context
-                                      .read<NotificationCubit>()
-                                      .removeNotification(notification.id),
+                              AppContentReveal(
+                                key: ValueKey(
+                                  'notification_reveal_${notification.id}',
+                                ),
+                                child: Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _NotificationCard(
+                                    notification: notification,
+                                    isDark: isDark,
+                                    onTap: () =>
+                                        _openNotification(notification),
+                                    onDelete: () =>
+                                        _deleteNotification(notification),
+                                    onDeleted: () => context
+                                        .read<NotificationCubit>()
+                                        .removeNotification(notification.id),
+                                  ),
                                 ),
                               ),
                           ],

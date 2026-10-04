@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -5,6 +7,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/core/presentation/widgets/app_refresh_indicator.dart';
+import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart';
 import 'package:yalla_market/core/presentation/widgets/texts/app_currency_text.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
@@ -13,6 +17,7 @@ import 'package:yalla_market/features/store/domain/entities/shipping_company.dar
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
+import 'package:yalla_market/features/store/presentation/cubit/order_history_state.dart';
 import 'package:yalla_market/features/store/presentation/views/orders/orders_view.dart';
 
 void main() {
@@ -36,6 +41,89 @@ void main() {
 
     expect(repository.loadCount, 2);
   });
+
+  testWidgets(
+    'pull refresh keeps cached order rows and the anchor visible until a delayed failure completes',
+    (tester) async {
+      final repository = _OrderRepositoryWithData([
+        _orderPlacedAt(DateTime(2026, 7, 14), status: OrderStatus.processing),
+      ]);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+      addTearDown(cubit.close);
+      await cubit.loadOrders();
+
+      final delayedRefresh = Completer<ApiResult<List<OrderData>>>();
+      repository.loadCompleter = delayedRefresh;
+      await tester.pumpWidget(
+        BlocProvider<OrderHistoryCubit>.value(
+          value: cubit,
+          child: const MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: OrdersView(useDemoOrders: false),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(cubit.state, isA<OrderHistoryLoading>());
+      expect(find.text('6'), findsOneWidget);
+
+      final gesture = await tester.startGesture(const Offset(200, 160));
+      await gesture.moveBy(const Offset(0, 220));
+      await tester.pump(const Duration(milliseconds: 300));
+      await gesture.up();
+      await tester.pump(const Duration(milliseconds: 250));
+
+      expect(find.byType(AppRefreshAnchor), findsOneWidget);
+      expect(find.text('6'), findsOneWidget);
+      expect(find.text('Content updated'), findsNothing);
+
+      delayedRefresh.complete(
+        const ApiResult.failure(ServerFailure('Orders are unavailable.')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('6'), findsOneWidget);
+      expect(find.text('Refresh failed'), findsOneWidget);
+      expect(find.text('Content updated'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'loaded empty orders stay on the empty state during and after a failed refresh',
+    (tester) async {
+      final repository = _OrderRepositoryWithData(const []);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+      addTearDown(cubit.close);
+      await cubit.loadOrders();
+
+      final delayedRefresh = Completer<ApiResult<List<OrderData>>>();
+      repository.loadCompleter = delayedRefresh;
+      await tester.pumpWidget(
+        BlocProvider<OrderHistoryCubit>.value(
+          value: cubit,
+          child: const MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: OrdersView(useDemoOrders: false),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(cubit.state, isA<OrderHistoryLoading>());
+      expect(find.text('No orders yet'), findsOneWidget);
+      expect(find.byType(AppSkeletonList), findsNothing);
+
+      delayedRefresh.complete(
+        const ApiResult.failure(ServerFailure('Orders are unavailable.')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('No orders yet'), findsOneWidget);
+      expect(find.byType(AppSkeletonList), findsNothing);
+      expect(find.text('Refresh failed'), findsOneWidget);
+    },
+  );
 
   testWidgets(
     'shows a real empty state instead of demo orders in backend mode',
@@ -369,11 +457,13 @@ class _OrderRepositoryWithData extends _EmptyOrderRepository {
   _OrderRepositoryWithData(this.orders);
 
   final List<OrderData> orders;
+  Completer<ApiResult<List<OrderData>>>? loadCompleter;
   int loadCount = 0;
 
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() async {
     loadCount += 1;
+    if (loadCompleter case final completer?) return completer.future;
     return ApiResult.success(orders);
   }
 }

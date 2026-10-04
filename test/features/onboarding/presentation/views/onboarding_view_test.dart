@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/constants/app_assets.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -12,14 +14,24 @@ import 'package:yalla_market/features/onboarding/domain/repositories/onboarding_
 import 'package:yalla_market/features/onboarding/domain/usecases/onboarding_usecases.dart';
 import 'package:yalla_market/features/onboarding/presentation/cubit/onboarding_cubit.dart';
 import 'package:yalla_market/features/onboarding/presentation/views/onboarding_view.dart';
-import 'package:yalla_market/features/app_media/domain/app_media.dart';
-import 'package:yalla_market/features/app_media/domain/app_media_repository.dart';
-import 'package:yalla_market/features/app_media/domain/load_app_media.dart';
-import 'package:yalla_market/features/app_media/presentation/app_media_cubit.dart';
 
 void main() {
   setUp(() {
     AppLanguageController.instance.value = AppLanguage.arabic;
+  });
+
+  testWidgets('uses bundled artwork without any app media provider', (
+    tester,
+  ) async {
+    await tester.pumpWidget(_TestApp(repository: _FakeOnboardingRepository()));
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is AppImage && widget.source == AppAssets.onboardingProducts,
+      ),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('navigates to login when onboarding state is saved', (
@@ -86,10 +98,6 @@ class _TestApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (_) => OnboardingCubit(_useCases(repository))),
-        BlocProvider(
-          create: (_) =>
-              AppMediaCubit(LoadAppMedia(_EmptyAppMediaRepository())),
-        ),
       ],
       child: ValueListenableBuilder<AppLanguage>(
         valueListenable: AppLanguageController.instance,
@@ -113,12 +121,6 @@ class _TestApp extends StatelessWidget {
       ),
     );
   }
-}
-
-class _EmptyAppMediaRepository implements AppMediaRepository {
-  @override
-  Future<ApiResult<AppMedia>> load() async =>
-      const ApiResult.success(AppMedia());
 }
 
 OnboardingUseCases _useCases(OnboardingRepository repository) {

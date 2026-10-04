@@ -20,6 +20,26 @@ import 'package:yalla_market/features/store/presentation/cubit/product_discovery
 import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
+  test('failed initial silent discovery load reports failure', () async {
+    final repository = _FakeProductRepository();
+    final cubit = ProductDiscoveryCubit(
+      getProducts: GetProductsUseCase(repository),
+      searchProducts: SearchProductsUseCase(repository),
+      getCategories: GetCategoriesUseCase(repository),
+      getBrands: GetBrandsUseCase(repository),
+      getSelectedCity: GetSelectedCityUseCase(_FakeLocationRepository()),
+    );
+    addTearDown(cubit.close);
+    await cubit.loadDiscovery();
+    cubit.clearSession();
+    repository.categoryFailure = const ServerFailure('offline');
+
+    await cubit.refreshSilently();
+
+    expect(cubit.state, isA<ProductDiscoveryFailure>());
+    expect((cubit.state as ProductDiscoveryFailure).message, 'offline');
+  });
+
   group('ProductDiscoveryCubit', () {
     test('loads products, categories, and brands when created', () async {
       final locationRepository = _FakeLocationRepository();
@@ -140,14 +160,91 @@ void main() {
       expect(repository.loadCount, 0);
       await cubit.close();
     });
+
+    test('stale discovery refresh keeps the active query', () async {
+      var now = DateTime.utc(2030, 1, 1, 12);
+      final repository = _FakeProductRepository();
+      final cubit = ProductDiscoveryCubit(
+        getProducts: GetProductsUseCase(repository),
+        searchProducts: SearchProductsUseCase(repository),
+        getCategories: GetCategoriesUseCase(repository),
+        getBrands: GetBrandsUseCase(repository),
+        getSelectedCity: GetSelectedCityUseCase(_FakeLocationRepository()),
+        now: () => now,
+      );
+      await cubit.stream.firstWhere((state) => state is ProductDiscoveryReady);
+      await cubit.search('shoe');
+
+      now = now.add(const Duration(seconds: 60));
+      await cubit.loadDiscovery();
+
+      expect((cubit.state as ProductDiscoveryReady).query, 'shoe');
+      expect(repository.lastQuery, 'shoe');
+      await cubit.close();
+    });
+
+    test(
+      'failed silent discovery refresh preserves the active query',
+      () async {
+        var now = DateTime.utc(2030, 1, 1, 12);
+        final repository = _FakeProductRepository();
+        final cubit = ProductDiscoveryCubit(
+          getProducts: GetProductsUseCase(repository),
+          searchProducts: SearchProductsUseCase(repository),
+          getCategories: GetCategoriesUseCase(repository),
+          getBrands: GetBrandsUseCase(repository),
+          getSelectedCity: GetSelectedCityUseCase(_FakeLocationRepository()),
+          now: () => now,
+        );
+        await cubit.stream.firstWhere(
+          (state) => state is ProductDiscoveryReady,
+        );
+        await cubit.search('shoe');
+        repository.categoryFailure = const ServerFailure(
+          'Categories unavailable.',
+        );
+
+        now = now.add(const Duration(seconds: 60));
+        await cubit.loadDiscovery();
+
+        expect((cubit.state as ProductDiscoveryReady).query, 'shoe');
+        await cubit.close();
+      },
+    );
   });
+
+  test(
+    'failed stale refresh after a successful empty load remains ready',
+    () async {
+      var now = DateTime.utc(2030, 1, 1, 12);
+      final repository = _FakeProductRepository()..products = const [];
+      final cubit = ProductDiscoveryCubit(
+        getProducts: GetProductsUseCase(repository),
+        searchProducts: SearchProductsUseCase(repository),
+        getCategories: GetCategoriesUseCase(repository),
+        getBrands: GetBrandsUseCase(repository),
+        getSelectedCity: GetSelectedCityUseCase(_FakeLocationRepository()),
+        now: () => now,
+      );
+      await cubit.stream.firstWhere((state) => state is ProductDiscoveryReady);
+      repository.categoryFailure = const ServerFailure('offline');
+      now = now.add(const Duration(seconds: 60));
+
+      await cubit.loadDiscovery();
+
+      expect(cubit.state, isA<ProductDiscoveryReady>());
+      await cubit.close();
+    },
+  );
 }
 
 class _FakeProductRepository implements ProductRepository {
   Failure? searchFailure;
+  Failure? categoryFailure;
   String? lastQuery;
   String? lastCitySlug;
   int loadCount = 0;
+  List<ProductData> products = const [sampleProduct];
 
   @override
   Future<ApiResult<List<ProductData>>> getProducts({
@@ -156,7 +253,7 @@ class _FakeProductRepository implements ProductRepository {
   }) async {
     loadCount += 1;
     lastCitySlug = citySlug;
-    return const ApiResult.success([sampleProduct]);
+    return ApiResult.success(products);
   }
 
   @override
@@ -184,6 +281,7 @@ class _FakeProductRepository implements ProductRepository {
   Future<ApiResult<List<CategoryData>>> getCategories({
     bool forceRefresh = false,
   }) async {
+    if (categoryFailure case final failure?) return ApiResult.failure(failure);
     return const ApiResult.success([sampleCategory]);
   }
 

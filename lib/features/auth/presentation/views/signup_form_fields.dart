@@ -167,20 +167,9 @@ extension _SignupFormFields on _SignupViewState {
     bool showError = false,
   }) {
     if (isChecking) {
-      final progressColor = isDarkMode
-          ? Colors.white.withValues(alpha: 0.62)
-          : Colors.black.withValues(alpha: 0.42);
-
       return Padding(
         padding: const EdgeInsets.all(12),
-        child: SizedBox(
-          width: 16,
-          height: 16,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(progressColor),
-          ),
-        ),
+        child: SizedBox(width: 16, height: 16, child: AppLoadingPlaceholder()),
       );
     }
 

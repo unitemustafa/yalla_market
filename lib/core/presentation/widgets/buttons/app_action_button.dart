@@ -1,3 +1,4 @@
+import '../states/app_skeleton.dart';
 import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
@@ -39,16 +40,15 @@ class AppActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final localizedLabel = context.tr(label);
     final child = AnimatedSwitcher(
-      duration: const Duration(milliseconds: 160),
+      duration: MediaQuery.disableAnimationsOf(context)
+          ? Duration.zero
+          : const Duration(milliseconds: 160),
       child: isLoading
           ? const SizedBox(
               key: ValueKey('loading'),
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(
-                strokeWidth: 2.2,
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-              ),
+              child: AppLoadingPlaceholder(),
             )
           : Row(
               key: ValueKey(localizedLabel),

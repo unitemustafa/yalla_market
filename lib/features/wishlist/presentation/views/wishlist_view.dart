@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -16,6 +17,7 @@ import '../../../store/domain/entities/store_data.dart';
 import '../../../store/presentation/widgets/store_market_card.dart';
 import '../../domain/entities/wishlist_item.dart';
 import '../cubit/wishlist_cubit.dart';
+import '../cubit/wishlist_state.dart';
 import '../cubit/market_wishlist_cubit.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -38,11 +40,31 @@ class WishlistView extends StatelessWidget {
           );
         }
       },
-      child: BlocBuilder<WishlistCubit, List<WishlistItem>>(
+      child: BlocConsumer<WishlistCubit, List<WishlistItem>>(
+        listenWhen: (previous, current) =>
+            current is WishlistState &&
+            current.errorMessage != null &&
+            (previous is! WishlistState ||
+                previous.errorRevision != current.errorRevision),
+        listener: (context, state) {
+          if (state is WishlistState) {
+            CustomSnackBar.showError(
+              context: context,
+              title: 'Could not update favorite products',
+              message: state.errorMessage,
+            );
+          }
+        },
         builder: (context, wishlist) {
           return BlocBuilder<MarketWishlistCubit, MarketWishlistState>(
             builder: (context, marketWishlist) {
               final isEmpty = wishlist.isEmpty && marketWishlist.items.isEmpty;
+              final productsLoading =
+                  wishlist is WishlistState &&
+                  wishlist.loading &&
+                  !wishlist.hasLoaded;
+              final marketsLoading =
+                  marketWishlist.loading && !marketWishlist.hasLoaded;
 
               return Scaffold(
                 backgroundColor: isDark
@@ -61,7 +83,20 @@ class WishlistView extends StatelessWidget {
                             context.read<WishlistCubit>().refresh(),
                             context.read<MarketWishlistCubit>().refresh(),
                           ]),
-                          child: isEmpty
+                          child: isEmpty && (productsLoading || marketsLoading)
+                              ? SingleChildScrollView(
+                                  physics: AppRefreshIndicator.scrollPhysics,
+                                  child: const Column(
+                                    children: [
+                                      AppRefreshAnchor(),
+                                      Padding(
+                                        padding: EdgeInsets.all(16),
+                                        child: AppSkeletonList(rowHeight: 150),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : isEmpty
                               ? _EmptyWishlistView(
                                   isDark: isDark,
                                   onExplorePressed: () {
@@ -75,75 +110,96 @@ class WishlistView extends StatelessWidget {
                                     );
                                   },
                                 )
-                              : SingleChildScrollView(
-                                  physics: AppRefreshIndicator.scrollPhysics,
-                                  padding: const EdgeInsets.fromLTRB(
-                                    16,
-                                    0,
-                                    16,
-                                    24,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      if (wishlist.isNotEmpty) ...[
-                                        const _WishlistSectionTitle(
-                                          title: 'Favorite products',
-                                          icon: AppIcons.heart5,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        GridLayout(
-                                          key: const ValueKey(
-                                            'wishlist_products_grid',
+                              : AppContentReveal(
+                                  child: SingleChildScrollView(
+                                    physics: AppRefreshIndicator.scrollPhysics,
+                                    padding: const EdgeInsets.fromLTRB(
+                                      16,
+                                      0,
+                                      16,
+                                      24,
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const AppRefreshAnchor(),
+                                        if (productsLoading &&
+                                            wishlist.isEmpty) ...[
+                                          const AppProductSkeletonGrid(
+                                            maxCrossAxisCount: 2,
+                                            mainAxisExtent: ProductCardVertical
+                                                .storefrontGridMainAxisExtent,
                                           ),
-                                          itemCount: wishlist.length,
-                                          minCrossAxisCount: 2,
-                                          maxCrossAxisCount: 2,
-                                          mainAxisExtent: ProductCardVertical
-                                              .storefrontGridMainAxisExtent,
-                                          itemBuilder: (_, index) {
-                                            final item = wishlist[index];
-                                            return ProductCardVertical(
-                                              image: item.image,
-                                              title: item.title,
-                                              brand: item.brand,
-                                              price: item.price,
-                                              productId: item.productId,
-                                              oldPrice: item.oldPrice,
-                                              discount: item.discount,
-                                              compact: false,
-                                            );
-                                          },
-                                        ),
-                                      ],
-                                      if (wishlist.isNotEmpty &&
-                                          marketWishlist.items.isNotEmpty)
-                                        const SizedBox(height: 28),
-                                      if (marketWishlist.items.isNotEmpty) ...[
-                                        const _WishlistSectionTitle(
-                                          title: 'Favorite stores',
-                                          icon: AppIcons.shop5,
-                                        ),
-                                        const SizedBox(height: 12),
-                                        ...marketWishlist.items.map(
-                                          (market) => Padding(
-                                            padding: const EdgeInsets.only(
-                                              bottom: 12,
+                                          const SizedBox(height: 18),
+                                        ],
+                                        if (wishlist.isNotEmpty) ...[
+                                          const _WishlistSectionTitle(
+                                            title: 'Favorite products',
+                                            icon: AppIcons.heart5,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          GridLayout(
+                                            key: const ValueKey(
+                                              'wishlist_products_grid',
                                             ),
-                                            child: StoreMarketCard(
-                                              key: ValueKey(
-                                                'wishlist_store_${market.id}',
+                                            itemCount: wishlist.length,
+                                            minCrossAxisCount: 2,
+                                            maxCrossAxisCount: 2,
+                                            mainAxisExtent: ProductCardVertical
+                                                .storefrontGridMainAxisExtent,
+                                            itemBuilder: (_, index) {
+                                              final item = wishlist[index];
+                                              return ProductCardVertical(
+                                                image: item.image,
+                                                title: item.title,
+                                                brand: item.brand,
+                                                price: item.price,
+                                                productId: item.productId,
+                                                oldPrice: item.oldPrice,
+                                                discount: item.discount,
+                                                compact: false,
+                                              );
+                                            },
+                                          ),
+                                        ],
+                                        if (wishlist.isNotEmpty &&
+                                            marketWishlist.items.isNotEmpty)
+                                          const SizedBox(height: 28),
+                                        if (marketsLoading &&
+                                            marketWishlist.items.isEmpty) ...[
+                                          const SizedBox(height: 18),
+                                          const AppSkeletonList(rowHeight: 150),
+                                        ],
+                                        if (marketWishlist
+                                            .items
+                                            .isNotEmpty) ...[
+                                          const _WishlistSectionTitle(
+                                            title: 'Favorite stores',
+                                            icon: AppIcons.shop5,
+                                          ),
+                                          const SizedBox(height: 12),
+                                          ...marketWishlist.items.map(
+                                            (market) => Padding(
+                                              padding: const EdgeInsets.only(
+                                                bottom: 12,
                                               ),
-                                              market: market,
-                                              keyPrefix: 'wishlist_store',
-                                              onTap: () =>
-                                                  _openMarket(context, market),
+                                              child: StoreMarketCard(
+                                                key: ValueKey(
+                                                  'wishlist_store_${market.id}',
+                                                ),
+                                                market: market,
+                                                keyPrefix: 'wishlist_store',
+                                                onTap: () => _openMarket(
+                                                  context,
+                                                  market,
+                                                ),
+                                              ),
                                             ),
                                           ),
-                                        ),
+                                        ],
                                       ],
-                                    ],
+                                    ),
                                   ),
                                 ),
                         ),
@@ -289,45 +345,50 @@ class _EmptyWishlistView extends StatelessWidget {
         builder: (context, constraints) {
           return SingleChildScrollView(
             physics: AppRefreshIndicator.scrollPhysics,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    _WishlistEmptyArtwork(isDark: isDark),
-                    const SizedBox(height: 28),
-                    Text(
-                      context.tr('Your wishlist is waiting'),
-                      style: textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                      textAlign: TextAlign.center,
+            child: Column(
+              children: [
+                const AppRefreshAnchor(),
+                ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _WishlistEmptyArtwork(isDark: isDark),
+                        const SizedBox(height: 28),
+                        Text(
+                          context.tr('Your wishlist is waiting'),
+                          style: textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          context.tr(
+                            'Save the products you love and find them here whenever you are ready.',
+                          ),
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: subtitleColor,
+                            height: 1.45,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 28),
+                        ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 320),
+                          child: AppActionButton(
+                            label: 'Explore products',
+                            icon: AppIcons.shop,
+                            onPressed: onExplorePressed,
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 12),
-                    Text(
-                      context.tr(
-                        'Save the products you love and find them here whenever you are ready.',
-                      ),
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: subtitleColor,
-                        height: 1.45,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 28),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 320),
-                      child: AppActionButton(
-                        label: 'Explore products',
-                        icon: AppIcons.shop,
-                        onPressed: onExplorePressed,
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         },

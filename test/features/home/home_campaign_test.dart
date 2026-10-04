@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/features/home/domain/entities/home_campaign_data.dart';
 import 'package:yalla_market/features/home/domain/entities/home_data.dart';
 import 'package:yalla_market/features/home/presentation/home_campaign/home_campaign_host.dart';
 import 'package:yalla_market/features/home/presentation/home_campaign/home_campaign_preferences.dart';
+import 'package:yalla_market/features/home/presentation/home_campaign/home_campaign_sheet.dart';
 import 'package:yalla_market/core/presentation/media/app_video.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
@@ -205,6 +207,292 @@ void main() {
     final title = tester.widget<Text>(find.text('Campaign title'));
     expect(title.style?.color, darkText);
   });
+
+  for (final scenario in [
+    (width: 320.0, textScale: 1.0, stacked: true),
+    (width: 360.0, textScale: 1.0, stacked: true),
+    (width: 800.0, textScale: 1.5, stacked: true),
+    (width: 800.0, textScale: 1.0, stacked: false),
+  ]) {
+    testWidgets(
+      'split campaign adapts at width ${scenario.width} and text scale ${scenario.textScale}',
+      (tester) async {
+        await tester.binding.setSurfaceSize(Size(scenario.width, 1000));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final payload = _payload();
+        payload['sheet'] = <String, dynamic>{
+          ...payload['sheet'] as Map<String, dynamic>,
+          'template': 'split',
+          'size': 'large',
+          'title': 'انسخ الكود واستخدمه',
+          'description': 'اضغط الزر لنسخ الكود فورًا.',
+        };
+        (payload['media'] as Map<String, dynamic>).addAll({
+          'type': 'image',
+          'image_url': AppAssets.defaultOffer,
+        });
+        payload['action'] = {
+          'type': 'copy_text',
+          'label': 'انسخ الكود',
+          'value': 'SAVE',
+        };
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: ThemeData(fontFamily: 'Cairo'),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(scenario.textScale)),
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: child!,
+              ),
+            ),
+            home: Scaffold(
+              body: Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => showHomeCampaignSheet(
+                    context,
+                    HomeCampaignData.fromJson(payload),
+                  ),
+                  child: const Text('Open campaign'),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.tap(find.text('Open campaign'));
+        await tester.pumpAndSettle();
+
+        final title = find.text('انسخ الكود واستخدمه');
+        final media = find.byKey(const ValueKey('campaign_image_viewport'));
+        if (scenario.stacked) {
+          expect(
+            tester.getTopLeft(title).dy,
+            greaterThanOrEqualTo(tester.getBottomLeft(media).dy),
+          );
+          expect(tester.getSize(title).width, greaterThan(240));
+        } else {
+          expect(
+            tester.getTopLeft(title).dy,
+            closeTo(tester.getTopLeft(media).dy, 1),
+          );
+          expect(
+            tester.getTopRight(title).dx,
+            lessThanOrEqualTo(tester.getTopLeft(media).dx),
+          );
+        }
+        await tester.ensureVisible(find.text('انسخ الكود'));
+        await tester.tap(find.text('انسخ الكود'));
+        await tester.pumpAndSettle();
+        expect(find.byType(Dialog), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final template in ['hero', 'split', 'media_focus']) {
+    for (final size in ['medium', 'large', 'near_full']) {
+      for (final mediaType in ['image', 'video', 'none', 'empty_image']) {
+        testWidgets('$template/$size/$mediaType fits enlarged long content', (
+          tester,
+        ) async {
+          const viewport = Size(360, 800);
+          await tester.binding.setSurfaceSize(viewport);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          const title = 'انسخ الكود واستخدمه للحصول على خصم على طلبك القادم';
+          const label = 'انسخ كود الخصم واستخدمه عند إتمام طلبك القادم';
+          final payload = _payload();
+          payload['sheet'] = <String, dynamic>{
+            ...payload['sheet'] as Map<String, dynamic>,
+            'template': template,
+            'size': size,
+            'alignment': 'start',
+            'title': title,
+            'description': 'تفاصيل الحملة والعرض المتاح لجميع العملاء. ' * 20,
+            'use_theme_colors': false,
+          };
+          payload['media'] = <String, dynamic>{
+            'type': mediaType == 'empty_image' ? 'image' : mediaType,
+            'image_url': mediaType == 'empty_image'
+                ? ''
+                : AppAssets.defaultOffer,
+            'video_url': '',
+          };
+          payload['action'] = <String, dynamic>{
+            'type': mediaType == 'none' ? 'none' : 'copy_text',
+            'label': label,
+            'value': 'SAVE',
+          };
+          HomeCampaignSheetResult? result;
+          await _openCampaign(
+            tester,
+            payload,
+            textScale: 1.8,
+            onResult: (value) => result = value,
+          );
+
+          final surface = find.byKey(const ValueKey('home_campaign_surface'));
+          final factor = switch (size) {
+            'medium' => 0.58,
+            'near_full' => 0.94,
+            _ => 0.76,
+          };
+          expect(
+            tester.getSize(surface).height,
+            lessThanOrEqualTo(viewport.height * factor),
+          );
+          expect(
+            tester.widget<Text>(find.text(title)).style?.color,
+            const Color(0xFF202124),
+          );
+          if (mediaType == 'none' || mediaType == 'empty_image') {
+            expect(find.byType(AspectRatio), findsNothing);
+          } else {
+            final media = find.byKey(
+              ValueKey(
+                mediaType == 'video'
+                    ? 'campaign_video_viewport'
+                    : 'campaign_image_viewport',
+              ),
+            );
+            expect(
+              tester.getTopLeft(find.text(title)).dy,
+              greaterThanOrEqualTo(tester.getBottomLeft(media).dy),
+            );
+          }
+          if (mediaType == 'none') {
+            expect(find.byType(FilledButton), findsNothing);
+            await tester.tap(find.byIcon(Icons.close_rounded));
+            await tester.pumpAndSettle();
+            expect(result, HomeCampaignSheetResult.dismissed);
+          } else {
+            await tester.ensureVisible(find.byType(FilledButton));
+            await tester.pumpAndSettle();
+            final buttonRect = tester.getRect(find.byType(FilledButton));
+            final labelRect = tester.getRect(find.text(label));
+            expect(labelRect.top, greaterThanOrEqualTo(buttonRect.top));
+            expect(labelRect.bottom, lessThanOrEqualTo(buttonRect.bottom));
+            final paragraph = tester.renderObject<RenderParagraph>(
+              find.text(label),
+            );
+            for (final box in paragraph.getBoxesForSelection(
+              const TextSelection(baseOffset: 0, extentOffset: label.length),
+            )) {
+              expect(box.bottom, lessThanOrEqualTo(paragraph.size.height));
+            }
+            await tester.tap(find.byType(FilledButton));
+            await tester.pumpAndSettle();
+            expect(result, HomeCampaignSheetResult.acted);
+          }
+          expect(find.byType(Dialog), findsNothing);
+          expect(tester.takeException(), isNull);
+        });
+      }
+    }
+  }
+
+  for (final mediaType in ['none', 'empty_image']) {
+    testWidgets('wide split with $mediaType gives text the full width', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(800, 600));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final payload = _payload();
+      (payload['sheet'] as Map<String, dynamic>)['template'] = 'split';
+      payload['media'] = <String, dynamic>{
+        'type': mediaType == 'empty_image' ? 'image' : 'none',
+        'image_url': '',
+      };
+      await _openCampaign(tester, payload);
+      final surface = find.byKey(const ValueKey('home_campaign_surface'));
+      expect(
+        tester.getSize(find.text('Campaign title')).width,
+        closeTo(tester.getSize(surface).width - 36, 1),
+      );
+      expect(find.byType(AspectRatio), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final template in ['hero', 'split', 'media_focus']) {
+    for (final size in ['medium', 'large', 'near_full']) {
+      testWidgets('$template/$size keeps the action reachable in landscape', (
+        tester,
+      ) async {
+        await tester.binding.setSurfaceSize(const Size(800, 360));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final payload = _payload();
+        payload['sheet'] = <String, dynamic>{
+          ...payload['sheet'] as Map<String, dynamic>,
+          'template': template,
+          'size': size,
+          'description': 'تفاصيل العرض الطويلة متاحة بالتمرير. ' * 30,
+        };
+        payload['media'] = <String, dynamic>{'type': 'video', 'video_url': ''};
+        payload['action'] = <String, dynamic>{
+          'type': 'copy_text',
+          'label': 'انسخ الكود واستخدمه',
+          'value': 'SAVE',
+        };
+        HomeCampaignSheetResult? result;
+        await _openCampaign(
+          tester,
+          payload,
+          textScale: 2,
+          onResult: (value) => result = value,
+        );
+        await tester.ensureVisible(find.byType(FilledButton));
+        await tester.pumpAndSettle();
+        final surface = tester.getRect(
+          find.byKey(const ValueKey('home_campaign_surface')),
+        );
+        final button = tester.getRect(find.byType(FilledButton));
+        expect(button.top, greaterThanOrEqualTo(surface.top));
+        expect(button.bottom, lessThanOrEqualTo(surface.bottom));
+        await tester.tap(find.byType(FilledButton));
+        await tester.pumpAndSettle();
+        expect(result, HomeCampaignSheetResult.acted);
+        expect(find.byType(Dialog), findsNothing);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+}
+
+Future<void> _openCampaign(
+  WidgetTester tester,
+  Map<String, dynamic> payload, {
+  double textScale = 1,
+  ValueChanged<HomeCampaignSheetResult?>? onResult,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: ThemeData(fontFamily: 'Cairo'),
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(textScale)),
+        child: Directionality(textDirection: TextDirection.rtl, child: child!),
+      ),
+      home: Scaffold(
+        body: Builder(
+          builder: (context) => TextButton(
+            onPressed: () async {
+              final result = await showHomeCampaignSheet(
+                context,
+                HomeCampaignData.fromJson(payload),
+              );
+              onResult?.call(result);
+            },
+            child: const Text('Open campaign'),
+          ),
+        ),
+      ),
+    ),
+  );
+  await tester.tap(find.text('Open campaign'));
+  await tester.pumpAndSettle();
 }
 
 Map<String, dynamic> _payload() => {

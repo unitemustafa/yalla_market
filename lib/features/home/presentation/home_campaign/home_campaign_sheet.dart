@@ -90,8 +90,24 @@ class _HomeCampaignSheet extends StatelessWidget {
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
-                    child: campaign.sheet.template == 'split'
-                        ? Row(
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final hasMedia =
+                            campaign.media.type == 'video' ||
+                            (campaign.media.type == 'image' &&
+                                (imageUrl ?? campaign.media.imageUrl)
+                                    .trim()
+                                    .isNotEmpty);
+                        final textScale =
+                            MediaQuery.textScalerOf(context).scale(24) / 24;
+                        // Keep enough room for readable text beside the media,
+                        // including when the system font size is increased.
+                        final useSplit =
+                            sheet.template == 'split' &&
+                            hasMedia &&
+                            (constraints.maxWidth - 14) / 2 >= 240 * textScale;
+                        if (useSplit) {
+                          return Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Expanded(
@@ -103,19 +119,23 @@ class _HomeCampaignSheet extends StatelessWidget {
                               const SizedBox(width: 14),
                               Expanded(child: content),
                             ],
-                          )
-                        : Column(
-                            children: [
-                              if (campaign.media.type != 'none') ...[
-                                _CampaignMedia(
-                                  campaign.media,
-                                  imageUrl: imageUrl,
-                                ),
-                                const SizedBox(height: 18),
-                              ],
-                              content,
+                          );
+                        }
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (hasMedia) ...[
+                              _CampaignMedia(
+                                campaign.media,
+                                imageUrl: imageUrl,
+                              ),
+                              const SizedBox(height: 18),
                             ],
-                          ),
+                            content,
+                          ],
+                        );
+                      },
+                    ),
                   ),
                   if (campaign.action.hasButton)
                     SafeArea(
@@ -123,9 +143,13 @@ class _HomeCampaignSheet extends StatelessWidget {
                       minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
                       child: SizedBox(
                         width: double.infinity,
-                        height: 52,
                         child: FilledButton(
                           style: FilledButton.styleFrom(
+                            minimumSize: const Size.fromHeight(52),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                             backgroundColor: Color(
                               sheet.buttonBackgroundColorValue,
                             ),
@@ -140,6 +164,7 @@ class _HomeCampaignSheet extends StatelessWidget {
                           ),
                           child: Text(
                             campaign.action.label,
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
@@ -171,9 +196,7 @@ class _CampaignTextContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: textAlign == TextAlign.center
-          ? CrossAxisAlignment.center
-          : CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
           campaign.sheet.title,

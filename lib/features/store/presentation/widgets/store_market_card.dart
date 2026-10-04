@@ -18,7 +18,7 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 232;
+  static const double height = 196;
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -49,16 +49,16 @@ class StoreMarketCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  height: 124,
+                  height: 100,
                   child: _StoreCover(market: market, keyPrefix: keyPrefix),
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(8),
                     child: Row(
                       children: [
                         _StoreLogo(market: market, keyPrefix: keyPrefix),
-                        const SizedBox(width: 9),
+                        const SizedBox(width: 7),
                         Expanded(child: _StoreInformation(market: market)),
                       ],
                     ),
@@ -161,12 +161,12 @@ class _StoreLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 70,
-      height: 70,
+      width: 52,
+      height: 52,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(19),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: AppImage(
@@ -174,7 +174,7 @@ class _StoreLogo extends StatelessWidget {
         source: market.image,
         fallbackType: AppImagePlaceholderType.store,
         role: AppImageRole.logo,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(11),
         cacheWidth: 228,
         cacheHeight: 228,
       ),
@@ -248,14 +248,14 @@ class _StoreInformation extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.start,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontSize: 16,
+                  fontSize: 14,
                   height: 1.25,
                   fontWeight: FontWeight.w800,
                 ),
               ),
             ),
             const SizedBox(width: 4),
-            const Icon(Icons.verified, color: AppColors.primary, size: 15),
+            const Icon(Icons.verified, color: AppColors.primary, size: 13),
           ],
         ),
         if (market.description.isNotEmpty) ...[
@@ -267,7 +267,7 @@ class _StoreInformation extends StatelessWidget {
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: muted,
-              fontSize: 11.5,
+              fontSize: 10.5,
               height: 1.3,
             ),
           ),

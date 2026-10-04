@@ -11,6 +11,7 @@ import 'package:yalla_market/features/store/domain/usecases/get_store_usecase.da
 import 'package:yalla_market/features/store/presentation/cubit/store_cubit.dart';
 import 'package:yalla_market/features/store/presentation/views/store_view.dart';
 import 'package:yalla_market/features/store/presentation/widgets/store_highlights_sections.dart';
+import 'package:yalla_market/features/store/presentation/widgets/store_market_card.dart';
 
 import '../../../../helpers/cubit_factories.dart';
 
@@ -133,6 +134,57 @@ void main() {
     expect(openedStore?.classificationId, 'category-2');
     expect(tester.takeException(), isNull);
   });
+
+  for (final width in [320.0, 390.0]) {
+    for (final direction in TextDirection.values) {
+      testWidgets(
+        'store sliders show one and a half cards at $width in $direction',
+        (tester) async {
+          await tester.binding.setSurfaceSize(Size(width, 844));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          final store = _storeData();
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Directionality(
+                textDirection: direction,
+                child: Scaffold(
+                  body: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: StoreHighlightsSections(
+                      store: store.copyWith(
+                        latestMarkets: store.popularMarkets,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          for (final prefix in ['popular', 'latest']) {
+            final viewport = tester.getRect(
+              find.byKey(ValueKey('${prefix}_stores_horizontal_slider')),
+            );
+            final first = tester.getRect(
+              find.byKey(ValueKey('${prefix}_store_market-category-0')),
+            );
+            final second = tester.getRect(
+              find.byKey(ValueKey('${prefix}_store_market-category-2')),
+            );
+            expect(first.height, StoreMarketCard.height);
+            expect(viewport.intersect(first).width, closeTo(first.width, 0.1));
+            expect(
+              viewport.intersect(second).width,
+              closeTo(second.width / 2, 0.1),
+            );
+            expect(first.width, lessThan(viewport.width));
+          }
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
 
   testWidgets('popular category chips can be enabled again', (tester) async {
     await tester.pumpWidget(

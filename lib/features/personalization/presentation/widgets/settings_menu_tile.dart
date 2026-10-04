@@ -12,6 +12,7 @@ class SettingsMenuTile extends StatelessWidget {
     this.trailing,
     this.onTap,
     this.accentColor = AppColors.primary,
+    this.compactText = false,
   });
 
   final IconData icon;
@@ -19,6 +20,7 @@ class SettingsMenuTile extends StatelessWidget {
   final Widget? trailing;
   final VoidCallback? onTap;
   final Color accentColor;
+  final bool compactText;
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +60,7 @@ class SettingsMenuTile extends StatelessWidget {
                       context.tr(title),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         color: textColor,
+                        fontSize: compactText ? 13 : null,
                         fontWeight: FontWeight.w800,
                       ),
                       maxLines: 1,
@@ -68,9 +71,10 @@ class SettingsMenuTile extends StatelessWidget {
                       context.tr(subTitle),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         color: mutedColor,
+                        fontSize: compactText ? 10.5 : null,
                         height: 1.25,
                       ),
-                      maxLines: 2,
+                      maxLines: compactText ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],

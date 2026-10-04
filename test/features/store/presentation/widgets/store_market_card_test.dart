@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
@@ -12,7 +13,7 @@ import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_u
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 void main() {
-  testWidgets('restores compact store covers with overlaid logo and actions', (
+  testWidgets('shows full-width cover above the logo and store details', (
     tester,
   ) async {
     for (var productCount = 0; productCount <= 3; productCount++) {
@@ -44,15 +45,30 @@ void main() {
       expect(find.text('20-30 min'), findsOneWidget);
       final coverFinder = find.byKey(const ValueKey('test_store_market_cover'));
       final cover = tester.getRect(coverFinder);
-      expect(cover.width, 112);
-      expect(cover.height, 110);
+      expect(cover.width, 298);
+      expect(cover.height, 134);
       expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.cover);
-      for (final item in ['logo', 'favorite']) {
-        final bounds = tester.getRect(
-          find.byKey(ValueKey('test_store_market_$item')),
-        );
-        expect(cover.overlaps(bounds), isTrue);
-      }
+      final logo = tester.getRect(
+        find.byKey(const ValueKey('test_store_market_logo')),
+      );
+      expect(logo.top, greaterThan(cover.bottom));
+      expect(
+        tester.getRect(find.text('Unified Store')).top,
+        greaterThan(cover.bottom),
+      );
+      expect(
+        tester.getRect(find.text('Everyday essentials')).top,
+        greaterThan(tester.getRect(find.text('Unified Store')).bottom),
+      );
+      expect(
+        cover.overlaps(
+          tester.getRect(
+            find.byKey(const ValueKey('test_store_market_favorite')),
+          ),
+        ),
+        isTrue,
+      );
+      expect(find.byIcon(Icons.verified), findsOneWidget);
       expect(
         tester.getSize(find.byType(StoreMarketCard)).height,
         StoreMarketCard.height,
@@ -92,6 +108,13 @@ void main() {
 
     await tester.pumpWidget(
       MaterialApp(
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
         home: Directionality(
           textDirection: TextDirection.rtl,
           child: Scaffold(
@@ -120,6 +143,14 @@ void main() {
       find.text('اسم محل طويل جدًا لاختبار العرض على الآيفون الصغير'),
     );
     expect(name.textAlign, TextAlign.start);
+    final logo = tester.getRect(
+      find.byKey(const ValueKey('store_market_logo')),
+    );
+    expect(logo.left, greaterThan(tester.getRect(find.text(name.data!)).right));
+    final products = tester.getRect(find.text('2 منتج'));
+    final delivery = tester.getRect(find.text('20-30 دقيقة'));
+    expect(products.center.dy, closeTo(delivery.center.dy, 1));
+    expect(find.byIcon(Icons.verified), findsOneWidget);
   });
 
   testWidgets('favorite button toggles without opening the store card', (
@@ -170,6 +201,7 @@ StoreMarketData _market(int productCount, {String name = 'Unified Store'}) {
     products: List.generate(productCount, _product),
     image: AppAssets.defaultStore,
     coverImage: AppAssets.emptyStoreLight,
+    description: 'Everyday essentials',
     deliveryTimeMinMinutes: 20,
     deliveryTimeMaxMinutes: 30,
     accentColorValue: 0xFF013C7E,

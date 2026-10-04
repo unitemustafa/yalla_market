@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_results_view.dart';
+import 'package:yalla_market/core/presentation/widgets/products/product_sort_button.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit.dart';
@@ -12,6 +13,69 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  testWidgets('keeps the search and sorting controls when a category changes', (
+    tester,
+  ) async {
+    SharedPreferences.setMockInitialValues({});
+    final cartCubit = makeCartCubit();
+    final wishlistCubit = makeWishlistCubit();
+    final category = ValueNotifier('first');
+    addTearDown(cartCubit.close);
+    addTearDown(wishlistCubit.close);
+    addTearDown(category.dispose);
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<CartCubit>.value(value: cartCubit),
+          BlocProvider<WishlistCubit>.value(value: wishlistCubit),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ValueListenableBuilder<String>(
+                valueListenable: category,
+                builder: (_, value, _) => ProductResultsView(
+                  products: value == 'first'
+                      ? [_product(0), _product(1)]
+                      : [_product(1)],
+                  categorySelectionKey: value,
+                  useHomeSearchStyle: true,
+                  initialSortOption: value == 'first' ? 'Newest' : 'Name',
+                  controlsFooter: const SizedBox(
+                    key: ValueKey('stable_category_controls'),
+                    height: 47,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final field = find.byType(TextField);
+    await tester.enterText(field, 'Product 1');
+    await tester.pumpAndSettle();
+    final controls = tester.element(
+      find.byKey(const ValueKey('stable_category_controls')),
+    );
+    final search = tester.element(field);
+    category.value = 'second';
+    await tester.pumpAndSettle();
+    expect(tester.element(field), same(search));
+    expect(
+      tester.element(find.byKey(const ValueKey('stable_category_controls'))),
+      same(controls),
+    );
+    expect(tester.widget<TextField>(field).controller?.text, 'Product 1');
+    expect(
+      tester.widget<ProductSortButton>(find.byType(ProductSortButton)).value,
+      'Newest',
+    );
+    expect(find.byType(ProductCardVertical), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('keeps page and scroll position when existing products refresh', (
     tester,
   ) async {

@@ -473,7 +473,11 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                           isDark: isDark,
                         ),
                         const SizedBox(width: 10),
-                        _BrandPill(brand: _productBrand, isDark: isDark),
+                        _BrandPill(
+                          brand: _productBrand,
+                          isDark: isDark,
+                          marketId: _marketId,
+                        ),
                       ],
                     ),
                     const SizedBox(height: 20),

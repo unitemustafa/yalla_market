@@ -28,6 +28,8 @@ class AppAssets {
       '$_placeholdersPath/empty_store_light.jpg';
   // Logos
   static const String homeBrandLogo = '$_logosPath/yallamarket_home_logo.png';
+  static const String splashBrandLogo =
+      '$_logosPath/yallamarket_splash_logo.png';
   static const String googleLogo = '$_logosPath/google_logo.png';
 
   static String themedLogo({required bool isDarkMode}) {

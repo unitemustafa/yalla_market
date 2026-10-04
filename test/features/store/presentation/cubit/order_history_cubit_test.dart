@@ -7,6 +7,7 @@ import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
+import 'package:yalla_market/features/store/domain/usecases/accept_delivery_quote_usecase.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_state.dart';
@@ -143,24 +144,88 @@ void main() {
         await cubit.close();
       },
     );
+
+    test('retries delivery quote approval after a failure', () async {
+      final pendingOrder = _deliveryQuoteOrder(
+        OrderDeliveryPriceStatus.awaitingCustomerApproval,
+      );
+      final acceptedOrder = _deliveryQuoteOrder(OrderDeliveryPriceStatus.fixed);
+      final repository = _FakeOrderRepository(
+        orders: [pendingOrder],
+        deliveryQuoteResults: [
+          const ApiResult.failure(ServerFailure('Approval is unavailable.')),
+          ApiResult.success(acceptedOrder),
+        ],
+      );
+      final cubit = OrderHistoryCubit(
+        GetMyOrdersUseCase(repository),
+        AcceptDeliveryQuoteUseCase(repository),
+      );
+      await cubit.loadOrders();
+
+      final firstError = await cubit.acceptDeliveryQuote(pendingOrder.id);
+
+      expect(firstError, 'Approval is unavailable.');
+      expect(
+        (cubit.state as OrderHistoryReady).orders.single.deliveryPriceStatus,
+        OrderDeliveryPriceStatus.awaitingCustomerApproval,
+      );
+
+      final retryError = await cubit.acceptDeliveryQuote(pendingOrder.id);
+
+      expect(retryError, isNull);
+      expect(repository.acceptDeliveryQuoteCalls, 2);
+      expect(
+        (cubit.state as OrderHistoryReady).orders.single.deliveryPriceStatus,
+        OrderDeliveryPriceStatus.fixed,
+      );
+      await cubit.close();
+    });
   });
 }
 
+OrderData _deliveryQuoteOrder(OrderDeliveryPriceStatus deliveryPriceStatus) {
+  return OrderData(
+    id: sampleOrder.id,
+    orderNumber: sampleOrder.orderNumber,
+    status: sampleOrder.status,
+    placedAt: sampleOrder.placedAt,
+    shippingAddress: sampleOrder.shippingAddress,
+    paymentMethod: sampleOrder.paymentMethod,
+    items: sampleOrder.items,
+    subtotal: sampleOrder.subtotal,
+    shippingFee: sampleOrder.shippingFee,
+    deliveryPriceStatus: deliveryPriceStatus,
+    taxTotal: sampleOrder.taxTotal,
+    discountTotal: sampleOrder.discountTotal,
+    total: sampleOrder.total,
+  );
+}
+
 class _FakeOrderRepository implements OrderRepository {
-  _FakeOrderRepository({required this.orders, Completer<void>? delay})
-    : _delay = delay;
+  _FakeOrderRepository({
+    required this.orders,
+    Completer<void>? delay,
+    this.deliveryQuoteResults = const [],
+  }) : _delay = delay;
 
   final List<OrderData> orders;
   final Completer<void>? _delay;
   Completer<void>? nextDelay;
   Failure? nextFailure;
   int getMyOrdersCalls = 0;
+  final List<ApiResult<OrderData>> deliveryQuoteResults;
+  int acceptDeliveryQuoteCalls = 0;
 
   @override
   Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
-    return const ApiResult.failure(
-      ValidationFailure('Delivery quote approval is not used in this test.'),
-    );
+    acceptDeliveryQuoteCalls += 1;
+    if (deliveryQuoteResults.isEmpty) {
+      return const ApiResult.failure(
+        ValidationFailure('Delivery quote approval is not used in this test.'),
+      );
+    }
+    return deliveryQuoteResults.removeAt(0);
   }
 
   void completeDelay() {

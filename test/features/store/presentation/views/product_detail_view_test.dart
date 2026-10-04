@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/app/di/service_locator.dart';
+import 'package:yalla_market/app/routing/app_route_arguments.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -21,6 +23,46 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  for (final marketId in ['market_1', '  market_1  ']) {
+    testWidgets('opens the product storefront by market ID ($marketId)', (
+      tester,
+    ) async {
+      RouteSettings? openedRoute;
+      await _pumpProduct(
+        tester,
+        product: ProductData.fromJson({
+          'id': 'variant-product',
+          'name': 'Product',
+          'brand': 'Store name',
+          'market_id': marketId,
+          'image': AppAssets.defaultProduct,
+          'variants': [
+            {'id': 'variant_1', 'price': '50.00'},
+          ],
+        }),
+        onGenerateRoute: (settings) {
+          openedRoute = settings;
+          return MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => const Scaffold(body: Text('Storefront')),
+          );
+        },
+      );
+
+      await tester.ensureVisible(find.text('Store name'));
+      await tester.tap(find.text('Store name'));
+      await tester.pumpAndSettle();
+
+      expect(openedRoute?.name, AppRoutes.brandProducts);
+      final args = openedRoute!.arguments! as BrandProductsRouteArgs;
+      expect(args.marketId, 'market_1');
+      expect(args.brand, 'Store name');
+      expect(args.shopId, isNull);
+      expect(find.text('Storefront'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('shows product share actions and copies its unique link', (
     tester,
   ) async {
@@ -522,6 +564,7 @@ Future<void> _pumpProduct(
   WidgetTester tester, {
   required ProductData product,
   CartCubit? cartCubit,
+  RouteFactory? onGenerateRoute,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final cart = cartCubit ?? makeCartCubit();
@@ -547,8 +590,9 @@ Future<void> _pumpProduct(
         BlocProvider<CartCubit>.value(value: cart),
         BlocProvider<WishlistCubit>.value(value: wishlist),
       ],
-      child: const MaterialApp(
-        home: ProductDetailView(
+      child: MaterialApp(
+        onGenerateRoute: onGenerateRoute,
+        home: const ProductDetailView(
           productId: 'variant-product',
           image: AppAssets.defaultProduct,
           title: 'Product',

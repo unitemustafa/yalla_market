@@ -175,12 +175,28 @@ class _StatusPill extends StatelessWidget {
 }
 
 class _BrandPill extends StatelessWidget {
-  const _BrandPill({required this.brand, required this.isDark});
+  const _BrandPill({required this.brand, required this.isDark, this.marketId});
 
   final String brand;
   final bool isDark;
+  final String? marketId;
 
   void _openCategory(BuildContext context) {
+    final id = marketId?.trim() ?? '';
+    if (id.isNotEmpty) {
+      Navigator.pushNamed(
+        context,
+        AppRoutes.brandProducts,
+        arguments: BrandProductsRouteArgs(
+          brand: brand,
+          logo: AppAssets.temporaryMarketPlaceholder,
+          productCount: '0 products',
+          marketId: id,
+        ),
+      );
+      return;
+    }
+
     final shop = _shopForBrand();
     if (shop != null) {
       Navigator.pushNamed(

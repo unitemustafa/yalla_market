@@ -15,6 +15,7 @@ import 'package:yalla_market/features/store/domain/entities/order.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
 import 'package:yalla_market/features/store/domain/entities/shipping_company.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
+import 'package:yalla_market/features/store/domain/usecases/accept_delivery_quote_usecase.dart';
 import 'package:yalla_market/features/store/domain/usecases/get_my_orders_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_cubit.dart';
 import 'package:yalla_market/features/store/presentation/cubit/order_history_state.dart';
@@ -280,6 +281,59 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'approves a delivery quote and refreshes the open order details',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final acceptedOrder = _orderPlacedAt(
+        DateTime(2026, 7, 14),
+        deliveryPriceStatus: OrderDeliveryPriceStatus.fixed,
+        shippingFee: 45,
+      );
+      final repository = _OrderRepositoryWithData(
+        [
+          _orderPlacedAt(
+            DateTime(2026, 7, 14),
+            deliveryPriceStatus:
+                OrderDeliveryPriceStatus.awaitingCustomerApproval,
+            shippingFee: 45,
+          ),
+        ],
+        deliveryQuoteResults: [ApiResult.success(acceptedOrder)],
+      );
+      final cubit = OrderHistoryCubit(
+        GetMyOrdersUseCase(repository),
+        AcceptDeliveryQuoteUseCase(repository),
+      );
+      addTearDown(cubit.close);
+
+      await tester.pumpWidget(
+        BlocProvider<OrderHistoryCubit>.value(
+          value: cubit,
+          child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('6'));
+      await tester.pumpAndSettle();
+
+      final approveButton = find.text('Approve delivery price');
+      await tester.ensureVisible(approveButton);
+      await tester.tap(approveButton);
+      await tester.pumpAndSettle();
+
+      expect(repository.acceptDeliveryQuoteCalls, 1);
+      expect(
+        (cubit.state as OrderHistoryReady).orders.single.deliveryPriceStatus,
+        OrderDeliveryPriceStatus.fixed,
+      );
+      expect(find.text('Delivery price approval'), findsNothing);
+      expect(find.text('Delivery price approved'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('shows the selected shipping company in order details', (
     tester,
   ) async {
@@ -454,11 +508,24 @@ class _EmptyOrderRepository implements OrderRepository {
 }
 
 class _OrderRepositoryWithData extends _EmptyOrderRepository {
-  _OrderRepositoryWithData(this.orders);
+  _OrderRepositoryWithData(this.orders, {this.deliveryQuoteResults = const []});
 
   final List<OrderData> orders;
+  final List<ApiResult<OrderData>> deliveryQuoteResults;
   Completer<ApiResult<List<OrderData>>>? loadCompleter;
   int loadCount = 0;
+  int acceptDeliveryQuoteCalls = 0;
+
+  @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async {
+    acceptDeliveryQuoteCalls += 1;
+    if (deliveryQuoteResults.isEmpty) {
+      return const ApiResult.failure(
+        ValidationFailure('Delivery quote approval is not used in this test.'),
+      );
+    }
+    return deliveryQuoteResults.removeAt(0);
+  }
 
   @override
   Future<ApiResult<List<OrderData>>> getMyOrders() async {

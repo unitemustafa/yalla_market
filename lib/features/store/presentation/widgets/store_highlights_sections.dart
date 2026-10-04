@@ -7,6 +7,7 @@ import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../domain/entities/store_data.dart';
 import 'store_market_card.dart';
+import '../../../../core/presentation/widgets/selection/category_selection.dart';
 
 /// The store discovery rows shown on the home page.
 class StoreHighlightsSections extends StatefulWidget {
@@ -276,34 +277,37 @@ class _PopularStoresSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final cardWidth = (constraints.maxWidth * 0.92)
-                .clamp(280.0, 360.0)
-                .toDouble();
-            return SizedBox(
-              height: StoreMarketCard.height,
-              child: ListView.separated(
-                key: const ValueKey('popular_stores_horizontal_slider'),
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                itemCount: markets.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 12),
-                itemBuilder: (context, index) {
-                  final market = markets[index];
-                  return SizedBox(
-                    key: ValueKey('popular_store_${market.id}'),
-                    width: cardWidth,
-                    child: StoreMarketCard(
-                      market: market,
-                      keyPrefix: 'popular_store',
-                      onTap: () => _openStore(context, market),
-                    ),
-                  );
-                },
-              ),
-            );
-          },
+        CategoryContentTransition(
+          selectionKey: selectedClassification.id,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final cardWidth = (constraints.maxWidth * 0.92)
+                  .clamp(280.0, 360.0)
+                  .toDouble();
+              return SizedBox(
+                height: StoreMarketCard.height,
+                child: ListView.separated(
+                  key: const ValueKey('popular_stores_horizontal_slider'),
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: markets.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 12),
+                  itemBuilder: (context, index) {
+                    final market = markets[index];
+                    return SizedBox(
+                      key: ValueKey('popular_store_${market.id}'),
+                      width: cardWidth,
+                      child: StoreMarketCard(
+                        market: market,
+                        keyPrefix: 'popular_store',
+                        onTap: () => _openStore(context, market),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
         ),
       ],
     );
@@ -341,10 +345,14 @@ class _PopularCategoryChip extends StatelessWidget {
           ? AppColors.primary
           : (isDark ? AppColors.darkCardColor : Colors.white),
       borderRadius: BorderRadius.circular(22),
-      child: InkWell(
+      child: CategorySelectionTap(
         onTap: onTap,
         borderRadius: BorderRadius.circular(22),
-        child: Container(
+        child: AnimatedContainer(
+          duration: MediaQuery.disableAnimationsOf(context)
+              ? Duration.zero
+              : const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
           constraints: const BoxConstraints(maxWidth: 180),
           height: 44,
           padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -356,13 +364,22 @@ class _PopularCategoryChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Flexible(
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                    color: foregroundColor,
-                    fontWeight: FontWeight.w800,
+                child: AnimatedDefaultTextStyle(
+                  duration: MediaQuery.disableAnimationsOf(context)
+                      ? Duration.zero
+                      : const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  style:
+                      (Theme.of(context).textTheme.labelMedium ??
+                              const TextStyle())
+                          .copyWith(
+                            color: foregroundColor,
+                            fontWeight: FontWeight.w800,
+                          ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ),

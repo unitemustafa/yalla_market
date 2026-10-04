@@ -168,8 +168,6 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        splashFactory: NoSplash.splashFactory,
-        highlightColor: Colors.transparent,
         onTap: () => _openProductDetails(context),
         borderRadius: BorderRadius.circular(8),
         child: Ink(
@@ -181,6 +179,14 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                   ? Colors.white.withValues(alpha: 0.08)
                   : Colors.black.withValues(alpha: 0.05),
             ),
+            boxShadow: [
+              if (!isDark)
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.035),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

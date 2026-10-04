@@ -25,7 +25,7 @@ void main() {
       'lib/features/splash/presentation/views/splash_view.dart',
     ).readAsStringSync();
 
-    expect(source, contains('source: AppAssets.homeBrandLogo'));
+    expect(source, contains('AppAssets.splashBrandLogo'));
     expect(source, isNot(contains('splash_tagline')));
     expect(source, isNot(contains('Everything you need in one place')));
   });

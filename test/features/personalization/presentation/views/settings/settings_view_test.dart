@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -20,6 +22,12 @@ import 'package:yalla_market/features/personalization/presentation/controllers/u
 import 'package:yalla_market/features/personalization/presentation/widgets/profile_completion_floating_button.dart';
 
 void main() {
+  setUpAll(() async {
+    final font = FontLoader('Cairo')
+      ..addFont(rootBundle.load('assets/fonts/Cairo.ttf'));
+    await font.load();
+  });
+
   setUp(() {
     SharedPreferences.setMockInitialValues({});
     AppPreferencesController.instance.value = const AppPreferences();
@@ -96,6 +104,61 @@ void main() {
 
     expect(find.text('Password is required.'), findsOneWidget);
   });
+
+  for (final language in ['ar', 'en']) {
+    testWidgets('deletion text stays on one line at 320px in $language', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(320, 568));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: Locale(language),
+          theme: ThemeData(fontFamily: 'Cairo'),
+          supportedLocales: AppTranslations.supportedLocales,
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: const SettingsView(),
+        ),
+      );
+      final arabic = language == 'ar';
+      final entry = find.text(arabic ? 'حذف الحساب' : 'Delete Account');
+      await tester.ensureVisible(entry);
+      await tester.pumpAndSettle();
+
+      void expectSingleLine(String text) {
+        final finder = find.text(text);
+        expect(tester.widget<Text>(finder).maxLines, 1);
+        expect(
+          tester.renderObject<RenderParagraph>(finder).didExceedMaxLines,
+          isFalse,
+        );
+      }
+
+      expectSingleLine(arabic ? 'حذف الحساب' : 'Delete Account');
+      expectSingleLine(
+        arabic ? 'حذف حسابك وبياناتك نهائيًا' : 'Permanently delete your data',
+      );
+      await tester.tap(entry);
+      await tester.pumpAndSettle();
+      expectSingleLine(
+        arabic ? 'تحذف الحساب نهائي؟' : 'Delete account permanently?',
+      );
+      expectSingleLine(
+        arabic
+            ? 'الحذف نهائي. أكّد بكلمة السر.'
+            : 'Permanent deletion. Enter password.',
+      );
+      expect(tester.takeException(), isNull);
+      await tester.tap(
+        find.widgetWithText(OutlinedButton, arabic ? 'إلغاء' : 'Cancel'),
+      );
+      await tester.pumpAndSettle();
+    });
+  }
 
   testWidgets('about option opens the dedicated about page', (tester) async {
     await tester.pumpWidget(

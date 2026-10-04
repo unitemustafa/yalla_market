@@ -9,12 +9,7 @@ import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
 import '../../domain/entities/store_data.dart';
 
-/// The shared store row used everywhere a market is listed.
-///
-/// Its proportions intentionally mirror a compact delivery-app store row:
-/// square cover at the leading edge, logo over the cover and the useful
-/// delivery information beside it. App colors, typography and icons remain
-/// the Yalla Market design language.
+/// Shared store card with a full-width cover and store details beneath it.
 class StoreMarketCard extends StatelessWidget {
   const StoreMarketCard({
     super.key,
@@ -23,7 +18,7 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 126;
+  static const double height = 250;
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -41,27 +36,34 @@ class StoreMarketCard extends StatelessWidget {
       height: height,
       child: Material(
         color: surface,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(22),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
-          splashFactory: NoSplash.splashFactory,
-          highlightColor: Colors.transparent,
           onTap: onTap,
           child: Ink(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(22),
               border: Border.all(color: border),
             ),
-            padding: const EdgeInsets.all(7),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  width: 112,
+                  height: 134,
                   child: _StoreCover(market: market, keyPrefix: keyPrefix),
                 ),
-                const SizedBox(width: 12),
-                Expanded(child: _StoreInformation(market: market)),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Row(
+                      children: [
+                        _StoreLogo(market: market, keyPrefix: keyPrefix),
+                        const SizedBox(width: 10),
+                        Expanded(child: _StoreInformation(market: market)),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -88,7 +90,7 @@ class _StoreCover extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(22),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -98,8 +100,8 @@ class _StoreCover extends StatelessWidget {
             fallbackType: AppImagePlaceholderType.store,
             fit: BoxFit.cover,
             alignment: market.coverFocus.alignment,
-            cacheWidth: 340,
-            cacheHeight: 340,
+            cacheWidth: 1080,
+            cacheHeight: 402,
           ),
           DecoratedBox(
             decoration: BoxDecoration(
@@ -114,8 +116,8 @@ class _StoreCover extends StatelessWidget {
             ),
           ),
           PositionedDirectional(
-            top: 6,
-            start: 6,
+            top: 10,
+            start: 10,
             child: wishlist == null
                 ? _FavoriteButton(
                     key: ValueKey('${keyPrefix}_${market.id}_favorite'),
@@ -144,29 +146,37 @@ class _StoreCover extends StatelessWidget {
                     },
                   ),
           ),
-          PositionedDirectional(
-            end: 6,
-            bottom: 6,
-            child: Container(
-              width: 56,
-              height: 56,
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                color: isDark ? AppColors.darkCardColor : Colors.white,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: AppImage(
-                key: ValueKey('${keyPrefix}_${market.id}_logo'),
-                source: market.image,
-                fallbackType: AppImagePlaceholderType.store,
-                role: AppImageRole.logo,
-                borderRadius: BorderRadius.circular(11),
-                cacheWidth: 170,
-                cacheHeight: 170,
-              ),
-            ),
-          ),
         ],
+      ),
+    );
+  }
+}
+
+class _StoreLogo extends StatelessWidget {
+  const _StoreLogo({required this.market, required this.keyPrefix});
+
+  final StoreMarketData market;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 76,
+      height: 76,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: AppImage(
+        key: ValueKey('${keyPrefix}_${market.id}_logo'),
+        source: market.image,
+        fallbackType: AppImagePlaceholderType.store,
+        role: AppImageRole.logo,
+        borderRadius: BorderRadius.circular(16),
+        cacheWidth: 228,
+        cacheHeight: 228,
       ),
     );
   }
@@ -195,14 +205,14 @@ class _FavoriteButton extends StatelessWidget {
         onTap: onPressed,
         customBorder: const CircleBorder(),
         child: SizedBox(
-          width: 32,
-          height: 32,
+          width: 40,
+          height: 40,
           child: Icon(
             favorite ? AppIcons.heart5 : AppIcons.heart,
             color: favorite
                 ? AppColors.error
                 : (isDark ? Colors.white : AppColors.lightTextPrimary),
-            size: 18,
+            size: 21,
           ),
         ),
       ),
@@ -225,72 +235,73 @@ class _StoreInformation extends StatelessWidget {
     final count = market.effectiveProductCount;
     final delivery = _deliveryLabel(arabic);
 
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(0, 9, 0, 7),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Flexible(
+              child: Text(
+                market.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.start,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontSize: 16,
+                  height: 1.25,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.verified, color: AppColors.primary, size: 15),
+          ],
+        ),
+        if (market.description.isNotEmpty) ...[
+          const SizedBox(height: 5),
           Text(
-            market.name,
+            market.description,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.start,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 14,
-              height: 1.25,
-              fontWeight: FontWeight.w800,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: muted,
+              fontSize: 11.5,
+              height: 1.3,
             ),
           ),
-          if (market.description.isNotEmpty) ...[
-            const SizedBox(height: 3),
-            Text(
-              market.description,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.start,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: muted,
-                fontSize: 10.5,
-                height: 1.3,
-              ),
-            ),
-          ],
-          const Spacer(),
-          Row(
+        ],
+        const SizedBox(height: 10),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: AlignmentDirectional.centerStart,
+          child: Row(
             children: [
-              Expanded(
-                child: _Meta(
-                  icon: AppIcons.box,
-                  text:
-                      '$count ${arabic
-                          ? 'منتج'
-                          : count == 1
-                          ? 'product'
-                          : 'products'}',
-                  color: muted,
-                ),
+              _Meta(
+                icon: AppIcons.box,
+                text:
+                    '$count ${arabic
+                        ? 'منتج'
+                        : count == 1
+                        ? 'product'
+                        : 'products'}',
+                color: muted,
               ),
               if (delivery != null) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Text(
-                    '•',
+                    '|',
                     style: TextStyle(color: muted, fontSize: 11),
                   ),
                 ),
-                Expanded(
-                  child: _Meta(
-                    icon: AppIcons.truck_fast,
-                    text: delivery,
-                    color: muted,
-                  ),
-                ),
+                _Meta(icon: AppIcons.truck_fast, text: delivery, color: muted),
               ],
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -319,16 +330,14 @@ class _Meta extends StatelessWidget {
       children: [
         Icon(icon, size: 13, color: AppColors.primary),
         const SizedBox(width: 4),
-        Flexible(
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: color,
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-            ),
+        Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+            color: color,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ],

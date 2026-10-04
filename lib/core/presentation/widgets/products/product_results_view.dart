@@ -10,6 +10,7 @@ import '../layouts/grid_layout.dart';
 import '../search/app_search_actions_bar.dart';
 import '../states/app_state_view.dart';
 import '../states/app_skeleton.dart';
+import '../selection/category_selection.dart';
 import 'product_cards/product_card_vertical.dart';
 import 'product_sort_button.dart';
 
@@ -24,6 +25,7 @@ class ProductResultsView extends StatefulWidget {
     this.useHomeSearchStyle = false,
     this.contentAfterSearch,
     this.controlsFooter,
+    this.categorySelectionKey,
     this.pageSize = 10,
     this.initialSortOption = 'Name',
     this.initialQuery = '',
@@ -46,6 +48,7 @@ class ProductResultsView extends StatefulWidget {
   final bool useHomeSearchStyle;
   final Widget? contentAfterSearch;
   final Widget? controlsFooter;
+  final Object? categorySelectionKey;
   final int pageSize;
   final String initialSortOption;
   final String initialQuery;
@@ -159,6 +162,59 @@ class _ProductResultsViewState extends State<ProductResultsView> {
               });
             }
 
+            final results = Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (sorted.isEmpty)
+                  AppEmptyState(
+                    title: widget.emptyTitle,
+                    message: query.isEmpty
+                        ? widget.emptyMessage
+                        : 'No products match "$query". Try a shorter keyword.',
+                    actionLabel: query.isEmpty ? null : 'Clear search',
+                    onAction: query.isEmpty ? null : _queryController.clear,
+                    icon: AppIcons.search_status,
+                  )
+                else ...[
+                  GridLayout(
+                    itemCount: pageItems.length,
+                    mainAxisExtent: widget.gridMainAxisExtent,
+                    maxCrossAxisCount: widget.maxCrossAxisCount,
+                    itemBuilder: (_, index) {
+                      final product = pageItems[index];
+                      return ProductCardVertical(
+                        image: product.image,
+                        title: product.title,
+                        brand: product.brand,
+                        price: product.price,
+                        productId: product.id,
+                        productSlug: product.slug,
+                        defaultVariantId: product.defaultVariantId,
+                        marketId: product.marketId,
+                        marketName: product.brand,
+                        oldPrice: product.oldPrice,
+                        discount: product.discount,
+                        compact: widget.compactProductCards,
+                      );
+                    },
+                  ),
+                  if (totalPages > 1) ...[
+                    const SizedBox(height: 18),
+                    _PaginationControls(
+                      page: safePage,
+                      totalPages: totalPages,
+                      onPrevious: safePage == 0
+                          ? null
+                          : () => setState(() => _page -= 1),
+                      onNext: safePage >= totalPages - 1
+                          ? null
+                          : () => setState(() => _page += 1),
+                    ),
+                  ],
+                ],
+              ],
+            );
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -223,53 +279,13 @@ class _ProductResultsViewState extends State<ProductResultsView> {
                   ),
                   const SizedBox(height: 14),
                 ],
-                if (sorted.isEmpty)
-                  AppEmptyState(
-                    title: widget.emptyTitle,
-                    message: query.isEmpty
-                        ? widget.emptyMessage
-                        : 'No products match "$query". Try a shorter keyword.',
-                    actionLabel: query.isEmpty ? null : 'Clear search',
-                    onAction: query.isEmpty ? null : _queryController.clear,
-                    icon: AppIcons.search_status,
-                  )
-                else ...[
-                  GridLayout(
-                    itemCount: pageItems.length,
-                    mainAxisExtent: widget.gridMainAxisExtent,
-                    maxCrossAxisCount: widget.maxCrossAxisCount,
-                    itemBuilder: (_, index) {
-                      final product = pageItems[index];
-                      return ProductCardVertical(
-                        image: product.image,
-                        title: product.title,
-                        brand: product.brand,
-                        price: product.price,
-                        productId: product.id,
-                        productSlug: product.slug,
-                        defaultVariantId: product.defaultVariantId,
-                        marketId: product.marketId,
-                        marketName: product.brand,
-                        oldPrice: product.oldPrice,
-                        discount: product.discount,
-                        compact: widget.compactProductCards,
-                      );
-                    },
+                if (widget.categorySelectionKey == null)
+                  results
+                else
+                  CategoryContentTransition(
+                    selectionKey: widget.categorySelectionKey!,
+                    child: results,
                   ),
-                  if (totalPages > 1) ...[
-                    const SizedBox(height: 18),
-                    _PaginationControls(
-                      page: safePage,
-                      totalPages: totalPages,
-                      onPrevious: safePage == 0
-                          ? null
-                          : () => setState(() => _page -= 1),
-                      onNext: safePage >= totalPages - 1
-                          ? null
-                          : () => setState(() => _page += 1),
-                    ),
-                  ],
-                ],
               ],
             );
           },

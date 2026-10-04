@@ -37,8 +37,6 @@ class LocalShopCard extends StatelessWidget {
         color: panelColor,
         borderRadius: BorderRadius.circular(8),
         child: InkWell(
-          splashFactory: NoSplash.splashFactory,
-          highlightColor: Colors.transparent,
           onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Container(
@@ -46,6 +44,14 @@ class LocalShopCard extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: borderColor),
+              boxShadow: [
+                if (!isDark)
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.055),
+                    blurRadius: 18,
+                    offset: const Offset(0, 9),
+                  ),
+              ],
             ),
             child: Column(
               children: [

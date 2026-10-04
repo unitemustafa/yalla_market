@@ -111,8 +111,10 @@ class SettingsView extends StatelessWidget {
                   SettingsMenuTile(
                     icon: AppIcons.trash,
                     title: 'Delete Account',
-                    subTitle:
-                        'Permanently remove your profile and personal data',
+                    subTitle: context.isArabicLanguage
+                        ? 'حذف حسابك وبياناتك نهائيًا'
+                        : 'Permanently delete your data',
+                    compactText: true,
                     accentColor: AppColors.error,
                     onTap: () => _showDeleteAccountDialog(context),
                   ),
@@ -227,18 +229,31 @@ class SettingsView extends StatelessWidget {
                 title: Text(
                   context.tr('Delete account permanently?'),
                   textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
                 content: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        context.tr(
-                          hasPassword
-                              ? 'This cannot be undone. Enter your account password to confirm permanent deletion.'
-                              : 'This cannot be undone. You will be asked to confirm with your social account.',
-                        ),
+                        context.isArabicLanguage
+                            ? (hasPassword
+                                  ? 'الحذف نهائي. أكّد بكلمة السر.'
+                                  : 'الحذف نهائي. أكّد بحسابك.')
+                            : (hasPassword
+                                  ? 'Permanent deletion. Enter password.'
+                                  : 'Permanent deletion. Confirm sign-in.'),
                         textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(
+                          context,
+                        ).textTheme.bodySmall?.copyWith(fontSize: 11),
                       ),
                       const SizedBox(height: 16),
                       if (hasPassword)

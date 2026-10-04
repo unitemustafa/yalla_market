@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/presentation/widgets/selection/category_selection.dart';
+
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
@@ -76,11 +78,14 @@ class StoreSubcategoryRail extends StatelessWidget {
                 final category = categories[index];
                 final isSelected = category.id == effectiveSelectedId;
                 final label = category.localizedName(languageCode);
-                return InkWell(
+                return CategorySelectionTap(
                   key: ValueKey('store_subcategory_${category.id}'),
                   onTap: () => onSelected(category.id),
                   child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? Duration.zero
+                        : const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
                     padding: const EdgeInsets.symmetric(horizontal: 13),
                     decoration: BoxDecoration(
                       border: Border(
@@ -95,11 +100,12 @@ class StoreSubcategoryRail extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(
-                          label,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
+                        AnimatedDefaultTextStyle(
+                          duration: MediaQuery.disableAnimationsOf(context)
+                              ? Duration.zero
+                              : const Duration(milliseconds: 220),
+                          curve: Curves.easeOutCubic,
+                          style: DefaultTextStyle.of(context).style.copyWith(
                             fontSize: 13,
                             height: 1.1,
                             fontWeight: isSelected
@@ -108,6 +114,11 @@ class StoreSubcategoryRail extends StatelessWidget {
                             color: isSelected
                                 ? AppColors.primary
                                 : Theme.of(context).hintColor,
+                          ),
+                          child: Text(
+                            label,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/presentation/widgets/selection/category_selection.dart';
+
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../domain/entities/store_data.dart';
@@ -175,7 +177,7 @@ class _MarketTypeMoreItem extends StatelessWidget {
     return Semantics(
       button: true,
       label: label,
-      child: InkWell(
+      child: CategorySelectionTap(
         key: const ValueKey('market_type_view_all'),
         borderRadius: BorderRadius.circular(42),
         onTap: onTap,
@@ -237,7 +239,7 @@ class _MarketTypeItem extends StatelessWidget {
       button: true,
       selected: selected,
       label: label,
-      child: InkWell(
+      child: CategorySelectionTap(
         borderRadius: BorderRadius.circular(42),
         onTap: onTap,
         child: SizedBox(
@@ -245,7 +247,10 @@ class _MarketTypeItem extends StatelessWidget {
           child: Column(
             children: [
               AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
                 width: 64,
                 height: 64,
                 padding: EdgeInsets.all(selected ? 3 : 0),
@@ -274,15 +279,28 @@ class _MarketTypeItem extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: selected ? colors.primary : colors.onSurfaceVariant,
-                  fontSize: 13,
-                  fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+              AnimatedDefaultTextStyle(
+                duration: MediaQuery.disableAnimationsOf(context)
+                    ? Duration.zero
+                    : const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                style:
+                    (Theme.of(context).textTheme.labelMedium ??
+                            const TextStyle())
+                        .copyWith(
+                          color: selected
+                              ? colors.primary
+                              : colors.onSurfaceVariant,
+                          fontSize: 13,
+                          fontWeight: selected
+                              ? FontWeight.w900
+                              : FontWeight.w700,
+                        ),
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
               ),
             ],

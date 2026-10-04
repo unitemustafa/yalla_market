@@ -35,6 +35,7 @@ import '../../widgets/store_market_card.dart';
 import 'brand_local_shop_card.dart';
 import 'brand_store_sections.dart';
 import 'market_type_rail.dart';
+import '../../../../../core/presentation/widgets/selection/category_selection.dart';
 
 export 'market_type_rail.dart';
 
@@ -519,42 +520,50 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             ),
           ],
           const SizedBox(height: 18),
-          if (visibleMarkets.isEmpty)
-            AppEmptyState(
-              title: _storeQuery.trim().isEmpty
-                  ? 'No stores available'
-                  : 'No stores found',
-              message: _storeQuery.trim().isEmpty
-                  ? 'Stores will appear here when they cover your address.'
-                  : 'Try a different store name.',
-              icon: _storeQuery.trim().isEmpty
-                  ? AppIcons.shop
-                  : AppIcons.search_status,
-            )
-          else
-            ...visibleMarkets.map(
-              (market) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: StoreMarketCard(
-                  key: ValueKey('classification_store_${market.id}'),
-                  market: market,
-                  keyPrefix: 'classification_store',
-                  onTap: () {
-                    Navigator.pushNamed(
-                      context,
-                      AppRoutes.brandProducts,
-                      arguments: BrandProductsRouteArgs(
-                        brand: market.name,
-                        logo: market.image,
-                        productCount: market.productCountLabel,
-                        classificationId: market.classificationId,
-                        marketId: market.id,
+          CategoryContentTransition(
+            selectionKey: effectiveTypeId ?? 'all',
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (visibleMarkets.isEmpty)
+                  AppEmptyState(
+                    title: _storeQuery.trim().isEmpty
+                        ? 'No stores available'
+                        : 'No stores found',
+                    message: _storeQuery.trim().isEmpty
+                        ? 'Stores will appear here when they cover your address.'
+                        : 'Try a different store name.',
+                    icon: _storeQuery.trim().isEmpty
+                        ? AppIcons.shop
+                        : AppIcons.search_status,
+                  )
+                else
+                  ...visibleMarkets.map(
+                    (market) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: StoreMarketCard(
+                        key: ValueKey('classification_store_${market.id}'),
+                        market: market,
+                        keyPrefix: 'classification_store',
+                        onTap: () {
+                          Navigator.pushNamed(
+                            context,
+                            AppRoutes.brandProducts,
+                            arguments: BrandProductsRouteArgs(
+                              brand: market.name,
+                              logo: market.image,
+                              productCount: market.productCountLabel,
+                              classificationId: market.classificationId,
+                              marketId: market.id,
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
-              ),
+                    ),
+                  ),
+              ],
             ),
+          ),
         ],
       ),
     );
@@ -606,6 +615,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
             child: ProductResultsView(
               products: products,
+              categorySelectionKey: selectedId ?? 'all',
               status: ProductResultsStatus.ready,
               showSearch: false,
               useHomeSearchStyle: true,

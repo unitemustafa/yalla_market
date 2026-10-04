@@ -46,6 +46,10 @@ class StoreData {
     ).where((market) => market.isPopular).toList(growable: false);
   }
 
+  List<StoreMarketData> get popularMarkets => classifications
+      .expand((classification) => popularMarketsFor(classification.id))
+      .toList(growable: false);
+
   List<StoreClassificationData> get featuredCandidates => [
     ...classifications.where(
       (classification) => classification.classificationType == 'featured',

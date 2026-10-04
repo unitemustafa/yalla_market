@@ -106,7 +106,7 @@ void main() {
   });
 
   for (final language in ['ar', 'en']) {
-    testWidgets('deletion text stays on one line at 320px in $language', (
+    testWidgets('only deletion dialog text is compact at 320px in $language', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(320, 568));
@@ -139,9 +139,21 @@ void main() {
       }
 
       expectSingleLine(arabic ? 'حذف الحساب' : 'Delete Account');
-      expectSingleLine(
-        arabic ? 'حذف حسابك وبياناتك نهائيًا' : 'Permanently delete your data',
+      final description = find.text(
+        arabic
+            ? 'احذف ملفك الشخصي وبياناتك نهائيًا'
+            : 'Permanently remove your profile and personal data',
       );
+      final theme = Theme.of(tester.element(entry));
+      expect(
+        tester.widget<Text>(entry).style?.fontSize,
+        theme.textTheme.titleMedium?.fontSize,
+      );
+      expect(
+        tester.widget<Text>(description).style?.fontSize,
+        theme.textTheme.labelMedium?.fontSize,
+      );
+      expect(tester.widget<Text>(description).maxLines, 2);
       await tester.tap(entry);
       await tester.pumpAndSettle();
       expectSingleLine(

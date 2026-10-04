@@ -18,7 +18,7 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 250;
+  static const double height = 232;
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -49,16 +49,16 @@ class StoreMarketCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 SizedBox(
-                  height: 134,
+                  height: 124,
                   child: _StoreCover(market: market, keyPrefix: keyPrefix),
                 ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(10),
                     child: Row(
                       children: [
                         _StoreLogo(market: market, keyPrefix: keyPrefix),
-                        const SizedBox(width: 10),
+                        const SizedBox(width: 9),
                         Expanded(child: _StoreInformation(market: market)),
                       ],
                     ),
@@ -161,8 +161,8 @@ class _StoreLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 76,
-      height: 76,
+      width: 70,
+      height: 70,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
@@ -259,7 +259,7 @@ class _StoreInformation extends StatelessWidget {
           ],
         ),
         if (market.description.isNotEmpty) ...[
-          const SizedBox(height: 5),
+          const SizedBox(height: 4),
           Text(
             market.description,
             maxLines: 1,
@@ -272,7 +272,7 @@ class _StoreInformation extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: AlignmentDirectional.centerStart,

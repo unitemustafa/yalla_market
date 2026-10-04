@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/app/routing/app_route_arguments.dart';
+import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/store_data.dart';
@@ -84,6 +86,86 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('popular stores share one row without category chips', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    BrandProductsRouteArgs? openedStore;
+    await tester.pumpWidget(
+      MaterialApp(
+        onGenerateRoute: (settings) {
+          expect(settings.name, AppRoutes.brandProducts);
+          openedStore = settings.arguments! as BrandProductsRouteArgs;
+          return MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Opened store')),
+          );
+        },
+        home: Scaffold(body: StoreHighlightsSections(store: _storeData())),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const ValueKey('popular_store_category_selector')),
+      findsNothing,
+    );
+    expect(find.text('Category 0'), findsNothing);
+    final slider = find.byKey(
+      const ValueKey('popular_stores_horizontal_slider'),
+    );
+    expect(tester.widget<ListView>(slider).semanticChildCount, 2);
+    expect(
+      find.byKey(const ValueKey('popular_store_market-category-0')),
+      findsOneWidget,
+    );
+    await tester.drag(slider, const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    final secondStore = find.byKey(
+      const ValueKey('popular_store_market-category-2'),
+    );
+    expect(secondStore, findsOneWidget);
+    await tester.tap(secondStore);
+    await tester.pumpAndSettle();
+
+    expect(openedStore?.marketId, 'market-category-2');
+    expect(openedStore?.classificationId, 'category-2');
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('popular category chips can be enabled again', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: StoreHighlightsSections(
+              store: _storeData(),
+              showPopularStoreCategories: true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('popular_store_category_selector')),
+      findsOneWidget,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('popular_store_category_category-2')),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const ValueKey('popular_store_market-category-2')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey('popular_store_market-category-0')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
 }
 
 StoreData _storeData() {
@@ -115,7 +197,7 @@ StoreData _storeData() {
           products: const [],
           image: '',
           accentColorValue: 0xFF4F60F6,
-          isPopular: classification.id == 'category-0',
+          isPopular: ['category-0', 'category-2'].contains(classification.id),
         ),
       ],
   };

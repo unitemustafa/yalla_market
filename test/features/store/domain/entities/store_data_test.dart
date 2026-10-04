@@ -3,6 +3,46 @@ import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 
 void main() {
   group('Store data mapping', () {
+    test('collects only popular stores across classifications in order', () {
+      final store = StoreData(
+        commonClassifications: const [],
+        classifications: [
+          _classification('7', 'normal'),
+          _classification('8', 'normal'),
+          _classification('9', 'normal'),
+        ],
+        marketsByClassificationId: {
+          '7': [
+            StoreMarketData.fromJson({
+              'id': 'regular',
+              'classification_id': '7',
+            }),
+            StoreMarketData.fromJson({
+              'id': 'health',
+              'classification_id': '7',
+              'is_popular': true,
+            }),
+          ],
+          '8': [
+            StoreMarketData.fromJson({
+              'id': 'market',
+              'classification_id': '8',
+              'is_popular': true,
+            }),
+          ],
+        },
+      );
+
+      expect(store.popularMarkets.map((market) => market.id), [
+        'health',
+        'market',
+      ]);
+      expect(
+        store.copyWith(marketsByClassificationId: {}).popularMarkets,
+        isEmpty,
+      );
+    });
+
     test('maps classification and market payloads from backend', () {
       final classification = StoreClassificationData.fromJson({
         'id': 7,

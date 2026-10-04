@@ -11,9 +11,16 @@ import '../../../../core/presentation/widgets/selection/category_selection.dart'
 
 /// The store discovery rows shown on the home page.
 class StoreHighlightsSections extends StatefulWidget {
-  const StoreHighlightsSections({super.key, required this.store});
+  const StoreHighlightsSections({
+    super.key,
+    required this.store,
+    this.showPopularStoreCategories = false,
+  });
 
   final StoreData store;
+
+  /// Temporarily disabled so popular stores share one discovery row.
+  final bool showPopularStoreCategories;
 
   @override
   State<StoreHighlightsSections> createState() =>
@@ -31,13 +38,13 @@ class _StoreHighlightsSectionsState extends State<StoreHighlightsSections> {
               widget.store.popularMarketsFor(classification.id).isNotEmpty,
         )
         .toList(growable: false);
-    final selectedClassification = _selectedClassification(
-      popularClassifications,
-    );
+    final selectedClassification = widget.showPopularStoreCategories
+        ? _selectedClassification(popularClassifications)
+        : null;
     final selectedMarkets = selectedClassification == null
-        ? const <StoreMarketData>[]
+        ? widget.store.popularMarkets
         : widget.store.popularMarketsFor(selectedClassification.id);
-    final hasPopularStores = selectedClassification != null;
+    final hasPopularStores = selectedMarkets.isNotEmpty;
     final hasLatestStores = widget.store.latestMarkets.isNotEmpty;
 
     if (!hasPopularStores && !hasLatestStores) return const SizedBox.shrink();
@@ -58,7 +65,7 @@ class _StoreHighlightsSectionsState extends State<StoreHighlightsSections> {
             selectedClassification: selectedClassification,
             markets: selectedMarkets,
             onClassificationSelected: (classification) {
-              if (classification.id == selectedClassification.id) return;
+              if (classification.id == selectedClassification?.id) return;
               setState(() => _selectedClassificationId = classification.id);
             },
           ),
@@ -227,7 +234,7 @@ class _PopularStoresSection extends StatelessWidget {
 
   final List<StoreClassificationData> classifications;
   final Map<String, int> marketCounts;
-  final StoreClassificationData selectedClassification;
+  final StoreClassificationData? selectedClassification;
   final List<StoreMarketData> markets;
   final ValueChanged<StoreClassificationData> onClassificationSelected;
 
@@ -239,7 +246,7 @@ class _PopularStoresSection extends StatelessWidget {
         brand: market.name,
         logo: market.image,
         productCount: market.productCountLabel,
-        classificationId: selectedClassification.id,
+        classificationId: market.classificationId,
         marketId: market.id,
       ),
     );
@@ -256,29 +263,31 @@ class _PopularStoresSection extends StatelessWidget {
           showActionButton: false,
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 44,
-          child: ListView.separated(
-            key: const ValueKey('popular_store_category_selector'),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: classifications.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 8),
-            itemBuilder: (context, index) {
-              final classification = classifications[index];
-              return _PopularCategoryChip(
-                key: ValueKey('popular_store_category_${classification.id}'),
-                label: context.tr(classification.name),
-                count: marketCounts[classification.id] ?? 0,
-                selected: classification.id == selectedClassification.id,
-                onTap: () => onClassificationSelected(classification),
-              );
-            },
+        if (selectedClassification != null) ...[
+          SizedBox(
+            height: 44,
+            child: ListView.separated(
+              key: const ValueKey('popular_store_category_selector'),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: classifications.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final classification = classifications[index];
+                return _PopularCategoryChip(
+                  key: ValueKey('popular_store_category_${classification.id}'),
+                  label: context.tr(classification.name),
+                  count: marketCounts[classification.id] ?? 0,
+                  selected: classification.id == selectedClassification?.id,
+                  onTap: () => onClassificationSelected(classification),
+                );
+              },
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
+        ],
         CategoryContentTransition(
-          selectionKey: selectedClassification.id,
+          selectionKey: selectedClassification?.id ?? 'all',
           child: LayoutBuilder(
             builder: (context, constraints) {
               final cardWidth = (constraints.maxWidth * 0.92)

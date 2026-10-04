@@ -111,10 +111,8 @@ class SettingsView extends StatelessWidget {
                   SettingsMenuTile(
                     icon: AppIcons.trash,
                     title: 'Delete Account',
-                    subTitle: context.isArabicLanguage
-                        ? 'حذف حسابك وبياناتك نهائيًا'
-                        : 'Permanently delete your data',
-                    compactText: true,
+                    subTitle:
+                        'Permanently remove your profile and personal data',
                     accentColor: AppColors.error,
                     onTap: () => _showDeleteAccountDialog(context),
                   ),

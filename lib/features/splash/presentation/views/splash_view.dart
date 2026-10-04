@@ -34,12 +34,14 @@ class _SplashViewState extends State<SplashView>
     super.initState();
     _entranceController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      // Entrance/hold + the 180 ms exit gives a two-second minimum.
+      duration: const Duration(milliseconds: 1820),
       reverseDuration: const Duration(milliseconds: 180),
     );
     _logoOpacity = CurvedAnimation(
       parent: _entranceController,
-      curve: const Interval(0, 0.55, curve: Curves.easeOut),
+      // Preserve the quick logo reveal; the extra time is spent holding it.
+      curve: const Interval(0, 385 / 1820, curve: Curves.easeOut),
       reverseCurve: Curves.easeIn,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {

@@ -60,7 +60,7 @@ void main() {
     });
   }
 
-  testWidgets('fast startup waits for entrance and exit before replacing', (
+  testWidgets('fast startup keeps the splash for two seconds including exit', (
     tester,
   ) async {
     final harness = await _pumpSplash(
@@ -70,12 +70,13 @@ void main() {
     expect(harness.splash.startupCalls, 1);
     await tester.pump(const Duration(milliseconds: 200));
     expect(harness.observer.replacements, isEmpty);
-    // Advance past the final entrance tick, including its frame boundary.
-    await tester.pump(const Duration(milliseconds: 510));
+    await tester.pump(const Duration(milliseconds: 1600));
     expect(harness.observer.replacements, isEmpty);
-    await tester.pump(const Duration(milliseconds: 100));
+    // Advance past the entrance's final tick, then stop just before 2 seconds.
+    await tester.pump(const Duration(milliseconds: 21));
+    await tester.pump(const Duration(milliseconds: 169));
     expect(harness.observer.replacements, isEmpty);
-    await tester.pump(const Duration(milliseconds: 100));
+    await tester.pump(const Duration(milliseconds: 31));
     expect(harness.observer.replacements, hasLength(1));
     await tester.pump();
     expect(find.text('destination'), findsOneWidget);
@@ -138,7 +139,7 @@ void main() {
     tester,
   ) async {
     final harness = await _pumpSplash(tester);
-    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 2));
     harness.splash.finish(const SplashNavigateTo('/destination'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));

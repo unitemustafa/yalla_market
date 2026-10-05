@@ -12,11 +12,13 @@ class LoginMediaBanner extends StatefulWidget {
     required this.posterUrl,
     required this.focus,
     required this.fallback,
+    this.isLoading = false,
   });
   final String? url;
   final String? posterUrl;
   final MediaFocalPoint focus;
   final String fallback;
+  final bool isLoading;
 
   @override
   State<LoginMediaBanner> createState() => _LoginMediaBannerState();
@@ -25,6 +27,8 @@ class LoginMediaBanner extends StatefulWidget {
 class _LoginMediaBannerState extends State<LoginMediaBanner> {
   @override
   Widget build(BuildContext context) {
+    final loading = ColoredBox(color: Theme.of(context).colorScheme.surface);
+    if (widget.isLoading) return loading;
     final alignment = widget.focus.alignment;
     final fallback = AppImage(
       source: widget.fallback,
@@ -47,6 +51,7 @@ class _LoginMediaBannerState extends State<LoginMediaBanner> {
     return AppVideo(
       url: rawUrl,
       alignment: alignment,
+      loading: loading,
       fallback: fallback,
       poster: AppImage(
         source: widget.posterUrl,

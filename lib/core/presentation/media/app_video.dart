@@ -16,6 +16,7 @@ class AppVideo extends StatefulWidget {
     required this.url,
     required this.poster,
     required this.fallback,
+    this.loading,
     this.alignment = Alignment.center,
     this.fit = BoxFit.cover,
     this.autoplay = true,
@@ -27,6 +28,7 @@ class AppVideo extends StatefulWidget {
   final String? url;
   final Widget poster;
   final Widget fallback;
+  final Widget? loading;
   final AlignmentGeometry alignment;
   final BoxFit fit;
   final bool autoplay;
@@ -273,6 +275,7 @@ class _AppVideoState extends State<AppVideo>
     final controller = _controller;
     final isReady = !_failed && controller?.value.isInitialized == true;
     if (!isReady) {
+      if (!_failed && widget.loading != null) return widget.loading!;
       // The poster is allowed to fail independently, so the bundled fallback
       // stays behind it during both initialization and playback failures.
       return Stack(

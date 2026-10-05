@@ -223,6 +223,9 @@ class _LoginViewState extends State<LoginView> {
                                 children: [
                                   Positioned.fill(
                                     child: LoginMediaBanner(
+                                      isLoading:
+                                          context.watch<AppMediaCubit>().state
+                                              is AppMediaLoading,
                                       url: switch (context
                                           .watch<AppMediaCubit>()
                                           .state) {

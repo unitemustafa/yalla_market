@@ -12,6 +12,8 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/app_media_specs.dart';
+import '../../../../core/domain/media_focal_point.dart';
+import '../../../../core/presentation/media/media_focal_point_alignment.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -562,6 +564,7 @@ class _PromoSliderState extends State<PromoSlider> {
       icon: _iconForApiOffer(type),
       color: _colorForApiOffer(type),
       image: offer.image,
+      imageFocus: offer.imageFocus,
       endsAtIso: offer.endsAt?.toIso8601String(),
       badgeEn: _badgeForApiOffer(type),
       badgeAr: _badgeForApiOffer(type, arabic: true),

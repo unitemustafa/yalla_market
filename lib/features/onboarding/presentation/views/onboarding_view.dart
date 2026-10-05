@@ -166,10 +166,17 @@ class _OnboardingViewState extends State<OnboardingView> {
                     child: TextButton(
                       onPressed: _isFinishing ? null : _finishOnboarding,
                       style: TextButton.styleFrom(
-                        foregroundColor: _navy,
-                        backgroundColor: Colors.white.withValues(alpha: 0.94),
+                        foregroundColor:
+                            _topColors[_currentIndex].computeLuminance() > 0.5
+                            ? _navy
+                            : _gold,
+                        backgroundColor: Colors.transparent,
                         minimumSize: const Size(64, 44),
-                        shape: const StadiumBorder(),
+                        textStyle: Theme.of(context).textTheme.labelLarge
+                            ?.copyWith(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
                       ),
                       child: Text(strings.skip),
                     ),

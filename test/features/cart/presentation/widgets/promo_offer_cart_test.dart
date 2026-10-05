@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/domain/media_focal_point.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
@@ -18,6 +20,24 @@ import 'package:yalla_market/features/store/domain/entities/product_data.dart';
 
 void main() {
   group('PromoSlider offer cart items', () {
+    testWidgets('banner applies saved image focus', (tester) async {
+      final cartCubit = _cartCubit();
+      await cartCubit.loadCartForUser('user-focus');
+      await tester.pumpWidget(
+        _Subject(
+          cartCubit: cartCubit,
+          offerId: '5',
+          imageFocus: const MediaFocalPoint(x: 0.25, y: 0.75),
+        ),
+      );
+      await tester.pump();
+      final image = tester.widget<AppImage>(
+        find.byKey(const ValueKey('promo_offer_background')),
+      );
+      expect(image.alignment, const Alignment(-0.5, 0.5));
+      await tester.pumpWidget(const SizedBox.shrink());
+      await cartCubit.close();
+    });
     testWidgets('offer image stays clear behind dynamic content', (
       tester,
     ) async {
@@ -234,12 +254,14 @@ class _Subject extends StatelessWidget {
     required this.offerId,
     this.endsAt,
     this.announcement = false,
+    this.imageFocus = MediaFocalPoint.center,
   });
 
   final CartCubit cartCubit;
   final String offerId;
   final DateTime? endsAt;
   final bool announcement;
+  final MediaFocalPoint imageFocus;
 
   @override
   Widget build(BuildContext context) {
@@ -257,7 +279,12 @@ class _Subject extends StatelessWidget {
         home: Scaffold(
           body: PromoSlider(
             offers: [
-              _offer(offerId, endsAt: endsAt, announcement: announcement),
+              _offer(
+                offerId,
+                endsAt: endsAt,
+                announcement: announcement,
+                imageFocus: imageFocus,
+              ),
             ],
           ),
         ),
@@ -266,12 +293,18 @@ class _Subject extends StatelessWidget {
   }
 }
 
-HomeOfferData _offer(String id, {DateTime? endsAt, bool announcement = false}) {
+HomeOfferData _offer(
+  String id, {
+  DateTime? endsAt,
+  bool announcement = false,
+  MediaFocalPoint imageFocus = MediaFocalPoint.center,
+}) {
   return HomeOfferData(
     id: id,
     title: 'Fresh offer',
     description: 'Daily discount',
     image: '',
+    imageFocus: imageFocus,
     type: announcement ? 'announcement' : 'discount',
     discount: '15',
     startsAt: null,

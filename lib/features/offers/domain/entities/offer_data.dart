@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_assets.dart';
+import '../../../../core/domain/media_focal_point.dart';
 import '../../../../core/network/api_endpoints.dart';
 import '../../../store/domain/entities/product_data.dart';
 
@@ -8,6 +9,7 @@ class OfferData {
     required this.title,
     required this.description,
     required this.image,
+    this.imageFocus = MediaFocalPoint.center,
     required this.type,
     required this.discount,
     required this.startsAt,
@@ -33,6 +35,7 @@ class OfferData {
   final String title;
   final String description;
   final String image;
+  final MediaFocalPoint imageFocus;
   final String type;
   final String discount;
   final DateTime? startsAt;
@@ -63,6 +66,7 @@ class OfferData {
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       image: _resolveImage(json['image']),
+      imageFocus: MediaFocalPoint.fromJson(json['image_focus']),
       type: json['type']?.toString() ?? '',
       discount: json['discount']?.toString() ?? '',
       startsAt: DateTime.tryParse(json['start_time']?.toString() ?? ''),

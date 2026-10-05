@@ -29,6 +29,7 @@ class _PromoOfferCard extends StatelessWidget {
                 source: offer.image,
                 fallbackType: AppImagePlaceholderType.offer,
                 fit: BoxFit.cover,
+                alignment: offer.imageFocus.alignment,
                 cacheWidth: 720,
                 cacheHeight: 316,
                 filterQuality: FilterQuality.low,

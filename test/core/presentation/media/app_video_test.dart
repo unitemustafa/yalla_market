@@ -6,6 +6,9 @@ import 'package:video_player_platform_interface/video_player_platform_interface.
 import 'package:yalla_market/app/routing/app_route_observer.dart';
 import 'package:yalla_market/core/presentation/media/app_video.dart';
 import 'package:yalla_market/core/presentation/media/media_route_observer_scope.dart';
+import 'package:yalla_market/core/domain/media_focal_point.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
+import 'package:yalla_market/features/app_media/presentation/login_media_banner.dart';
 
 class _VideoPlatform extends VideoPlayerPlatform {
   late final events = StreamController<VideoEvent>.broadcast();
@@ -78,6 +81,70 @@ void main() {
     VideoPlayerPlatform.instance = previous;
     await platform.events.close();
   });
+
+  testWidgets(
+    'login video never flashes the old artwork during initialization',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SizedBox(
+            width: 360,
+            height: 240,
+            child: LoginMediaBanner(
+              url: 'https://example.test/login.mp4',
+              posterUrl: 'https://example.test/old-poster.webp',
+              focus: MediaFocalPoint.topCenter,
+              fallback: 'old-login-artwork.webp',
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.byType(AppImage), findsNothing);
+      expect(find.byType(FittedBox), findsNothing);
+      platform.initializeVideo();
+      await tester.pump();
+      await tester.pump();
+      expect(find.byType(FittedBox), findsOneWidget);
+      expect(find.byType(AppImage), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'custom loading changes to the normal error fallback on timeout',
+    (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: SizedBox(
+            width: 200,
+            height: 100,
+            child: AppVideo(
+              url: 'https://example.test/video.mp4',
+              loading: ColoredBox(key: ValueKey('loading'), color: Colors.grey),
+              poster: ColoredBox(key: ValueKey('poster'), color: Colors.blue),
+              fallback: ColoredBox(
+                key: ValueKey('fallback'),
+                color: Colors.black,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      expect(find.byKey(const ValueKey('loading')), findsOneWidget);
+      expect(find.byKey(const ValueKey('poster')), findsNothing);
+      expect(find.byKey(const ValueKey('fallback')), findsNothing);
+      await tester.pump(const Duration(seconds: 11));
+      await tester.pump();
+      expect(find.byKey(const ValueKey('loading')), findsNothing);
+      expect(find.byKey(const ValueKey('poster')), findsOneWidget);
+      expect(find.byKey(const ValueKey('fallback')), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+      expect(tester.takeException(), isNull);
+    },
+  );
 
   testWidgets('initialization times out to the poster and disposes once', (
     tester,

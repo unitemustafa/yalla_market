@@ -15,12 +15,31 @@ import 'package:yalla_market/features/app_media/domain/app_media.dart';
 import 'package:yalla_market/features/app_media/domain/app_media_repository.dart';
 import 'package:yalla_market/features/app_media/domain/load_app_media.dart';
 import 'package:yalla_market/features/app_media/presentation/app_media_cubit.dart';
+import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 
 import '../../../../helpers/auth_widget_fakes.dart';
 
 void main() {
   setUp(() {
     AppLanguageController.instance.value = AppLanguage.english;
+  });
+
+  testWidgets('old login artwork stays hidden until media settings resolve', (
+    tester,
+  ) async {
+    await _pumpLogin(tester, FakeAuthRepository());
+    final artwork = find.byWidgetPredicate(
+      (widget) =>
+          widget is AppImage && widget.source == AppAssets.authMarketHeader,
+    );
+    expect(artwork, findsNothing);
+    final mediaCubit = tester
+        .element(find.byType(LoginView))
+        .read<AppMediaCubit>();
+    await mediaCubit.load();
+    await tester.pump();
+    expect(artwork, findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('remember me is checked and sends persistent mode by default', (

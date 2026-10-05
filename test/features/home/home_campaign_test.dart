@@ -215,6 +215,122 @@ void main() {
     expect(title.style?.color, darkText);
   });
 
+  for (final width in [320.0, 360.0]) {
+    for (final brightness in Brightness.values) {
+      testWidgets(
+        'compact campaign overlays close and fits Arabic title at $width/$brightness',
+        (tester) async {
+          await tester.binding.setSurfaceSize(Size(width, 800));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          const title = 'انسخ الكود واستخدمه';
+          final payload = _payload();
+          payload['sheet'] = <String, dynamic>{
+            ...payload['sheet'] as Map<String, dynamic>,
+            'title': title,
+            'description': 'اضغط الزر لنسخ الكود فورًا.',
+          };
+          payload['media'] = {
+            'type': 'image',
+            'image_url': AppAssets.defaultOffer,
+          };
+          payload['action'] = {
+            'type': 'copy_text',
+            'label': 'انسخ الكود',
+            'value': 'SAVE',
+          };
+          HomeCampaignSheetResult? result;
+          await _openCampaign(
+            tester,
+            payload,
+            brightness: brightness,
+            onResult: (value) => result = value,
+          );
+
+          final mediaRect = tester.getRect(
+            find.byKey(const ValueKey('campaign_image_viewport')),
+          );
+          final close = find.byTooltip('إغلاق');
+          final closeRect = tester.getRect(close);
+          expect(mediaRect.contains(closeRect.topLeft), isTrue);
+          expect(mediaRect.contains(closeRect.bottomRight), isTrue);
+          final paragraph = tester.renderObject<RenderParagraph>(
+            find.text(title),
+          );
+          final titleBoxes = paragraph.getBoxesForSelection(
+            const TextSelection(baseOffset: 0, extentOffset: title.length),
+          );
+          expect(titleBoxes, isNotEmpty);
+          expect(titleBoxes.map((box) => box.top).toSet(), hasLength(1));
+          expect(
+            tester
+                .getSize(find.byKey(const ValueKey('home_campaign_surface')))
+                .height,
+            lessThan(360),
+          );
+          await tester.tap(close);
+          await tester.pumpAndSettle();
+          expect(result, HomeCampaignSheetResult.dismissed);
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
+  for (final template in ['hero', 'split', 'media_focus']) {
+    testWidgets(
+      '$template wraps arbitrary campaign text without shrinking or truncating',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(320, 800));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const title =
+            'اكتشف أحدث المنتجات والعروض المتاحة لفترة محدودة واستمتع بتجربة تسوق جديدة مع توصيل سريع لحد باب البيت';
+        const description =
+            'اختار المنتجات اللي محتاجها من المحلات القريبة منك واستفيد من عروضنا الجديدة في كل مرة تطلب فيها.';
+        final payload = _payload();
+        payload['sheet'] = <String, dynamic>{
+          ...payload['sheet'] as Map<String, dynamic>,
+          'template': template,
+          'title': title,
+          'description': description,
+        };
+        payload['media'] = {
+          'type': 'image',
+          'image_url': AppAssets.defaultOffer,
+        };
+        payload['action'] = {'type': 'offer', 'label': 'شوف العروض الجديدة'};
+        await _openCampaign(tester, payload);
+
+        final titleWidget = tester.widget<Text>(find.text(title));
+        expect(titleWidget.style?.fontSize, 18);
+        expect(titleWidget.maxLines, isNull);
+        final paragraph = tester.renderObject<RenderParagraph>(
+          find.text(title),
+        );
+        final boxes = paragraph.getBoxesForSelection(
+          const TextSelection(baseOffset: 0, extentOffset: title.length),
+        );
+        expect(
+          boxes.map((box) => box.top).toSet().length,
+          greaterThanOrEqualTo(3),
+        );
+        expect(paragraph.didExceedMaxLines, isFalse);
+        expect(find.text(description), findsOneWidget);
+        final action = find.byType(FilledButton);
+        final surface = tester.getRect(
+          find.byKey(const ValueKey('home_campaign_surface')),
+        );
+        expect(
+          tester.getRect(action).bottom,
+          lessThanOrEqualTo(surface.bottom),
+        );
+        await tester.tap(action);
+        await tester.pumpAndSettle();
+        expect(find.byType(Dialog), findsNothing);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   for (final scenario in [
     (width: 320.0, textScale: 1.0),
     (width: 360.0, textScale: 1.0),
@@ -474,11 +590,12 @@ Future<void> _openCampaign(
   WidgetTester tester,
   Map<String, dynamic> payload, {
   double textScale = 1,
+  Brightness brightness = Brightness.light,
   ValueChanged<HomeCampaignSheetResult?>? onResult,
 }) async {
   await tester.pumpWidget(
     MaterialApp(
-      theme: ThemeData(fontFamily: 'Cairo'),
+      theme: ThemeData(fontFamily: 'Cairo', brightness: brightness),
       builder: (context, child) => MediaQuery(
         data: MediaQuery.of(
           context,

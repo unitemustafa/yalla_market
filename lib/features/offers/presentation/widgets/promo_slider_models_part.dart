@@ -6,6 +6,7 @@ class _PromoOfferData {
     required this.icon,
     required this.color,
     required this.image,
+    this.imageFocus = MediaFocalPoint.center,
     this.endsAtIso,
     required this.badgeEn,
     required this.badgeAr,
@@ -43,6 +44,7 @@ class _PromoOfferData {
   final IconData icon;
   final Color color;
   final String image;
+  final MediaFocalPoint imageFocus;
   final String? endsAtIso;
   final String badgeEn;
   final String badgeAr;

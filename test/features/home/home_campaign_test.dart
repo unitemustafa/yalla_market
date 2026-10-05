@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/features/home/domain/entities/home_campaign_data.dart';
@@ -12,6 +13,12 @@ import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() async {
+    final font = FontLoader('Cairo')
+      ..addFont(rootBundle.load('assets/fonts/Cairo.ttf'));
+    await font.load();
+  });
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   test('parses multiple campaign images and keeps legacy image support', () {
@@ -209,13 +216,13 @@ void main() {
   });
 
   for (final scenario in [
-    (width: 320.0, textScale: 1.0, stacked: true),
-    (width: 360.0, textScale: 1.0, stacked: true),
-    (width: 800.0, textScale: 1.5, stacked: true),
-    (width: 800.0, textScale: 1.0, stacked: false),
+    (width: 320.0, textScale: 1.0),
+    (width: 360.0, textScale: 1.0),
+    (width: 800.0, textScale: 1.5),
+    (width: 800.0, textScale: 1.0),
   ]) {
     testWidgets(
-      'split campaign adapts at width ${scenario.width} and text scale ${scenario.textScale}',
+      'legacy split uses Hero at width ${scenario.width} and text scale ${scenario.textScale}',
       (tester) async {
         await tester.binding.setSurfaceSize(Size(scenario.width, 1000));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -266,22 +273,11 @@ void main() {
 
         final title = find.text('انسخ الكود واستخدمه');
         final media = find.byKey(const ValueKey('campaign_image_viewport'));
-        if (scenario.stacked) {
-          expect(
-            tester.getTopLeft(title).dy,
-            greaterThanOrEqualTo(tester.getBottomLeft(media).dy),
-          );
-          expect(tester.getSize(title).width, greaterThan(240));
-        } else {
-          expect(
-            tester.getTopLeft(title).dy,
-            closeTo(tester.getTopLeft(media).dy, 1),
-          );
-          expect(
-            tester.getTopRight(title).dx,
-            lessThanOrEqualTo(tester.getTopLeft(media).dx),
-          );
-        }
+        expect(
+          tester.getTopLeft(title).dy,
+          greaterThanOrEqualTo(tester.getBottomLeft(media).dy),
+        );
+        expect(tester.getSize(title).width, greaterThan(240));
         await tester.ensureVisible(find.text('انسخ الكود'));
         await tester.tap(find.text('انسخ الكود'));
         await tester.pumpAndSettle();
@@ -333,14 +329,13 @@ void main() {
           );
 
           final surface = find.byKey(const ValueKey('home_campaign_surface'));
-          final factor = switch (size) {
-            'medium' => 0.58,
-            'near_full' => 0.94,
-            _ => 0.76,
-          };
           expect(
             tester.getSize(surface).height,
-            lessThanOrEqualTo(viewport.height * factor),
+            lessThanOrEqualTo(viewport.height * 0.58),
+          );
+          expect(
+            tester.widget<Text>(find.text(title)).textAlign,
+            TextAlign.center,
           );
           expect(
             tester.widget<Text>(find.text(title)).style?.color,
@@ -367,6 +362,18 @@ void main() {
             await tester.pumpAndSettle();
             expect(result, HomeCampaignSheetResult.dismissed);
           } else {
+            final buttonBeforeScroll = tester.getRect(
+              find.byType(FilledButton),
+            );
+            final surfaceRect = tester.getRect(surface);
+            expect(
+              buttonBeforeScroll.top,
+              greaterThanOrEqualTo(surfaceRect.top),
+            );
+            expect(
+              buttonBeforeScroll.bottom,
+              lessThanOrEqualTo(surfaceRect.bottom),
+            );
             await tester.ensureVisible(find.byType(FilledButton));
             await tester.pumpAndSettle();
             final buttonRect = tester.getRect(find.byType(FilledButton));
@@ -379,7 +386,10 @@ void main() {
             for (final box in paragraph.getBoxesForSelection(
               const TextSelection(baseOffset: 0, extentOffset: label.length),
             )) {
-              expect(box.bottom, lessThanOrEqualTo(paragraph.size.height));
+              expect(
+                paragraph.localToGlobal(Offset(0, box.bottom)).dy,
+                lessThanOrEqualTo(buttonRect.bottom),
+              );
             }
             await tester.tap(find.byType(FilledButton));
             await tester.pumpAndSettle();

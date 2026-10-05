@@ -18,7 +18,7 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 196;
+  static const double height = 188;
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -40,11 +40,11 @@ class StoreMarketCard extends StatelessWidget {
                 top: 0,
                 start: 0,
                 end: 0,
-                height: 132,
+                height: 126,
                 child: _StoreCover(market: market, keyPrefix: keyPrefix),
               ),
               PositionedDirectional(
-                top: 84,
+                top: 78,
                 bottom: 8,
                 start: 8,
                 end: 8,

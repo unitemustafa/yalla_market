@@ -86,7 +86,7 @@ class HomeCampaignSheetData {
         title: json['title']?.toString() ?? '',
         description: json['description']?.toString() ?? '',
         template: json['template']?.toString() ?? 'hero',
-        size: json['size']?.toString() ?? 'large',
+        size: json['size']?.toString() ?? 'medium',
         alignment: json['alignment']?.toString() ?? 'center',
         useThemeColors: json['use_theme_colors'] is bool
             ? json['use_theme_colors'] as bool

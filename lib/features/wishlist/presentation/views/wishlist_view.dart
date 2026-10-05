@@ -7,6 +7,7 @@ import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/layouts/grid_layout.dart';
+import '../../../../core/presentation/widgets/layouts/horizontal_card_layout.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
@@ -179,22 +180,50 @@ class WishlistView extends StatelessWidget {
                                             icon: AppIcons.shop5,
                                           ),
                                           const SizedBox(height: 12),
-                                          ...marketWishlist.items.map(
-                                            (market) => Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 12,
-                                              ),
-                                              child: StoreMarketCard(
-                                                key: ValueKey(
-                                                  'wishlist_store_${market.id}',
-                                                ),
-                                                market: market,
-                                                keyPrefix: 'wishlist_store',
-                                                onTap: () => _openMarket(
-                                                  context,
-                                                  market,
-                                                ),
-                                              ),
+                                          SizedBox(
+                                            height: StoreMarketCard.height,
+                                            child: LayoutBuilder(
+                                              builder: (context, constraints) {
+                                                final cardWidth =
+                                                    compactHorizontalCardWidth(
+                                                      constraints.maxWidth,
+                                                    );
+                                                return ListView.separated(
+                                                  key: const ValueKey(
+                                                    'wishlist_stores_horizontal_slider',
+                                                  ),
+                                                  scrollDirection:
+                                                      Axis.horizontal,
+                                                  physics:
+                                                      const BouncingScrollPhysics(),
+                                                  itemCount: marketWishlist
+                                                      .items
+                                                      .length,
+                                                  separatorBuilder: (_, _) =>
+                                                      const SizedBox(width: 12),
+                                                  itemBuilder: (context, index) {
+                                                    final market =
+                                                        marketWishlist
+                                                            .items[index];
+                                                    return SizedBox(
+                                                      width: cardWidth,
+                                                      child: StoreMarketCard(
+                                                        key: ValueKey(
+                                                          'wishlist_store_${market.id}',
+                                                        ),
+                                                        market: market,
+                                                        keyPrefix:
+                                                            'wishlist_store',
+                                                        onTap: () =>
+                                                            _openMarket(
+                                                              context,
+                                                              market,
+                                                            ),
+                                                      ),
+                                                    );
+                                                  },
+                                                );
+                                              },
                                             ),
                                           ),
                                         ],

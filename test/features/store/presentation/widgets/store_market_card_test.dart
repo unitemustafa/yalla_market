@@ -44,7 +44,7 @@ void main() {
       final coverFinder = find.byKey(const ValueKey('test_store_market_cover'));
       final cover = tester.getRect(coverFinder);
       expect(cover.width, 300);
-      expect(cover.height, 132);
+      expect(cover.height, 126);
       expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.cover);
       final logo = tester.getRect(
         find.byKey(const ValueKey('test_store_market_logo')),

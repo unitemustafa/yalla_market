@@ -28,12 +28,6 @@ class _HomeCampaignSheet extends StatelessWidget {
   final HomeCampaignData campaign;
   final String? imageUrl;
 
-  double _heightFactor() => switch (campaign.sheet.size) {
-    'medium' => 0.58,
-    'near_full' => 0.94,
-    _ => 0.76,
-  };
-
   @override
   Widget build(BuildContext context) {
     final sheet = campaign.sheet;
@@ -44,12 +38,9 @@ class _HomeCampaignSheet extends StatelessWidget {
     final sheetTextColor = sheet.useThemeColors
         ? colorScheme.onSurface
         : Color(sheet.textColorValue);
-    final alignment = sheet.alignment == 'center'
-        ? TextAlign.center
-        : TextAlign.start;
     final content = _CampaignTextContent(
       campaign: campaign,
-      textAlign: alignment,
+      textAlign: TextAlign.center,
       textColor: sheetTextColor,
     );
     final screenHeight = MediaQuery.sizeOf(context).height;
@@ -60,121 +51,91 @@ class _HomeCampaignSheet extends StatelessWidget {
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxHeight: math.min(screenHeight * _heightFactor(), availableHeight),
+          maxHeight: math.min(screenHeight * 0.58, availableHeight),
         ),
         child: ClipRRect(
           key: const ValueKey('home_campaign_surface'),
           borderRadius: BorderRadius.circular(24),
           child: DecoratedBox(
             decoration: BoxDecoration(color: sheetBackgroundColor),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 10, 12, 4),
-                    child: Row(
-                      children: [
-                        const Spacer(),
-                        IconButton(
-                          tooltip: 'إغلاق',
-                          onPressed: () => Navigator.pop(
-                            context,
-                            HomeCampaignSheetResult.dismissed,
-                          ),
-                          icon: const Icon(Icons.close_rounded),
-                          color: sheetTextColor,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 12, 4),
+                  child: Row(
+                    children: [
+                      const Spacer(),
+                      IconButton(
+                        tooltip: 'إغلاق',
+                        onPressed: () => Navigator.pop(
+                          context,
+                          HomeCampaignSheetResult.dismissed,
                         ),
-                      ],
-                    ),
+                        icon: const Icon(Icons.close_rounded),
+                        color: sheetTextColor,
+                      ),
+                    ],
                   ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final hasMedia =
-                            campaign.media.type == 'video' ||
-                            (campaign.media.type == 'image' &&
-                                (imageUrl ?? campaign.media.imageUrl)
-                                    .trim()
-                                    .isNotEmpty);
-                        final textScale =
-                            MediaQuery.textScalerOf(context).scale(24) / 24;
-                        // Keep enough room for readable text beside the media,
-                        // including when the system font size is increased.
-                        final useSplit =
-                            sheet.template == 'split' &&
-                            hasMedia &&
-                            (constraints.maxWidth - 14) / 2 >= 240 * textScale;
-                        if (useSplit) {
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Expanded(
-                                child: _CampaignMedia(
-                                  campaign.media,
-                                  imageUrl: imageUrl,
-                                ),
-                              ),
-                              const SizedBox(width: 14),
-                              Expanded(child: content),
-                            ],
-                          );
-                        }
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            if (hasMedia) ...[
-                              _CampaignMedia(
-                                campaign.media,
-                                imageUrl: imageUrl,
-                              ),
-                              const SizedBox(height: 18),
-                            ],
-                            content,
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(18, 2, 18, 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (campaign.media.type == 'video' ||
+                              (campaign.media.type == 'image' &&
+                                  (imageUrl ?? campaign.media.imageUrl)
+                                      .trim()
+                                      .isNotEmpty)) ...[
+                            _CampaignMedia(campaign.media, imageUrl: imageUrl),
+                            const SizedBox(height: 18),
                           ],
-                        );
-                      },
+                          content,
+                        ],
+                      ),
                     ),
                   ),
-                  if (campaign.action.hasButton)
-                    SafeArea(
-                      top: false,
-                      minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          style: FilledButton.styleFrom(
-                            minimumSize: const Size.fromHeight(52),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                            backgroundColor: Color(
-                              sheet.buttonBackgroundColorValue,
-                            ),
-                            foregroundColor: Color(sheet.buttonTextColorValue),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
-                            ),
+                ),
+                if (campaign.action.hasButton)
+                  SafeArea(
+                    top: false,
+                    minimum: const EdgeInsets.fromLTRB(18, 8, 18, 14),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          minimumSize: const Size.fromHeight(52),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
                           ),
-                          onPressed: () => Navigator.pop(
-                            context,
-                            HomeCampaignSheetResult.acted,
+                          backgroundColor: Color(
+                            sheet.buttonBackgroundColorValue,
                           ),
-                          child: Text(
-                            campaign.action.label,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                            ),
+                          foregroundColor: Color(sheet.buttonTextColorValue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: () => Navigator.pop(
+                          context,
+                          HomeCampaignSheetResult.acted,
+                        ),
+                        child: Text(
+                          campaign.action.label,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w900,
                           ),
                         ),
                       ),
                     ),
-                ],
-              ),
+                  ),
+              ],
             ),
           ),
         ),

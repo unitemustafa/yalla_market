@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/texts/section_heading.dart';
+import '../../../../core/presentation/widgets/layouts/horizontal_card_layout.dart';
 import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../domain/entities/store_data.dart';
@@ -93,7 +94,9 @@ class _StoresSection extends StatelessWidget {
           height: StoreMarketCard.height,
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final cardWidth = (constraints.maxWidth * 0.82).clamp(0.0, 340.0);
+              final cardWidth = compactHorizontalCardWidth(
+                constraints.maxWidth,
+              );
               return ListView.separated(
                 key: ValueKey('${prefix}_stores_horizontal_slider'),
                 scrollDirection: Axis.horizontal,

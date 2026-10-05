@@ -22,57 +22,61 @@ class CategoryTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final panelColor = isDark ? AppColors.darkCardColor : Colors.white;
+    final panelColor = isDark
+        ? AppColors.darkCardColor
+        : AppColors.categoryCardBackground;
     final textColor = isDark ? Colors.white : AppColors.lightTextPrimary;
-    final borderColor = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.06);
 
     return Material(
-      color: Colors.transparent,
+      color: panelColor,
+      borderRadius: BorderRadius.circular(AppCategoryLayout.cornerRadius),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Ink(
+        borderRadius: BorderRadius.circular(AppCategoryLayout.cornerRadius),
+        child: Padding(
           padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: panelColor,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: borderColor),
-          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               SizedBox(
-                height: 72,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: isDark ? 0.18 : 0.09),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+                height: AppCategoryLayout.iconSize,
+                child: Center(
                   child: RepaintBoundary(
                     child: AppImage(
                       source: image,
+                      width: AppCategoryLayout.iconSize,
+                      height: AppCategoryLayout.iconSize,
                       fallbackType: AppImagePlaceholderType.category,
                       role: AppImageRole.illustration,
-                      cacheWidth: 192,
-                      cacheHeight: 216,
                       filterQuality: FilterQuality.medium,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 4),
-              Text(
-                context.tr(name),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: textColor,
-                  fontSize: AppFontSizes.caption,
-                  height: 1.05,
-                  fontWeight: FontWeight.w900,
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) => Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: SizedBox(
+                        width: constraints.maxWidth,
+                        child: Text(
+                          context.tr(name),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.labelMedium
+                              ?.copyWith(
+                                color: textColor,
+                                fontSize: AppFontSizes.label,
+                                height: 1,
+                                fontWeight: FontWeight.w600,
+                              ),
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ],

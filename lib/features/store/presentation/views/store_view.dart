@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/errors/address_required_error.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
@@ -206,10 +207,11 @@ class _StoreCategoriesGrid extends StatelessWidget {
     return GridLayout(
       key: const ValueKey('all_store_categories_grid'),
       itemCount: categories.length,
-      mainAxisExtent: 106,
-      minimumCardWidth: 72,
-      minCrossAxisCount: 4,
-      maxCrossAxisCount: 4,
+      mainAxisExtent: AppCategoryLayout.height,
+      mainAxisSpacing: AppCategoryLayout.rowSpacing,
+      minimumCardWidth: AppCategoryLayout.cardWidth,
+      minCrossAxisCount: AppCategoryLayout.columns,
+      maxCrossAxisCount: AppCategoryLayout.columns,
       itemBuilder: (context, index) {
         final category = categories[index];
         return CategoryTile(

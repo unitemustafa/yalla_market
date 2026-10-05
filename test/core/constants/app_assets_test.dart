@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 
 void main() {
-  test('onboarding artwork stays optimized as WebP', () {
+  test('full-resolution onboarding posters stay bundled as WebP', () {
     const onboardingAssets = [
       AppAssets.onboardingProducts,
       AppAssets.onboardingCashOnDelivery,
@@ -21,8 +21,8 @@ void main() {
 
     expect(
       totalBytes,
-      lessThan(512 * 1024),
-      reason: 'Onboarding artwork should remain below 512 KiB in total.',
+      lessThan(5 * 1024 * 1024),
+      reason: 'Lossless onboarding posters should remain below 5 MiB in total.',
     );
   });
 }

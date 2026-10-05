@@ -29,24 +29,20 @@ void main() {
       SharedPreferences.setMockInitialValues({});
     });
 
-    test(
-      'onboarding not seen routes to onboarding when onboarding is enabled',
-      () async {
-        final authRepository = _FakeAuthRepository();
-        final cubit = _cubit(
-          onboardingRepository: const _FakeOnboardingRepository(seen: false),
-          authRepository: authRepository,
-          enableOnboarding: true,
-        );
+    test('first launch routes to onboarding by default', () async {
+      final authRepository = _FakeAuthRepository();
+      final cubit = _cubit(
+        onboardingRepository: const _FakeOnboardingRepository(seen: false),
+        authRepository: authRepository,
+      );
 
-        await cubit.determineStartupRoute();
+      await cubit.determineStartupRoute();
 
-        final state = cubit.state as SplashNavigateTo;
-        expect(state.route, AppRoutes.onboarding);
-        expect(authRepository.restoreSavedSessionCalls, 0);
-        await cubit.close();
-      },
-    );
+      final state = cubit.state as SplashNavigateTo;
+      expect(state.route, AppRoutes.onboarding);
+      expect(authRepository.restoreSavedSessionCalls, 0);
+      await cubit.close();
+    });
 
     test(
       'onboarding disabled routes directly to login even when onboarding not seen',
@@ -55,6 +51,7 @@ void main() {
         final cubit = _cubit(
           onboardingRepository: const _FakeOnboardingRepository(seen: false),
           authRepository: authRepository,
+          enableOnboarding: false,
         );
 
         await cubit.determineStartupRoute();

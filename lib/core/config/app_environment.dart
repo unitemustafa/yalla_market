@@ -6,10 +6,10 @@ import 'maptiler_map_config.dart';
 abstract final class AppEnvironment {
   static const bool portfolioDemo = bool.fromEnvironment('PORTFOLIO_DEMO');
 
-  /// Controls whether onboarding is shown to users. Currently disabled per requirement.
+  /// Shows onboarding on first launch unless explicitly disabled for a build.
   static const bool enableOnboarding = bool.fromEnvironment(
     'ENABLE_ONBOARDING',
-    defaultValue: false,
+    defaultValue: true,
   );
 
   static bool get hasApiBaseUrl => ApiEndpoints.rootBaseUrl.isNotEmpty;

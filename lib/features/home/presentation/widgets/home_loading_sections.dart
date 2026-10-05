@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_media_specs.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 
 class HomePromoSkeleton extends StatelessWidget {
@@ -27,13 +28,33 @@ class HomeCatalogSkeleton extends StatelessWidget {
       AppSkeleton(
         child: Row(
           children: [
-            Expanded(child: SkeletonBox(height: 106)),
-            SizedBox(width: 6),
-            Expanded(child: SkeletonBox(height: 106)),
-            SizedBox(width: 6),
-            Expanded(child: SkeletonBox(height: 106)),
-            SizedBox(width: 6),
-            Expanded(child: SkeletonBox(height: 106)),
+            Expanded(
+              child: SkeletonBox(
+                height: AppCategoryLayout.height,
+                radius: AppCategoryLayout.cornerRadius,
+              ),
+            ),
+            SizedBox(width: AppCategoryLayout.spacing),
+            Expanded(
+              child: SkeletonBox(
+                height: AppCategoryLayout.height,
+                radius: AppCategoryLayout.cornerRadius,
+              ),
+            ),
+            SizedBox(width: AppCategoryLayout.spacing),
+            Expanded(
+              child: SkeletonBox(
+                height: AppCategoryLayout.height,
+                radius: AppCategoryLayout.cornerRadius,
+              ),
+            ),
+            SizedBox(width: AppCategoryLayout.spacing),
+            Expanded(
+              child: SkeletonBox(
+                height: AppCategoryLayout.height,
+                radius: AppCategoryLayout.cornerRadius,
+              ),
+            ),
           ],
         ),
       ),

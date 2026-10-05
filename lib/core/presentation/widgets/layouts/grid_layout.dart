@@ -9,6 +9,7 @@ class GridLayout extends StatelessWidget {
     this.minimumCardWidth = 88,
     this.minCrossAxisCount = 2,
     this.maxCrossAxisCount = 6,
+    this.mainAxisSpacing = 10,
   }) : assert(minimumCardWidth > 0),
        assert(minCrossAxisCount > 0),
        assert(maxCrossAxisCount >= minCrossAxisCount);
@@ -18,6 +19,7 @@ class GridLayout extends StatelessWidget {
   final double minimumCardWidth;
   final int minCrossAxisCount;
   final int maxCrossAxisCount;
+  final double mainAxisSpacing;
   final Widget? Function(BuildContext, int) itemBuilder;
 
   @override
@@ -39,7 +41,7 @@ class GridLayout extends StatelessWidget {
           clipBehavior: Clip.none,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            mainAxisSpacing: 10,
+            mainAxisSpacing: mainAxisSpacing,
             crossAxisSpacing: crossAxisSpacing,
             mainAxisExtent: mainAxisExtent,
           ),

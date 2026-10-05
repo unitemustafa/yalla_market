@@ -6,6 +6,17 @@ abstract final class AppRadius {
   static const md = 8.0;
 }
 
+/// Shared category layout measured from the reference at a 360 logical-pixel width.
+abstract final class AppCategoryLayout {
+  static const height = 84.0;
+  static const cardWidth = 76.0;
+  static const iconSize = 56.0;
+  static const cornerRadius = 12.0;
+  static const spacing = 8.0;
+  static const rowSpacing = 7.0;
+  static const columns = 4;
+}
+
 /// The shared type scale used across Yalla Market.
 ///
 /// Keep component text on this scale instead of introducing one-off sizes.

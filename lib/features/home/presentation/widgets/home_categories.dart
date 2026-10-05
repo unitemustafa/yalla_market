@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/presentation/widgets/brands/category_tile.dart';
 import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
@@ -37,31 +38,19 @@ class HomeCategories extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 106,
+      height: AppCategoryLayout.height,
       child: Row(
         key: const ValueKey('popular_categories_list'),
-        children: visibleCategories.length > 1
-            ? List.generate(visibleCategories.length, (index) {
-                return Expanded(
-                  child: Padding(
-                    padding: EdgeInsetsDirectional.only(
-                      end: index == visibleCategories.length - 1 ? 0 : 6,
-                    ),
-                    child: buildCategory(visibleCategories[index]),
-                  ),
-                );
-              })
-            : List.generate(visibleCategories.length, (index) {
-                return Padding(
-                  padding: EdgeInsetsDirectional.only(
-                    end: index == visibleCategories.length - 1 ? 0 : 6,
-                  ),
-                  child: SizedBox(
-                    width: 74,
-                    child: buildCategory(visibleCategories[index]),
-                  ),
-                );
-              }),
+        children: [
+          for (var index = 0; index < AppCategoryLayout.columns; index++) ...[
+            if (index > 0) const SizedBox(width: AppCategoryLayout.spacing),
+            Expanded(
+              child: index < visibleCategories.length
+                  ? buildCategory(visibleCategories[index])
+                  : const SizedBox.shrink(),
+            ),
+          ],
+        ],
       ),
     );
   }

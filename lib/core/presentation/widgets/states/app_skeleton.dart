@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../localization/app_translations.dart';
+import '../../../constants/app_constants.dart';
 import '../layouts/grid_layout.dart';
 
 /// One shared shimmer animation for a group of placeholders, not one ticker
@@ -199,11 +200,15 @@ class AppCategorySkeletonGrid extends StatelessWidget {
   Widget build(BuildContext context) => AppSkeleton(
     child: GridLayout(
       itemCount: 8,
-      mainAxisExtent: 106,
-      minimumCardWidth: 72,
-      minCrossAxisCount: 4,
-      maxCrossAxisCount: 4,
-      itemBuilder: (_, _) => const SkeletonBox(height: 106),
+      mainAxisExtent: AppCategoryLayout.height,
+      mainAxisSpacing: AppCategoryLayout.rowSpacing,
+      minimumCardWidth: AppCategoryLayout.cardWidth,
+      minCrossAxisCount: AppCategoryLayout.columns,
+      maxCrossAxisCount: AppCategoryLayout.columns,
+      itemBuilder: (_, _) => const SkeletonBox(
+        height: AppCategoryLayout.height,
+        radius: AppCategoryLayout.cornerRadius,
+      ),
     ),
   );
 }

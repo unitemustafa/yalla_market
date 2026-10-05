@@ -16,6 +16,7 @@ class AppColors {
   // Light Theme Colors
   static const Color lightBackground = Colors.white;
   static const Color lightCardColor = Color(0xFFEEEEEE);
+  static const Color categoryCardBackground = Color(0xFFF4ECE3);
   static const Color lightTextPrimary = Color(0xFF1A1A1A);
   static const Color lightTextSecondary = Colors.grey;
 

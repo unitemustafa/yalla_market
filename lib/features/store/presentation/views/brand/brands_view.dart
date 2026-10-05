@@ -140,10 +140,11 @@ class _AllCategoriesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridLayout(
       itemCount: categories.length,
-      mainAxisExtent: 106,
-      minimumCardWidth: 72,
-      minCrossAxisCount: 4,
-      maxCrossAxisCount: 4,
+      mainAxisExtent: AppCategoryLayout.height,
+      mainAxisSpacing: AppCategoryLayout.rowSpacing,
+      minimumCardWidth: AppCategoryLayout.cardWidth,
+      minCrossAxisCount: AppCategoryLayout.columns,
+      maxCrossAxisCount: AppCategoryLayout.columns,
       itemBuilder: (context, index) {
         final category = categories[index];
         final countLabel = category.marketCount == null

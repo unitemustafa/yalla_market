@@ -48,6 +48,62 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
   });
 
+  for (final size in const [
+    Size(320, 568),
+    Size(430, 932),
+    Size(800, 1200),
+    Size(800, 320),
+  ]) {
+    testWidgets('artwork fills the viewport with overlaid controls at $size', (
+      tester,
+    ) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(
+        _TestApp(repository: _FakeOnboardingRepository()),
+      );
+
+      final artwork = find.byWidgetPredicate(
+        (widget) =>
+            widget is AppImage && widget.source == AppAssets.onboardingProducts,
+      );
+      expect(tester.getRect(artwork), Offset.zero & size);
+      expect(tester.widget<AppImage>(artwork).fit, BoxFit.contain);
+      final next = find.byType(ElevatedButton);
+      expect(tester.getRect(artwork).contains(tester.getCenter(next)), isTrue);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('next, back and start traverse all three posters', (
+    tester,
+  ) async {
+    AppLanguageController.instance.value = AppLanguage.english;
+    await tester.pumpWidget(_TestApp(repository: _FakeOnboardingRepository()));
+
+    String visibleAsset() =>
+        tester.widget<AppImage>(find.byType(AppImage).hitTestable()).source!;
+
+    expect(visibleAsset(), AppAssets.onboardingProducts);
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
+    expect(visibleAsset(), AppAssets.onboardingFastDelivery);
+    await tester.tap(find.byType(IconButton));
+    await tester.pumpAndSettle();
+    expect(visibleAsset(), AppAssets.onboardingProducts);
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
+    expect(visibleAsset(), AppAssets.onboardingCashOnDelivery);
+    expect(find.text('Start Shopping'), findsOneWidget);
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Login'), findsOneWidget);
+  });
+
   testWidgets(
     'rebuilds localized onboarding failure and enables retry after saving fails',
     (tester) async {

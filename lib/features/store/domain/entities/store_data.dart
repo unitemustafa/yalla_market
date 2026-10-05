@@ -12,18 +12,21 @@ class StoreData {
     required this.classifications,
     required this.marketsByClassificationId,
     this.latestMarkets = const [],
-  });
+    List<StoreMarketData>? popularMarkets,
+  }) : _popularMarkets = popularMarkets;
 
   final List<StoreClassificationData> commonClassifications;
   final List<StoreClassificationData> classifications;
   final Map<String, List<StoreMarketData>> marketsByClassificationId;
   final List<StoreMarketData> latestMarkets;
+  final List<StoreMarketData>? _popularMarkets;
 
   StoreData copyWith({
     List<StoreClassificationData>? commonClassifications,
     List<StoreClassificationData>? classifications,
     Map<String, List<StoreMarketData>>? marketsByClassificationId,
     List<StoreMarketData>? latestMarkets,
+    List<StoreMarketData>? popularMarkets,
   }) {
     return StoreData(
       commonClassifications:
@@ -32,6 +35,7 @@ class StoreData {
       marketsByClassificationId:
           marketsByClassificationId ?? this.marketsByClassificationId,
       latestMarkets: latestMarkets ?? this.latestMarkets,
+      popularMarkets: popularMarkets ?? _popularMarkets,
     );
   }
 
@@ -46,9 +50,12 @@ class StoreData {
     ).where((market) => market.isPopular).toList(growable: false);
   }
 
-  List<StoreMarketData> get popularMarkets => classifications
-      .expand((classification) => popularMarketsFor(classification.id))
-      .toList(growable: false);
+  // Older servers and demo data may only provide category previews.
+  List<StoreMarketData> get popularMarkets =>
+      _popularMarkets ??
+      classifications
+          .expand((classification) => popularMarketsFor(classification.id))
+          .toList(growable: false);
 
   List<StoreClassificationData> get featuredCandidates => [
     ...classifications.where(

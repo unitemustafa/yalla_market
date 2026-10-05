@@ -259,13 +259,9 @@ class _HomeViewState extends State<HomeView> {
                                         final hasStoreHighlights =
                                             store != null &&
                                             (store.latestMarkets.isNotEmpty ||
-                                                store.classifications.any(
-                                                  (classification) => store
-                                                      .popularMarketsFor(
-                                                        classification.id,
-                                                      )
-                                                      .isNotEmpty,
-                                                ));
+                                                store
+                                                    .popularMarkets
+                                                    .isNotEmpty);
 
                                         return Column(
                                           crossAxisAlignment:

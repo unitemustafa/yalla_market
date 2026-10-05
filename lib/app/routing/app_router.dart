@@ -62,6 +62,7 @@ class AppRouter {
     AppRoutes.allProducts,
     AppRoutes.categories,
     AppRoutes.latestStores,
+    AppRoutes.popularStores,
     AppRoutes.productDetail,
     AppRoutes.productCategoryCampaign,
     AppRoutes.brandProducts,
@@ -203,6 +204,12 @@ class AppRouter {
 
       case AppRoutes.latestStores:
         return _buildRoute(const LatestStoresView(), settings);
+
+      case AppRoutes.popularStores:
+        return _buildRoute(
+          const LatestStoresView(showPopularStores: true),
+          settings,
+        );
 
       case AppRoutes.brandProducts:
         final args = settings.arguments as BrandProductsRouteArgs?;

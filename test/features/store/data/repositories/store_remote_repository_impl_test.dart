@@ -12,6 +12,89 @@ void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
   group('StoreRemoteRepositoryImpl', () {
+    test(
+      'loads and caches every popular store beyond category previews',
+      () async {
+        final payload = <String, dynamic>{
+          'market_classifications': [
+            {
+              'id': 1,
+              'name': 'Category',
+              'markets': List.generate(
+                5,
+                (index) => {
+                  'id': index,
+                  'classification_id': 1,
+                  'is_popular': true,
+                },
+              ),
+            },
+          ],
+          'popular_markets': List.generate(
+            8,
+            (index) => {
+              'id': index,
+              'classification_id': 1,
+              'is_popular': true,
+              'product_count': 2,
+            },
+          ),
+        };
+        const cache = PersistentJsonCache();
+        final online = StoreRemoteRepositoryImpl(
+          FakeApiClient((_) => payload),
+          cache: cache,
+        );
+        final network = await online.getStore(forceRefresh: true);
+        final offline = StoreRemoteRepositoryImpl(
+          FakeApiClient((_) => throw _offlineStoreException()),
+          cache: cache,
+        );
+        final cached = await offline.getStore();
+
+        for (final result in [network, cached]) {
+          result.when(
+            success: (store) {
+              expect(store.marketsFor('1'), hasLength(5));
+              expect(
+                store.popularMarkets.map((market) => market.id),
+                List.generate(8, (index) => '$index'),
+              );
+              expect(store.popularMarkets.last.effectiveProductCount, 2);
+            },
+            failure: (failure) => fail(failure.message),
+          );
+        }
+        expect((cached as ApiSuccess).origin, DataOrigin.cache);
+      },
+    );
+
+    test(
+      'an empty popular list does not fall back to category previews',
+      () async {
+        final repository = StoreRemoteRepositoryImpl(
+          FakeApiClient(
+            (_) => {
+              'market_classifications': [
+                {
+                  'id': 1,
+                  'markets': [
+                    {'id': 1, 'is_popular': true},
+                  ],
+                },
+              ],
+              'popular_markets': [],
+            },
+          ),
+        );
+        final result = await repository.getStore();
+        result.when(
+          success: (store) => expect(store.popularMarkets, isEmpty),
+          failure: (failure) => fail(failure.message),
+        );
+      },
+    );
+
     test('serves the cached store before revalidation', () async {
       const payload = {
         'common_market_classifications': [

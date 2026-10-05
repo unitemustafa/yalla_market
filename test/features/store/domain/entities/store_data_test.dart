@@ -3,6 +3,27 @@ import 'package:yalla_market/features/store/domain/entities/store_data.dart';
 
 void main() {
   group('Store data mapping', () {
+    test(
+      'keeps the complete popular list independent of category previews',
+      () {
+        final markets = List.generate(
+          8,
+          (index) =>
+              StoreMarketData.fromJson({'id': index, 'is_popular': true}),
+        );
+        final store = StoreData(
+          commonClassifications: const [],
+          classifications: const [],
+          marketsByClassificationId: const {},
+          popularMarkets: markets,
+        );
+
+        expect(store.popularMarkets, markets);
+        expect(store.copyWith(latestMarkets: []).popularMarkets, markets);
+        expect(store.copyWith(popularMarkets: []).popularMarkets, isEmpty);
+      },
+    );
+
     test('collects only popular stores across classifications in order', () {
       final store = StoreData(
         commonClassifications: const [],

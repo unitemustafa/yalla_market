@@ -10,6 +10,7 @@ import 'package:yalla_market/features/store/domain/repositories/store_repository
 import 'package:yalla_market/features/store/domain/usecases/get_store_usecase.dart';
 import 'package:yalla_market/features/store/presentation/cubit/store_cubit.dart';
 import 'package:yalla_market/features/store/presentation/views/store_view.dart';
+import 'package:yalla_market/features/store/presentation/views/latest_stores_view.dart';
 import 'package:yalla_market/features/store/presentation/widgets/store_highlights_sections.dart';
 import 'package:yalla_market/features/store/presentation/widgets/store_market_card.dart';
 
@@ -138,7 +139,7 @@ void main() {
   for (final width in [320.0, 390.0]) {
     for (final direction in TextDirection.values) {
       testWidgets(
-        'store sliders show one and a half cards at $width in $direction',
+        'store sliders show compact cards with a preview at $width in $direction',
         (tester) async {
           await tester.binding.setSurfaceSize(Size(width, 844));
           addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -174,11 +175,9 @@ void main() {
             );
             expect(first.height, StoreMarketCard.height);
             expect(viewport.intersect(first).width, closeTo(first.width, 0.1));
-            expect(
-              viewport.intersect(second).width,
-              closeTo(second.width / 2, 0.1),
-            );
+            expect(viewport.intersect(second).width, greaterThan(0));
             expect(first.width, lessThan(viewport.width));
+            expect(first.width, greaterThan(viewport.width * 0.75));
           }
           expect(tester.takeException(), isNull);
         },
@@ -186,38 +185,115 @@ void main() {
     }
   }
 
-  testWidgets('popular category chips can be enabled again', (tester) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: SingleChildScrollView(
-            child: StoreHighlightsSections(
-              store: _storeData(),
-              showPopularStoreCategories: true,
-            ),
+  for (final count in [0, 5, 6]) {
+    testWidgets('popular preview handles $count stores and view all', (
+      tester,
+    ) async {
+      final store = _storeData().copyWith(
+        latestMarkets: [],
+        popularMarkets: List.generate(
+          count,
+          (index) => StoreMarketData.fromJson({
+            'id': 'popular-$index',
+            'name': 'Popular $index',
+            'is_popular': true,
+          }),
+        ),
+      );
+      String? openedRoute;
+      await tester.pumpWidget(
+        MaterialApp(
+          onGenerateRoute: (settings) {
+            openedRoute = settings.name;
+            return MaterialPageRoute<void>(
+              builder: (_) => const Scaffold(body: Text('All popular stores')),
+            );
+          },
+          home: Scaffold(body: StoreHighlightsSections(store: store)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('popular_store_category_selector')),
+        findsNothing,
+      );
+      if (count == 0) {
+        expect(find.text('Popular Stores'), findsNothing);
+        return;
+      }
+      final slider = find.byKey(
+        const ValueKey('popular_stores_horizontal_slider'),
+      );
+      expect(
+        tester.widget<ListView>(slider).semanticChildCount,
+        count > 5 ? 6 : count,
+      );
+      await tester.drag(slider, const Offset(-3000, 0));
+      await tester.pumpAndSettle();
+      final viewAll = find.byKey(const ValueKey('popular_stores_view_all'));
+      expect(viewAll, count > 5 ? findsOneWidget : findsNothing);
+      expect(
+        find.byKey(const ValueKey('popular_store_popular-5')),
+        findsNothing,
+      );
+      if (count > 5) {
+        await tester.tap(viewAll);
+        await tester.pumpAndSettle();
+        expect(openedRoute, AppRoutes.popularStores);
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+    'popular view all includes stores beyond fifteen and opens a store',
+    (tester) async {
+      final store = _storeData().copyWith(
+        popularMarkets: List.generate(
+          17,
+          (index) => StoreMarketData.fromJson({
+            'id': 'popular-$index',
+            'name': 'Popular $index',
+            'classification_id': 'category-${index % 3}',
+            'is_popular': true,
+          }),
+        ),
+      );
+      final cubit = StoreCubit(GetStoreUseCase(_StoreRepository(store)));
+      addTearDown(cubit.close);
+      BrandProductsRouteArgs? openedStore;
+      await tester.pumpWidget(
+        BlocProvider<StoreCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            onGenerateRoute: (settings) {
+              expect(settings.name, AppRoutes.brandProducts);
+              openedStore = settings.arguments! as BrandProductsRouteArgs;
+              return MaterialPageRoute<void>(
+                builder: (_) => const Scaffold(body: Text('Opened store')),
+              );
+            },
+            home: const LatestStoresView(showPopularStores: true),
           ),
         ),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('popular_store_category_selector')),
-      findsOneWidget,
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('popular_store_category_category-2')),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.byKey(const ValueKey('popular_store_market-category-2')),
-      findsOneWidget,
-    );
-    expect(
-      find.byKey(const ValueKey('popular_store_market-category-0')),
-      findsNothing,
-    );
-    expect(tester.takeException(), isNull);
-  });
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Popular Stores'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('latest_stores_page_market-category-1')),
+        findsNothing,
+      );
+      final last = find.byKey(const ValueKey('popular_stores_page_popular-16'));
+      await tester.scrollUntilVisible(last, 500);
+      await tester.pumpAndSettle();
+      expect(last, findsOneWidget);
+      await tester.tap(last);
+      await tester.pumpAndSettle();
+      expect(openedStore?.marketId, 'popular-16');
+      expect(openedStore?.classificationId, 'category-1');
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 StoreData _storeData() {

@@ -9,7 +9,7 @@ import '../../../wishlist/presentation/cubit/market_wishlist_cubit.dart';
 import '../../../wishlist/presentation/widgets/market_favorite_action.dart';
 import '../../domain/entities/store_data.dart';
 
-/// Shared store card with a full-width cover and store details beneath it.
+/// Shared store card with details floating over the lower part of its cover.
 class StoreMarketCard extends StatelessWidget {
   const StoreMarketCard({
     super.key,
@@ -26,50 +26,128 @@ class StoreMarketCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final surface = isDark ? AppColors.darkCardColor : Colors.white;
-    final border = isDark
-        ? Colors.white.withValues(alpha: 0.08)
-        : Colors.black.withValues(alpha: 0.055);
-
     return SizedBox(
       height: height,
       child: Material(
-        color: surface,
-        borderRadius: BorderRadius.circular(22),
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Ink(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(color: border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                SizedBox(
-                  height: 100,
-                  child: _StoreCover(market: market, keyPrefix: keyPrefix),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(8),
-                    child: Row(
-                      children: [
-                        _StoreLogo(market: market, keyPrefix: keyPrefix),
-                        const SizedBox(width: 7),
-                        Expanded(child: _StoreInformation(market: market)),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
+          child: Stack(
+            children: [
+              PositionedDirectional(
+                top: 0,
+                start: 0,
+                end: 0,
+                height: 132,
+                child: _StoreCover(market: market, keyPrefix: keyPrefix),
+              ),
+              PositionedDirectional(
+                top: 84,
+                bottom: 8,
+                start: 8,
+                end: 8,
+                child: _StoreDetails(market: market, keyPrefix: keyPrefix),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+}
+
+class _StoreDetails extends StatelessWidget {
+  const _StoreDetails({required this.market, required this.keyPrefix});
+
+  final StoreMarketData market;
+  final String keyPrefix;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final arabic = Localizations.localeOf(context).languageCode == 'ar';
+    final muted = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+    final border = isDark
+        ? Colors.white.withValues(alpha: 0.08)
+        : Colors.black.withValues(alpha: 0.055);
+    final count = market.effectiveProductCount;
+    final delivery = _deliveryLabel(arabic);
+
+    return Container(
+      key: ValueKey('${keyPrefix}_${market.id}_details'),
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardColor : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.10),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(8),
+              child: Row(
+                children: [
+                  _StoreLogo(market: market, keyPrefix: keyPrefix),
+                  const SizedBox(width: 7),
+                  Expanded(child: _StoreInformation(market: market)),
+                ],
+              ),
+            ),
+          ),
+          Divider(height: 1, thickness: 1, color: border),
+          SizedBox(
+            height: 36,
+            child: Row(
+              children: [
+                Expanded(
+                  child: _Meta(
+                    icon: AppIcons.box,
+                    text:
+                        '$count ${arabic
+                            ? 'منتج'
+                            : count == 1
+                            ? 'product'
+                            : 'products'}',
+                    color: muted,
+                  ),
+                ),
+                if (delivery != null) ...[
+                  Container(width: 1, height: 22, color: border),
+                  Expanded(
+                    child: _Meta(
+                      icon: AppIcons.truck_fast,
+                      text: delivery,
+                      color: muted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String? _deliveryLabel(bool arabic) {
+    final minimum = market.deliveryTimeMinMinutes;
+    final maximum = market.deliveryTimeMaxMinutes;
+    if (minimum == null) return null;
+    final value = maximum == null || maximum == minimum
+        ? '$minimum'
+        : '$minimum-$maximum';
+    return '$value ${arabic ? 'دقيقة' : 'min'}';
   }
 }
 
@@ -90,7 +168,7 @@ class _StoreCover extends StatelessWidget {
     }
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(8),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -101,7 +179,7 @@ class _StoreCover extends StatelessWidget {
             fit: BoxFit.cover,
             alignment: market.coverFocus.alignment,
             cacheWidth: 1080,
-            cacheHeight: 402,
+            cacheHeight: 528,
           ),
           DecoratedBox(
             decoration: BoxDecoration(
@@ -161,12 +239,12 @@ class _StoreLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 52,
-      height: 52,
+      width: 44,
+      height: 44,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: AppImage(
@@ -174,7 +252,7 @@ class _StoreLogo extends StatelessWidget {
         source: market.image,
         fallbackType: AppImagePlaceholderType.store,
         role: AppImageRole.logo,
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(5),
         cacheWidth: 228,
         cacheHeight: 228,
       ),
@@ -228,12 +306,9 @@ class _StoreInformation extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final arabic = Localizations.localeOf(context).languageCode == 'ar';
     final muted = isDark
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
-    final count = market.effectiveProductCount;
-    final delivery = _deliveryLabel(arabic);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -272,47 +347,8 @@ class _StoreInformation extends StatelessWidget {
             ),
           ),
         ],
-        const SizedBox(height: 8),
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: AlignmentDirectional.centerStart,
-          child: Row(
-            children: [
-              _Meta(
-                icon: AppIcons.box,
-                text:
-                    '$count ${arabic
-                        ? 'منتج'
-                        : count == 1
-                        ? 'product'
-                        : 'products'}',
-                color: muted,
-              ),
-              if (delivery != null) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Text(
-                    '|',
-                    style: TextStyle(color: muted, fontSize: 11),
-                  ),
-                ),
-                _Meta(icon: AppIcons.truck_fast, text: delivery, color: muted),
-              ],
-            ],
-          ),
-        ),
       ],
     );
-  }
-
-  String? _deliveryLabel(bool arabic) {
-    final minimum = market.deliveryTimeMinMinutes;
-    final maximum = market.deliveryTimeMaxMinutes;
-    if (minimum == null) return null;
-    final value = maximum == null || maximum == minimum
-        ? '$minimum'
-        : '$minimum-$maximum';
-    return '$value ${arabic ? 'دقيقة' : 'min'}';
   }
 }
 
@@ -325,22 +361,29 @@ class _Meta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: AppColors.primary),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-            color: color,
-            fontSize: 10.5,
-            fontWeight: FontWeight.w700,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 5),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, size: 14, color: AppColors.primary),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              text,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color,
+                fontSize: 10.5,
+                height: 1.15,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

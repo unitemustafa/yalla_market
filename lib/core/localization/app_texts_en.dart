@@ -731,6 +731,9 @@ abstract final class StoreTexts {
   static const markets = 'Markets';
   static const popularStores = 'Popular Stores';
   static const latestStores = 'Latest Stores';
+  static const browseAllPopularStores = 'Browse all popular stores';
+  static const popularStoresWillAppearHereOnceAvailable =
+      'Popular stores will appear here once available.';
   static const loadingStore = 'Loading store...';
   static const loadingStores = 'Loading stores...';
   static const storeCouldNotLoad = 'Store could not load';

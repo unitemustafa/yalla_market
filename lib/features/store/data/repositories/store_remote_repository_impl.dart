@@ -24,7 +24,7 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
   final GetSelectedCityUseCase? _getSelectedCity;
   @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
-    final key = 'store.v4.${await _scope()}';
+    final key = 'store.v5.${await _scope()}';
     final cached = await _cache?.read(key);
     final cachedStore = _storeFromCache(cached);
 
@@ -132,6 +132,9 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
       classifications: classifications,
       marketsByClassificationId: marketsByClassificationId,
       latestMarkets: _marketsFromPayload(summary['latest_markets']),
+      popularMarkets: summary['popular_markets'] is List
+          ? _marketsFromPayload(summary['popular_markets'])
+          : null,
     );
   }
 

@@ -13,9 +13,7 @@ import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_u
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 void main() {
-  testWidgets('shows full-width cover above the logo and store details', (
-    tester,
-  ) async {
+  testWidgets('floats store details over the full-width cover', (tester) async {
     for (var productCount = 0; productCount <= 3; productCount++) {
       await tester.pumpWidget(
         MaterialApp(
@@ -45,16 +43,23 @@ void main() {
       expect(find.text('20-30 min'), findsOneWidget);
       final coverFinder = find.byKey(const ValueKey('test_store_market_cover'));
       final cover = tester.getRect(coverFinder);
-      expect(cover.width, 298);
-      expect(cover.height, 100);
+      expect(cover.width, 300);
+      expect(cover.height, 132);
       expect(tester.widget<AppImage>(coverFinder).fit, BoxFit.cover);
       final logo = tester.getRect(
         find.byKey(const ValueKey('test_store_market_logo')),
       );
-      expect(logo.top, greaterThan(cover.bottom));
+      final details = tester.getRect(
+        find.byKey(const ValueKey('test_store_market_details')),
+      );
+      expect(cover.overlaps(details), isTrue);
+      expect(details.left, greaterThan(cover.left));
+      expect(details.right, lessThan(cover.right));
+      expect(details.bottom, greaterThan(cover.bottom));
+      expect(logo.top, greaterThan(details.top));
       expect(
         tester.getRect(find.text('Unified Store')).top,
-        greaterThan(cover.bottom),
+        greaterThan(details.top),
       );
       expect(
         tester.getRect(find.text('Everyday essentials')).top,

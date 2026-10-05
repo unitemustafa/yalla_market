@@ -1484,6 +1484,14 @@ abstract final class AppTextCatalog {
       ar: ar.StoreTexts.latestStores,
       en: en.StoreTexts.latestStores,
     ),
+    'Browse all popular stores': (
+      ar: ar.StoreTexts.browseAllPopularStores,
+      en: en.StoreTexts.browseAllPopularStores,
+    ),
+    'Popular stores will appear here once available.': (
+      ar: ar.StoreTexts.popularStoresWillAppearHereOnceAvailable,
+      en: en.StoreTexts.popularStoresWillAppearHereOnceAvailable,
+    ),
     'Loading store...': (
       ar: ar.StoreTexts.loadingStore,
       en: en.StoreTexts.loadingStore,

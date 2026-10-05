@@ -724,6 +724,9 @@ abstract final class StoreTexts {
   static const markets = 'الأسواق';
   static const popularStores = 'المحلات الشائعة';
   static const latestStores = 'أحدث المحلات';
+  static const browseAllPopularStores = 'تصفح كل المحلات الشائعة';
+  static const popularStoresWillAppearHereOnceAvailable =
+      'المحلات الشائعة هتظهر هنا أول ما تبقى متاحة.';
   static const loadingStore = 'بنجهزلك المتجر...';
   static const loadingStores = 'جاري تحميل المحلات...';
   static const storeCouldNotLoad = 'المتجر محمّلش';

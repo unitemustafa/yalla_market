@@ -15,7 +15,9 @@ import '../cubit/store_state.dart';
 import '../widgets/store_market_card.dart';
 
 class LatestStoresView extends StatefulWidget {
-  const LatestStoresView({super.key});
+  const LatestStoresView({super.key, this.showPopularStores = false});
+
+  final bool showPopularStores;
 
   @override
   State<LatestStoresView> createState() => _LatestStoresViewState();
@@ -54,64 +56,93 @@ class _LatestStoresViewState extends State<LatestStoresView> {
       body: SafeArea(
         child: AppRefreshIndicator(
           onRefresh: () => context.read<StoreCubit>().loadStore(force: true),
-          child: SingleChildScrollView(
+          child: CustomScrollView(
             physics: AppRefreshIndicator.scrollPhysics,
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const PageTopBar(
-                  title: 'Latest Stores',
-                  subtitle: 'Browse the newest stores',
+            slivers: [
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                sliver: SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      PageTopBar(
+                        title: widget.showPopularStores
+                            ? 'Popular Stores'
+                            : 'Latest Stores',
+                        subtitle: widget.showPopularStores
+                            ? 'Browse all popular stores'
+                            : 'Browse the newest stores',
+                      ),
+                      const AppRefreshAnchor(),
+                      const SizedBox(height: 18),
+                    ],
+                  ),
                 ),
-                const AppRefreshAnchor(),
-                const SizedBox(height: 18),
-                BlocBuilder<StoreCubit, StoreState>(
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                sliver: BlocBuilder<StoreCubit, StoreState>(
                   builder: (context, state) {
-                    final stores = state.data?.latestMarkets ?? const [];
+                    final stores =
+                        (widget.showPopularStores
+                            ? state.data?.popularMarkets
+                            : state.data?.latestMarkets) ??
+                        const <StoreMarketData>[];
+                    final keyPrefix = widget.showPopularStores
+                        ? 'popular_stores_page'
+                        : 'latest_stores_page';
                     if ((state is StoreInitial || state is StoreLoading) &&
                         state.data == null) {
-                      return const AppSkeletonList(rowHeight: 150);
+                      return const SliverToBoxAdapter(
+                        child: AppSkeletonList(rowHeight: 150),
+                      );
                     }
                     if (state is StoreFailure && stores.isEmpty) {
-                      return AppErrorState(
-                        title: 'Store could not load',
-                        message: state.message,
-                        onRetry: () =>
-                            context.read<StoreCubit>().loadStore(force: true),
+                      return SliverToBoxAdapter(
+                        child: AppErrorState(
+                          title: 'Store could not load',
+                          message: state.message,
+                          onRetry: () =>
+                              context.read<StoreCubit>().loadStore(force: true),
+                        ),
                       );
                     }
                     if (stores.isEmpty) {
-                      return const AppEmptyState(
-                        title: 'No stores available',
-                        message: 'New stores will appear here once added.',
+                      return SliverToBoxAdapter(
+                        child: AppEmptyState(
+                          title: 'No stores available',
+                          message: widget.showPopularStores
+                              ? 'Popular stores will appear here once available.'
+                              : 'New stores will appear here once added.',
+                        ),
                       );
                     }
 
-                    return AppContentReveal(
-                      child: Column(
-                        children: stores
-                            .take(15)
-                            .map(
-                              (market) => Padding(
-                                padding: const EdgeInsets.only(bottom: 12),
-                                child: StoreMarketCard(
-                                  key: ValueKey(
-                                    'latest_stores_page_${market.id}',
-                                  ),
-                                  market: market,
-                                  keyPrefix: 'latest_stores_page',
-                                  onTap: () => _openStore(market),
-                                ),
-                              ),
-                            )
-                            .toList(growable: false),
-                      ),
+                    final itemCount =
+                        widget.showPopularStores || stores.length < 15
+                        ? stores.length
+                        : 15;
+                    return SliverList.builder(
+                      itemCount: itemCount,
+                      itemBuilder: (context, index) {
+                        final market = stores[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: AppContentReveal(
+                            child: StoreMarketCard(
+                              key: ValueKey('${keyPrefix}_${market.id}'),
+                              market: market,
+                              keyPrefix: keyPrefix,
+                              onTap: () => _openStore(market),
+                            ),
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

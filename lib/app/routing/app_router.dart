@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../core/presentation/widgets/refresh_on_return.dart';
 import '../coordinators/app_catalog_refresh_coordinator.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../features/search/presentation/cubit/catalog_search_cubit.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../core/config/app_environment.dart';
@@ -151,7 +152,13 @@ class AppRouter {
         return _buildRoute(PaymentSuccessView(args: args), settings);
 
       case AppRoutes.search:
-        return _buildRoute(const SearchView(), settings);
+        return _buildRoute(
+          BlocProvider(
+            create: (_) => sl<CatalogSearchCubit>(),
+            child: const SearchView(),
+          ),
+          settings,
+        );
 
       case AppRoutes.allProducts:
         final args = settings.arguments as AllProductsRouteArgs?;

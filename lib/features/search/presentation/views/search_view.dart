@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
-import '../../../../core/config/app_environment.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
@@ -19,10 +18,12 @@ import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
-import '../../../store/presentation/cubit/product_discovery_cubit.dart';
-import '../../../store/presentation/cubit/product_discovery_state.dart';
+import '../cubit/catalog_search_cubit.dart';
+import '../cubit/catalog_search_state.dart';
+import '../../../store/domain/entities/store_data.dart';
+import '../../../store/presentation/widgets/store_market_card.dart';
 
-enum SearchFilter { all, products, categories }
+enum SearchFilter { all, products, markets, categories }
 
 class SearchView extends StatefulWidget {
   const SearchView({super.key, this.initialFilter = SearchFilter.all});
@@ -55,9 +56,13 @@ class _SearchViewState extends State<SearchView> {
 
   void _onQueryChanged() {
     _searchDebounce?.cancel();
+    if (_queryController.text.trim().isEmpty) {
+      context.read<CatalogSearchCubit>().search('');
+      return;
+    }
     _searchDebounce = Timer(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      context.read<ProductDiscoveryCubit>().search(_queryController.text);
+      context.read<CatalogSearchCubit>().search(_queryController.text);
     });
   }
 
@@ -84,30 +89,39 @@ class _SearchViewState extends State<SearchView> {
                   animation: _queryController,
                   builder: (context, _) {
                     final discoveryState = context
-                        .watch<ProductDiscoveryCubit>()
+                        .watch<CatalogSearchCubit>()
                         .state;
-                    final products = discoveryState.products;
-                    final categories = discoveryState.categories;
                     final query = _queryController.text.trim();
-                    final productResults = _filteredProducts(
-                      query,
-                      products,
-                      safeMode: preferences.safeMode,
-                    );
-                    final categoryResults = _filteredCategories(
-                      query,
-                      categories,
-                    );
+                    final results = discoveryState.results;
+                    final productResults = _shows(SearchFilter.products)
+                        ? results.products
+                              .where(
+                                (product) => product.isAllowedBySafeMode(
+                                  preferences.safeMode,
+                                ),
+                              )
+                              .toList(growable: false)
+                        : <ProductData>[];
+                    final categoryResults = _shows(SearchFilter.categories)
+                        ? results.categories
+                        : <CategoryData>[];
+                    final marketResults = _shows(SearchFilter.markets)
+                        ? results.markets
+                        : <StoreMarketData>[];
+                    final hasMoreProducts =
+                        _shows(SearchFilter.products) &&
+                        results.hasMoreProducts;
                     final hasResults =
-                        productResults.isNotEmpty || categoryResults.isNotEmpty;
+                        productResults.isNotEmpty ||
+                        categoryResults.isNotEmpty ||
+                        marketResults.isNotEmpty ||
+                        hasMoreProducts;
                     final isInitialLoading =
-                        (discoveryState is ProductDiscoveryInitial ||
-                            discoveryState is ProductDiscoveryLoading) &&
-                        products.isEmpty &&
-                        categories.isEmpty;
-                    final needsCity =
-                        discoveryState is ProductDiscoveryNeedsCity;
-                    final failure = discoveryState is ProductDiscoveryFailure
+                        query.isNotEmpty &&
+                        (discoveryState is CatalogSearchLoading ||
+                            discoveryState.query != query);
+                    final needsCity = discoveryState is CatalogSearchNeedsCity;
+                    final failure = discoveryState is CatalogSearchFailure
                         ? discoveryState
                         : null;
 
@@ -121,7 +135,7 @@ class _SearchViewState extends State<SearchView> {
                             children: [
                               const PageTopBar(
                                 title: 'Search',
-                                subtitle: 'Products and categories',
+                                subtitle: 'Products, shops and categories',
                               ),
                               const SizedBox(height: 18),
                               _SearchInput(
@@ -156,7 +170,7 @@ class _SearchViewState extends State<SearchView> {
                                   actionLabel: 'Retry',
                                   color: AppColors.error,
                                   onAction: () => context
-                                      .read<ProductDiscoveryCubit>()
+                                      .read<CatalogSearchCubit>()
                                       .search(query),
                                 )
                               else if (query.isEmpty)
@@ -176,14 +190,36 @@ class _SearchViewState extends State<SearchView> {
                                   query: query,
                                   total:
                                       productResults.length +
-                                      categoryResults.length,
+                                      categoryResults.length +
+                                      marketResults.length,
                                   isDark: isDark,
                                 ),
                                 const SizedBox(height: 18),
+                                if (marketResults.isNotEmpty) ...[
+                                  _SectionTitle(
+                                    title: 'Search shops',
+                                    count: marketResults.length,
+                                  ),
+                                  const SizedBox(height: 10),
+                                  ...marketResults.map(
+                                    (market) => Padding(
+                                      padding: const EdgeInsets.only(
+                                        bottom: 10,
+                                      ),
+                                      child: StoreMarketCard(
+                                        market: market,
+                                        keyPrefix: 'search',
+                                        onTap: () =>
+                                            _openMarket(context, market),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 10),
+                                ],
                                 if (_shows(SearchFilter.categories) &&
                                     categoryResults.isNotEmpty) ...[
                                   _SectionTitle(
-                                    title: 'Categories',
+                                    title: 'Search categories',
                                     count: categoryResults.length,
                                   ),
                                   const SizedBox(height: 10),
@@ -195,8 +231,7 @@ class _SearchViewState extends State<SearchView> {
                                       child: BrandCard(
                                         showBorder: true,
                                         brand: category.name,
-                                        productCount:
-                                            category.productCountLabel,
+                                        productCount: category.marketCountLabel,
                                         logo: category.image,
                                         accentColor: Color(
                                           category.accentColorValue,
@@ -236,6 +271,39 @@ class _SearchViewState extends State<SearchView> {
                                     },
                                   ),
                                 ],
+                                if (hasMoreProducts &&
+                                    discoveryState is CatalogSearchReady) ...[
+                                  const SizedBox(height: 12),
+                                  if (discoveryState.moreError != null)
+                                    Text(
+                                      context.tr(discoveryState.moreError!),
+                                      style: const TextStyle(
+                                        color: AppColors.error,
+                                      ),
+                                    ),
+                                  TextButton(
+                                    onPressed: discoveryState.loadingMore
+                                        ? null
+                                        : context
+                                              .read<CatalogSearchCubit>()
+                                              .loadMore,
+                                    child: discoveryState.loadingMore
+                                        ? const SizedBox(
+                                            width: 20,
+                                            height: 20,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2,
+                                            ),
+                                          )
+                                        : Text(
+                                            context.tr(
+                                              discoveryState.moreError == null
+                                                  ? 'Load more products'
+                                                  : 'Retry',
+                                            ),
+                                          ),
+                                  ),
+                                ],
                               ],
                             ],
                           ),
@@ -256,51 +324,30 @@ class _SearchViewState extends State<SearchView> {
     return _filter == SearchFilter.all || _filter == filter;
   }
 
-  List<ProductData> _filteredProducts(
-    String query,
-    List<ProductData> source, {
-    required bool safeMode,
-  }) {
-    if (!_shows(SearchFilter.products)) return [];
-    final safeSource = source
-        .where((product) => product.isAllowedBySafeMode(safeMode))
-        .toList(growable: false);
-    if (!AppEnvironment.useDemoRepositories) return safeSource;
-
-    if (query.isEmpty) return safeSource.take(4).toList(growable: false);
-    final lowerQuery = query.toLowerCase();
-    return safeSource
-        .where((product) {
-          return product.title.toLowerCase().contains(lowerQuery) ||
-              product.brand.toLowerCase().contains(lowerQuery) ||
-              product.tags.any((tag) => tag.contains(lowerQuery));
-        })
-        .toList(growable: false);
-  }
-
   String _failureTitle(String message) {
     final normalized = message.toLowerCase();
     if (normalized.contains('unauthorized') ||
         normalized.contains('401') ||
         normalized.contains('login') ||
         normalized.contains('sign in')) {
-      return 'Please login to search products';
+      return 'Please login to search';
     }
 
     return 'Search failed';
   }
 
-  List<CategoryData> _filteredCategories(
-    String query,
-    List<CategoryData> source,
-  ) {
-    if (!_shows(SearchFilter.categories)) return [];
-    if (query.isEmpty) {
-      return source.take(6).toList(growable: false);
-    }
-    return source
-        .where((category) => category.matches(query))
-        .toList(growable: false);
+  void _openMarket(BuildContext context, StoreMarketData market) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.brandProducts,
+      arguments: BrandProductsRouteArgs(
+        brand: market.name,
+        logo: market.image,
+        productCount: market.productCountLabel,
+        marketId: market.id,
+        classificationId: market.classificationId,
+      ),
+    );
   }
 
   void _openCategory(BuildContext context, CategoryData category) {
@@ -310,7 +357,7 @@ class _SearchViewState extends State<SearchView> {
       arguments: BrandProductsRouteArgs(
         brand: category.name,
         logo: category.image,
-        productCount: category.productCountLabel,
+        productCount: category.marketCountLabel,
         classificationId: category.id,
       ),
     );
@@ -326,11 +373,12 @@ class _SearchInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextField(
+      key: const ValueKey('catalog_search_field'),
       controller: controller,
       autofocus: true,
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
-        hintText: context.tr('Search products and categories...'),
+        hintText: context.tr('Search products, shops and categories...'),
         prefixIcon: const Icon(AppIcons.search_normal),
         suffixIcon: controller.text.isEmpty
             ? const Icon(AppIcons.filter_search, color: AppColors.primary)
@@ -372,44 +420,53 @@ class _FilterBar extends StatelessWidget {
     const filters = [
       (SearchFilter.all, 'All'),
       (SearchFilter.products, 'Products'),
-      (SearchFilter.categories, 'Categories'),
+      (SearchFilter.markets, 'Search shops'),
+      (SearchFilter.categories, 'Search categories'),
     ];
 
     return SizedBox(
       height: 38,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: filters.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final filter = filters[index].$1;
-          final label = filters[index].$2;
-          final isSelected = selected == filter;
-
-          return Material(
-            color: isSelected
-                ? AppColors.primary
-                : AppColors.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(8),
-            child: InkWell(
-              onTap: () => onChanged(filter),
-              borderRadius: BorderRadius.circular(8),
+      child: Row(
+        children: [
+          for (var index = 0; index < filters.length; index++)
+            Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Center(
-                  child: Text(
-                    context.tr(label),
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.primary,
-                      fontWeight: FontWeight.w900,
-                      fontSize: AppFontSizes.body,
+                padding: EdgeInsetsDirectional.only(
+                  end: index == filters.length - 1 ? 0 : 8,
+                ),
+                child: Material(
+                  color: selected == filters[index].$1
+                      ? AppColors.primary
+                      : AppColors.primary.withValues(alpha: 0.10),
+                  borderRadius: BorderRadius.circular(8),
+                  child: InkWell(
+                    key: ValueKey('search_filter_${filters[index].$1.name}'),
+                    onTap: () => onChanged(filters[index].$1),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 6),
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            context.tr(filters[index].$2),
+                            maxLines: 1,
+                            style: TextStyle(
+                              color: selected == filters[index].$1
+                                  ? Colors.white
+                                  : AppColors.primary,
+                              fontWeight: FontWeight.w900,
+                              fontSize: AppFontSizes.body,
+                            ),
+                          ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
             ),
-          );
-        },
+        ],
       ),
     );
   }
@@ -575,9 +632,7 @@ class _EmptySearchState extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              context.tr(
-                message ?? 'Try a category or a shorter product name.',
-              ),
+              context.tr(message ?? 'Try a product, shop or category name.'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: mutedColor,
                 height: 1.35,

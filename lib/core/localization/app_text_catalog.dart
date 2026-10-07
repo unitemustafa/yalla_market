@@ -1729,6 +1729,34 @@ abstract final class AppTextCatalog {
       ar: ar.StoreTexts.productsAndCategories,
       en: en.StoreTexts.productsAndCategories,
     ),
+    'Products, shops and categories': (
+      ar: ar.StoreTexts.productsShopsAndCategories,
+      en: en.StoreTexts.productsShopsAndCategories,
+    ),
+    'Search shops': (
+      ar: ar.StoreTexts.searchShops,
+      en: en.StoreTexts.searchShops,
+    ),
+    'Search categories': (
+      ar: ar.StoreTexts.searchCategories,
+      en: en.StoreTexts.searchCategories,
+    ),
+    'Search products, shops and categories...': (
+      ar: ar.StoreTexts.searchProductsShopsAndCategories,
+      en: en.StoreTexts.searchProductsShopsAndCategories,
+    ),
+    'Try a product, shop or category name.': (
+      ar: ar.StoreTexts.tryAProductShopOrCategoryName,
+      en: en.StoreTexts.tryAProductShopOrCategoryName,
+    ),
+    'Load more products': (
+      ar: ar.StoreTexts.loadMoreProducts,
+      en: en.StoreTexts.loadMoreProducts,
+    ),
+    'Please login to search': (
+      ar: ar.StoreTexts.pleaseLoginToSearch,
+      en: en.StoreTexts.pleaseLoginToSearch,
+    ),
     'Products, brands and categories': (
       ar: ar.StoreTexts.productsBrandsAndCategories,
       en: en.StoreTexts.productsBrandsAndCategories,

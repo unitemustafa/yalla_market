@@ -809,6 +809,14 @@ abstract final class StoreTexts {
   static const exploreMarketCategories = 'استكشف فئات السوق';
   static const exploreTrustedStores = 'استكشف متاجر موثوقة';
   static const productsAndCategories = 'منتجات وفئات';
+  static const productsShopsAndCategories = 'منتجات ومحلات وفئات';
+  static const searchShops = 'المحلات';
+  static const searchCategories = 'الفئات';
+  static const searchProductsShopsAndCategories =
+      'دور على منتجات أو محلات أو فئات...';
+  static const tryAProductShopOrCategoryName = 'جرّب اسم منتج أو محل أو فئة.';
+  static const loadMoreProducts = 'عرض منتجات أكتر';
+  static const pleaseLoginToSearch = 'سجّل دخولك عشان تبحث';
   static const productsBrandsAndCategories = 'منتجات وبراندات وأقسام';
   static const thisCategoryIsEmptyTryAnotherCategoryOrCheckBack =
       'الفئة دي فاضية. جرّب فئة تانية أو ارجع لاحقًا.';

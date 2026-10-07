@@ -367,6 +367,13 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                       const SizedBox(height: 16),
                       ElevatedButton(
                         onPressed: _loadProductDetails,
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, 48),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
                         child: const Text('إعادة المحاولة'),
                       ),
                     ],

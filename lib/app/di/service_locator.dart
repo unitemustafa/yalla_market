@@ -14,6 +14,7 @@ import '../../features/offers/di/offers_di.dart';
 import '../../features/personalization/di/personalization_di.dart';
 import '../../features/splash/di/splash_di.dart';
 import '../../features/store/di/store_di.dart';
+import '../../features/search/di/search_di.dart';
 import '../../features/wishlist/di/wishlist_di.dart';
 
 final GetIt sl = GetIt.instance;
@@ -32,6 +33,7 @@ void initServiceLocator() {
   registerHomeDependencies(sl);
   registerOfferDependencies(sl);
   registerStoreDependencies(sl);
+  registerSearchDependencies(sl);
   registerCartDependencies(sl);
   registerWishlistDependencies(sl);
   registerPersonalizationDependencies(sl);

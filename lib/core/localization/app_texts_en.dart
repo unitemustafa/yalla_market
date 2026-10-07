@@ -818,6 +818,15 @@ abstract final class StoreTexts {
   static const exploreMarketCategories = 'Explore market categories';
   static const exploreTrustedStores = 'Explore trusted stores';
   static const productsAndCategories = 'Products and categories';
+  static const productsShopsAndCategories = 'Products, shops and categories';
+  static const searchShops = 'Shops';
+  static const searchCategories = 'Categories';
+  static const searchProductsShopsAndCategories =
+      'Search products, shops and categories...';
+  static const tryAProductShopOrCategoryName =
+      'Try a product, shop or category name.';
+  static const loadMoreProducts = 'Load more products';
+  static const pleaseLoginToSearch = 'Please login to search';
   static const productsBrandsAndCategories = 'Products, brands and categories';
   static const thisCategoryIsEmptyTryAnotherCategoryOrCheckBack =
       'This category is empty. Try another category or check back later.';

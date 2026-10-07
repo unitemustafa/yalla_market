@@ -11,6 +11,7 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
+import 'package:yalla_market/core/theme/app_theme.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/brand_data.dart';
 import 'package:yalla_market/features/store/domain/entities/category_data.dart';
@@ -23,6 +24,50 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  for (final isDark in [false, true]) {
+    for (final textScale in [1.0, 2.0]) {
+      testWidgets(
+        'retry label has space on both sides in RTL (dark: $isDark, scale: $textScale)',
+        (tester) async {
+          await tester.binding.setSurfaceSize(const Size(360, 800));
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(textScale)),
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: child!,
+                ),
+              ),
+              home: const ProductDetailView(
+                productId: '',
+                image: AppAssets.defaultProduct,
+                title: 'Product',
+                brand: 'Store',
+                price: '1.00',
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          final buttonRect = tester.getRect(find.byType(ElevatedButton));
+          final labelRect = tester.getRect(find.text('إعادة المحاولة'));
+          expect(labelRect.left - buttonRect.left, greaterThanOrEqualTo(24));
+          expect(buttonRect.right - labelRect.right, greaterThanOrEqualTo(24));
+          expect(buttonRect.height, greaterThanOrEqualTo(48));
+          expect(buttonRect.left, greaterThanOrEqualTo(24));
+          expect(buttonRect.right, lessThanOrEqualTo(336));
+          expect(tester.takeException(), isNull);
+        },
+      );
+    }
+  }
+
   for (final marketId in ['market_1', '  market_1  ']) {
     testWidgets('opens the product storefront by market ID ($marketId)', (
       tester,

@@ -8,6 +8,8 @@ import 'package:yalla_market/core/localization/app_language_controller.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/views/login_view.dart';
+import 'package:yalla_market/features/auth/domain/entities/social_auth_result.dart';
+import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/presentation/widgets/warning_checkbox.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -18,10 +20,65 @@ import 'package:yalla_market/features/app_media/presentation/app_media_cubit.dar
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
 
 import '../../../../helpers/auth_widget_fakes.dart';
+import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
   setUp(() {
     AppLanguageController.instance.value = AppLanguage.english;
+  });
+
+  testWidgets('Facebook without email asks for one before OTP verification', (
+    tester,
+  ) async {
+    final repository = _EmailLessFacebookRepository();
+    await _pumpLogin(tester, repository);
+    await tester.ensureVisible(find.text('Facebook'));
+    await tester.tap(find.text('Facebook'));
+    await tester.pumpAndSettle();
+    expect(find.text(AppTranslations.current.verifyEmailTitle), findsOneWidget);
+    expect(find.text('Complete your account'), findsNothing);
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byType(TextFormField),
+      ),
+      findsOneWidget,
+    );
+    Finder field(String label) => find.byWidgetPredicate(
+      (widget) => widget is TextField && widget.decoration?.labelText == label,
+    );
+    await tester.tap(find.text('Continue'));
+    await tester.pump();
+    expect(repository.submittedEmail, isNull);
+    expect(find.text('This field is required'), findsOneWidget);
+    await tester.enterText(
+      field(AppTranslations.current.email),
+      sampleUser.email,
+    );
+    await tester.tap(find.text('Continue'));
+    await tester.pumpAndSettle();
+    expect(repository.submittedEmail, sampleUser.email);
+    expect(repository.deferredProfile, isTrue);
+    expect(find.text('/verify-email|${sampleUser.email}'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('provider email goes straight to OTP without a profile form', (
+    tester,
+  ) async {
+    final repository = _EmailLessFacebookRepository(
+      providerEmail: sampleUser.email,
+    );
+    await _pumpLogin(tester, repository);
+    await tester.ensureVisible(find.text('Facebook'));
+    await tester.tap(find.text('Facebook'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(repository.deferredProfile, isTrue);
+    expect(repository.submittedEmail, isNull);
+    expect(find.text('/verify-email|${sampleUser.email}'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('old login artwork stays hidden until media settings resolve', (
@@ -89,7 +146,35 @@ void main() {
       tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
       isTrue,
     );
+    expect(find.text('Google'), findsOneWidget);
+    expect(find.text('Facebook'), findsOneWidget);
+    expect(find.text('Apple'), findsNothing);
   });
+
+  for (final rememberMe in [true, false]) {
+    testWidgets(
+      'Facebook button uses Facebook provider with remember me $rememberMe',
+      (tester) async {
+        final repository = _FacebookLoginRepository();
+        await _pumpLogin(tester, repository);
+        expect(find.text('Facebook'), findsOneWidget);
+        expect(find.text('Apple'), findsNothing);
+        if (!rememberMe) {
+          await tester.tap(find.text('Remember Me'));
+          await tester.pump();
+        }
+        final facebook = find.text('Facebook');
+        await tester.ensureVisible(facebook);
+        await tester.tap(facebook);
+        await tester.pump();
+
+        expect(repository.socialCalls, 1);
+        expect(repository.lastProvider, SocialAuthProvider.facebook);
+        expect(repository.lastSocialRememberMe, rememberMe);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets('unverified login opens the verification route automatically', (
     tester,
@@ -147,6 +232,62 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+}
+
+class _EmailLessFacebookRepository extends FakeAuthRepository {
+  _EmailLessFacebookRepository({this.providerEmail = ''});
+  final String providerEmail;
+  String? submittedEmail;
+  bool? deferredProfile;
+
+  @override
+  Future<ApiResult<SocialAuthResult>> socialSignIn({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) async {
+    return ApiResult.success(
+      SocialAuthResult(
+        action: SocialAuthAction.completeProfile,
+        provider: SocialAuthProvider.facebook,
+        email: providerEmail,
+        firstName: 'Social',
+        lastName: 'Customer',
+      ),
+    );
+  }
+
+  @override
+  Future<ApiResult<AuthSession>> completeSocialSignup({
+    String? email,
+    String firstName = '',
+    String lastName = '',
+    String username = '',
+    String phone = '',
+    String city = '',
+    bool rememberMe = false,
+    bool deferProfile = false,
+  }) async {
+    submittedEmail = email;
+    deferredProfile = deferProfile;
+    return const ApiResult.success(AuthSession(user: sampleUser));
+  }
+}
+
+class _FacebookLoginRepository extends FakeAuthRepository {
+  int socialCalls = 0;
+  SocialAuthProvider? lastProvider;
+  bool? lastSocialRememberMe;
+
+  @override
+  Future<ApiResult<SocialAuthResult>> socialSignIn({
+    required SocialAuthProvider provider,
+    bool rememberMe = false,
+  }) async {
+    socialCalls++;
+    lastProvider = provider;
+    lastSocialRememberMe = rememberMe;
+    return const ApiResult.failure(ValidationFailure('Test sign-in failure.'));
+  }
 }
 
 Future<void> _pumpLogin(

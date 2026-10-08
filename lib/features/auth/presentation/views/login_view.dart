@@ -33,10 +33,6 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
-  static const _facebookAuthEnabled = bool.fromEnvironment(
-    'FACEBOOK_AUTH_ENABLED',
-  );
-
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   late final TextEditingController _passwordController;
@@ -601,34 +597,19 @@ class _LoginViewState extends State<LoginView> {
             Expanded(
               child: _socialPillButton(
                 context,
-                provider: SocialAuthProvider.apple,
-                icon: FaIcon(
-                  FontAwesomeIcons.apple,
+                provider: SocialAuthProvider.facebook,
+                icon: const FaIcon(
+                  FontAwesomeIcons.facebookF,
                   size: 20,
-                  color: isDarkMode ? Colors.white : Colors.black,
+                  color: Color(0xFF1877F2),
                 ),
-                label: 'Apple',
+                label: 'Facebook',
                 isLoading: isLoading,
                 isDarkMode: isDarkMode,
               ),
             ),
           ],
         ),
-        if (_facebookAuthEnabled) ...[
-          const SizedBox(height: 12),
-          _socialPillButton(
-            context,
-            provider: SocialAuthProvider.facebook,
-            icon: const FaIcon(
-              FontAwesomeIcons.facebookF,
-              size: 18,
-              color: Color(0xFF1877F2),
-            ),
-            label: 'Facebook',
-            isLoading: isLoading,
-            isDarkMode: isDarkMode,
-          ),
-        ],
         const SizedBox(height: 24),
         _buildSignUpPrompt(theme, isDarkMode, strings),
       ],
@@ -673,12 +654,17 @@ class _LoginViewState extends State<LoginView> {
             children: [
               icon,
               const SizedBox(width: 8),
-              Text(
-                context.tr(label),
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    context.tr(label),
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -734,70 +720,32 @@ class _LoginViewState extends State<LoginView> {
 
   Future<void> _showSocialProfileCompletion(SocialAuthResult result) async {
     if (!mounted) return;
+    if (result.email.isNotEmpty) {
+      await context.read<AuthCubit>().completeSocialSignup(
+        deferProfile: true,
+        rememberMe: _rememberMe,
+      );
+      return;
+    }
     final formKey = GlobalKey<FormState>();
-    final firstName = TextEditingController(text: result.firstName);
-    final lastName = TextEditingController(text: result.lastName);
-    final username = TextEditingController();
-    final phone = TextEditingController();
-    final city = TextEditingController();
+    final email = TextEditingController();
     try {
-      final submitted = await showDialog<bool>(
+      final strings = AppTranslations.of(context);
+      final navigator = Navigator.of(context, rootNavigator: true);
+      final dialogRoute = DialogRoute<bool>(
         context: context,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
         barrierDismissible: false,
         builder: (dialogContext) => AlertDialog(
-          title: Text(context.tr('Complete your account')),
-          content: SingleChildScrollView(
-            child: Form(
-              key: formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(result.email, textAlign: TextAlign.center),
-                  const SizedBox(height: 14),
-                  TextFormField(
-                    controller: firstName,
-                    decoration: InputDecoration(
-                      labelText: context.tr('First name'),
-                    ),
-                    validator: Validators.required,
-                  ),
-                  TextFormField(
-                    controller: lastName,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Last name'),
-                    ),
-                  ),
-                  TextFormField(
-                    controller: username,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Username'),
-                    ),
-                    validator: (value) {
-                      final requiredMessage = Validators.required(value);
-                      if (requiredMessage != null) return requiredMessage;
-                      return RegExp(
-                            r'^[A-Za-z][A-Za-z0-9._]{2,29}$',
-                          ).hasMatch(value!.trim())
-                          ? null
-                          : context.tr('Enter a valid username');
-                    },
-                  ),
-                  TextFormField(
-                    controller: phone,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: context.tr('Phone number'),
-                    ),
-                    validator: Validators.egyptianMobile,
-                  ),
-                  TextFormField(
-                    controller: city,
-                    decoration: InputDecoration(
-                      labelText: context.tr('City (optional)'),
-                    ),
-                  ),
-                ],
-              ),
+          title: Text(strings.verifyEmailTitle),
+          content: Form(
+            key: formKey,
+            child: TextFormField(
+              controller: email,
+              keyboardType: TextInputType.emailAddress,
+              autofillHints: const [AutofillHints.email],
+              decoration: InputDecoration(labelText: strings.email),
+              validator: Validators.email,
             ),
           ),
           actions: [
@@ -815,21 +763,16 @@ class _LoginViewState extends State<LoginView> {
           ],
         ),
       );
+      final submitted = await navigator.push(dialogRoute);
+      await dialogRoute.completed;
       if (submitted != true || !mounted) return;
       await context.read<AuthCubit>().completeSocialSignup(
-        firstName: firstName.text,
-        lastName: lastName.text,
-        username: username.text,
-        phone: Validators.normalizeEgyptianMobileNumber(phone.text),
-        city: city.text,
+        email: email.text,
+        deferProfile: true,
         rememberMe: _rememberMe,
       );
     } finally {
-      firstName.dispose();
-      lastName.dispose();
-      username.dispose();
-      phone.dispose();
-      city.dispose();
+      email.dispose();
     }
   }
 
@@ -837,8 +780,10 @@ class _LoginViewState extends State<LoginView> {
     if (!mounted) return;
     final password = TextEditingController();
     try {
-      final submitted = await showDialog<bool>(
+      final navigator = Navigator.of(context, rootNavigator: true);
+      final dialogRoute = DialogRoute<bool>(
         context: context,
+        themes: InheritedTheme.capture(from: context, to: navigator.context),
         builder: (dialogContext) => AlertDialog(
           title: Text(context.tr('Link existing account')),
           content: Column(
@@ -870,8 +815,11 @@ class _LoginViewState extends State<LoginView> {
           ],
         ),
       );
+      final submitted = await navigator.push(dialogRoute);
+      await dialogRoute.completed;
       if (submitted != true || !mounted) return;
       await context.read<AuthCubit>().linkSocialAccount(
+        email: result.email,
         password: password.text,
         rememberMe: _rememberMe,
       );

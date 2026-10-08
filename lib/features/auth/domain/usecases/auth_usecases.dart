@@ -98,14 +98,18 @@ class CompleteSocialSignupUseCase {
   final AuthRepository _repository;
 
   Future<ApiResult<AuthSession>> call({
-    required String firstName,
-    required String lastName,
-    required String username,
-    required String phone,
-    required String city,
+    String? email,
+    String firstName = '',
+    String lastName = '',
+    String username = '',
+    String phone = '',
+    String city = '',
+    bool deferProfile = false,
     bool rememberMe = false,
   }) {
     return _repository.completeSocialSignup(
+      email: email,
+      deferProfile: deferProfile,
       firstName: firstName,
       lastName: lastName,
       username: username,
@@ -122,10 +126,12 @@ class LinkSocialAccountUseCase {
   final AuthRepository _repository;
 
   Future<ApiResult<AuthSession>> call({
+    String? email,
     required String password,
     bool rememberMe = false,
   }) {
     return _repository.linkSocialAccount(
+      email: email,
       password: password,
       rememberMe: rememberMe,
     );

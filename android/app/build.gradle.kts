@@ -26,6 +26,23 @@ val skipCrashlyticsMappingUpload =
         .orNull
         ?.equals("true", ignoreCase = true) == true
 
+val facebookProperties = Properties()
+val facebookPropertiesFile = rootProject.file("facebook.properties")
+if (facebookPropertiesFile.exists()) {
+    facebookPropertiesFile.inputStream().use(facebookProperties::load)
+}
+val facebookAppId = providers.environmentVariable("FACEBOOK_APP_ID").orNull
+    ?: facebookProperties.getProperty("appId", "")
+val facebookClientToken = providers.environmentVariable("FACEBOOK_CLIENT_TOKEN").orNull
+    ?: facebookProperties.getProperty("clientToken", "")
+if (!facebookAppId.matches(Regex("[1-9][0-9]+")) ||
+    !facebookClientToken.matches(Regex("[a-fA-F0-9]{32}"))) {
+    throw GradleException(
+        "Facebook Login requires FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN, " +
+            "or android/facebook.properties. See docs/facebook-login.md."
+    )
+}
+
 fun decodedDartDefines(): Map<String, String> {
     return providers.gradleProperty("dart-defines").orNull.orEmpty()
         .split(",")
@@ -93,6 +110,8 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        resValue("string", "facebook_app_id", facebookAppId)
+        resValue("string", "facebook_client_token", facebookClientToken)
     }
 
     signingConfigs {

@@ -1,0 +1,3 @@
+# Copy to facebook.properties; never use the Meta App Secret here.
+appId=replace-with-meta-app-id
+clientToken=replace-with-meta-client-token

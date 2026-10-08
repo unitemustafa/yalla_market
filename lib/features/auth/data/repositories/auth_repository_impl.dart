@@ -48,11 +48,13 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<ApiResult<AuthSession>> completeSocialSignup({
-    required String firstName,
-    required String lastName,
-    required String username,
-    required String phone,
-    required String city,
+    String? email,
+    String firstName = '',
+    String lastName = '',
+    String username = '',
+    String phone = '',
+    String city = '',
+    bool deferProfile = false,
     bool rememberMe = false,
   }) async {
     return const ApiResult.failure(
@@ -62,6 +64,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<ApiResult<AuthSession>> linkSocialAccount({
+    String? email,
     required String password,
     bool rememberMe = false,
   }) async {

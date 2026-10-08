@@ -17,6 +17,13 @@ final class ValidationFailure extends Failure {
   const ValidationFailure(super.message, {super.statusCode});
 }
 
+final class SocialAccountLinkRequiredFailure extends Failure {
+  const SocialAccountLinkRequiredFailure({required this.email})
+    : super('Link your existing account to continue.');
+
+  final String email;
+}
+
 final class OtpCooldownFailure extends Failure {
   const OtpCooldownFailure(
     super.message, {

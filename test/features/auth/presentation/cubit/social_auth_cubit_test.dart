@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/domain/entities/social_auth_result.dart';
@@ -9,6 +10,68 @@ import '../../../../helpers/auth_widget_fakes.dart';
 import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
+  test(
+    'manual Facebook email is normalized and requires verification',
+    () async {
+      final repository = _SocialAuthRepository(
+        socialResult: const SocialAuthResult(
+          action: SocialAuthAction.completeProfile,
+          provider: SocialAuthProvider.facebook,
+          email: '',
+        ),
+        completedSession: const AuthSession(
+          user: sampleUser,
+          otpResendAfterSeconds: 30,
+        ),
+      );
+      final cubit = AuthCubit(authUseCases(repository));
+      await cubit.socialSignIn(provider: SocialAuthProvider.facebook);
+      await cubit.completeSocialSignup(
+        email: ' MUSTAFA@Example.com ',
+        deferProfile: true,
+      );
+      expect(repository.lastSignupEmail, 'mustafa@example.com');
+      expect(repository.lastDeferredProfile, isTrue);
+      expect(cubit.state, isA<AuthSignupSucceeded>());
+      expect((cubit.state as AuthSignupSucceeded).email, sampleUser.email);
+      expect(cubit.lastOtpResendAfterSeconds, 30);
+      await cubit.close();
+    },
+  );
+
+  test('manual email matching an account requests password linking', () async {
+    final repository = _SocialAuthRepository(
+      socialResult: const SocialAuthResult(
+        action: SocialAuthAction.completeProfile,
+        provider: SocialAuthProvider.facebook,
+        email: '',
+      ),
+      completedFailure: const SocialAccountLinkRequiredFailure(
+        email: 'existing@example.com',
+      ),
+    );
+    final cubit = AuthCubit(authUseCases(repository));
+    await cubit.socialSignIn(provider: SocialAuthProvider.facebook);
+    await cubit.completeSocialSignup(
+      email: 'existing@example.com',
+      firstName: 'Social',
+      lastName: 'Customer',
+      username: 'social.customer',
+      phone: '+201001234567',
+      city: '',
+    );
+    expect(cubit.state, isA<AuthSocialLinkRequired>());
+    final state = cubit.state as AuthSocialLinkRequired;
+    expect(state.result.email, 'existing@example.com');
+    expect(state.result.provider, SocialAuthProvider.facebook);
+    await cubit.linkSocialAccount(
+      email: state.result.email,
+      password: 'password',
+    );
+    expect(repository.lastLinkEmail, 'existing@example.com');
+    expect(cubit.state, isA<AuthAuthenticated>());
+    await cubit.close();
+  });
   test('unverified social sign-in exposes profile completion state', () async {
     final repository = _SocialAuthRepository(
       socialResult: const SocialAuthResult(
@@ -76,11 +139,19 @@ void main() {
 }
 
 class _SocialAuthRepository extends FakeAuthRepository {
-  _SocialAuthRepository({required this.socialResult, this.completedSession});
+  _SocialAuthRepository({
+    required this.socialResult,
+    this.completedSession,
+    this.completedFailure,
+  });
 
   final SocialAuthResult socialResult;
   final AuthSession? completedSession;
+  final Failure? completedFailure;
   SocialAuthProvider? lastProvider;
+  String? lastSignupEmail;
+  bool? lastDeferredProfile;
+  String? lastLinkEmail;
 
   @override
   Future<ApiResult<SocialAuthResult>> socialSignIn({
@@ -94,13 +165,28 @@ class _SocialAuthRepository extends FakeAuthRepository {
 
   @override
   Future<ApiResult<AuthSession>> completeSocialSignup({
-    required String firstName,
-    required String lastName,
-    required String username,
-    required String phone,
-    required String city,
+    String? email,
+    String firstName = '',
+    String lastName = '',
+    String username = '',
+    String phone = '',
+    String city = '',
+    bool rememberMe = false,
+    bool deferProfile = false,
+  }) async {
+    lastSignupEmail = email;
+    lastDeferredProfile = deferProfile;
+    if (completedFailure case final failure?) return ApiResult.failure(failure);
+    return ApiResult.success(completedSession ?? sampleSession);
+  }
+
+  @override
+  Future<ApiResult<AuthSession>> linkSocialAccount({
+    String? email,
+    required String password,
     bool rememberMe = false,
   }) async {
-    return ApiResult.success(completedSession ?? sampleSession);
+    lastLinkEmail = email;
+    return ApiResult.success(sampleSession);
   }
 }

@@ -241,16 +241,24 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   Future<void> completeSocialSignup({
-    required String firstName,
-    required String lastName,
-    required String username,
-    required String phone,
-    required String city,
+    String? email,
+    String firstName = '',
+    String lastName = '',
+    String username = '',
+    String phone = '',
+    String city = '',
+    bool deferProfile = false,
     bool rememberMe = false,
   }) async {
     if (state is AuthLoading) return;
+    final pendingProfile = switch (state) {
+      AuthSocialProfileRequired(:final result) => result,
+      _ => null,
+    };
     emit(const AuthLoading());
     final result = await _authUseCases.completeSocialSignup(
+      email: email?.trim().toLowerCase(),
+      deferProfile: deferProfile,
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       username: username.trim(),
@@ -272,17 +280,34 @@ class AuthCubit extends Cubit<AuthState> {
         _lastOtpResendAfterSeconds = session.otpResendAfterSeconds;
         emit(AuthSignupSucceeded(session.user.email));
       },
-      failure: (failure) => emit(AuthFailure(failure.message)),
+      failure: (failure) {
+        if (failure is SocialAccountLinkRequiredFailure &&
+            pendingProfile != null) {
+          emit(
+            AuthSocialLinkRequired(
+              SocialAuthResult(
+                action: SocialAuthAction.linkAccount,
+                provider: pendingProfile.provider,
+                email: failure.email,
+              ),
+            ),
+          );
+          return;
+        }
+        emit(AuthFailure(failure.message));
+      },
     );
   }
 
   Future<void> linkSocialAccount({
+    String? email,
     required String password,
     bool rememberMe = false,
   }) async {
     if (state is AuthLoading) return;
     emit(const AuthLoading());
     final result = await _authUseCases.linkSocialAccount(
+      email: email,
       password: password,
       rememberMe: rememberMe,
     );

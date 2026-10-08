@@ -37,4 +37,8 @@ jobs:
       - name: Enforce coverage baseline
         run: dart run tool/check_coverage.dart coverage/lcov.info 64
       - name: Build Android debug APK
+        # Compile-only fixtures: this workflow does not exercise Facebook Login.
+        env:
+          FACEBOOK_APP_ID: '123456789'
+          FACEBOOK_CLIENT_TOKEN: '00000000000000000000000000000000'
         run: flutter build apk --debug

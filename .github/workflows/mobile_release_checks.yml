@@ -56,6 +56,8 @@ jobs:
           PY
       - name: Build Android release
         env:
+          FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+          FACEBOOK_CLIENT_TOKEN: ${{ secrets.FACEBOOK_CLIENT_TOKEN }}
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
           SKIP_CRASHLYTICS_MAPPING_UPLOAD: ${{ vars.SKIP_CRASHLYTICS_MAPPING_UPLOAD || 'false' }}
@@ -88,11 +90,14 @@ jobs:
       - name: Configure iOS Firebase
         env:
           GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
+          FACEBOOK_CLIENT_TOKEN: ${{ secrets.FACEBOOK_CLIENT_TOKEN }}
         run: |
           python3 - <<'PY'
           import base64
           import os
           import plistlib
+          import re
           from pathlib import Path
 
           encoded = os.environ.get("GOOGLE_SERVICE_INFO_PLIST_BASE64")
@@ -102,6 +107,14 @@ jobs:
           if plistlib.loads(data).get("BUNDLE_ID") != "com.yallamarket.app":
               raise SystemExit("Firebase iOS bundle identifier does not match this app")
           Path("ios/Runner/GoogleService-Info.plist").write_bytes(data)
+          app_id = os.environ.get("FACEBOOK_APP_ID", "")
+          client_token = os.environ.get("FACEBOOK_CLIENT_TOKEN", "")
+          if not re.fullmatch(r"[1-9][0-9]+", app_id) or not re.fullmatch(r"[a-fA-F0-9]{32}", client_token):
+              raise SystemExit("Valid FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN secrets are required")
+          Path("ios/Flutter/Facebook.xcconfig").write_text(
+              f"FACEBOOK_APP_ID = {app_id}\nFACEBOOK_CLIENT_TOKEN = {client_token}\n",
+              encoding="ascii",
+          )
           PY
       - name: Build iOS without signing
         env:
@@ -113,4 +126,4 @@ jobs:
           --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY"
       - name: Remove iOS Firebase configuration
         if: always()
-        run: rm -f ios/Runner/GoogleService-Info.plist
+        run: rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.xcconfig

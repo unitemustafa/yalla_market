@@ -3,10 +3,12 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/session/session_metadata.dart';
 import 'package:yalla_market/core/storage/token_store.dart';
 import 'package:yalla_market/features/auth/data/repositories/auth_remote_repository_impl.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_user.dart';
+import 'package:yalla_market/features/auth/domain/entities/social_auth_result.dart';
 
 import '../../../../helpers/fake_api_client.dart';
 
@@ -15,6 +17,148 @@ void main() {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
     });
+
+    test(
+      'Facebook without email collects an address and waits for OTP',
+      () async {
+        final tokenStore = InMemoryTokenStore();
+        final repository = AuthRemoteRepositoryImpl(
+          FakeApiClient((request) {
+            if (request.path == '/auth/social/session') {
+              return {
+                'status': 'profile_completion_required',
+                'email': '',
+                'email_verified': false,
+                'first_name': 'Social',
+              };
+            }
+            expect(request.path, '/auth/social/signup');
+            final data = request.data as Map<String, dynamic>;
+            expect(data['email'], 'manual@example.com');
+            expect(data['id_token'], 'signed-test-token');
+            expect(data['remember'], true);
+            expect(data['defer_profile'], true);
+            expect(data.containsKey('phone'), isFalse);
+            expect(data.containsKey('username'), isFalse);
+            expect(data.containsKey('city'), isFalse);
+            expect(data.containsKey('first_name'), isFalse);
+            return {
+              'email': 'manual@example.com',
+              'verification_required': true,
+              'resend_after_seconds': 30,
+            };
+          }),
+          tokenStore,
+          socialIdTokenProvider: (_) async => 'signed-test-token',
+        );
+        final signIn = await repository.socialSignIn(
+          provider: SocialAuthProvider.facebook,
+        );
+        signIn.when(
+          success: (result) {
+            expect(result.action, SocialAuthAction.completeProfile);
+            expect(result.email, isEmpty);
+            expect(result.emailVerified, isFalse);
+          },
+          failure: (failure) => fail(failure.message),
+        );
+        final signup = await repository.completeSocialSignup(
+          email: ' Manual@Example.com ',
+          deferProfile: true,
+          rememberMe: true,
+        );
+        signup.when(
+          success: (session) {
+            expect(session.user.email, 'manual@example.com');
+            expect(session.accessToken, isNull);
+            expect(session.otpResendAfterSeconds, 30);
+          },
+          failure: (failure) => fail(failure.message),
+        );
+        expect(await tokenStore.read(), isNull);
+      },
+    );
+
+    test(
+      'existing manual email returns link flow and retains pending token',
+      () async {
+        final tokenStore = InMemoryTokenStore();
+        final repository = AuthRemoteRepositoryImpl(
+          FakeApiClient((request) {
+            switch (request.path) {
+              case '/auth/social/session':
+                return {'status': 'profile_completion_required', 'email': ''};
+              case '/auth/social/signup':
+                return {
+                  'status': 'account_link_required',
+                  'email': 'm@example.com',
+                };
+              case '/auth/social/link':
+                final data = request.data as Map<String, dynamic>;
+                expect(data['email'], 'm@example.com');
+                expect(data['password'], 'existing-password');
+                expect(data['id_token'], 'signed-test-token');
+                return _sessionPayload(remembered: false);
+              default:
+                fail('Unexpected endpoint: ${request.path}');
+            }
+          }),
+          tokenStore,
+          socialIdTokenProvider: (_) async => 'signed-test-token',
+        );
+        await repository.socialSignIn(provider: SocialAuthProvider.facebook);
+        final signup = await repository.completeSocialSignup(
+          email: 'm@example.com',
+          firstName: 'Social',
+          lastName: 'Customer',
+          username: 'social.customer',
+          phone: '+201001234567',
+          city: '',
+        );
+        signup.when(
+          success: (_) =>
+              fail('Existing email must not become an OTP session.'),
+          failure: (failure) {
+            expect(failure, isA<SocialAccountLinkRequiredFailure>());
+            expect(
+              (failure as SocialAccountLinkRequiredFailure).email,
+              'm@example.com',
+            );
+          },
+        );
+        expect(await tokenStore.read(), isNull);
+        final linked = await repository.linkSocialAccount(
+          email: ' M@Example.com ',
+          password: 'existing-password',
+        );
+        linked.when(
+          success: (session) => expect(session.accessToken, 'access-token'),
+          failure: (failure) => fail(failure.message),
+        );
+        expect((await tokenStore.read())?.accessToken, 'access-token');
+      },
+    );
+
+    test(
+      'email-less Google and malformed link responses remain invalid',
+      () async {
+        for (final scenario in [
+          (SocialAuthProvider.google, 'profile_completion_required'),
+          (SocialAuthProvider.facebook, 'account_link_required'),
+        ]) {
+          final repository = AuthRemoteRepositoryImpl(
+            FakeApiClient((_) => {'status': scenario.$2, 'email': ''}),
+            InMemoryTokenStore(),
+            socialIdTokenProvider: (_) async => 'signed-test-token',
+          );
+          final result = await repository.socialSignIn(provider: scenario.$1);
+          result.when(
+            success: (_) => fail('Malformed response must not advance login.'),
+            failure: (failure) => expect(failure, isA<ValidationFailure>()),
+          );
+        }
+      },
+    );
 
     test('login stores secure tokens when remember me is enabled', () async {
       final tokenStore = InMemoryTokenStore();

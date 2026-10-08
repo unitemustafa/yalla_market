@@ -27,9 +27,11 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     this._apiClient,
     this._tokenStore, {
     SessionDeadlineController? sessionDeadlineController,
+    Future<String> Function(SocialAuthProvider)? socialIdTokenProvider,
   }) : _sessionDeadlineController =
            sessionDeadlineController ??
-           SessionDeadlineController(tokenStore: _tokenStore);
+           SessionDeadlineController(tokenStore: _tokenStore),
+       _socialIdTokenProvider = socialIdTokenProvider;
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
@@ -40,6 +42,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   final ApiClient _apiClient;
   final TokenStore _tokenStore;
   final SessionDeadlineController _sessionDeadlineController;
+  final Future<String> Function(SocialAuthProvider)? _socialIdTokenProvider;
   String? _pendingSocialIdToken;
   SocialAuthProvider? _pendingSocialProvider;
   Future<void>? _googleInitialization;
@@ -100,7 +103,9 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   }) {
     return _guard(() async {
       await _sessionDeadlineController.clearSession();
-      final idToken = await _firebaseIdToken(provider);
+      final idToken =
+          await (_socialIdTokenProvider?.call(provider) ??
+              _firebaseIdToken(provider));
       _pendingSocialIdToken = idToken;
       _pendingSocialProvider = provider;
       final payload = await _apiClient.post<Map<String, dynamic>>(
@@ -121,13 +126,17 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       }
       final email = payload['email']?.toString().trim() ?? '';
       if (status == 'account_link_required') {
+        if (email.isEmpty) {
+          throw const ValidationFailure('Invalid social sign-in response.');
+        }
         return SocialAuthResult(
           action: SocialAuthAction.linkAccount,
           provider: provider,
           email: email,
         );
       }
-      if (status != 'profile_completion_required' || email.isEmpty) {
+      if (status != 'profile_completion_required' ||
+          (email.isEmpty && provider != SocialAuthProvider.facebook)) {
         throw const ValidationFailure('Invalid social sign-in response.');
       }
       return SocialAuthResult(
@@ -144,11 +153,13 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
 
   @override
   Future<ApiResult<AuthSession>> completeSocialSignup({
-    required String firstName,
-    required String lastName,
-    required String username,
-    required String phone,
-    required String city,
+    String? email,
+    String firstName = '',
+    String lastName = '',
+    String username = '',
+    String phone = '',
+    String city = '',
+    bool deferProfile = false,
     bool rememberMe = false,
   }) {
     return _guard(() async {
@@ -157,16 +168,27 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         '/auth/social/signup',
         data: {
           'id_token': idToken,
-          'first_name': firstName,
-          'last_name': lastName,
-          'username': username,
-          'phone': phone,
-          'city': city,
+          if (email != null) 'email': email.trim().toLowerCase(),
+          if (deferProfile) 'defer_profile': true,
+          if (!deferProfile) ...{
+            'first_name': firstName,
+            'last_name': lastName,
+            'username': username,
+            'phone': phone,
+            'city': city,
+          },
           'terms_accepted': true,
           'remember': rememberMe,
         },
         options: _skipAuthOptions,
       );
+      if (payload['status'] == 'account_link_required') {
+        final linkEmail = payload['email']?.toString().trim() ?? '';
+        if (linkEmail.isEmpty) {
+          throw const ValidationFailure('Invalid social sign-in response.');
+        }
+        throw SocialAccountLinkRequiredFailure(email: linkEmail);
+      }
       final session = await _signupSessionFromPayload(
         payload,
         firstName: firstName,
@@ -183,6 +205,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
 
   @override
   Future<ApiResult<AuthSession>> linkSocialAccount({
+    String? email,
     required String password,
     bool rememberMe = false,
   }) {
@@ -192,6 +215,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
         '/auth/social/link',
         data: {
           'id_token': idToken,
+          if (email != null) 'email': email.trim().toLowerCase(),
           'password': password,
           'remember': rememberMe,
         },

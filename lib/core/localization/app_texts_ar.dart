@@ -146,6 +146,10 @@ abstract final class OnboardingTexts {
 
 /// تسجيل الدخول والحساب والتحقق من البيانات.
 abstract final class AuthTexts {
+  static const socialLinkTitle = 'ربط حسابك الحالي';
+  static const socialLinkDescription =
+      'اكتب كلمة سر حسابك في يلا ماركت لربط طريقة تسجيل الدخول دي. بيانات حسابك هتفضل زي ما هي.';
+  static const socialLinkAction = 'ربط الحساب';
   // ─── تسجيل الدخول ───
   static const welcomeBack = 'أهلًا برجوعك،';
   static const loginSubtitle = 'أول أونلاين ماركت في التل الكبير';

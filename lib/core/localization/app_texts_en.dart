@@ -147,6 +147,10 @@ abstract final class OnboardingTexts {
 
 /// تسجيل الدخول والحساب والتحقق من البيانات.
 abstract final class AuthTexts {
+  static const socialLinkTitle = 'Link existing account';
+  static const socialLinkDescription =
+      'Enter your Yalla Market password to link this sign-in method. Your account data will stay the same.';
+  static const socialLinkAction = 'Link account';
   // ─── تسجيل الدخول ───
   static const welcomeBack = 'Welcome back,';
   static const loginSubtitle = 'The first online market in El Tal El Kebir.';

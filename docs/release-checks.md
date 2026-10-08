@@ -8,6 +8,8 @@ repository secrets before running it:
 | --- | --- |
 | `API_BASE_URL` | Production HTTPS API URL. |
 | `MAPTILER_API_KEY` | MapTiler client key restricted to this application. |
+| `FACEBOOK_APP_ID` | Meta App ID used by Firebase Facebook sign-in. |
+| `FACEBOOK_CLIENT_TOKEN` | Meta Client Token for the native SDK; never the App Secret. |
 | `ANDROID_KEYSTORE_BASE64` | Base64 encoding of the existing production keystore. |
 | `ANDROID_KEY_ALIAS` | Signing alias in that keystore. |
 | `ANDROID_KEY_PASSWORD` | Password of the signing key. |
@@ -28,6 +30,10 @@ For local builds, run tests and analysis before the release build, then use
 Do not run Flutter commands against the same checkout concurrently. A release
 build needs native plugin registration regenerated after tests; omitting pub
 with `--no-pub` can preserve development-only plugin registration.
+Configure the ignored native Facebook files described in
+[`facebook-login.md`](facebook-login.md) before local Android or iOS builds.
+The quality workflow uses dummy Facebook values only to check debug compilation;
+the manually triggered release workflow requires the real SDK configuration.
 
 The unsigned iOS build does not produce an App Store release. Publishing still
 requires an Apple team, signing certificates/profiles, App Store Connect setup,

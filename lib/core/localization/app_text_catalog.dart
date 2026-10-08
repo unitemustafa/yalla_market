@@ -765,6 +765,18 @@ abstract final class AppTextCatalog {
       ar: ar.AuthTexts.sessionExpired,
       en: en.AuthTexts.sessionExpired,
     ),
+    'Link existing account': (
+      ar: ar.AuthTexts.socialLinkTitle,
+      en: en.AuthTexts.socialLinkTitle,
+    ),
+    'Enter your current password once to link this sign-in method.': (
+      ar: ar.AuthTexts.socialLinkDescription,
+      en: en.AuthTexts.socialLinkDescription,
+    ),
+    'Link account': (
+      ar: ar.AuthTexts.socialLinkAction,
+      en: en.AuthTexts.socialLinkAction,
+    ),
     'Account disabled': (
       ar: ar.AuthTexts.accountDisabled,
       en: en.AuthTexts.accountDisabled,

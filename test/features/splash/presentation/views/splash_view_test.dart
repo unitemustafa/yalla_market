@@ -235,7 +235,7 @@ Future<_Harness> _pumpSplash(
       ),
     ),
   );
-  // Decode the real bundled PNG outside the test's fake clock. The entrance
+  // Decode the real bundled logo outside the test's fake clock. The entrance
   // starts only after decoding; subsequent pumps control its time exactly.
   await tester.runAsync(
     () => precacheImage(

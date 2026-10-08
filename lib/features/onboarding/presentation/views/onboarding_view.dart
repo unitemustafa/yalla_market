@@ -21,6 +21,20 @@ class _OnboardingViewState extends State<OnboardingView> {
   late final PageController _pageController;
   int _currentIndex = 0;
   bool _isFinishing = false;
+  bool _isChangingPage = false;
+  bool _imagesPrecached = false;
+
+  static const _pageTransitionDuration = Duration(milliseconds: 480);
+
+  double get _pagePosition =>
+      _pageController.hasClients &&
+          _pageController.position.hasContentDimensions
+      ? _pageController.page ?? _currentIndex.toDouble()
+      : _currentIndex.toDouble();
+
+  bool get _isScrolling =>
+      _pageController.hasClients &&
+      _pageController.position.isScrollingNotifier.value;
 
   List<OnboardingModel> _pages(AppTranslations strings) {
     return [
@@ -58,6 +72,21 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_imagesPrecached) return;
+    _imagesPrecached = true;
+    for (final page in _pages(AppTranslations.of(context))) {
+      precacheImage(
+        AssetImage(page.imagePath),
+        context,
+        // AppImage renders its existing fallback if an asset cannot load.
+        onError: (_, _) {},
+      );
+    }
+  }
+
+  @override
   void dispose() {
     _pageController.dispose();
     super.dispose();
@@ -92,28 +121,50 @@ class _OnboardingViewState extends State<OnboardingView> {
   }
 
   Future<void> _onNext() async {
-    final page = _pageController.hasClients
-        ? (_pageController.page ?? _currentIndex.toDouble()).round()
-        : _currentIndex;
+    if (_isFinishing || _isChangingPage || _isScrolling) return;
+    final page = _currentIndex;
 
     if (page >= _pages(AppTranslations.current).length - 1) {
       await _finishOnboarding();
       return;
     }
 
-    await _pageController.nextPage(
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-    );
+    await _goToPage(page + 1);
   }
 
   void _onPrevious() {
-    if (_currentIndex == 0) return;
+    if (_currentIndex == 0 || _isFinishing || _isChangingPage || _isScrolling) {
+      return;
+    }
 
-    _pageController.previousPage(
-      duration: const Duration(milliseconds: 320),
-      curve: Curves.easeOutCubic,
-    );
+    _goToPage(_currentIndex - 1);
+  }
+
+  Future<void> _goToPage(int index) async {
+    if (!_pageController.hasClients) return;
+    if (MediaQuery.disableAnimationsOf(context)) {
+      _pageController.jumpToPage(index);
+      return;
+    }
+    _isChangingPage = true;
+    try {
+      await _pageController.animateToPage(
+        index,
+        duration: _pageTransitionDuration,
+        curve: Curves.easeInOutCubic,
+      );
+    } finally {
+      _isChangingPage = false;
+    }
+  }
+
+  Color _backgroundColor(List<Color> colors) {
+    final position = _pagePosition.clamp(0.0, colors.length - 1.0);
+    return Color.lerp(
+      colors[position.floor()],
+      colors[position.ceil()],
+      position - position.floor(),
+    )!;
   }
 
   @override
@@ -121,6 +172,7 @@ class _OnboardingViewState extends State<OnboardingView> {
     final strings = AppTranslations.of(context);
     final pages = _pages(strings);
     final isLastPage = _currentIndex == pages.length - 1;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -139,18 +191,53 @@ class _OnboardingViewState extends State<OnboardingView> {
         body: Stack(
           fit: StackFit.expand,
           children: [
+            AnimatedBuilder(
+              animation: _pageController,
+              builder: (context, child) => DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      _backgroundColor(_topColors),
+                      _backgroundColor(_bottomColors),
+                    ],
+                    stops: const [0.4, 0.6],
+                  ),
+                ),
+              ),
+            ),
             PageView.builder(
               controller: _pageController,
               itemCount: pages.length,
               onPageChanged: (index) {
                 setState(() => _currentIndex = index);
               },
-              itemBuilder: (context, index) => OnboardingPageItem(
-                model: pages[index],
-                accentColor: _topColors[index],
-                bottomColor: _bottomColors[index],
-                pageNumber: index + 1,
-                totalPages: pages.length,
+              itemBuilder: (context, index) => AnimatedBuilder(
+                animation: _pageController,
+                child: RepaintBoundary(
+                  child: OnboardingPageItem(
+                    model: pages[index],
+                    accentColor: _topColors[index],
+                    bottomColor: _bottomColors[index],
+                    showBackground: false,
+                    pageNumber: index + 1,
+                    totalPages: pages.length,
+                  ),
+                ),
+                builder: (context, child) {
+                  final distance = reduceMotion
+                      ? 0.0
+                      : (_pagePosition - index).abs().clamp(0.0, 1.0);
+                  final progress = Curves.easeInOut.transform(distance);
+                  return Opacity(
+                    opacity: 1 - progress * 0.35,
+                    child: Transform.scale(
+                      scale: 1 - progress * 0.035,
+                      child: child,
+                    ),
+                  );
+                },
               ),
             ),
             PositionedDirectional(
@@ -160,7 +247,9 @@ class _OnboardingViewState extends State<OnboardingView> {
                 minimum: const EdgeInsets.all(16),
                 child: AnimatedOpacity(
                   opacity: isLastPage ? 0 : 1,
-                  duration: const Duration(milliseconds: 160),
+                  duration: reduceMotion
+                      ? Duration.zero
+                      : const Duration(milliseconds: 160),
                   child: IgnorePointer(
                     ignoring: isLastPage,
                     child: TextButton(
@@ -208,24 +297,33 @@ class _OnboardingViewState extends State<OnboardingView> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(
-                              pages.length,
-                              (index) => AnimatedContainer(
-                                duration: const Duration(milliseconds: 260),
-                                width: index == _currentIndex ? 28 : 8,
-                                height: 8,
-                                margin: const EdgeInsets.symmetric(
-                                  horizontal: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: index == _currentIndex
-                                      ? _gold
-                                      : Colors.white.withValues(alpha: 0.65),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
+                          AnimatedBuilder(
+                            animation: _pageController,
+                            builder: (context, child) => Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: List.generate(pages.length, (index) {
+                                final selected =
+                                    1 -
+                                    (_pagePosition - index).abs().clamp(
+                                      0.0,
+                                      1.0,
+                                    );
+                                return Container(
+                                  width: 8 + 20 * selected,
+                                  height: 8,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Color.lerp(
+                                      Colors.white.withValues(alpha: 0.65),
+                                      _gold,
+                                      selected,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                );
+                              }),
                             ),
                           ),
                           const SizedBox(height: 18),

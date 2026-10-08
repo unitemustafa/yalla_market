@@ -104,6 +104,93 @@ void main() {
     expect(find.text('Login'), findsOneWidget);
   });
 
+  for (final language in AppLanguage.values) {
+    testWidgets('swiping forward and back follows ${language.name} direction', (
+      tester,
+    ) async {
+      AppLanguageController.instance.value = language;
+      await tester.pumpWidget(
+        _TestApp(repository: _FakeOnboardingRepository()),
+      );
+      final forward = language == AppLanguage.arabic ? 500.0 : -500.0;
+
+      await tester.drag(find.byType(PageView), Offset(forward, 0));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<AppImage>(find.byType(AppImage).hitTestable()).source,
+        AppAssets.onboardingFastDelivery,
+      );
+
+      await tester.drag(find.byType(PageView), Offset(-forward, 0));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<AppImage>(find.byType(AppImage).hitTestable()).source,
+        AppAssets.onboardingProducts,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets(
+    'repeated next taps cannot skip a poster or finish mid-transition',
+    (tester) async {
+      AppLanguageController.instance.value = AppLanguage.english;
+      await tester.pumpWidget(
+        _TestApp(repository: _FakeOnboardingRepository()),
+      );
+      final controller = tester
+          .widget<PageView>(find.byType(PageView))
+          .controller!;
+
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(controller.page, greaterThan(0.5));
+      expect(controller.page, lessThan(1));
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      expect(controller.page, 1);
+
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('Start Shopping'), findsOneWidget);
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      expect(controller.page, 2);
+      expect(find.text('Login'), findsNothing);
+
+      await tester.tap(find.byType(ElevatedButton));
+      await tester.pumpAndSettle();
+      expect(find.text('Login'), findsOneWidget);
+    },
+  );
+
+  testWidgets('reduced motion changes pages without an animated slide', (
+    tester,
+  ) async {
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(tester.platformDispatcher.clearAccessibilityFeaturesTestValue);
+    await tester.pumpWidget(_TestApp(repository: _FakeOnboardingRepository()));
+    final controller = tester
+        .widget<PageView>(find.byType(PageView))
+        .controller!;
+
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pump();
+    expect(controller.page, 1);
+    expect(
+      tester.widget<AppImage>(find.byType(AppImage).hitTestable()).source,
+      AppAssets.onboardingFastDelivery,
+    );
+
+    await tester.tap(find.byType(IconButton));
+    await tester.pump();
+    expect(controller.page, 0);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     'rebuilds localized onboarding failure and enables retry after saving fails',
     (tester) async {

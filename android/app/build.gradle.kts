@@ -127,6 +127,9 @@ android {
 
     buildTypes {
         release {
+            // Release distribution is limited to 64-bit ARM devices.
+            ndk.abiFilters.clear()
+            ndk.abiFilters.add("arm64-v8a")
             if (hasReleaseKeystore) {
                 signingConfig = signingConfigs.getByName("release")
             }

@@ -1,5 +1,10 @@
 # Mobile release checks
 
+Android release APKs and App Bundles are restricted to `arm64-v8a`, including
+native libraries from dependencies. Debug builds retain emulator support. Use
+`--target-platform android-arm64` for local release builds and verify that the
+final archive contains only `arm64-v8a` under `lib/` (or `base/lib/` for AAB).
+
 The manually triggered `Mobile release checks` workflow builds a signed Android
 App Bundle and compiles the iOS app without Apple signing. Configure these
 repository secrets before running it:

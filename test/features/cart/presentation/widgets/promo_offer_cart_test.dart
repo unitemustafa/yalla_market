@@ -60,7 +60,7 @@ void main() {
       await cartCubit.close();
     });
 
-    testWidgets('offer card follows the compact reference layout', (
+    testWidgets('offer card keeps a smaller timer and opens without a CTA', (
       tester,
     ) async {
       await tester.binding.setSurfaceSize(const Size(360, 260));
@@ -81,7 +81,7 @@ void main() {
       final countdownLabel = find.text('day');
       final buyButton = find.byKey(const ValueKey('promo_offer_buy_button'));
       final countdown = find.byKey(const ValueKey('promo_offer_countdown'));
-      expect(find.text('Buy now'), findsOneWidget);
+      expect(find.text('Buy now'), findsNothing);
       expect(find.text('Fresh offer'), findsNothing);
       expect(find.text('Daily discount'), findsNothing);
       expect(find.text('EGP 78'), findsNothing);
@@ -92,16 +92,13 @@ void main() {
       );
       expect(badge, findsOneWidget);
       expect(countdownLabel, findsOneWidget);
-      expect(buyButton, findsOneWidget);
+      expect(buyButton, findsNothing);
       expect(countdown, findsOneWidget);
       final viewportSize = tester.getSize(
         find.byKey(const ValueKey('promo_offer_viewport')),
       );
       expect(viewportSize.width / viewportSize.height, closeTo(16 / 7, 0.01));
-      expect(
-        tester.getRect(buyButton).overlaps(tester.getRect(countdown)),
-        isFalse,
-      );
+      expect(tester.getSize(countdown).width, lessThanOrEqualTo(81));
       expect(
         tester.getTopLeft(countdownLabel).dy,
         greaterThan(tester.getTopLeft(badge).dy),
@@ -110,7 +107,7 @@ void main() {
 
       await tester.binding.setSurfaceSize(const Size(360, 800));
       await tester.pump();
-      await tester.tap(find.text('Buy now'));
+      await tester.tap(find.byKey(const ValueKey('promo_offer_card')));
       await tester.pumpAndSettle();
       expect(find.text('Fresh offer'), findsOneWidget);
       expect(find.text('Daily discount'), findsOneWidget);
@@ -123,9 +120,7 @@ void main() {
       await cartCubit.close();
     });
 
-    testWidgets('announcement card uses its CTA instead of buy now', (
-      tester,
-    ) async {
+    testWidgets('announcement card also omits the banner CTA', (tester) async {
       final cartCubit = _cartCubit();
       await cartCubit.loadCartForUser('user-announcement');
 
@@ -134,8 +129,13 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Watch campaign'), findsOneWidget);
+      expect(find.text('Watch campaign'), findsNothing);
       expect(find.text('Buy now'), findsNothing);
+      expect(
+        find.byKey(const ValueKey('promo_offer_buy_button')),
+        findsNothing,
+      );
+      expect(find.byKey(const ValueKey('promo_offer_card')), findsOneWidget);
 
       await tester.pumpWidget(const SizedBox.shrink());
       await cartCubit.close();

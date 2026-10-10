@@ -10,9 +10,6 @@ class _PromoOfferCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final endsAt = offer.endsAt;
-    final actionLabel = offer.hasExternalLink
-        ? offer.action(context).trim()
-        : (context.isArabicLanguage ? 'اشتري الآن' : 'Buy now');
 
     return Material(
       color: isDark ? AppColors.darkCardColor : Colors.white,
@@ -70,58 +67,26 @@ class _PromoOfferCard extends StatelessWidget {
                       ),
                   ],
                 ),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final contentWidth = (constraints.maxWidth * 0.46)
-                        .clamp(142.0, 174.0)
-                        .toDouble();
-
-                    return Stack(
-                      children: [
-                        Positioned(
-                          left: 10,
-                          top: 8,
-                          bottom: 8,
-                          width: contentWidth,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: ConstrainedBox(
-                                  constraints: const BoxConstraints(
-                                    maxWidth: 142,
-                                  ),
-                                  child: _OfferOverlayBadge(offer: offer),
-                                ),
-                              ),
-                              const Spacer(),
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: _OfferBuyButton(
-                                  onTap: onTap,
-                                  label: actionLabel.isEmpty
-                                      ? (context.isArabicLanguage
-                                            ? 'فتح الإعلان'
-                                            : 'Open ad')
-                                      : actionLabel,
-                                ),
-                              ),
-                            ],
-                          ),
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: 10,
+                      top: 8,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 142),
+                        child: _OfferOverlayBadge(offer: offer),
+                      ),
+                    ),
+                    if (endsAt != null)
+                      Positioned(
+                        right: 10,
+                        bottom: 8,
+                        child: _OfferCountdownChip(
+                          endsAt: endsAt,
+                          color: offer.color,
                         ),
-                        if (endsAt != null)
-                          Positioned(
-                            right: 10,
-                            bottom: 8,
-                            child: _OfferCountdownChip(
-                              endsAt: endsAt,
-                              color: offer.color,
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -181,47 +146,6 @@ class _OfferOverlayBadge extends StatelessWidget {
   }
 }
 
-class _OfferBuyButton extends StatelessWidget {
-  const _OfferBuyButton({required this.onTap, required this.label});
-
-  final VoidCallback onTap;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      key: const ValueKey('promo_offer_buy_button'),
-      width: 112,
-      height: 28,
-      child: Semantics(
-        button: true,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: onTap,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: AppColors.primary,
-              borderRadius: BorderRadius.circular(7),
-            ),
-            child: Center(
-              child: Text(
-                label,
-                maxLines: 1,
-                style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: Colors.white,
-                  fontSize: AppFontSizes.small,
-                  height: 1,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _OfferCountdownChip extends StatefulWidget {
   const _OfferCountdownChip({required this.endsAt, required this.color});
 
@@ -257,11 +181,11 @@ class _OfferCountdownChipState extends State<_OfferCountdownChip> {
 
     return Container(
       key: const ValueKey('promo_offer_countdown'),
-      constraints: const BoxConstraints(maxWidth: 108),
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+      constraints: const BoxConstraints(maxWidth: 81),
+      padding: const EdgeInsets.symmetric(horizontal: 2.25, vertical: 1.5),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: widget.color.withValues(alpha: 0.24)),
       ),
       child: FittedBox(

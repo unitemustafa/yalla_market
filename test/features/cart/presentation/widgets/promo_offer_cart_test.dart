@@ -97,7 +97,7 @@ void main() {
       final viewportSize = tester.getSize(
         find.byKey(const ValueKey('promo_offer_viewport')),
       );
-      expect(viewportSize.width / viewportSize.height, closeTo(8 / 3, 0.01));
+      expect(viewportSize.width / viewportSize.height, closeTo(16 / 7, 0.01));
       expect(
         tester.getRect(buyButton).overlaps(tester.getRect(countdown)),
         isFalse,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/presentation/widgets/selection/category_selection.dart';
 
 import '../../../../../core/icons/app_icons.dart';
@@ -33,14 +34,6 @@ class MarketTypeRail extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          isArabic ? 'كل $classificationName' : 'All $classificationName',
-          key: const ValueKey('market_type_heading'),
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
         SizedBox(
           height: 92,
           child: ListView.separated(
@@ -205,7 +198,7 @@ class _MarketTypeMoreItem extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: colors.primary,
-                  fontSize: 13,
+                  fontSize: AppFontSizes.small,
                   fontWeight: FontWeight.w900,
                 ),
               ),
@@ -291,7 +284,7 @@ class _MarketTypeItem extends StatelessWidget {
                           color: selected
                               ? colors.primary
                               : colors.onSurfaceVariant,
-                          fontSize: 13,
+                          fontSize: AppFontSizes.small,
                           fontWeight: selected
                               ? FontWeight.w900
                               : FontWeight.w700,

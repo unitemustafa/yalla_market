@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import '../../../../../core/presentation/widgets/selection/category_selection.dart';
 
 import '../../../../../core/constants/app_colors.dart';
-import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../offers/domain/entities/offer_data.dart';
 import '../../../../offers/presentation/widgets/promo_slider.dart';
@@ -16,19 +15,9 @@ class StoreOfferSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return PromoSlider(
       key: const ValueKey('store_offer_section'),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          context.tr('Offers'),
-          style: Theme.of(
-            context,
-          ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w900),
-        ),
-        const SizedBox(height: 10),
-        PromoSlider(offers: offers),
-      ],
+      offers: offers,
     );
   }
 }

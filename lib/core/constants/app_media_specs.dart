@@ -6,6 +6,6 @@
 /// correspond to these ratios live in the dashboard media guide.
 abstract final class AppMediaSpecs {
   static const double squareAspectRatio = 1;
-  static const double offerBannerAspectRatio = 8 / 3;
+  static const double offerBannerAspectRatio = 16 / 7;
   static const double campaignMediaAspectRatio = 16 / 9;
 }

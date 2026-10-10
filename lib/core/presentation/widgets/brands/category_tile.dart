@@ -69,7 +69,7 @@ class CategoryTile extends StatelessWidget {
                           style: Theme.of(context).textTheme.labelMedium
                               ?.copyWith(
                                 color: textColor,
-                                fontSize: AppFontSizes.label,
+                                fontSize: AppFontSizes.caption,
                                 height: 1,
                                 fontWeight: FontWeight.w600,
                               ),

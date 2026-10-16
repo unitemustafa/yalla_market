@@ -104,7 +104,6 @@ ProductData _productWithResolvedImage(ProductData product) {
     oldPrice: product.oldPrice,
     discount: product.discount,
     tags: product.tags,
-    isFamilySafe: product.isFamilySafe,
     citySlug: product.citySlug,
     cityName: product.cityName,
     visibilityMode: product.visibilityMode,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/services.dart';
@@ -13,7 +14,6 @@ import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/brands/brand_card.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
-import '../../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -36,6 +36,10 @@ import 'brand_local_shop_card.dart';
 import 'brand_store_sections.dart';
 import 'market_type_rail.dart';
 import '../../../../../core/presentation/widgets/selection/category_selection.dart';
+import '../../../domain/entities/store_product_page.dart';
+import '../../cubit/store_products_cubit.dart';
+import '../../widgets/store_products_scope.dart';
+import '../../widgets/store_products_sliver.dart';
 
 export 'market_type_rail.dart';
 
@@ -130,6 +134,9 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   String? _selectedMarketTypeId;
   final TextEditingController _storeSearchController = TextEditingController();
   String _storeQuery = '';
+  final ScrollController _marketScrollController = ScrollController();
+  final GlobalKey _productsAnchor = GlobalKey();
+  StoreProductsCubit? _marketProductsCubit;
 
   MarketShopCatalog get _marketCatalog => sl<MarketShopCatalog>();
 
@@ -179,6 +186,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   @override
   void dispose() {
     _storeSearchController.dispose();
+    _marketScrollController.dispose();
     super.dispose();
   }
 
@@ -215,6 +223,15 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   }
 
   Future<void> _refreshContent() async {
+    final activeMarketId = widget.marketId?.trim() ?? '';
+    if (activeMarketId.isNotEmpty) {
+      await Future.wait([
+        context.read<StoreCubit>().ensureMarket(activeMarketId, force: true),
+        context.read<OfferCatalogCubit>().loadOffers(force: true),
+        if (_marketProductsCubit != null) _marketProductsCubit!.refresh(),
+      ]);
+      return;
+    }
     await Future.wait([
       context.read<StoreCubit>().loadStore(force: true),
       context.read<ProductCatalogCubit>().loadProducts(force: true),
@@ -247,6 +264,22 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         top: !isMarketPage,
         child: BlocBuilder<StoreCubit, StoreState>(
           builder: (context, storeState) {
+            if (isMarketPage ||
+                widget.classificationId?.trim().isNotEmpty == true) {
+              return BlocSelector<
+                OfferCatalogCubit,
+                OfferCatalogState,
+                List<OfferData>
+              >(
+                selector: (state) => state.offers,
+                builder: (context, offers) => _buildStoreViewport(
+                  context,
+                  storeState,
+                  offers,
+                  isMarketPage,
+                ),
+              );
+            }
             return BlocBuilder<ProductCatalogCubit, ProductCatalogState>(
               builder: (context, catalogState) {
                 return BlocBuilder<OfferCatalogCubit, OfferCatalogState>(
@@ -285,6 +318,54 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         statusBarBrightness: Brightness.dark,
       ),
       child: page,
+    );
+  }
+
+  Widget _buildStoreViewport(
+    BuildContext context,
+    StoreState state,
+    List<OfferData> offers,
+    bool isMarketPage,
+  ) {
+    final store = state.data;
+    final market = store == null
+        ? null
+        : _marketById(store, widget.marketId ?? '');
+    final classificationId = widget.classificationId?.trim();
+    final Widget content;
+    if (market != null) {
+      content = _buildApiMarketProducts(
+        context,
+        store!,
+        market,
+        offersForMarket(offers, market.id),
+      );
+    } else if (!isMarketPage && store != null && classificationId != null) {
+      content = _buildApiClassificationMarkets(
+        context,
+        _classificationById(store, classificationId),
+        store.marketsFor(classificationId),
+      );
+    } else {
+      content = SliverToBoxAdapter(
+        child: _buildStoreContent(context, state, offers)!,
+      );
+    }
+    return AppRefreshIndicator(
+      onRefresh: _refreshContent,
+      child: CustomScrollView(
+        controller: isMarketPage ? _marketScrollController : null,
+        physics: AppRefreshIndicator.scrollPhysics,
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+        slivers: [
+          SliverPadding(
+            padding: isMarketPage
+                ? const EdgeInsets.only(bottom: 28)
+                : const EdgeInsets.fromLTRB(16, 12, 16, 28),
+            sliver: content,
+          ),
+        ],
+      ),
     );
   }
 
@@ -455,12 +536,8 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     if (classificationId != null && classificationId.isNotEmpty) {
       final classification = _classificationById(store, classificationId);
       final markets = store.marketsFor(classificationId);
-      return _buildApiClassificationMarkets(
-        context,
-        classification,
-        markets,
-        offersForClassification(offers, classificationId),
-      );
+      // Offer banners are temporarily hidden on classification pages.
+      return _buildApiClassificationMarkets(context, classification, markets);
     }
 
     return null;
@@ -470,7 +547,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     BuildContext context,
     StoreClassificationData? classification,
     List<StoreMarketData> markets,
-    List<OfferData> offers,
   ) {
     final title = classification?.name ?? widget.brand;
     final subtitle = markets.isEmpty
@@ -491,79 +567,85 @@ class _BrandProductsViewState extends State<BrandProductsView> {
       effectiveTypeId,
     );
 
-    return AppContentReveal(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          PageTopBar(title: title, subtitle: subtitle),
-          const AppRefreshAnchor(),
-          const SizedBox(height: 18),
-          AppSearchField(
-            key: const ValueKey('category_store_search_field'),
-            hintText: 'Search stores...',
-            controller: _storeSearchController,
-            onChanged: (value) => setState(() => _storeQuery = value),
-          ),
-          if (offers.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            StoreOfferSection(offers: offers),
-          ],
-          if (availableMarketTypes.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            MarketTypeRail(
-              classificationName: classification?.name ?? title,
-              types: availableMarketTypes,
-              selectedId: effectiveTypeId,
-              onSelected: (value) {
-                setState(() => _selectedMarketTypeId = value);
-              },
-            ),
-          ],
-          const SizedBox(height: 18),
-          CategoryContentTransition(
-            selectionKey: effectiveTypeId ?? 'all',
+    return SliverContentReveal(
+      child: SliverMainAxisGroup(
+        slivers: [
+          SliverToBoxAdapter(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (visibleMarkets.isEmpty)
-                  AppEmptyState(
-                    title: _storeQuery.trim().isEmpty
-                        ? 'No stores available'
-                        : 'No stores found',
-                    message: _storeQuery.trim().isEmpty
-                        ? 'Stores will appear here when they cover your address.'
-                        : 'Try a different store name.',
-                    icon: _storeQuery.trim().isEmpty
-                        ? AppIcons.shop
-                        : AppIcons.search_status,
-                  )
-                else
-                  ...visibleMarkets.map(
-                    (market) => Padding(
-                      padding: const EdgeInsets.only(bottom: 12),
-                      child: StoreMarketCard(
-                        key: ValueKey('classification_store_${market.id}'),
-                        market: market,
-                        keyPrefix: 'classification_store',
-                        onTap: () {
-                          Navigator.pushNamed(
-                            context,
-                            AppRoutes.brandProducts,
-                            arguments: BrandProductsRouteArgs(
-                              brand: market.name,
-                              logo: market.image,
-                              productCount: market.productCountLabel,
-                              classificationId: market.classificationId,
-                              marketId: market.id,
-                            ),
-                          );
-                        },
-                      ),
-                    ),
+                PageTopBar(title: title, subtitle: subtitle),
+                const AppRefreshAnchor(),
+                const SizedBox(height: 18),
+                AppSearchField(
+                  key: const ValueKey('category_store_search_field'),
+                  hintText: 'Search stores...',
+                  controller: _storeSearchController,
+                  onChanged: (value) => setState(() => _storeQuery = value),
+                ),
+                if (availableMarketTypes.isNotEmpty) ...[
+                  const SizedBox(height: 20),
+                  MarketTypeRail(
+                    classificationName: classification?.name ?? title,
+                    types: availableMarketTypes,
+                    selectedId: effectiveTypeId,
+                    onSelected: (value) {
+                      setState(() => _selectedMarketTypeId = value);
+                    },
                   ),
+                ],
+                const SizedBox(height: 18),
               ],
             ),
           ),
+          if (visibleMarkets.isEmpty)
+            SliverToBoxAdapter(
+              child: CategoryContentTransition(
+                selectionKey: effectiveTypeId ?? 'all',
+                child: AppEmptyState(
+                  title: _storeQuery.trim().isEmpty
+                      ? 'No stores available'
+                      : 'No stores found',
+                  message: _storeQuery.trim().isEmpty
+                      ? 'Stores will appear here when they cover your address.'
+                      : 'Try a different store name.',
+                  icon: _storeQuery.trim().isEmpty
+                      ? AppIcons.shop
+                      : AppIcons.search_status,
+                ),
+              ),
+            )
+          else
+            SliverList.builder(
+              itemCount: visibleMarkets.length,
+              itemBuilder: (context, index) {
+                final market = visibleMarkets[index];
+                return CategoryContentTransition(
+                  selectionKey: effectiveTypeId ?? 'all',
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: StoreMarketCard(
+                      key: ValueKey('classification_store_${market.id}'),
+                      market: market,
+                      keyPrefix: 'classification_store',
+                      onTap: () {
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.brandProducts,
+                          arguments: BrandProductsRouteArgs(
+                            brand: market.name,
+                            logo: market.image,
+                            productCount: market.productCountLabel,
+                            classificationId: market.classificationId,
+                            marketId: market.id,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );
@@ -581,7 +663,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         categories.any((category) => category.id == _selectedSubcategoryId)
         ? _selectedSubcategoryId
         : categories.firstOrNull?.id;
-    final products = productsForStoreSubcategory(market.products, selectedId);
     final selectedCategory = selectedId == null
         ? null
         : categories.firstWhere((category) => category.id == selectedId);
@@ -597,50 +678,78 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             categoryDescription: categoryDescription,
             onSelected: (categoryId) {
               setState(() => _selectedSubcategoryId = categoryId);
+              _scrollToProducts();
             },
           );
 
-    return AppContentReveal(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          MarketStorefrontHero(
-            market: market,
-            onBack: Navigator.of(context).pop,
-            onSearch: () => _openStoreSearch(market),
-            onShare: () => _shareMarket(market),
+    return SliverContentReveal(
+      child: SliverMainAxisGroup(
+        slivers: [
+          SliverToBoxAdapter(
+            child: MarketStorefrontHero(
+              market: market,
+              onBack: Navigator.of(context).pop,
+              onSearch: () => _openStoreSearch(market),
+              onShare: () => _shareMarket(market),
+            ),
           ),
-          const AppRefreshAnchor(),
-          Padding(
+          const SliverToBoxAdapter(child: AppRefreshAnchor()),
+          SliverPadding(
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-            child: ProductResultsView(
-              products: products,
-              categorySelectionKey: selectedId ?? 'all',
-              status: ProductResultsStatus.ready,
-              showSearch: false,
-              useHomeSearchStyle: true,
-              showSummary: false,
-              pageSize: 100,
-              maxCrossAxisCount: 2,
-              gridMainAxisExtent:
-                  ProductCardVertical.storefrontGridMainAxisExtent,
-              compactProductCards: false,
-              contentAfterSearch: offers.isEmpty
-                  ? null
-                  : StoreOfferSection(offers: offers),
-              controlsFooter: controlsFooter,
-              onRetry: () => context.read<StoreCubit>().loadStore(force: true),
-              emptyTitle: selectedCategory == null
-                  ? 'No products available'
-                  : 'No products in this section',
-              emptyMessage: selectedCategory == null
-                  ? 'Products will appear here once this store is ready.'
-                  : 'Try another section or choose All.',
+            sliver: StoreProductsScope(
+              marketId: market.id,
+              scrollController: _marketScrollController,
+              subcategoryId: selectedId,
+              sort: StoreProductSort.name,
+              builder: (context, cubit) {
+                _marketProductsCubit = cubit;
+                return SliverMainAxisGroup(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Column(
+                        key: _productsAnchor,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (offers.isNotEmpty) ...[
+                            StoreOfferSection(offers: offers),
+                            const SizedBox(height: 14),
+                          ],
+                          if (controlsFooter != null) ...[
+                            controlsFooter,
+                            const SizedBox(height: 14),
+                          ],
+                        ],
+                      ),
+                    ),
+                    StoreProductsSliver(
+                      categoryKey: selectedId ?? 'all',
+                      emptyTitle: selectedCategory == null
+                          ? 'No products available'
+                          : 'No products in this section',
+                      emptyMessage: selectedCategory == null
+                          ? 'Products will appear here once this store is ready.'
+                          : 'Try another section or choose All.',
+                    ),
+                  ],
+                );
+              },
             ),
           ),
         ],
       ),
     );
+  }
+
+  void _scrollToProducts() {
+    final anchor = _productsAnchor.currentContext;
+    if (anchor != null) {
+      unawaited(
+        Scrollable.ensureVisible(
+          anchor,
+          duration: const Duration(milliseconds: 200),
+        ),
+      );
+    }
   }
 
   StoreClassificationData? _classificationById(StoreData store, String id) {

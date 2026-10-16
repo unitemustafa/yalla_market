@@ -1656,10 +1656,6 @@ abstract final class AppTextCatalog {
       ar: ar.StoreTexts.continueShopping,
       en: en.StoreTexts.continueShopping,
     ),
-    'Hide age-restricted products': (
-      ar: ar.StoreTexts.hideAgeRestrictedProducts,
-      en: en.StoreTexts.hideAgeRestrictedProducts,
-    ),
     'Offers': (ar: ar.StoreTexts.offers, en: en.StoreTexts.offers),
     'Nearby offers': (
       ar: ar.StoreTexts.nearbyOffers,
@@ -2751,11 +2747,6 @@ abstract final class AppTextCatalog {
     'Data preferences': (
       ar: ar.SettingsTexts.dataPreferences,
       en: en.SettingsTexts.dataPreferences,
-    ),
-    'Safe Mode': (ar: ar.SettingsTexts.safeMode, en: en.SettingsTexts.safeMode),
-    'Safe mode': (
-      ar: ar.SettingsTexts.safeModeLabel,
-      en: en.SettingsTexts.safeModeLabel,
     ),
     'Use this shortcut for the settings people change most often.': (
       ar: ar.SettingsTexts.useThisShortcutForTheSettingsPeopleChangeMostOften,

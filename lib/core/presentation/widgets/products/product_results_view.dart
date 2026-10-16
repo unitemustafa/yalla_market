@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+import '../../../../app/di/service_locator.dart';
+import '../../../../features/store/presentation/cubit/product_results_cubit.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../localization/app_translations.dart';
-import '../../../preferences/app_preferences_controller.dart';
+
 import '../../../../features/store/domain/entities/product_data.dart';
 import '../buttons/app_action_button.dart';
 import '../layouts/grid_layout.dart';
@@ -12,15 +16,36 @@ import '../states/app_state_view.dart';
 import '../states/app_skeleton.dart';
 import '../selection/category_selection.dart';
 import 'product_cards/product_card_vertical.dart';
+import 'product_card_tile.dart';
+import 'product_cards_sliver.dart';
+import 'product_card_tile_data.dart';
 import 'product_sort_button.dart';
 
+part 'product_results_controls.dart';
+
 enum ProductResultsStatus { loading, ready, empty, error }
+
+String productCardId(ProductData product) => product.id;
+ProductCardTileData productCardTileData(ProductData p) => ProductCardTileData(
+  id: p.id,
+  image: p.image,
+  title: p.title,
+  brand: p.brand,
+  price: p.price,
+  slug: p.slug,
+  defaultVariantId: p.defaultVariantId,
+  marketId: p.marketId,
+  oldPrice: p.oldPrice,
+  discount: p.discount,
+);
 
 class ProductResultsView extends StatefulWidget {
   const ProductResultsView({
     super.key,
     required this.products,
     this.status = ProductResultsStatus.ready,
+    this.sliver = false,
+    this.subcategoryId,
     this.showSearch = true,
     this.useHomeSearchStyle = false,
     this.contentAfterSearch,
@@ -44,6 +69,10 @@ class ProductResultsView extends StatefulWidget {
 
   final List<ProductData> products;
   final ProductResultsStatus status;
+
+  /// Set when this widget is a direct sliver of a CustomScrollView.
+  final bool sliver;
+  final String? subcategoryId;
   final bool showSearch;
   final bool useHomeSearchStyle;
   final Widget? contentAfterSearch;
@@ -71,7 +100,7 @@ class ProductResultsView extends StatefulWidget {
 class _ProductResultsViewState extends State<ProductResultsView> {
   late final TextEditingController _queryController;
   late String _sortOption;
-  int _page = 0;
+  late final ProductResultsCubit _resultsCubit;
 
   static const _sortOptions = ['Name', 'Higher Price', 'Lower Price', 'Newest'];
 
@@ -82,393 +111,272 @@ class _ProductResultsViewState extends State<ProductResultsView> {
     _sortOption = _sortOptions.contains(widget.initialSortOption)
         ? widget.initialSortOption
         : 'Name';
+    _resultsCubit = createProductResultsCubit();
+    _queryController.addListener(_updateResults);
+
+    _updateResults();
+  }
+
+  @override
+  void didUpdateWidget(covariant ProductResultsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.products, widget.products) ||
+        oldWidget.subcategoryId != widget.subcategoryId ||
+        oldWidget.categorySelectionKey != widget.categorySelectionKey ||
+        oldWidget.pageSize != widget.pageSize) {
+      _updateResults();
+    }
+  }
+
+  void _updateResults() {
+    _resultsCubit.update(
+      products: widget.products,
+      query: _queryController.text,
+      sortOption: _sortOption,
+
+      pageSize: widget.pageSize,
+      subcategoryId: widget.subcategoryId,
+      categoryKey: widget.categorySelectionKey,
+    );
+  }
+
+  void _selectSort(String value) {
+    _sortOption = value;
+    _updateResults();
   }
 
   @override
   void dispose() {
     _queryController.dispose();
+    _resultsCubit.close();
     super.dispose();
   }
 
-  void _resetPage() {
-    if (_page != 0) setState(() => _page = 0);
-  }
-
   @override
-  Widget build(BuildContext context) => AppLoadingTransition(
-    isLoading:
-        widget.status == ProductResultsStatus.loading &&
-        widget.products.isEmpty,
-    loading: AppProductSkeletonGrid(
-      maxCrossAxisCount: widget.maxCrossAxisCount,
-      mainAxisExtent: widget.gridMainAxisExtent,
-    ),
-    child: _buildResults(context),
-  );
+  Widget build(BuildContext context) =>
+      BlocBuilder<ProductResultsCubit, ProductResultsState>(
+        bloc: _resultsCubit,
+        builder: (context, state) {
+          if (widget.sliver) return _buildResults(context, state);
+          return AppLoadingTransition(
+            isLoading:
+                (widget.status == ProductResultsStatus.loading &&
+                    widget.products.isEmpty) ||
+                (state is ProductResultsReady &&
+                    state.isPreparing &&
+                    state.products.isEmpty),
+            loading: AppProductSkeletonGrid(
+              maxCrossAxisCount: widget.maxCrossAxisCount,
+              mainAxisExtent: widget.gridMainAxisExtent,
+            ),
+            child: _buildResults(context, state),
+          );
+        },
+      );
 
-  Widget _buildResults(BuildContext context) {
+  Widget _box(Widget child) =>
+      widget.sliver ? SliverToBoxAdapter(child: child) : child;
+
+  Widget _buildResults(BuildContext context, ProductResultsState state) {
     if (widget.status == ProductResultsStatus.loading &&
-        widget.products.isEmpty) {
-      return const SizedBox.shrink();
-    }
-
-    if (widget.status == ProductResultsStatus.error) {
-      return AppErrorState(
-        title: widget.errorTitle,
-        message: widget.errorMessage,
-        onRetry: widget.onRetry,
+            widget.products.isEmpty ||
+        state is ProductResultsReady &&
+            state.isPreparing &&
+            state.products.isEmpty) {
+      return _box(
+        widget.sliver
+            ? AppProductSkeletonGrid(
+                maxCrossAxisCount: widget.maxCrossAxisCount,
+                mainAxisExtent: widget.gridMainAxisExtent,
+              )
+            : const SizedBox.shrink(),
       );
     }
-
+    if (widget.status == ProductResultsStatus.error ||
+        state is ProductResultsFailure) {
+      return _box(
+        AppErrorState(
+          title: widget.errorTitle,
+          message: state is ProductResultsFailure
+              ? state.message
+              : widget.errorMessage,
+          onRetry: state is ProductResultsFailure
+              ? _updateResults
+              : widget.onRetry,
+        ),
+      );
+    }
     if (widget.status == ProductResultsStatus.empty ||
         (widget.products.isEmpty &&
             widget.controlsFooter == null &&
             widget.contentAfterSearch == null)) {
-      return AppEmptyState(
-        title: widget.emptyTitle,
-        message: widget.emptyMessage,
-        icon: AppIcons.box,
+      return _box(
+        AppEmptyState(
+          title: widget.emptyTitle,
+          message: widget.emptyMessage,
+          icon: AppIcons.box,
+        ),
+      );
+    }
+    final ready = state as ProductResultsReady;
+    final query = ready.query;
+    final sorted = ready.products;
+    final totalPages = ready.totalPages;
+    final safePage = ready.page;
+    Widget card(BuildContext context, int index) {
+      final product = ready.itemAt(index);
+      final child = ProductCardTile(
+        key: ValueKey(product.id),
+        product: productCardTileData(product),
+        compact: widget.compactProductCards,
+      );
+      if (!widget.sliver || widget.categorySelectionKey == null) return child;
+      // Only visible slots retain an outgoing card during the category fade.
+      return CategoryContentTransition(
+        key: ValueKey(index),
+        selectionKey: ready.categoryKey ?? widget.categorySelectionKey!,
+        fillPrevious: true,
+        // Keep static card painting separate from the animated fade/transform.
+        child: RepaintBoundary(child: child),
       );
     }
 
-    return ValueListenableBuilder<AppPreferences>(
-      valueListenable: AppPreferencesController.instance,
-      builder: (context, preferences, _) {
-        return AnimatedBuilder(
-          animation: _queryController,
-          builder: (context, _) {
-            final query = _queryController.text.trim();
-            final filtered = widget.products
-                .where(
-                  (product) =>
-                      product.isAllowedBySafeMode(preferences.safeMode),
-                )
-                .where((product) => product.matches(query))
-                .toList(growable: false);
-            final sorted = _sortProducts(filtered, _sortOption);
-            final totalPages = sorted.isEmpty
-                ? 1
-                : (sorted.length / widget.pageSize).ceil();
-            final safePage = _page.clamp(0, totalPages - 1).toInt();
-            final start = safePage * widget.pageSize;
-            final end = (start + widget.pageSize)
-                .clamp(0, sorted.length)
-                .toInt();
-            final pageItems = sorted.sublist(start, end);
-
-            if (safePage != _page) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) setState(() => _page = safePage);
-              });
-            }
-
-            final results = Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (sorted.isEmpty)
-                  AppEmptyState(
-                    title: widget.emptyTitle,
-                    message: query.isEmpty
-                        ? widget.emptyMessage
-                        : 'No products match "$query". Try a shorter keyword.',
-                    actionLabel: query.isEmpty ? null : 'Clear search',
-                    onAction: query.isEmpty ? null : _queryController.clear,
-                    icon: AppIcons.search_status,
-                  )
-                else ...[
-                  GridLayout(
-                    itemCount: pageItems.length,
-                    mainAxisExtent: widget.gridMainAxisExtent,
-                    maxCrossAxisCount: widget.maxCrossAxisCount,
-                    itemBuilder: (_, index) {
-                      final product = pageItems[index];
-                      return ProductCardVertical(
-                        image: product.image,
-                        title: product.title,
-                        brand: product.brand,
-                        price: product.price,
-                        productId: product.id,
-                        productSlug: product.slug,
-                        defaultVariantId: product.defaultVariantId,
-                        marketId: product.marketId,
-                        marketName: product.brand,
-                        oldPrice: product.oldPrice,
-                        discount: product.discount,
-                        compact: widget.compactProductCards,
-                      );
-                    },
-                  ),
-                  if (totalPages > 1) ...[
-                    const SizedBox(height: 18),
-                    _PaginationControls(
-                      page: safePage,
-                      totalPages: totalPages,
-                      onPrevious: safePage == 0
-                          ? null
-                          : () => setState(() => _page -= 1),
-                      onNext: safePage >= totalPages - 1
-                          ? null
-                          : () => setState(() => _page += 1),
-                    ),
-                  ],
-                ],
-              ],
-            );
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (widget.showSearch) ...[
-                  if (widget.useHomeSearchStyle)
-                    AppSearchActionsBar(
-                      searchField: AppSearchField(
-                        key: const ValueKey('store_product_search_field'),
-                        hintText: 'Search products...',
-                        controller: _queryController,
-                        focusNode: widget.searchFocusNode,
-                        onChanged: (_) => _resetPage(),
-                      ),
-                      actions: [
-                        ProductSortButton.compact(
-                          key: const ValueKey('store_product_filter_button'),
-                          value: _sortOption,
-                          options: _sortOptions,
-                          onChanged: (value) {
-                            setState(() {
-                              _sortOption = value;
-                              _page = 0;
-                            });
-                          },
-                        ),
-                      ],
-                    )
-                  else
-                    _ProductSearchField(
-                      controller: _queryController,
-                      onChanged: (_) => _resetPage(),
-                    ),
-                  const SizedBox(height: 12),
-                ],
-                if (widget.contentAfterSearch != null) ...[
-                  widget.contentAfterSearch!,
-                  const SizedBox(height: 14),
-                ],
-                if (widget.controlsFooter != null) ...[
-                  widget.controlsFooter!,
-                  const SizedBox(height: 14),
-                ],
-                if (!widget.useHomeSearchStyle) ...[
-                  ProductSortButton(
-                    value: _sortOption,
-                    options: _sortOptions,
-                    onChanged: (value) {
-                      setState(() {
-                        _sortOption = value;
-                        _page = 0;
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (widget.showSummary) ...[
-                  _ProductResultsSummary(
-                    count: sorted.length,
-                    query: query,
-                    page: safePage + 1,
-                    totalPages: totalPages,
-                  ),
-                  const SizedBox(height: 14),
-                ],
-                if (widget.categorySelectionKey == null)
-                  results
-                else
-                  CategoryContentTransition(
-                    selectionKey: widget.categorySelectionKey!,
-                    child: results,
-                  ),
-              ],
-            );
-          },
-        );
-      },
+    final empty = AppEmptyState(
+      title: widget.emptyTitle,
+      message: query.isEmpty
+          ? widget.emptyMessage
+          : 'No products match "$query". Try a shorter keyword.',
+      actionLabel: query.isEmpty ? null : 'Clear search',
+      onAction: query.isEmpty ? null : _queryController.clear,
+      icon: AppIcons.search_status,
     );
-  }
-
-  List<ProductData> _sortProducts(List<ProductData> items, String sortOption) {
-    final sorted = List<ProductData>.of(items);
-    switch (sortOption) {
-      case 'Higher Price':
-        sorted.sort((a, b) => b.priceValue.compareTo(a.priceValue));
-        break;
-      case 'Lower Price':
-        sorted.sort((a, b) => a.priceValue.compareTo(b.priceValue));
-        break;
-      case 'Newest':
-        break;
-      case 'Name':
-      default:
-        sorted.sort((a, b) => a.title.compareTo(b.title));
-    }
-    return sorted;
-  }
-}
-
-class _ProductSearchField extends StatelessWidget {
-  const _ProductSearchField({
-    required this.controller,
-    required this.onChanged,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: context.tr('Filter products...'),
-        prefixIcon: const Icon(AppIcons.search_normal),
-        suffixIcon: controller.text.isEmpty
-            ? null
-            : IconButton(
-                onPressed: () {
-                  controller.clear();
-                  onChanged('');
-                },
-                icon: const Icon(Icons.close_rounded),
-                tooltip: context.tr('Clear'),
-              ),
-        filled: true,
-        fillColor: isDark ? AppColors.darkCardColor : Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.06),
-          ),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(
-            color: isDark
-                ? Colors.white.withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: 0.06),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProductResultsSummary extends StatelessWidget {
-  const _ProductResultsSummary({
-    required this.count,
-    required this.query,
-    required this.page,
-    required this.totalPages,
-  });
-
-  final int count;
-  final String query;
-  final int page;
-  final int totalPages;
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final mutedColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final text = query.isEmpty
-        ? context.productCount(count)
-        : context.searchResults(count, query);
-
-    return Row(
+    final pagination = Column(
       children: [
-        Expanded(
-          child: Text(
-            text,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w900),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        Text(
-          context.isArabicLanguage
-              ? 'صفحة $page من $totalPages'
-              : 'Page $page of $totalPages',
-          style: Theme.of(context).textTheme.labelMedium?.copyWith(
-            color: mutedColor,
-            fontWeight: FontWeight.w700,
-          ),
+        const SizedBox(height: 18),
+        _PaginationControls(
+          page: safePage,
+          totalPages: totalPages,
+          onPrevious: safePage == 0
+              ? null
+              : () => _resultsCubit.selectPage(safePage - 1),
+          onNext: safePage >= totalPages - 1
+              ? null
+              : () => _resultsCubit.selectPage(safePage + 1),
         ),
       ],
     );
-  }
-}
-
-class _PaginationControls extends StatelessWidget {
-  const _PaginationControls({
-    required this.page,
-    required this.totalPages,
-    required this.onPrevious,
-    required this.onNext,
-  });
-
-  final int page;
-  final int totalPages;
-  final VoidCallback? onPrevious;
-  final VoidCallback? onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final previousIcon = isRtl ? AppIcons.arrow_right_3 : AppIcons.arrow_left_2;
-    final nextIcon = isRtl ? AppIcons.arrow_left_2 : AppIcons.arrow_right_3;
-
-    return Row(
+    final results = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: AppActionButton(
-            label: 'Previous',
-            icon: previousIcon,
-            onPressed: onPrevious,
-            variant: AppActionButtonVariant.outlined,
+        if (sorted.isEmpty)
+          empty
+        else ...[
+          GridLayout(
+            itemCount: ready.itemCount,
+            mainAxisExtent: widget.gridMainAxisExtent,
+            maxCrossAxisCount: widget.maxCrossAxisCount,
+            itemBuilder: card,
           ),
-        ),
-        const SizedBox(width: 12),
-        Container(
-          width: 58,
-          height: 48,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.10),
-            borderRadius: BorderRadius.circular(8),
+          if (totalPages > 1) pagination,
+        ],
+      ],
+    );
+    final controls = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (ready.preparationError != null)
+          AppErrorState(
+            title: widget.errorTitle,
+            message: ready.preparationError!,
+            onRetry: _updateResults,
           ),
-          child: Text(
-            context.tr('${page + 1}/$totalPages'),
-            style: const TextStyle(
-              color: AppColors.primary,
-              fontWeight: FontWeight.w900,
+        if (widget.showSearch) ...[
+          if (widget.useHomeSearchStyle)
+            AppSearchActionsBar(
+              searchField: AppSearchField(
+                key: const ValueKey('store_product_search_field'),
+                hintText: 'Search products...',
+                controller: _queryController,
+                focusNode: widget.searchFocusNode,
+                onChanged: (_) {},
+              ),
+              actions: [
+                ProductSortButton.compact(
+                  key: const ValueKey('store_product_filter_button'),
+                  value: _sortOption,
+                  options: _sortOptions,
+                  onChanged: _selectSort,
+                ),
+              ],
+            )
+          else
+            _ProductSearchField(
+              controller: _queryController,
+              onChanged: (_) {},
             ),
+          const SizedBox(height: 12),
+        ],
+        if (widget.contentAfterSearch != null) ...[
+          widget.contentAfterSearch!,
+          const SizedBox(height: 14),
+        ],
+        if (widget.controlsFooter != null) ...[
+          widget.controlsFooter!,
+          const SizedBox(height: 14),
+        ],
+        if (!widget.useHomeSearchStyle) ...[
+          ProductSortButton(
+            value: _sortOption,
+            options: _sortOptions,
+            onChanged: _selectSort,
           ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: AppActionButton(
-            label: 'Next',
-            icon: nextIcon,
-            onPressed: onNext,
+          const SizedBox(height: 16),
+        ],
+        if (widget.showSummary) ...[
+          _ProductResultsSummary(
+            count: sorted.length,
+            query: query,
+            page: safePage + 1,
+            totalPages: totalPages,
           ),
-        ),
+          const SizedBox(height: 14),
+        ],
+      ],
+    );
+    if (widget.sliver) {
+      return SliverMainAxisGroup(
+        slivers: [
+          SliverToBoxAdapter(child: controls),
+          if (sorted.isEmpty)
+            SliverToBoxAdapter(child: empty)
+          else ...[
+            ProductCardsSliver(
+              products: ready.products,
+              idOf: productCardId,
+              cardOf: productCardTileData,
+              start: ready.start,
+              itemCount: ready.itemCount,
+              mainAxisExtent: widget.gridMainAxisExtent,
+              maxCrossAxisCount: widget.maxCrossAxisCount,
+              compact: widget.compactProductCards,
+              categoryKey: ready.categoryKey,
+            ),
+            if (totalPages > 1) SliverToBoxAdapter(child: pagination),
+          ],
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        controls,
+        if (widget.categorySelectionKey == null)
+          results
+        else
+          CategoryContentTransition(
+            selectionKey: ready.categoryKey ?? widget.categorySelectionKey!,
+            child: results,
+          ),
       ],
     );
   }

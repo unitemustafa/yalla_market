@@ -30,10 +30,14 @@ class CategoryContentTransition extends StatelessWidget {
     super.key,
     required this.selectionKey,
     required this.child,
+    this.fillPrevious = false,
   });
 
   final Object selectionKey;
   final Widget child;
+
+  /// Fixed-height grid slots must constrain outgoing cards as well.
+  final bool fillPrevious;
 
   @override
   Widget build(BuildContext context) => ClipRect(
@@ -65,6 +69,7 @@ class CategoryContentTransition extends StatelessWidget {
               top: 0,
               start: 0,
               end: 0,
+              bottom: fillPrevious ? 0 : null,
               child: ExcludeSemantics(child: IgnorePointer(child: child)),
             ),
           ),

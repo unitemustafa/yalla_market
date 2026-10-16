@@ -13,4 +13,6 @@ abstract final class ApiEndpoints {
   static const refreshToken = '/auth/refresh';
   static const clientLogin = '/auth/login/client';
   static const logout = '/auth/logout';
+  static String storefrontProducts(String marketId) =>
+      '/home/markets/${Uri.encodeComponent(marketId)}/storefront/products/';
 }

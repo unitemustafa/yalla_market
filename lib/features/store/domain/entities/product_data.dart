@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_assets.dart';
+
 import '../../../../core/network/api_endpoints.dart';
 
 class ProductVariantData {
@@ -210,7 +211,7 @@ class ProductData {
     required this.tags,
     this.description = '',
     this.isAvailable = true,
-    this.isFamilySafe = true,
+
     this.citySlug,
     this.cityName,
     this.visibilityMode,
@@ -245,7 +246,7 @@ class ProductData {
   final List<String> tags;
   final String description;
   final bool isAvailable;
-  final bool isFamilySafe;
+
   final String? citySlug;
   final String? cityName;
   final String? visibilityMode;
@@ -350,7 +351,6 @@ class ProductData {
       description: json['description']?.toString() ?? '',
       isAvailable:
           _boolFromJson(json['isAvailable'] ?? json['is_available']) ?? true,
-      isFamilySafe: _familySafeFromJson(json, tags),
       citySlug: json['citySlug']?.toString() ?? json['city_slug']?.toString(),
       cityName: json['cityName']?.toString() ?? json['city_name']?.toString(),
       visibilityMode:
@@ -427,7 +427,6 @@ class ProductData {
       'tags': tags,
       'description': description,
       'isAvailable': isAvailable,
-      'isFamilySafe': isFamilySafe,
       'citySlug': citySlug,
       'cityName': cityName,
       'visibilityMode': visibilityMode,
@@ -484,10 +483,6 @@ class ProductData {
         (code?.toLowerCase().contains(normalizedQuery) ?? false) ||
         brand.toLowerCase().contains(normalizedQuery) ||
         tags.any((tag) => tag.toLowerCase().contains(normalizedQuery));
-  }
-
-  bool isAllowedBySafeMode(bool safeMode) {
-    return !safeMode || isFamilySafe;
   }
 }
 
@@ -636,29 +631,6 @@ List<String> _stringList(Object? value) {
   return value.map((item) => item.toString()).toList(growable: false);
 }
 
-bool _familySafeFromJson(Map<String, dynamic> json, List<String> tags) {
-  final explicitSafe = _boolFromJson(
-    json['isFamilySafe'] ??
-        json['familySafe'] ??
-        json['safeForFamily'] ??
-        json['isSafeForFamily'] ??
-        json['family_friendly'],
-  );
-  if (explicitSafe != null) return explicitSafe;
-
-  final explicitRestricted = _boolFromJson(
-    json['isAgeRestricted'] ??
-        json['ageRestricted'] ??
-        json['age_restricted'] ??
-        json['adult'] ??
-        json['mature'] ??
-        json['nsfw'],
-  );
-  if (explicitRestricted != null) return !explicitRestricted;
-
-  return !tags.map((tag) => tag.trim().toLowerCase()).any(_isUnsafeTag);
-}
-
 bool? _boolFromJson(Object? value) {
   if (value is bool) return value;
   if (value is num) return value != 0;
@@ -690,24 +662,4 @@ double _moneyValue(Object? value) {
             '',
       ) ??
       0;
-}
-
-bool _isUnsafeTag(String tag) {
-  const unsafeTags = {
-    '18+',
-    'adult',
-    'alcohol',
-    'mature',
-    'nsfw',
-    'smoking',
-    'tobacco',
-    'vape',
-    'weapon',
-    'سجائر',
-    'تدخين',
-    'تبغ',
-    'خمور',
-    'كحول',
-  };
-  return unsafeTags.contains(tag);
 }

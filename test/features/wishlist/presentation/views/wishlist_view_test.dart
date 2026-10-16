@@ -53,19 +53,17 @@ void main() {
     );
     await tester.pump();
 
-    final grid = tester.widget<GridView>(
-      find.descendant(
-        of: find.byKey(const ValueKey('wishlist_products_grid')),
-        matching: find.byType(GridView),
-      ),
-    );
-    final delegate =
-        grid.gridDelegate as SliverGridDelegateWithFixedCrossAxisCount;
-    expect(delegate.crossAxisCount, 2);
-    expect(
-      delegate.mainAxisExtent,
-      ProductCardVertical.storefrontGridMainAxisExtent,
-    );
+    final cards = tester
+        .widgetList<ProductCardVertical>(find.byType(ProductCardVertical))
+        .toList();
+    final first = tester.getRect(find.byWidget(cards[0]));
+    final second = tester.getRect(find.byWidget(cards[1]));
+    final third = tester.getRect(find.byWidget(cards[2]));
+    expect(second.top, first.top);
+    expect(second.left, greaterThan(first.left));
+    expect(third.top, greaterThan(first.bottom));
+    expect(third.left, first.left);
+    expect(first.height, ProductCardVertical.storefrontGridMainAxisExtent);
     expect(
       tester
           .widgetList<ProductCardVertical>(find.byType(ProductCardVertical))

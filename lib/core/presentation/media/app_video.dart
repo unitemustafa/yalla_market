@@ -51,6 +51,7 @@ class _AppVideoState extends State<AppVideo>
   var _manualPause = false;
   var _pausedForLifecycle = false;
   var _pausedForRoute = false;
+  var _pausedForTab = false;
   var _resumeRequested = false;
   RouteObserver<ModalRoute<dynamic>>? _routeObserver;
   ModalRoute<dynamic>? _route;
@@ -66,6 +67,18 @@ class _AppVideoState extends State<AppVideo>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final pausedForTab = !TickerMode.valuesOf(context).enabled;
+    if (_pausedForTab != pausedForTab) {
+      _pausedForTab = pausedForTab;
+      final controller = _controller;
+      if (controller != null && !_failed && controller.value.isInitialized) {
+        unawaited(
+          pausedForTab
+              ? _pauseForInterruption(controller)
+              : _playWhenVisible(controller, _generation),
+        );
+      }
+    }
     final observer = MediaRouteObserverScope.maybeOf(context);
     final route = ModalRoute.of(context);
     if (identical(observer, _routeObserver) && identical(route, _route)) {
@@ -129,7 +142,7 @@ class _AppVideoState extends State<AppVideo>
       generation == _generation &&
       identical(_controller, controller);
 
-  bool get _isPaused => _pausedForLifecycle || _pausedForRoute;
+  bool get _isPaused => _pausedForLifecycle || _pausedForRoute || _pausedForTab;
 
   static bool _isBackground(AppLifecycleState? state) =>
       state != null && state != AppLifecycleState.resumed;

@@ -4,11 +4,27 @@ import '../../../../core/network/api_result.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
 import '../../domain/entities/catalog_search_results.dart';
 import '../../domain/usecases/search_catalog_usecase.dart';
+
 import 'catalog_search_state.dart';
 
 class CatalogSearchCubit extends Cubit<CatalogSearchState> {
   CatalogSearchCubit(this._search, this._getSelectedCity)
     : super(const CatalogSearchInitial());
+
+  void _emitReady(
+    String query,
+    CatalogSearchResults results, {
+    bool loadingMore = false,
+    String? moreError,
+  }) => emit(
+    CatalogSearchReady(
+      query: query,
+      results: results,
+      visibleProducts: results.products,
+      loadingMore: loadingMore,
+      moreError: moreError,
+    ),
+  );
 
   final SearchCatalogUseCase _search;
   final GetSelectedCityUseCase _getSelectedCity;
@@ -19,6 +35,7 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
   Future<void> search(String query) async {
     final normalized = query.trim();
     final generation = ++_generation;
+
     _page = 1;
     if (normalized.isEmpty) {
       emit(const CatalogSearchInitial());
@@ -41,8 +58,7 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
     final result = await _search(normalized, citySlug: _citySlug!);
     if (!_isCurrent(generation)) return;
     result.when(
-      success: (results) =>
-          emit(CatalogSearchReady(query: normalized, results: results)),
+      success: (results) => _emitReady(normalized, results),
       failure: (failure) =>
           emit(CatalogSearchFailure(failure.message, query: normalized)),
     );
@@ -61,6 +77,7 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
       CatalogSearchReady(
         query: previous.query,
         results: previous.results,
+        visibleProducts: previous.visibleProducts,
         loadingMore: true,
       ),
     );
@@ -74,26 +91,23 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
       success: (next) {
         _page++;
         final seen = <String>{};
-        emit(
-          CatalogSearchReady(
-            query: previous.query,
-            results: CatalogSearchResults(
-              products: [...previous.results.products, ...next.products]
-                  .where((product) => seen.add(product.id))
-                  .toList(growable: false),
-              markets: previous.results.markets,
-              categories: previous.results.categories,
-              hasMoreProducts: next.hasMoreProducts,
-            ),
+        _emitReady(
+          previous.query,
+          CatalogSearchResults(
+            products: [
+              ...previous.results.products,
+              ...next.products,
+            ].where((product) => seen.add(product.id)).toList(growable: false),
+            markets: previous.results.markets,
+            categories: previous.results.categories,
+            hasMoreProducts: next.hasMoreProducts,
           ),
         );
       },
-      failure: (failure) => emit(
-        CatalogSearchReady(
-          query: previous.query,
-          results: previous.results,
-          moreError: failure.message,
-        ),
+      failure: (failure) => _emitReady(
+        previous.query,
+        previous.results,
+        moreError: failure.message,
       ),
     );
   }

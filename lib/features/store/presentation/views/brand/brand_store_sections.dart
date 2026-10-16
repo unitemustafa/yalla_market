@@ -45,91 +45,102 @@ class StoreSubcategoryRail extends StatelessWidget {
         ? selectedId
         : categories.firstOrNull?.id;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: Theme.of(context).dividerColor.withValues(alpha: 0.55),
+    return RepaintBoundary(
+      // The rail animates its border/text for 220ms. Keep those paints from
+      // invalidating the static storefront and the rest of the viewport.
+      child: Material(
+        type: MaterialType.transparency,
+        textStyle: DefaultTextStyle.of(context).style,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: Theme.of(
+                      context,
+                    ).dividerColor.withValues(alpha: 0.55),
+                  ),
+                ),
               ),
-            ),
-          ),
-          child: SizedBox(
-            height: 47,
-            child: ListView.separated(
-              key: const ValueKey('store_subcategory_rail'),
-              scrollDirection: Axis.horizontal,
-              itemCount: categories.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 4),
-              itemBuilder: (context, index) {
-                final category = categories[index];
-                final isSelected = category.id == effectiveSelectedId;
-                final label = category.localizedName(languageCode);
-                return CategorySelectionTap(
-                  key: ValueKey('store_subcategory_${category.id}'),
-                  onTap: () => onSelected(category.id),
-                  child: AnimatedContainer(
-                    duration: MediaQuery.disableAnimationsOf(context)
-                        ? Duration.zero
-                        : const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                    padding: const EdgeInsets.symmetric(horizontal: 13),
-                    decoration: BoxDecoration(
-                      border: Border(
-                        bottom: BorderSide(
-                          color: isSelected
-                              ? AppColors.primary
-                              : Colors.transparent,
-                          width: 2.5,
+              child: SizedBox(
+                height: 47,
+                child: ListView.separated(
+                  key: const ValueKey('store_subcategory_rail'),
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categories.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 4),
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    final isSelected = category.id == effectiveSelectedId;
+                    final label = category.localizedName(languageCode);
+                    return CategorySelectionTap(
+                      key: ValueKey('store_subcategory_${category.id}'),
+                      onTap: () => onSelected(category.id),
+                      child: AnimatedContainer(
+                        duration: MediaQuery.disableAnimationsOf(context)
+                            ? Duration.zero
+                            : const Duration(milliseconds: 220),
+                        curve: Curves.easeOutCubic,
+                        padding: const EdgeInsets.symmetric(horizontal: 13),
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(
+                              color: isSelected
+                                  ? AppColors.primary
+                                  : Colors.transparent,
+                              width: 2.5,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            AnimatedDefaultTextStyle(
+                              duration: MediaQuery.disableAnimationsOf(context)
+                                  ? Duration.zero
+                                  : const Duration(milliseconds: 220),
+                              curve: Curves.easeOutCubic,
+                              style: DefaultTextStyle.of(context).style
+                                  .copyWith(
+                                    fontSize: 13,
+                                    height: 1.1,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w800
+                                        : FontWeight.w600,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : Theme.of(context).hintColor,
+                                  ),
+                              child: Text(
+                                label,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        AnimatedDefaultTextStyle(
-                          duration: MediaQuery.disableAnimationsOf(context)
-                              ? Duration.zero
-                              : const Duration(milliseconds: 220),
-                          curve: Curves.easeOutCubic,
-                          style: DefaultTextStyle.of(context).style.copyWith(
-                            fontSize: 13,
-                            height: 1.1,
-                            fontWeight: isSelected
-                                ? FontWeight.w800
-                                : FontWeight.w600,
-                            color: isSelected
-                                ? AppColors.primary
-                                : Theme.of(context).hintColor,
-                          ),
-                          child: Text(
-                            label,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },
+                    );
+                  },
+                ),
+              ),
             ),
-          ),
+            if (categoryDescription?.isNotEmpty == true) ...[
+              const SizedBox(height: 7),
+              Text(
+                categoryDescription!,
+                key: const ValueKey('store_subcategory_description'),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 11.5,
+                ),
+              ),
+            ],
+          ],
         ),
-        if (categoryDescription?.isNotEmpty == true) ...[
-          const SizedBox(height: 7),
-          Text(
-            categoryDescription!,
-            key: const ValueKey('store_subcategory_description'),
-            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
-              fontSize: 11.5,
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

@@ -107,16 +107,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                                     .instance
                                     .setMobileNotificationsEnabled,
                               ),
-                              _PreferenceSwitchTile(
-                                icon: AppIcons.security_user,
-                                title: 'Safe Mode',
-                                subtitle: 'Hide age-restricted products',
-                                value: preferences.safeModeEnabled,
-                                accentColor: AppColors.warning,
-                                onChanged: AppPreferencesController
-                                    .instance
-                                    .setSafeModeEnabled,
-                              ),
                             ],
                           ),
                           const SizedBox(height: 18),

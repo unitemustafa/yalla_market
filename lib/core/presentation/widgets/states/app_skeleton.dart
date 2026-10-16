@@ -254,6 +254,26 @@ class AppContentReveal extends StatelessWidget {
   );
 }
 
+/// Reveals a lazy section once, rather than starting an animation for each
+/// card that becomes visible during scrolling.
+class SliverContentReveal extends StatelessWidget {
+  const SliverContentReveal({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: 0, end: 1),
+    duration: MediaQuery.disableAnimationsOf(context)
+        ? Duration.zero
+        : const Duration(milliseconds: 200),
+    curve: Curves.easeOut,
+    child: child,
+    builder: (_, opacity, child) =>
+        SliverOpacity(opacity: opacity, sliver: child),
+  );
+}
+
 class AppProductDetailsSkeleton extends StatelessWidget {
   const AppProductDetailsSkeleton({super.key});
 

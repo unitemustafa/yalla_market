@@ -2,8 +2,10 @@ import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/cache/persistent_json_cache.dart';
+import 'package:yalla_market/core/domain/computation_executor.dart';
 import 'package:yalla_market/core/errors/address_required_error.dart';
 import 'package:yalla_market/core/network/api_result.dart';
+import 'package:yalla_market/features/store/data/mapping/storefront_decoder.dart';
 import 'package:yalla_market/features/store/data/repositories/store_remote_repository_impl.dart';
 
 import '../../../../helpers/fake_api_client.dart';
@@ -273,6 +275,48 @@ void main() {
         failure: (failure) => fail(failure.message),
       );
     });
+
+    test(
+      'maps storefront decoding failures to a typed result failure',
+      () async {
+        final repository = StoreRemoteRepositoryImpl(
+          FakeApiClient((_) => {'id': 9, 'products': const []}),
+          decoder: StorefrontDecoder(executor: const _ThrowingExecutor()),
+        );
+
+        final result = await repository.getMarket('9');
+
+        expect(result, isA<ApiFailure>());
+        expect(
+          (result as ApiFailure).failure.message,
+          'Could not load store details.',
+        );
+      },
+    );
+    test(
+      'requests only storefront metadata while preserving full-store metrics',
+      () async {
+        final api = FakeApiClient(
+          (request) => {
+            'id': 9,
+            'name': 'Store',
+            'product_count': 10000,
+            'minimum_product_price': '12.50',
+            'products': const [],
+          },
+        );
+        final result = await StoreRemoteRepositoryImpl(api).getMarket('9');
+        expect(api.requests.single.path, '/home/markets/9/storefront/');
+        expect(api.requests.single.queryParameters, {
+          'include_products': false,
+        });
+        expect(result, isA<ApiSuccess>());
+        final market = (result as ApiSuccess).data;
+        expect(market.products, isEmpty);
+        expect(market.productCount, 10000);
+        expect(market.minimumProductPrice, 12.5);
+      },
+    );
   });
 }
 
@@ -312,4 +356,15 @@ Map<String, Object?> _fullProduct() {
       {'id': 5, 'price': '120.00', 'sku': 'APPLE-1'},
     ],
   };
+}
+
+class _ThrowingExecutor implements ComputationExecutor {
+  const _ThrowingExecutor();
+
+  @override
+  Future<R> run<Q, R>(
+    R Function(Q) computation,
+    Q input, {
+    required bool background,
+  }) => Future<R>.error(StateError('decoder failed'));
 }

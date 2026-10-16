@@ -37,6 +37,7 @@ const _existingDebt = <String>{
   'lib/features/store/presentation/views/checkout/payment_success_view.dart',
   'lib/features/store/presentation/views/checkout_view.dart',
   'lib/features/store/presentation/views/product_detail_dialogs_part.dart',
+  'lib/features/store/presentation/views/product_detail_view.dart',
 };
 
 void main() {

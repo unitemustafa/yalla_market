@@ -148,15 +148,16 @@ class _ProfileViewState extends State<ProfileView> {
                       subtitle: 'Edit personal details',
                     ),
                     const AppRefreshAnchor(),
-                    if (_isRefreshingProfile && _showInlineRefreshProgress) ...[
-                      const SizedBox(height: 10),
-                      const AppLoadingPlaceholder(width: 80),
-                    ],
                     if (_refreshProfileError != null) ...[
                       const SizedBox(height: 10),
                       _RefreshProfileError(message: _refreshProfileError!),
                     ],
-                    const SizedBox(height: 18),
+                    SizedBox(
+                      height: 18,
+                      child: _isRefreshingProfile && _showInlineRefreshProgress
+                          ? const AppLoadingPlaceholder(width: 80)
+                          : null,
+                    ),
                     _ProfileHeaderCard(
                       isDark: isDark,
                       profile: profile,

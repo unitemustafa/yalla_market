@@ -16,4 +16,12 @@ class WishlistState extends UnmodifiableListView<WishlistItem> {
   final bool hasLoaded;
   final String? errorMessage;
   final int errorRevision;
+
+  // This state owns an immutable snapshot. Visible cards share one membership
+  // index instead of scanning a long wishlist for each newly built card.
+  late final Set<String> _productIds = {
+    for (final item in this) item.productId,
+  };
+
+  bool containsProduct(String productId) => _productIds.contains(productId);
 }

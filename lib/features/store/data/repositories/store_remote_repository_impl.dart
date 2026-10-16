@@ -10,14 +10,19 @@ import '../../../../core/network/api_result.dart';
 import '../../../location/domain/usecases/location_usecases.dart';
 import '../../domain/entities/store_data.dart';
 import '../../domain/repositories/store_repository.dart';
+import '../mapping/storefront_decoder.dart';
 
 class StoreRemoteRepositoryImpl implements StoreRepository {
   StoreRemoteRepositoryImpl(
     this._apiClient, {
     PersistentJsonCache? cache,
     GetSelectedCityUseCase? getSelectedCity,
+    StorefrontDecoder decoder = const StorefrontDecoder(),
   }) : _cache = cache,
-       _getSelectedCity = getSelectedCity;
+       _getSelectedCity = getSelectedCity,
+       _decoder = decoder;
+
+  final StorefrontDecoder _decoder;
 
   final ApiClient _apiClient;
   final PersistentJsonCache? _cache;
@@ -62,8 +67,9 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
     try {
       final payload = await _apiClient.get<Map<String, dynamic>>(
         '/home/markets/$marketId/storefront/',
+        queryParameters: const {'include_products': false},
       );
-      return ApiResult.success(StoreMarketData.fromJson(payload));
+      return ApiResult.success(await _decoder.decode(payload));
     } on DioException catch (error) {
       return ApiResult.failure(ApiErrorHandler.handle(error));
     } catch (_) {

@@ -14,10 +14,23 @@ import '../../features/offers/di/offers_di.dart';
 import '../../features/personalization/di/personalization_di.dart';
 import '../../features/splash/di/splash_di.dart';
 import '../../features/store/di/store_di.dart';
+import '../../features/store/presentation/cubit/product_results_cubit.dart';
+import '../../features/store/presentation/cubit/store_products_cubit.dart';
+import '../../features/store/domain/usecases/get_store_products_usecase.dart';
 import '../../features/search/di/search_di.dart';
 import '../../features/wishlist/di/wishlist_di.dart';
 
 final GetIt sl = GetIt.instance;
+
+StoreProductsCubit createStoreProductsCubit() =>
+    sl.isRegistered<StoreProductsCubit>()
+    ? sl<StoreProductsCubit>()
+    : StoreProductsCubit(sl<GetStoreProductsUseCase>());
+
+ProductResultsCubit createProductResultsCubit() {
+  registerProductResultsDependencies(sl);
+  return sl<ProductResultsCubit>();
+}
 
 void initServiceLocator() {
   registerCoreDependencies(sl);

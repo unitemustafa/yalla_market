@@ -259,7 +259,10 @@ class _NavigationMenuViewState extends State<NavigationMenuView> {
           index: selectedIndex,
           children: List<Widget>.generate(
             _screens.length,
-            (index) => _screens[index] ?? const SizedBox.shrink(),
+            (index) => TickerMode(
+              enabled: index == selectedIndex,
+              child: _screens[index] ?? const SizedBox.shrink(),
+            ),
           ),
         ),
       ),

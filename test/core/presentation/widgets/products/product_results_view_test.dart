@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:yalla_market/app/di/service_locator.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
+import 'package:yalla_market/core/domain/computation_executor.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_results_view.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_sort_button.dart';
@@ -13,6 +15,15 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  setUp(() async {
+    await sl.reset();
+    sl.registerSingleton<ComputationExecutor>(
+      const InlineComputationExecutor(),
+    );
+  });
+
+  tearDown(() => sl.reset());
+
   testWidgets('keeps the search and sorting controls when a category changes', (
     tester,
   ) async {
@@ -115,6 +126,8 @@ void main() {
         ),
       ),
     );
+
+    await tester.pumpAndSettle();
 
     expect(find.byType(ProductCardVertical), findsNWidgets(10));
     expect(find.text('1/2'), findsOneWidget);
@@ -249,6 +262,8 @@ void main() {
           ),
         ),
       );
+
+      await tester.pumpAndSettle();
 
       final search = find.byKey(const ValueKey('store_product_search_field'));
       final textField = find.descendant(

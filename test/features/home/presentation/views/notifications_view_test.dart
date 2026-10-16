@@ -369,7 +369,11 @@ void main() {
 
       await _pumpNotificationsView(tester, cubit);
 
-      await tester.fling(find.byType(ListView), const Offset(0, 500), 1000);
+      await tester.fling(
+        find.byType(CustomScrollView),
+        const Offset(0, 500),
+        1000,
+      );
       await tester.pump();
       await tester.pump(const Duration(seconds: 1));
 

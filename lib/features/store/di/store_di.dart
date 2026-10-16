@@ -1,10 +1,18 @@
 import 'package:get_it/get_it.dart';
+import '../domain/repositories/store_products_repository.dart';
+import '../domain/usecases/get_store_products_usecase.dart';
+import '../data/repositories/store_products_remote_repository_impl.dart';
+import '../data/repositories/store_products_demo_repository.dart';
+import '../presentation/cubit/store_products_cubit.dart';
+import '../../../core/domain/computation_executor.dart';
+import '../../../core/computation/catalog_computation_executor.dart';
 
 import '../../../core/cache/persistent_json_cache.dart';
 import '../../../core/config/app_environment.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/storage/token_store.dart';
 import '../data/datasources/pending_order_request_store.dart';
+import '../data/mapping/storefront_decoder.dart';
 import '../../../features/location/domain/usecases/location_usecases.dart';
 import '../../../features/store/data/repositories/order_unavailable_repository_impl.dart';
 import '../../../features/store/data/demo/demo_order_history_supplement.dart';
@@ -40,9 +48,51 @@ import '../../../features/store/presentation/cubit/order_history_cubit.dart';
 import '../../../features/store/presentation/cubit/product_catalog_cubit.dart';
 import '../../../features/store/presentation/cubit/product_discovery_cubit.dart';
 import '../../../features/store/presentation/cubit/store_cubit.dart';
+import '../domain/usecases/prepare_product_results_usecase.dart';
+import '../presentation/cubit/product_results_cubit.dart';
+
+/// Also used by the reusable results widget in isolated widget tests.
+void registerProductResultsDependencies(GetIt sl) {
+  if (!sl.isRegistered<ComputationExecutor>()) {
+    sl.registerLazySingleton<ComputationExecutor>(
+      () => const CatalogComputationExecutor(),
+    );
+  }
+  if (!sl.isRegistered<PrepareProductResultsUseCase>()) {
+    sl.registerLazySingleton(
+      () => PrepareProductResultsUseCase(executor: sl<ComputationExecutor>()),
+    );
+  }
+  if (!sl.isRegistered<ProductResultsCubit>()) {
+    sl.registerFactory(
+      () => ProductResultsCubit(sl<PrepareProductResultsUseCase>()),
+    );
+  }
+}
 
 void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
+  registerProductResultsDependencies(sl);
+  if (!sl.isRegistered<StorefrontDecoder>()) {
+    sl.registerLazySingleton(
+      () => StorefrontDecoder(executor: sl<ComputationExecutor>()),
+    );
+  }
   final useDemo = useDemoRepositories ?? AppEnvironment.useDemoRepositories;
+  if (!sl.isRegistered<StoreProductsRepository>()) {
+    sl.registerLazySingleton<StoreProductsRepository>(
+      () => useDemo
+          ? StoreProductsDemoRepository(sl<StoreRepository>())
+          : StoreProductsRemoteRepositoryImpl(sl<ApiClient>()),
+    );
+  }
+  if (!sl.isRegistered<GetStoreProductsUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetStoreProductsUseCase(sl<StoreProductsRepository>()),
+    );
+  }
+  if (!sl.isRegistered<StoreProductsCubit>()) {
+    sl.registerFactory(() => StoreProductsCubit(sl<GetStoreProductsUseCase>()));
+  }
 
   if (!useDemo && !sl.isRegistered<PendingOrderRequestStore>()) {
     sl.registerLazySingleton<PendingOrderRequestStore>(
@@ -108,6 +158,7 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
           ? StoreRepositoryImpl()
           : StoreRemoteRepositoryImpl(
               sl<ApiClient>(),
+              decoder: sl<StorefrontDecoder>(),
               cache: sl<PersistentJsonCache>(),
               getSelectedCity: sl<GetSelectedCityUseCase>(),
             ),

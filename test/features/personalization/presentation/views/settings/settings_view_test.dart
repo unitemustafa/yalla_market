@@ -275,7 +275,7 @@ void main() {
     expect(find.text('Egyptian Pound'), findsNothing);
   });
 
-  testWidgets('app preferences switches use local controller state', (
+  testWidgets('app preferences exposes only the notification switch', (
     tester,
   ) async {
     await AppPreferencesController.instance.loadSavedPreferences();
@@ -283,34 +283,25 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AppPreferencesView()));
 
     expect(find.text('Mobile Notifications'), findsOneWidget);
-    expect(find.text('Safe Mode'), findsOneWidget);
+    expect(find.text('Safe Mode'), findsNothing);
     expect(
       AppPreferencesController.instance.value.mobileNotificationsEnabled,
       isTrue,
     );
-    expect(AppPreferencesController.instance.value.safeModeEnabled, isFalse);
 
-    await tester.tap(find.byType(Switch).first);
-    await tester.pumpAndSettle();
-    await tester.tap(find.byType(Switch).last);
+    await tester.tap(find.byType(Switch));
     await tester.pumpAndSettle();
 
     expect(
       AppPreferencesController.instance.value.mobileNotificationsEnabled,
       isFalse,
     );
-    expect(AppPreferencesController.instance.value.safeModeEnabled, isTrue);
-
     final preferences = await SharedPreferences.getInstance();
     expect(
       preferences.getBool(
         AppPreferencesController.mobileNotificationsStorageKey,
       ),
       isFalse,
-    );
-    expect(
-      preferences.getBool(AppPreferencesController.safeModeStorageKey),
-      isTrue,
     );
   });
 

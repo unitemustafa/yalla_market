@@ -199,6 +199,66 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets('hidden tabs pause video and resume without recreating it', (
+    tester,
+  ) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final visible = ValueNotifier(true);
+    addTearDown(visible.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: ValueListenableBuilder<bool>(
+          valueListenable: visible,
+          builder: (_, enabled, child) =>
+              TickerMode(enabled: enabled, child: child!),
+          child: _surface,
+        ),
+      ),
+    );
+    await tester.pump();
+    platform.initializeVideo();
+    await tester.pump();
+    await tester.pump();
+    expect(platform.plays, 1);
+    final pauses = platform.pauses;
+    visible.value = false;
+    await tester.pump();
+    expect(platform.pauses, greaterThan(pauses));
+    visible.value = true;
+    await tester.pump();
+    expect(platform.plays, 2);
+    expect(platform.disposals, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets(
+    'video initialized in a hidden tab waits until the tab is visible',
+    (tester) async {
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      final visible = ValueNotifier(false);
+      addTearDown(visible.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder<bool>(
+            valueListenable: visible,
+            builder: (_, enabled, child) =>
+                TickerMode(enabled: enabled, child: child!),
+            child: _surface,
+          ),
+        ),
+      );
+      await tester.pump();
+      platform.initializeVideo();
+      await tester.pump();
+      await tester.pump();
+      expect(platform.plays, 0);
+      visible.value = true;
+      await tester.pump();
+      expect(platform.plays, 1);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
   testWidgets('a pushed route pauses playback and popping resumes it', (
     tester,
   ) async {

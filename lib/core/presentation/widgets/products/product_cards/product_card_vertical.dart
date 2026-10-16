@@ -13,6 +13,7 @@ import '../../../../../features/cart/domain/entities/cart_item.dart';
 import '../../../../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../../../../features/wishlist/domain/entities/wishlist_item.dart';
 import '../../../../../features/wishlist/presentation/cubit/wishlist_cubit.dart';
+import '../../../../../features/wishlist/presentation/cubit/wishlist_state.dart';
 import '../../snackbars/custom_snackbar.dart';
 
 import '../../texts/app_currency_text.dart';
@@ -253,10 +254,13 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                                 List<WishlistItem>,
                                 bool
                               >(
-                                selector: (items) => items.any(
-                                  (element) =>
-                                      element.productId == _resolvedProductId,
-                                ),
+                                selector: (items) => items is WishlistState
+                                    ? items.containsProduct(_resolvedProductId)
+                                    : items.any(
+                                        (element) =>
+                                            element.productId ==
+                                            _resolvedProductId,
+                                      ),
                                 builder: (context, isFavorite) {
                                   return _ProductIconButton(
                                     key: ValueKey(

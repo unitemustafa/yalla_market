@@ -16,8 +16,7 @@ class GreenCurrencyPrice extends StatelessWidget {
   Widget build(BuildContext context) {
     if (price.isEmpty) return const SizedBox.shrink();
 
-    final formattedPrice = AppCurrency.formatPriceText(price);
-    final numbers = AppCurrency.priceNumbers(formattedPrice);
+    final numbers = AppCurrency.formattedPriceNumbers(price);
     if (numbers.isEmpty) return const SizedBox.shrink();
 
     final numberStyle = _numberStyle(context);

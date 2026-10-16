@@ -220,78 +220,112 @@ class _NotificationsViewState extends State<NotificationsView> {
                     constraints: BoxConstraints(maxWidth: maxContentWidth),
                     child: AppRefreshIndicator(
                       onRefresh: _refresh,
-                      child: ListView(
+                      child: CustomScrollView(
                         physics: AppRefreshIndicator.scrollPhysics,
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                        children: [
-                          PageTopBar(
-                            title: 'Notifications',
-                            subtitle: 'Orders, deals and account updates',
-                            actions: [
-                              _MarkAllReadButton(
-                                isDark: isDark,
-                                isLoading: state.isMarkingAllRead,
-                                enabled: state.unreadCount > 0,
-                                onPressed: _markAllRead,
-                              ),
-                              const SizedBox(width: 8),
-                              _DeleteAllNotificationsButton(
-                                isDark: isDark,
-                                isLoading: state.isDeletingAll,
-                                enabled: state.notifications.isNotEmpty,
-                                onPressed: _deleteAllNotifications,
-                              ),
-                            ],
-                          ),
-                          const AppRefreshAnchor(),
-                          const SizedBox(height: 18),
-                          if (state.isInitialLoading)
-                            const AppSkeletonList(rows: 4, rowHeight: 92)
-                          else if (!state.hasLoaded &&
-                              state.notifications.isEmpty &&
-                              state.errorMessage != null)
-                            SizedBox(
-                              height: 420,
-                              child: AppErrorState(
-                                title: 'Notifications could not load',
-                                message: state.errorMessage!,
-                                onRetry: () => context
-                                    .read<NotificationCubit>()
-                                    .loadNotifications(forceRefresh: true),
-                              ),
-                            )
-                          else if (state.notifications.isEmpty)
-                            const SizedBox(
-                              height: 420,
-                              child: _EmptyNotificationsView(),
-                            )
-                          else ...[
-                            _NotificationSummary(
-                              isDark: isDark,
-                              unreadCount: state.unreadCount,
-                            ),
-                            const SizedBox(height: 22),
-                            for (final notification in state.notifications)
-                              AppContentReveal(
-                                key: ValueKey(
-                                  'notification_reveal_${notification.id}',
-                                ),
-                                child: Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _NotificationCard(
-                                    notification: notification,
-                                    isDark: isDark,
-                                    onTap: () =>
-                                        _openNotification(notification),
-                                    onDelete: () =>
-                                        _deleteNotification(notification),
-                                    onDeleted: () => context
-                                        .read<NotificationCubit>()
-                                        .removeNotification(notification.id),
+                        slivers: [
+                          SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                            sliver: SliverMainAxisGroup(
+                              slivers: [
+                                SliverToBoxAdapter(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      PageTopBar(
+                                        title: 'Notifications',
+                                        subtitle:
+                                            'Orders, deals and account updates',
+                                        actions: [
+                                          _MarkAllReadButton(
+                                            isDark: isDark,
+                                            isLoading: state.isMarkingAllRead,
+                                            enabled: state.unreadCount > 0,
+                                            onPressed: _markAllRead,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          _DeleteAllNotificationsButton(
+                                            isDark: isDark,
+                                            isLoading: state.isDeletingAll,
+                                            enabled:
+                                                state.notifications.isNotEmpty,
+                                            onPressed: _deleteAllNotifications,
+                                          ),
+                                        ],
+                                      ),
+                                      const AppRefreshAnchor(),
+                                      const SizedBox(height: 18),
+                                      if (state.isInitialLoading)
+                                        const AppSkeletonList(
+                                          rows: 4,
+                                          rowHeight: 92,
+                                        )
+                                      else if (!state.hasLoaded &&
+                                          state.notifications.isEmpty &&
+                                          state.errorMessage != null)
+                                        SizedBox(
+                                          height: 420,
+                                          child: AppErrorState(
+                                            title:
+                                                'Notifications could not load',
+                                            message: state.errorMessage!,
+                                            onRetry: () => context
+                                                .read<NotificationCubit>()
+                                                .loadNotifications(
+                                                  forceRefresh: true,
+                                                ),
+                                          ),
+                                        )
+                                      else if (state.notifications.isEmpty)
+                                        const SizedBox(
+                                          height: 420,
+                                          child: _EmptyNotificationsView(),
+                                        )
+                                      else ...[
+                                        _NotificationSummary(
+                                          isDark: isDark,
+                                          unreadCount: state.unreadCount,
+                                        ),
+                                        const SizedBox(height: 22),
+                                      ],
+                                    ],
                                   ),
                                 ),
-                              ),
-                          ],
+                                if (state.notifications.isNotEmpty)
+                                  SliverContentReveal(
+                                    child: SliverList.builder(
+                                      itemCount: state.notifications.length,
+                                      itemBuilder: (context, index) {
+                                        final notification =
+                                            state.notifications[index];
+                                        return Padding(
+                                          key: ValueKey(
+                                            'notification_reveal_${notification.id}',
+                                          ),
+                                          padding: const EdgeInsets.only(
+                                            bottom: 10,
+                                          ),
+                                          child: _NotificationCard(
+                                            notification: notification,
+                                            isDark: isDark,
+                                            onTap: () =>
+                                                _openNotification(notification),
+                                            onDelete: () => _deleteNotification(
+                                              notification,
+                                            ),
+                                            onDeleted: () => context
+                                                .read<NotificationCubit>()
+                                                .removeNotification(
+                                                  notification.id,
+                                                ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                     ),

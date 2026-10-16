@@ -1,4 +1,5 @@
 import '../../domain/entities/catalog_search_results.dart';
+import '../../../store/domain/entities/product_data.dart';
 
 sealed class CatalogSearchState {
   const CatalogSearchState({
@@ -28,7 +29,11 @@ final class CatalogSearchReady extends CatalogSearchState {
     required super.results,
     this.loadingMore = false,
     this.moreError,
-  });
+    List<ProductData>? visibleProducts,
+  }) : _visibleProducts = visibleProducts;
+
+  final List<ProductData>? _visibleProducts;
+  List<ProductData> get visibleProducts => _visibleProducts ?? results.products;
 
   final bool loadingMore;
   final String? moreError;

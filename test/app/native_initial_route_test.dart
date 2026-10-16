@@ -7,6 +7,7 @@ import 'package:yalla_market/app/di/service_locator.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/auth/domain/entities/auth_session.dart';
 import 'package:yalla_market/features/auth/domain/repositories/auth_repository.dart';
+import 'package:yalla_market/features/onboarding/data/onboarding_preferences.dart';
 import 'package:yalla_market/features/splash/presentation/views/splash_view.dart';
 import 'package:yalla_market/yalla_market_app.dart';
 
@@ -23,7 +24,10 @@ void main() {
     ) async {
       tester.platformDispatcher.defaultRouteNameTestValue = nativeRoute;
       addTearDown(tester.platformDispatcher.clearDefaultRouteNameTestValue);
-      SharedPreferences.setMockInitialValues({});
+      // This test targets saved-session routing after onboarding is complete.
+      SharedPreferences.setMockInitialValues({
+        OnboardingPreferences.seenKey: true,
+      });
       initServiceLocator();
       final auth = _PendingRestoreRepository();
       await sl.unregister<AuthRepository>();

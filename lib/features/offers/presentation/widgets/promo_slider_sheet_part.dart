@@ -139,7 +139,6 @@ class _PromoOfferSheet extends StatelessWidget {
             const SizedBox(height: 20),
             _OfferSheetHeader(
               offer: offer,
-              textColor: textColor,
               mutedColor: mutedColor,
               isDark: isDark,
               onShare: _shareLink == null
@@ -206,14 +205,12 @@ class _PromoOfferSheet extends StatelessWidget {
 class _OfferSheetHeader extends StatelessWidget {
   const _OfferSheetHeader({
     required this.offer,
-    required this.textColor,
     required this.mutedColor,
     required this.isDark,
     this.onShare,
   });
 
   final _PromoOfferData offer;
-  final Color textColor;
   final Color mutedColor;
   final bool isDark;
   final VoidCallback? onShare;
@@ -235,69 +232,50 @@ class _OfferSheetHeader extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      offer.badge(context),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                        color: mutedColor,
-                        fontWeight: FontWeight.w800,
+              Expanded(
+                child: Text(
+                  offer.badge(context),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: mutedColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (discountRate != null) ...[
+                const SizedBox(width: 8),
+                _MiniBadge(
+                  key: const ValueKey('offer_discount_badge'),
+                  text: discountRate,
+                  color: offer.color,
+                  isDark: isDark,
+                ),
+              ],
+              if (onShare != null) ...[
+                const SizedBox(width: 8),
+                Tooltip(
+                  message: context.tr('Share offer'),
+                  child: Material(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.08)
+                        : const Color(0xFFF3F5FA),
+                    borderRadius: BorderRadius.circular(8),
+                    child: InkWell(
+                      key: const ValueKey('offer_share_button'),
+                      borderRadius: BorderRadius.circular(8),
+                      onTap: onShare,
+                      child: const SizedBox(
+                        width: 36,
+                        height: 36,
+                        child: Icon(AppIcons.send_1, size: 18),
                       ),
                     ),
                   ),
-                  if (discountRate != null) ...[
-                    const SizedBox(width: 8),
-                    _MiniBadge(
-                      key: const ValueKey('offer_discount_badge'),
-                      text: discountRate,
-                      color: offer.color,
-                      isDark: isDark,
-                    ),
-                  ],
-                  if (onShare != null) ...[
-                    const SizedBox(width: 8),
-                    Tooltip(
-                      message: context.tr('Share offer'),
-                      child: Material(
-                        color: isDark
-                            ? Colors.white.withValues(alpha: 0.08)
-                            : const Color(0xFFF3F5FA),
-                        borderRadius: BorderRadius.circular(8),
-                        child: InkWell(
-                          key: const ValueKey('offer_share_button'),
-                          borderRadius: BorderRadius.circular(8),
-                          onTap: onShare,
-                          child: const SizedBox(
-                            width: 36,
-                            height: 36,
-                            child: Icon(AppIcons.send_1, size: 18),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              if (discountRate == null)
-                const SizedBox(height: 3)
-              else
-                const SizedBox(height: 6),
-              Text(
-                offer.title(context),
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: textColor,
-                  fontSize: AppFontSizes.title,
-                  fontWeight: FontWeight.w900,
                 ),
-              ),
+              ],
             ],
           ),
         ),

@@ -16,7 +16,6 @@ void main() {
       AppPreferencesController.instance.value.mobileNotificationsEnabled,
       isTrue,
     );
-    expect(AppPreferencesController.instance.safeModeEnabled, isFalse);
     expect(AppPreferencesController.instance.value.themeMode, ThemeMode.system);
   });
 
@@ -42,18 +41,25 @@ void main() {
     );
   });
 
-  test('persists safe mode under the dedicated local key', () async {
-    await AppPreferencesController.instance.loadSavedPreferences();
-    await AppPreferencesController.instance.setSafeModeEnabled(true);
+  test(
+    'ignores legacy safe-mode preferences without changing other values',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        'safe_search_history_mode_enabled': true,
+        'app.preferences.safe_mode': true,
+        AppPreferencesController.mobileNotificationsStorageKey: false,
+      });
 
-    final preferences = await SharedPreferences.getInstance();
-    expect(
-      preferences.getBool(AppPreferencesController.safeModeStorageKey),
-      isTrue,
-    );
+      await AppPreferencesController.instance.loadSavedPreferences();
 
-    AppPreferencesController.instance.value = const AppPreferences();
-    await AppPreferencesController.instance.loadSavedPreferences();
-    expect(AppPreferencesController.instance.safeModeEnabled, isTrue);
-  });
+      expect(
+        AppPreferencesController.instance.mobileNotificationsEnabled,
+        isFalse,
+      );
+      expect(
+        AppPreferencesController.instance.value.themeMode,
+        ThemeMode.system,
+      );
+    },
+  );
 }

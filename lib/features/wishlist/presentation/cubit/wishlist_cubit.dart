@@ -108,6 +108,9 @@ class WishlistCubit extends Cubit<List<WishlistItem>> {
       generation == _generation && _currentUserKey == userKey && !isClosed;
 
   bool isFavorite(String productId) {
-    return state.any((element) => element.productId == productId);
+    final current = state;
+    return current is WishlistState
+        ? current.containsProduct(productId)
+        : current.any((element) => element.productId == productId);
   }
 }

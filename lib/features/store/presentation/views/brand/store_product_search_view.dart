@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../cubit/store_cubit.dart';
-import '../../cubit/store_state.dart';
+import '../../cubit/store_products_cubit.dart';
+import '../../widgets/store_products_scope.dart';
+import '../../widgets/store_products_footer.dart';
+import '../../../domain/entities/store_product_page.dart';
+import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
@@ -29,6 +33,9 @@ class StoreProductSearchView extends StatefulWidget {
 class _StoreProductSearchViewState extends State<StoreProductSearchView> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  final _scrollController = ScrollController();
+  Timer? _debounce;
+  String _query = '';
 
   @override
   void initState() {
@@ -40,6 +47,8 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
 
   @override
   void dispose() {
+    _debounce?.cancel();
+    _scrollController.dispose();
     _focusNode.unfocus();
     _focusNode.dispose();
     _controller.dispose();
@@ -69,7 +78,7 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
                       hintText: context.tr('Search the menu...'),
                       controller: _controller,
                       focusNode: _focusNode,
-                      onChanged: (_) => setState(() {}),
+                      onChanged: _search,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -82,45 +91,101 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
               color: Theme.of(context).dividerColor.withValues(alpha: 0.45),
             ),
             Expanded(
-              child: BlocBuilder<StoreCubit, StoreState>(
-                builder: (context, state) {
-                  final query = _controller.text.trim();
-                  final market =
-                      state.data
-                          ?.marketsFor(widget.market.classificationId)
-                          .where((item) => item.id == widget.market.id)
-                          .firstOrNull ??
-                      widget.market;
-                  final products = market.products
-                      .where((product) => _matches(product, query))
-                      .toList(growable: false);
-
-                  if (products.isEmpty) {
-                    return AppEmptyState(
-                      title: context.tr('No products found'),
-                      message: context.tr('Try another product name.'),
-                      icon: AppIcons.search_status,
-                    );
-                  }
-
-                  return ListView.separated(
+              child: StoreProductsScope(
+                marketId: widget.market.id,
+                query: _query,
+                sort: StoreProductSort.newest,
+                scrollController: _scrollController,
+                builder: (context, cubit) => AppRefreshIndicator(
+                  onRefresh: cubit.refresh,
+                  child: CustomScrollView(
+                    controller: _scrollController,
                     key: const ValueKey('store_search_results'),
+                    physics: AppRefreshIndicator.scrollPhysics,
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-                    itemCount: products.length,
-                    separatorBuilder: (_, _) => Divider(
-                      height: 1,
-                      color: Theme.of(
-                        context,
-                      ).dividerColor.withValues(alpha: 0.45),
-                    ),
-                    itemBuilder: (context, index) => _ProductSearchRow(
-                      product: products[index],
-                      onTap: () => _openProduct(products[index]),
-                    ),
-                  );
-                },
+                    slivers: [
+                      BlocSelector<
+                        StoreProductsCubit,
+                        StoreProductsState,
+                        (List<ProductData>, bool, String?, bool)
+                      >(
+                        selector: (s) => (
+                          s.visibleProducts,
+                          s.isLoading && s.products.isEmpty,
+                          s.products.isEmpty ? s.error : null,
+                          s.hasMore,
+                        ),
+                        builder: (context, content) {
+                          if (content.$2) {
+                            return const SliverToBoxAdapter(
+                              child: AppLoadingState(),
+                            );
+                          }
+                          if (content.$3 != null) {
+                            return SliverToBoxAdapter(
+                              child: AppErrorState(
+                                title: 'Could not load products',
+                                message: content.$3!,
+                                onRetry: cubit.retry,
+                              ),
+                            );
+                          }
+                          final products = content.$1;
+                          if (products.isEmpty) {
+                            if (content.$4) {
+                              return const SliverToBoxAdapter(
+                                child: SizedBox.shrink(),
+                              );
+                            }
+                            return SliverToBoxAdapter(
+                              child: AppEmptyState(
+                                title: context.tr('No products found'),
+                                message: context.tr(
+                                  'Try another product name.',
+                                ),
+                                icon: AppIcons.search_status,
+                              ),
+                            );
+                          }
+                          final indices = {
+                            for (var i = 0; i < products.length; i++)
+                              products[i].id: i * 2,
+                          };
+                          return SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                            sliver: SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                (context, index) {
+                                  if (index.isOdd) {
+                                    return Divider(
+                                      height: 1,
+                                      color: Theme.of(
+                                        context,
+                                      ).dividerColor.withValues(alpha: 0.45),
+                                    );
+                                  }
+                                  final product = products[index ~/ 2];
+                                  return _ProductSearchRow(
+                                    key: ValueKey(product.id),
+                                    product: product,
+                                    onTap: () => _openProduct(product),
+                                  );
+                                },
+                                childCount: products.length * 2 - 1,
+                                findChildIndexCallback: (key) =>
+                                    key is ValueKey<String>
+                                    ? indices[key.value]
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      const SliverToBoxAdapter(child: StoreProductsFooter()),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],
@@ -129,11 +194,15 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
     );
   }
 
-  bool _matches(ProductData product, String query) {
-    final normalized = query.toLowerCase();
-    if (normalized.isEmpty) return true;
-    return product.matches(normalized) ||
-        product.description.toLowerCase().contains(normalized);
+  void _search(String _) {
+    _debounce?.cancel();
+    _debounce = Timer(const Duration(milliseconds: 350), () {
+      if (!mounted) return;
+      final query = _controller.text.trim();
+      if (query == _query) return;
+      if (_scrollController.hasClients) _scrollController.jumpTo(0);
+      setState(() => _query = query);
+    });
   }
 
   void _openProduct(ProductData product) {
@@ -184,8 +253,43 @@ class _BackButton extends StatelessWidget {
   }
 }
 
-class _ProductSearchRow extends StatelessWidget {
-  const _ProductSearchRow({required this.product, required this.onTap});
+class _ProductSearchRow extends StatefulWidget {
+  const _ProductSearchRow({
+    super.key,
+    required this.product,
+    required this.onTap,
+  });
+
+  final ProductData product;
+  final VoidCallback onTap;
+  @override
+  State<_ProductSearchRow> createState() => _ProductSearchRowState();
+}
+
+class _ProductSearchRowState extends State<_ProductSearchRow> {
+  late Widget _content;
+  void _update() => _content = _ProductSearchRowContent(
+    product: widget.product,
+    onTap: widget.onTap,
+  );
+  @override
+  void initState() {
+    super.initState();
+    _update();
+  }
+
+  @override
+  void didUpdateWidget(_ProductSearchRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!identical(oldWidget.product, widget.product)) _update();
+  }
+
+  @override
+  Widget build(BuildContext context) => _content;
+}
+
+class _ProductSearchRowContent extends StatelessWidget {
+  const _ProductSearchRowContent({required this.product, required this.onTap});
 
   final ProductData product;
   final VoidCallback onTap;

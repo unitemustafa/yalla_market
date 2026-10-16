@@ -9,6 +9,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/domain/media_focal_point.dart';
+import '../../../../core/localization/app_language_controller.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
@@ -455,6 +456,36 @@ class _LoginViewState extends State<LoginView> {
                               ),
                             ),
                           ],
+                        ),
+                      ),
+                      PositionedDirectional(
+                        top: 12,
+                        end: 16,
+                        child: SafeArea(
+                          bottom: false,
+                          child: Tooltip(
+                            message: strings.languageTooltip,
+                            child: TextButton.icon(
+                              key: const ValueKey('login_language_switcher'),
+                              onPressed: () => AppLanguageController.instance
+                                  .toggleLanguage(),
+                              style: TextButton.styleFrom(
+                                backgroundColor: surfaceColor,
+                                foregroundColor: theme.colorScheme.primary,
+                                minimumSize: const Size(48, 48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
+                                shape: const StadiumBorder(),
+                              ),
+                              icon: const Icon(AppIcons.global, size: 20),
+                              label: Text(
+                                strings.language.isArabic
+                                    ? AppLanguage.english.label
+                                    : AppLanguage.arabic.label,
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ],

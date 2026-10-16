@@ -109,7 +109,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const ValueKey('promo_offer_card')));
       await tester.pumpAndSettle();
-      expect(find.text('Fresh offer'), findsOneWidget);
+      expect(find.text('Fresh offer'), findsNothing);
       expect(find.text('Daily discount'), findsOneWidget);
       await tester.drag(find.byType(ListView).last, const Offset(0, -600));
       await tester.pumpAndSettle();

@@ -781,7 +781,6 @@ abstract final class StoreTexts {
   static const exploreProducts = 'استكشف المنتجات';
   static const startShopping = 'ابدأ التسوق';
   static const continueShopping = 'كمّل التسوق';
-  static const hideAgeRestrictedProducts = 'إخفاء المنتجات المقيّدة حسب العمر';
 
   // ─── العروض ───
   static const offers = 'العروض';
@@ -1200,8 +1199,6 @@ abstract final class SettingsTexts {
   static const currency = 'العملة';
   static const currencySaved = 'تم حفظ العملة';
   static const dataPreferences = 'تفضيلات البيانات';
-  static const safeMode = 'الوضع الآمن';
-  static const safeModeLabel = 'الوضع الآمن';
   static const useThisShortcutForTheSettingsPeopleChangeMostOften =
       'استخدم الاختصار ده للإعدادات اللي بتتغير كتير.';
 }

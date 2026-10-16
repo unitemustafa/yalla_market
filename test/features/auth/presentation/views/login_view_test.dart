@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
@@ -24,7 +25,12 @@ import '../../../../helpers/domain_fixtures.dart';
 
 void main() {
   setUp(() {
+    SharedPreferences.setMockInitialValues({});
     AppLanguageController.instance.value = AppLanguage.english;
+  });
+
+  tearDown(() {
+    AppLanguageController.instance.value = AppLanguage.arabic;
   });
 
   testWidgets('Facebook without email asks for one before OTP verification', (
@@ -193,12 +199,12 @@ void main() {
   });
 
   testWidgets(
-    'does not show language switcher and displays Google logo button',
+    'shows language switcher and Google logo and preserves keyboard focus',
     (tester) async {
       await _pumpLogin(tester, FakeAuthRepository());
       expect(
         find.byKey(const ValueKey('login_language_switcher')),
-        findsNothing,
+        findsOneWidget,
       );
 
       final googleLogoFinder = find.byWidgetPredicate(
@@ -229,6 +235,64 @@ void main() {
         same(focusNode),
       );
       expect(focusNode.hasFocus, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'language switch updates text and direction, saves choice and keeps login input',
+    (tester) async {
+      await _pumpLogin(
+        tester,
+        FakeAuthRepository(),
+        surfaceSize: const Size(320, 568),
+      );
+      final fields = find.byType(TextFormField);
+      await tester.enterText(fields.at(0), 'm@example.com');
+      await tester.enterText(fields.at(1), 'Password123!');
+      await tester.tap(find.text('Remember Me'));
+      await tester.pump();
+      tester.testTextInput.hide();
+      await tester.pumpAndSettle();
+
+      final switcher = find.byKey(const ValueKey('login_language_switcher'));
+      expect(find.text(AppLanguage.arabic.label), findsOneWidget);
+      await tester.tap(switcher);
+      await tester.pumpAndSettle();
+
+      expect(AppLanguageController.instance.value, AppLanguage.arabic);
+      expect(find.text(AppTranslations.current.welcomeBack), findsOneWidget);
+      expect(find.text(AppLanguage.english.label), findsOneWidget);
+      expect(
+        Directionality.of(tester.element(find.byType(LoginView))),
+        TextDirection.rtl,
+      );
+      final preferences = await SharedPreferences.getInstance();
+      expect(preferences.getString('app.language_code'), 'ar');
+      expect(
+        tester.widget<TextFormField>(fields.at(0)).controller!.text,
+        'm@example.com',
+      );
+      expect(
+        tester.widget<TextFormField>(fields.at(1)).controller!.text,
+        'Password123!',
+      );
+      expect(
+        tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
+        isFalse,
+      );
+
+      await tester.tap(switcher);
+      await tester.pumpAndSettle();
+
+      expect(AppLanguageController.instance.value, AppLanguage.english);
+      expect(find.text(AppTranslations.current.welcomeBack), findsOneWidget);
+      expect(find.text(AppLanguage.arabic.label), findsOneWidget);
+      expect(
+        Directionality.of(tester.element(find.byType(LoginView))),
+        TextDirection.ltr,
+      );
+      expect(preferences.getString('app.language_code'), 'en');
       expect(tester.takeException(), isNull);
     },
   );
@@ -314,19 +378,22 @@ Future<void> _pumpLogin(
               AppMediaCubit(LoadAppMedia(_EmptyAppMediaRepository())),
         ),
       ],
-      child: MaterialApp(
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
-        ],
-        supportedLocales: AppTranslations.supportedLocales,
-        locale: const Locale('en'),
-        onGenerateRoute: (settings) => MaterialPageRoute<void>(
-          settings: settings,
-          builder: (_) => Text('${settings.name}|${settings.arguments}'),
+      child: ValueListenableBuilder<AppLanguage>(
+        valueListenable: AppLanguageController.instance,
+        builder: (context, language, _) => MaterialApp(
+          localizationsDelegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppTranslations.supportedLocales,
+          locale: language.locale,
+          onGenerateRoute: (settings) => MaterialPageRoute<void>(
+            settings: settings,
+            builder: (_) => Text('${settings.name}|${settings.arguments}'),
+          ),
+          home: const LoginView(),
         ),
-        home: const LoginView(),
       ),
     ),
   );

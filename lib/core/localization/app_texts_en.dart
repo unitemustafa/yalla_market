@@ -788,7 +788,6 @@ abstract final class StoreTexts {
   static const exploreProducts = 'Explore products';
   static const startShopping = 'Start Shopping';
   static const continueShopping = 'Continue Shopping';
-  static const hideAgeRestrictedProducts = 'Hide age-restricted products';
 
   // ─── العروض ───
   static const offers = 'Offers';
@@ -1237,8 +1236,6 @@ abstract final class SettingsTexts {
   static const currency = 'Currency';
   static const currencySaved = 'Currency saved';
   static const dataPreferences = 'Data preferences';
-  static const safeMode = 'Safe Mode';
-  static const safeModeLabel = 'Safe mode';
   static const useThisShortcutForTheSettingsPeopleChangeMostOften =
       'Use this shortcut for the settings people change most often.';
 }

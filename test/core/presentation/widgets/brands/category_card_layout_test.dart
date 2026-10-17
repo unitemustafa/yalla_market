@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/constants/app_colors.dart';
 import 'package:yalla_market/core/constants/app_constants.dart';
+import 'package:yalla_market/core/presentation/widgets/appbar/page_top_bar.dart';
 import 'package:yalla_market/core/presentation/widgets/brands/brand_card.dart';
 import 'package:yalla_market/core/presentation/widgets/brands/category_tile.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
@@ -141,7 +143,10 @@ void main() {
           );
           for (var index = 0; index < count; index++) {
             final card = find.byKey(ValueKey('home_category_$index'));
-            expect(tester.getSize(card), const Size(76, 84));
+            expect(
+              tester.getSize(card),
+              const Size(76, AppCategoryLayout.height),
+            );
             final label = find.descendant(
               of: card,
               matching: find.byType(Text),
@@ -185,14 +190,15 @@ void main() {
             child: Directionality(
               textDirection: TextDirection.rtl,
               child: Center(
-                child: SizedBox(
-                  width: 66,
-                  height: 84,
-                  child: CategoryTile(
-                    name: 'الصحة والعناية الشخصية',
-                    image: AppAssets.defaultProduct,
-                    accentColor: Colors.red,
-                    onTap: () => taps++,
+                child: Builder(
+                  builder: (context) => SizedBox(
+                    width: 66,
+                    height: CategoryTile.heightFor(context),
+                    child: CategoryTile(
+                      name: 'الصحة والعناية الشخصية',
+                      image: AppAssets.defaultProduct,
+                      onTap: () => taps++,
+                    ),
                   ),
                 ),
               ),
@@ -208,7 +214,7 @@ void main() {
     expect(panel.color, AppColors.categoryCardBackground);
     expect(panel.borderRadius, BorderRadius.circular(12));
     final label = find.text('الصحة والعناية الشخصية');
-    expect(tester.widget<Text>(label).maxLines, 1);
+    expect(tester.widget<Text>(label).maxLines, 2);
     expect(tester.widget<Text>(label).overflow, TextOverflow.ellipsis);
     expect(
       tester.getRect(card).contains(tester.getRect(label).topLeft),
@@ -223,8 +229,76 @@ void main() {
       AppImageRole.illustration,
     );
     expect(tester.getSize(find.byType(AppImage)), const Size(56, 56));
+    expect(tester.getSize(card).height, greaterThan(AppCategoryLayout.height));
+    expect(
+      find.descendant(of: card, matching: find.byType(FittedBox)),
+      findsNothing,
+    );
     await tester.tap(card);
     expect(taps, 1);
+    await tester.longPress(label);
+    await tester.pumpAndSettle();
+    expect(find.text('الصحة والعناية الشخصية'), findsNWidgets(2));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('category name wraps onto a second visible line', (tester) async {
+    const name = 'صحة وعناية';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Directionality(
+            textDirection: TextDirection.rtl,
+            child: SizedBox(
+              width: 76,
+              height: AppCategoryLayout.height,
+              child: CategoryTile(
+                name: name,
+                image: AppAssets.defaultProduct,
+                onTap: () {},
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(find.text(name));
+    final lines = paragraph
+        .getBoxesForSelection(
+          const TextSelection(baseOffset: 0, extentOffset: name.length),
+        )
+        .map((box) => box.top)
+        .toSet();
+    expect(lines, hasLength(2));
+    expect(paragraph.didExceedMaxLines, isFalse);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('category page title remains complete at large text size', (
+    tester,
+  ) async {
+    const title = 'الصحة والعناية الشخصية ومستحضرات التجميل والأدوات الطبية';
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MediaQuery(
+            data: const MediaQueryData(textScaler: TextScaler.linear(2)),
+            child: const Directionality(
+              textDirection: TextDirection.rtl,
+              child: SingleChildScrollView(
+                child: SizedBox(
+                  width: 288,
+                  child: PageTopBar(title: title, titleMaxLines: null),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    final paragraph = tester.renderObject<RenderParagraph>(find.text(title));
+    expect(paragraph.didExceedMaxLines, isFalse);
+    expect(paragraph.size.height, greaterThan(80));
     expect(tester.takeException(), isNull);
   });
 }

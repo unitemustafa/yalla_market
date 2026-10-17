@@ -5,12 +5,7 @@ class SessionExpiredNotifier extends ChangeNotifier {
 
   static final SessionExpiredNotifier instance = SessionExpiredNotifier();
 
-  int _version = 0;
-
-  int get version => _version;
-
   void notifyExpired() {
-    _version += 1;
     notifyListeners();
   }
 }

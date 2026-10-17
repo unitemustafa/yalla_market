@@ -48,15 +48,6 @@ class ShippingAddressData {
     );
   }
 
-  String get formatted {
-    return [
-      line1,
-      city,
-      state,
-      country,
-    ].where((part) => part.trim().isNotEmpty).join(', ');
-  }
-
   Map<String, Object?> toJson() {
     return {
       if (id != null && id!.isNotEmpty) 'id': id,
@@ -208,10 +199,6 @@ class OrderMarketSectionData {
   final double subtotal;
   final List<OrderItemData> items;
   final List<Map<String, dynamic>> offers;
-
-  int get itemCount {
-    return items.fold(0, (sum, item) => sum + item.quantity) + offers.length;
-  }
 
   String get pickupStatusLabel {
     final normalized = pickupStatus.trim().toLowerCase();

@@ -9,7 +9,6 @@ class UserProfileController extends ChangeNotifier
   static final UserProfileController instance = UserProfileController._();
 
   String _displayName = 'Guest User';
-  String _id = '';
   String _firstName = 'Guest';
   String _lastName = 'User';
   String _username = 'guest';
@@ -21,12 +20,10 @@ class UserProfileController extends ChangeNotifier
   DateTime? _birthDate;
   DateTime? _usernameChangedAt;
   String? _avatarUrl;
-  Uint8List? _avatarBytes;
   int _profileCompletionPercent = 100;
   List<String> _missingProfileFields = const [];
 
   String get displayName => _displayName;
-  String get id => _id;
   String get firstName => _firstName;
   String get lastName => _lastName;
   String get username => _username;
@@ -36,9 +33,7 @@ class UserProfileController extends ChangeNotifier
   String get gender => _gender;
   bool get hasPassword => _hasPassword;
   DateTime? get birthDate => _birthDate;
-  DateTime? get usernameChangedAt => _usernameChangedAt;
   String? get avatarUrl => _avatarUrl;
-  Uint8List? get avatarBytes => _avatarBytes;
   int get profileCompletionPercent => _profileCompletionPercent;
   List<String> get missingProfileFields => _missingProfileFields;
   bool get isProfileComplete => _missingProfileFields.isEmpty;
@@ -70,23 +65,9 @@ class UserProfileController extends ChangeNotifier
         .toUpperCase();
   }
 
-  void updateDisplayName(String value) {
-    final nextName = value.trim();
-    if (nextName.isEmpty || nextName == _displayName) return;
-
-    _displayName = nextName;
-    notifyListeners();
-  }
-
-  void updateAvatar(Uint8List bytes) {
-    _avatarBytes = bytes;
-    notifyListeners();
-  }
-
   void updateFromAuthUser(AuthUser user) {
     final nextDisplayName = '${user.firstName} ${user.lastName}'.trim();
 
-    _id = user.id;
     _firstName = user.firstName;
     _lastName = user.lastName;
     _displayName = nextDisplayName.isEmpty ? user.email : nextDisplayName;
@@ -102,7 +83,6 @@ class UserProfileController extends ChangeNotifier
     _birthDate = user.birthDate;
     _usernameChangedAt = user.usernameChangedAt;
     _avatarUrl = user.avatarUrl;
-    _avatarBytes = null;
     _profileCompletionPercent = user.profileCompletionPercent;
     _missingProfileFields = List.unmodifiable(user.missingProfileFields);
     notifyListeners();
@@ -110,7 +90,6 @@ class UserProfileController extends ChangeNotifier
 
   void reset() {
     _displayName = 'Guest User';
-    _id = '';
     _firstName = 'Guest';
     _lastName = 'User';
     _username = 'guest';
@@ -122,7 +101,6 @@ class UserProfileController extends ChangeNotifier
     _birthDate = null;
     _usernameChangedAt = null;
     _avatarUrl = null;
-    _avatarBytes = null;
     _profileCompletionPercent = 100;
     _missingProfileFields = const [];
     notifyListeners();

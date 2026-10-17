@@ -18,7 +18,14 @@ class StoreMarketCard extends StatelessWidget {
     this.keyPrefix = 'store',
   });
 
-  static const double height = 188;
+  static const double height = 200;
+
+  static double heightFor(BuildContext context) {
+    final scaler = MediaQuery.textScalerOf(context);
+    return height +
+        (scaler.scale(14) - 14) * 1.25 +
+        (scaler.scale(10.5) - 10.5) * 1.3 * 2;
+  }
 
   final StoreMarketData market;
   final VoidCallback onTap;
@@ -27,7 +34,7 @@ class StoreMarketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: height,
+      height: heightFor(context),
       child: Material(
         color: Colors.transparent,
         borderRadius: BorderRadius.circular(8),
@@ -337,7 +344,7 @@ class _StoreInformation extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             market.description,
-            maxLines: 1,
+            maxLines: 2,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.start,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(

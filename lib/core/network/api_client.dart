@@ -79,15 +79,6 @@ class ApiClient {
     return _unwrap<T>(response.data);
   }
 
-  Future<T> put<T>(String path, {Object? data, Options? options}) async {
-    final response = await _dio.put<Object?>(
-      path,
-      data: data,
-      options: _sessionOptions(options),
-    );
-    return _unwrap<T>(response.data);
-  }
-
   Future<T> delete<T>(String path, {Object? data, Options? options}) async {
     final response = await _dio.delete<Object?>(
       path,

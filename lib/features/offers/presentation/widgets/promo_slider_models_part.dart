@@ -27,16 +27,12 @@ class _PromoOfferData {
     required this.afterDiscount,
     required this.deliveryFee,
     required this.total,
-    required this.actionEn,
-    required this.actionAr,
     required this.products,
     this.visibilityMode = 'general',
     this.showInGeneral = true,
     this.regionSlugs = const [],
     this.regionNames = const [],
     this.linkUrl,
-    this.linkLabelEn,
-    this.linkLabelAr,
     this.displaySeconds = 5,
   });
 
@@ -65,16 +61,12 @@ class _PromoOfferData {
   final String afterDiscount;
   final String deliveryFee;
   final String total;
-  final String actionEn;
-  final String actionAr;
   final List<_OfferProduct> products;
   final String visibilityMode;
   final bool showInGeneral;
   final List<String> regionSlugs;
   final List<String> regionNames;
   final String? linkUrl;
-  final String? linkLabelEn;
-  final String? linkLabelAr;
   final int displaySeconds;
 
   bool get isGeneralVisibility =>
@@ -103,17 +95,6 @@ class _PromoOfferData {
   String subtitle(BuildContext context) =>
       _useArabicCopy(context) ? subtitleAr : subtitleEn;
 
-  String outsideDescription(BuildContext context) {
-    final productNames = products
-        .map((product) => product.title(context))
-        .where((title) => title.trim().isNotEmpty)
-        .join(' - ');
-    final description = subtitle(context);
-
-    if (productNames.isEmpty) return description;
-    return '$description - $productNames';
-  }
-
   String value(BuildContext context) =>
       _useArabicCopy(context) ? valueAr : valueEn;
 
@@ -127,16 +108,6 @@ class _PromoOfferData {
     final value = _useArabicCopy(context) ? discountRateAr : discountRateEn;
     return value.trim().isEmpty ? null : value;
   }
-
-  String? linkLabel(BuildContext context) {
-    final value = _useArabicCopy(context) ? linkLabelAr : linkLabelEn;
-    final fallback = linkUrl;
-    if (value == null || value.trim().isEmpty) return fallback;
-    return value;
-  }
-
-  String action(BuildContext context) =>
-      _useArabicCopy(context) ? actionAr : actionEn;
 
   bool get hasExternalLink => linkUrl?.trim().isNotEmpty ?? false;
 

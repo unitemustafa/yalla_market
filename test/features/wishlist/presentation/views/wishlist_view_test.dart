@@ -96,7 +96,7 @@ void main() {
           classificationId: 'category',
           products: const [],
           image: AppAssets.defaultStore,
-          coverImage: AppAssets.emptyStoreLight,
+          coverImage: AppAssets.defaultOffer,
           deliveryTimeMinMinutes: 10,
           deliveryTimeMaxMinutes: 30,
           accentColorValue: 0xFF013C7E,

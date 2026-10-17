@@ -29,11 +29,6 @@ class ProductPricing {
     return '${_numberText(percent)}%';
   }
 
-  static double applyDiscount(double price, String? discount) {
-    final percent = discountPercent(discount);
-    return price * (1 - (percent / 100));
-  }
-
   static double firstPrice(String? value, {String? discount}) {
     return _presentation(value, discount).first;
   }

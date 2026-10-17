@@ -63,7 +63,6 @@ class AddressLocationPickerController extends ChangeNotifier {
   bool get usesCurrentLocation => _usesCurrentLocation;
   String? get errorMessage => _errorMessage;
   String? get formattedAddress => _formattedAddress;
-  String? get placeId => _placeId;
 
   SelectedMapLocation get selectedLocation => SelectedMapLocation(
     latitude: _target.latitude,

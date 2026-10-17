@@ -21,7 +21,6 @@ class HomeCategories extends StatelessWidget {
         key: ValueKey('home_category_${category.id}'),
         name: category.name,
         image: category.image,
-        accentColor: category.color,
         onTap: () {
           Navigator.pushNamed(
             context,
@@ -38,7 +37,7 @@ class HomeCategories extends StatelessWidget {
     }
 
     return SizedBox(
-      height: AppCategoryLayout.height,
+      height: CategoryTile.heightFor(context),
       child: Row(
         key: const ValueKey('popular_categories_list'),
         children: [
@@ -66,7 +65,6 @@ class HomeCategories extends StatelessWidget {
               name: category.name,
               image: category.image,
               productCountLabel: category.productCountLabel,
-              color: Color(category.accentColorValue),
             ),
           )
           .toList(growable: false);
@@ -82,12 +80,10 @@ class _HomeCategoryViewData {
     required this.name,
     required this.image,
     required this.productCountLabel,
-    required this.color,
   });
 
   final String id;
   final String name;
   final String image;
   final String productCountLabel;
-  final Color color;
 }

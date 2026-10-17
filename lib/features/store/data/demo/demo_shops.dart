@@ -29,8 +29,6 @@ class MarketShopData {
   final List<ProductData> products;
 
   int get productCount => products.length;
-
-  String get productCountLabel => '$productCount منتج';
 }
 
 class MarketShops {

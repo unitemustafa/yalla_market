@@ -133,8 +133,8 @@ class _HomeCampaignSheet extends StatelessWidget {
                   ],
                 ),
                 PositionedDirectional(
-                  top: hasMedia ? 22 : 10,
-                  end: hasMedia ? 26 : 12,
+                  top: hasMedia ? 14 : 4,
+                  end: hasMedia ? 18 : 6,
                   child: IconButton(
                     tooltip: 'إغلاق',
                     onPressed: () => Navigator.pop(
@@ -142,15 +142,20 @@ class _HomeCampaignSheet extends StatelessWidget {
                       HomeCampaignSheetResult.dismissed,
                     ),
                     style: IconButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      minimumSize: const Size(44, 44),
-                      maximumSize: const Size(44, 44),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                      backgroundColor: Colors.black.withValues(alpha: 0.35),
+                      foregroundColor: Colors.white,
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(30, 30),
+                      maximumSize: const Size(30, 30),
+                      tapTargetSize: MaterialTapTargetSize.padded,
+                      visualDensity: VisualDensity.standard,
+                      shape: CircleBorder(
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.close_rounded, size: 20),
+                    icon: const Icon(Icons.close_rounded, size: 16),
                   ),
                 ),
               ],

@@ -16,10 +16,4 @@ class AppMedia {
   final String? marketLogin;
   final String? marketLoginPoster;
   final MediaFocalPoint marketLoginFocus;
-
-  String? onboardingAt(int index) => switch (index) {
-    0 => onboardingOne,
-    1 => onboardingTwo,
-    _ => onboardingThree,
-  };
 }

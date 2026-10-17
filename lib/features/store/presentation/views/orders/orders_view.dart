@@ -19,9 +19,8 @@ import 'order_presentation_models.dart';
 import 'orders_overview_widgets.dart';
 
 class OrdersView extends StatefulWidget {
-  const OrdersView({super.key, this.useDemoOrders, this.focusOrderId});
+  const OrdersView({super.key, this.focusOrderId});
 
-  final bool? useDemoOrders;
   final int? focusOrderId;
 
   @override

@@ -122,7 +122,6 @@ class SettingsAccountHero extends StatelessWidget {
                   child: AppAvatar(
                     size: 64,
                     initials: profile.initials,
-                    imageBytes: profile.avatarBytes,
                     imageUrl: profile.avatarUrl,
                     gender: profile.gender,
                     backgroundColor: Colors.white,

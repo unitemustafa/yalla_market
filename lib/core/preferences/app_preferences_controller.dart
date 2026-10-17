@@ -11,8 +11,6 @@ class AppPreferences {
 
   final ThemeMode themeMode;
 
-  bool get pushNotifications => mobileNotificationsEnabled;
-
   AppPreferences copyWith({
     bool? mobileNotificationsEnabled,
     ThemeMode? themeMode,
@@ -65,10 +63,6 @@ class AppPreferencesController extends ValueNotifier<AppPreferences> {
       value: enabled,
       nextPreferences: value.copyWith(mobileNotificationsEnabled: enabled),
     );
-  }
-
-  Future<void> setPushNotifications(bool enabled) {
-    return setMobileNotificationsEnabled(enabled);
   }
 
   Future<void> setThemeMode(ThemeMode themeMode) async {

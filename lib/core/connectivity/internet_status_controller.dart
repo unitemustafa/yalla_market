@@ -17,7 +17,6 @@ class InternetStatusController extends ChangeNotifier {
   bool _started = false;
   bool _isDisposed = false;
 
-  bool get hasStatus => _hasStatus;
   bool get isOffline => _hasStatus && _isOffline;
 
   Future<void> start() async {

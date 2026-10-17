@@ -388,7 +388,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: widget.productCount),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: widget.productCount,
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             const AppProductSkeletonGrid(),
@@ -402,7 +406,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: widget.productCount),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: widget.productCount,
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             AppErrorState(
@@ -421,7 +429,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: 'Choose your city'),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: 'Choose your city',
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             const AppEmptyState(
@@ -464,7 +476,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: widget.productCount),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: widget.productCount,
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             const AppSkeletonList(rowHeight: 150),
@@ -478,7 +494,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: widget.productCount),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: widget.productCount,
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             AppErrorState(
@@ -496,7 +516,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: widget.productCount),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: widget.productCount,
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             const AppSkeletonList(rowHeight: 150),
@@ -512,7 +536,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              PageTopBar(title: widget.brand, subtitle: widget.productCount),
+              PageTopBar(
+                titleMaxLines: null,
+                title: widget.brand,
+                subtitle: widget.productCount,
+              ),
               const AppRefreshAnchor(),
               const SizedBox(height: 22),
               const AppEmptyState(
@@ -574,7 +602,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                PageTopBar(title: title, subtitle: subtitle),
+                PageTopBar(
+                  titleMaxLines: null,
+                  title: title,
+                  subtitle: subtitle,
+                ),
                 const AppRefreshAnchor(),
                 const SizedBox(height: 18),
                 AppSearchField(
@@ -586,7 +618,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
                 if (availableMarketTypes.isNotEmpty) ...[
                   const SizedBox(height: 20),
                   MarketTypeRail(
-                    classificationName: classification?.name ?? title,
                     types: availableMarketTypes,
                     selectedId: effectiveTypeId,
                     onSelected: (value) {
@@ -784,7 +815,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PageTopBar(title: widget.brand, subtitle: subtitle),
+          PageTopBar(
+            titleMaxLines: null,
+            title: widget.brand,
+            subtitle: subtitle,
+          ),
           const AppRefreshAnchor(),
           const SizedBox(height: 18),
           LocalCategoryHeader(
@@ -835,7 +870,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            PageTopBar(title: widget.brand, subtitle: cityName),
+            PageTopBar(
+              titleMaxLines: null,
+              title: widget.brand,
+              subtitle: cityName,
+            ),
             const AppRefreshAnchor(),
             const SizedBox(height: 22),
             const AppEmptyState(
@@ -853,6 +892,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           PageTopBar(
+            titleMaxLines: null,
             title: shop.name,
             subtitle: '${widget.brand} • ${context.tr(shop.cityName)}',
           ),
@@ -863,7 +903,6 @@ class _BrandProductsViewState extends State<BrandProductsView> {
             status: ProductResultsStatus.ready,
             emptyTitle: 'المنيو فاضي',
             emptyMessage: 'لسه مفيش منتجات متاحة من المحل ده.',
-            loadingMessage: 'Loading menu...',
           ),
         ],
       ),
@@ -883,7 +922,11 @@ class _BrandProductsViewState extends State<BrandProductsView> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          PageTopBar(title: widget.brand, subtitle: widget.productCount),
+          PageTopBar(
+            titleMaxLines: null,
+            title: widget.brand,
+            subtitle: widget.productCount,
+          ),
           const AppRefreshAnchor(),
           const SizedBox(height: 18),
           BrandCard(

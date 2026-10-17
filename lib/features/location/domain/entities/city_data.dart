@@ -118,20 +118,6 @@ class CityData {
     );
   }
 
-  CityData asGeneralRegion() {
-    return CityData(
-      name: name,
-      slug: generalSlug,
-      nameAr: nameAr,
-      centerLatitude: centerLatitude,
-      centerLongitude: centerLongitude,
-      radiusKm: radiusKm,
-      boundaryGeoJson: boundaryGeoJson,
-      boundaryBbox: boundaryBbox,
-      source: RegionSource.general,
-    );
-  }
-
   Map<String, dynamic> toMarketRegionPatchJson() {
     if (isGeneral) return const {'mode': 'general'};
     return {
@@ -186,8 +172,6 @@ class CityData {
 
     return fromName(name) ?? CityData(name: name, slug: _customSlug(name));
   }
-
-  static bool isSupportedSlug(String? value) => fromSlug(value) != null;
 
   static String cleanRegionName(String value) {
     return value

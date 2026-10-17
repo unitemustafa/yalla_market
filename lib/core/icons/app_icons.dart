@@ -293,11 +293,6 @@ class AppIcons {
     fontFamily: _fontFamily,
     fontPackage: _fontPackage,
   );
-  static const IconData security_user = IconData(
-    0xebd7,
-    fontFamily: _fontFamily,
-    fontPackage: _fontPackage,
-  );
   static const IconData send_1 = IconData(
     0xebd9,
     fontFamily: _fontFamily,

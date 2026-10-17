@@ -123,7 +123,7 @@ void main() {
       'id': 1,
       'name': 'Store',
       'image': AppAssets.defaultStore,
-      'cover_image': AppAssets.emptyStoreLight,
+      'cover_image': AppAssets.defaultOffer,
       'cover_focus': {'x': 0.75, 'y': 0.2},
     });
 
@@ -141,7 +141,7 @@ const _market = StoreMarketData(
   products: [],
   productCount: 3,
   image: AppAssets.defaultStore,
-  coverImage: AppAssets.emptyStoreLight,
+  coverImage: AppAssets.defaultOffer,
   description: 'Fresh products delivered to your door',
   deliveryTimeMinMinutes: 20,
   deliveryTimeMaxMinutes: 35,

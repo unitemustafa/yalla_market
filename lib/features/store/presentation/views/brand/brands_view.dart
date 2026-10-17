@@ -140,7 +140,7 @@ class _AllCategoriesGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return GridLayout(
       itemCount: categories.length,
-      mainAxisExtent: AppCategoryLayout.height,
+      mainAxisExtent: CategoryTile.heightFor(context),
       mainAxisSpacing: AppCategoryLayout.rowSpacing,
       minimumCardWidth: AppCategoryLayout.cardWidth,
       minCrossAxisCount: AppCategoryLayout.columns,
@@ -154,7 +154,6 @@ class _AllCategoriesGrid extends StatelessWidget {
           key: ValueKey('all_category_${category.id}'),
           name: category.name,
           image: category.image,
-          accentColor: Color(category.accentColorValue),
           onTap: () {
             Navigator.pushNamed(
               context,

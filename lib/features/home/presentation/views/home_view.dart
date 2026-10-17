@@ -766,7 +766,6 @@ class _TopProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     return AppAvatar(
       initials: profile.initials,
-      imageBytes: profile.avatarBytes,
       imageUrl: profile.avatarUrl,
       gender: profile.gender,
       size: 46,

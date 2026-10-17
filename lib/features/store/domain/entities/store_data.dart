@@ -1,7 +1,6 @@
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/domain/media_focal_point.dart';
 import '../../../../core/network/api_endpoints.dart';
-import 'category_data.dart';
 import 'product_data.dart';
 
 class StoreData {
@@ -119,20 +118,6 @@ class StoreClassificationData {
 
   String get marketCountLabel {
     return '$marketCount store${marketCount == 1 ? '' : 's'}';
-  }
-
-  CategoryData toCategoryData() {
-    return CategoryData(
-      id: id,
-      name: name,
-      slug: id,
-      productCount: products.length,
-      image: image,
-      galleryImages: const [],
-      accentColorValue: accentColorValue,
-      marketCount: marketCount,
-      classificationType: classificationType,
-    );
   }
 }
 
@@ -260,31 +245,6 @@ class StoreMarketData {
       accentColorValue: _accentColorFor(id.isEmpty ? name : id),
       isPopular: json['is_popular'] == true,
       createdAt: DateTime.tryParse(json['created_at']?.toString() ?? ''),
-    );
-  }
-
-  StoreMarketData copyWithProducts(List<ProductData> products) {
-    return StoreMarketData(
-      id: id,
-      name: name,
-      branch: branch,
-      status: status,
-      classificationId: classificationId,
-      products: products,
-      subcategories: subcategories,
-      marketTypeIds: marketTypeIds,
-      image: image,
-      coverImage: coverImage,
-      coverFocus: coverFocus,
-      description: description,
-      deliveryTimeMinMinutes: deliveryTimeMinMinutes,
-      deliveryTimeMaxMinutes: deliveryTimeMaxMinutes,
-      productCount: productCount,
-      minimumProductPrice: minimumProductPrice,
-      isLiked: isLiked,
-      accentColorValue: accentColorValue,
-      isPopular: isPopular,
-      createdAt: createdAt,
     );
   }
 

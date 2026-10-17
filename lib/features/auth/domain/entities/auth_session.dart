@@ -27,6 +27,4 @@ class AuthSession {
   final AuthSessionMode mode;
   final int? otpResendAfterSeconds;
   final DateTime? registrationExpiresAt;
-
-  bool get isRemembered => mode.isRemembered;
 }

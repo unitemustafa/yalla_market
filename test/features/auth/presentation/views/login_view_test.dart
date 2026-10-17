@@ -38,8 +38,10 @@ void main() {
   ) async {
     final repository = _EmailLessFacebookRepository();
     await _pumpLogin(tester, repository);
-    await tester.ensureVisible(find.text('Facebook'));
-    await tester.tap(find.text('Facebook'));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('login_facebook_button')),
+    );
+    await tester.tap(find.byKey(const ValueKey('login_facebook_button')));
     await tester.pumpAndSettle();
     expect(find.text(AppTranslations.current.verifyEmailTitle), findsOneWidget);
     expect(find.text('Complete your account'), findsNothing);
@@ -77,8 +79,10 @@ void main() {
       providerEmail: sampleUser.email,
     );
     await _pumpLogin(tester, repository);
-    await tester.ensureVisible(find.text('Facebook'));
-    await tester.tap(find.text('Facebook'));
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('login_facebook_button')),
+    );
+    await tester.tap(find.byKey(const ValueKey('login_facebook_button')));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(repository.deferredProfile, isTrue);
@@ -152,8 +156,12 @@ void main() {
       tester.widget<WarningCheckbox>(find.byType(WarningCheckbox)).value,
       isTrue,
     );
-    expect(find.text('Google'), findsOneWidget);
-    expect(find.text('Facebook'), findsOneWidget);
+    expect(find.byKey(const ValueKey('login_google_button')), findsOneWidget);
+    expect(find.text('Google'), findsNothing);
+    expect(find.text('Facebook'), findsNothing);
+    expect(find.byTooltip('Google'), findsOneWidget);
+    expect(find.byTooltip('Facebook'), findsOneWidget);
+    expect(find.byKey(const ValueKey('login_facebook_button')), findsOneWidget);
     expect(find.text('Apple'), findsNothing);
   });
 
@@ -163,13 +171,16 @@ void main() {
       (tester) async {
         final repository = _FacebookLoginRepository();
         await _pumpLogin(tester, repository);
-        expect(find.text('Facebook'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('login_facebook_button')),
+          findsOneWidget,
+        );
         expect(find.text('Apple'), findsNothing);
         if (!rememberMe) {
           await tester.tap(find.text('Remember Me'));
           await tester.pump();
         }
-        final facebook = find.text('Facebook');
+        final facebook = find.byKey(const ValueKey('login_facebook_button'));
         await tester.ensureVisible(facebook);
         await tester.tap(facebook);
         await tester.pump();

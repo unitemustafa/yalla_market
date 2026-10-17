@@ -51,11 +51,6 @@ class FakeApiClient implements ApiClient {
   }
 
   @override
-  Future<T> put<T>(String path, {Object? data, Options? options}) async {
-    return _send<T>(FakeApiRequest(method: 'PUT', path: path, data: data));
-  }
-
-  @override
   Future<T> delete<T>(String path, {Object? data, Options? options}) async {
     return _send<T>(FakeApiRequest(method: 'DELETE', path: path, data: data));
   }

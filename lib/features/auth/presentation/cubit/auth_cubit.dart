@@ -71,7 +71,6 @@ class AuthCubit extends Cubit<AuthState> {
   }
 
   bool get hasPendingSignup => _pendingVerificationEmail != null;
-  String? get pendingVerificationEmail => _pendingVerificationEmail;
   String? get lastProfileUpdateError => _lastProfileUpdateError;
   String? get lastPasswordResetError => _lastPasswordResetError;
   String? get lastAccountDeletionError => _lastAccountDeletionError;

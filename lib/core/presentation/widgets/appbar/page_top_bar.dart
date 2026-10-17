@@ -13,6 +13,7 @@ class PageTopBar extends StatelessWidget {
     this.showBackButton = true,
     this.onBackPressed,
     this.actions = const [],
+    this.titleMaxLines = 1,
   });
 
   final String title;
@@ -20,6 +21,7 @@ class PageTopBar extends StatelessWidget {
   final bool showBackButton;
   final VoidCallback? onBackPressed;
   final List<Widget> actions;
+  final int? titleMaxLines;
 
   @override
   Widget build(BuildContext context) {
@@ -47,8 +49,10 @@ class PageTopBar extends StatelessWidget {
                   fontSize: AppFontSizes.pageTitle,
                   fontWeight: FontWeight.w900,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+                maxLines: titleMaxLines,
+                overflow: titleMaxLines == null
+                    ? TextOverflow.clip
+                    : TextOverflow.ellipsis,
               ),
               if (subtitle != null) ...[
                 const SizedBox(height: 2),

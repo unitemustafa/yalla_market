@@ -35,7 +35,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<OrderHistoryCubit>.value(
         value: orderHistoryCubit,
-        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+        child: const MaterialApp(home: OrdersView()),
       ),
     );
     await tester.pumpAndSettle();
@@ -60,7 +60,7 @@ void main() {
           value: cubit,
           child: const MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: OrdersView(useDemoOrders: false),
+            home: OrdersView(),
           ),
         ),
       );
@@ -105,7 +105,7 @@ void main() {
           value: cubit,
           child: const MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: OrdersView(useDemoOrders: false),
+            home: OrdersView(),
           ),
         ),
       );
@@ -137,7 +137,7 @@ void main() {
       await tester.pumpWidget(
         BlocProvider<OrderHistoryCubit>.value(
           value: orderHistoryCubit,
-          child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+          child: const MaterialApp(home: OrdersView()),
         ),
       );
       await tester.pumpAndSettle();
@@ -172,7 +172,7 @@ void main() {
             GlobalWidgetsLocalizations.delegate,
             GlobalCupertinoLocalizations.delegate,
           ],
-          home: OrdersView(useDemoOrders: false),
+          home: OrdersView(),
         ),
       ),
     );
@@ -230,7 +230,7 @@ void main() {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            home: OrdersView(useDemoOrders: false),
+            home: OrdersView(),
           ),
         ),
       );
@@ -269,7 +269,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<OrderHistoryCubit>.value(
         value: orderHistoryCubit,
-        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+        child: const MaterialApp(home: OrdersView()),
       ),
     );
     await tester.pumpAndSettle();
@@ -311,7 +311,7 @@ void main() {
       await tester.pumpWidget(
         BlocProvider<OrderHistoryCubit>.value(
           value: cubit,
-          child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+          child: const MaterialApp(home: OrdersView()),
         ),
       );
       await tester.pumpAndSettle();
@@ -355,7 +355,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<OrderHistoryCubit>.value(
         value: orderHistoryCubit,
-        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+        child: const MaterialApp(home: OrdersView()),
       ),
     );
     await tester.pumpAndSettle();
@@ -387,7 +387,7 @@ void main() {
     await tester.pumpWidget(
       BlocProvider<OrderHistoryCubit>.value(
         value: orderHistoryCubit,
-        child: const MaterialApp(home: OrdersView(useDemoOrders: false)),
+        child: const MaterialApp(home: OrdersView()),
       ),
     );
     await tester.pumpAndSettle();

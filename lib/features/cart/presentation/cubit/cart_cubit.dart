@@ -13,8 +13,6 @@ class CartCubit extends Cubit<List<CartItemData>> {
 
   String? lastErrorMessage;
 
-  bool get usesRemoteCart => false;
-
   Future<void> loadCartForUser(String userKey) async {
     final normalizedUserKey = userKey.trim();
     if (normalizedUserKey.isEmpty) {

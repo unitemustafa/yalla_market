@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../../../core/constants/app_constants.dart';
+import '../../../../../core/presentation/widgets/brands/category_label.dart';
 import '../../../../../core/presentation/widgets/selection/category_selection.dart';
 
 import '../../../../../core/icons/app_icons.dart';
@@ -10,16 +11,17 @@ import '../../../domain/entities/store_data.dart';
 class MarketTypeRail extends StatelessWidget {
   const MarketTypeRail({
     super.key,
-    required this.classificationName,
     required this.types,
     required this.selectedId,
     required this.onSelected,
   });
 
-  final String classificationName;
   final List<StoreMarketTypeData> types;
   final String? selectedId;
   final ValueChanged<String?> onSelected;
+
+  static double _itemHeight(BuildContext context) =>
+      78 + CategoryLabel.heightFor(context, AppFontSizes.small);
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +37,7 @@ class MarketTypeRail extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 92,
+          height: _itemHeight(context),
           child: ListView.separated(
             key: const ValueKey('market_type_rail'),
             scrollDirection: Axis.horizontal,
@@ -60,6 +62,18 @@ class MarketTypeRail extends StatelessWidget {
             },
           ),
         ),
+        if (types.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            types
+                .firstWhere((type) => type.id == effectiveSelectedId)
+                .localizedName(languageCode),
+            key: const ValueKey('selected_market_type_title'),
+            style: Theme.of(
+              context,
+            ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w800),
+          ),
+        ],
       ],
     );
   }
@@ -126,9 +140,9 @@ class MarketTypeRail extends StatelessWidget {
                 child: GridView.builder(
                   key: const ValueKey('market_type_all_sheet'),
                   padding: const EdgeInsets.fromLTRB(12, 18, 12, 28),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 4,
-                    mainAxisExtent: 112,
+                    mainAxisExtent: _itemHeight(sheetContext),
                     crossAxisSpacing: 8,
                     mainAxisSpacing: 12,
                   ),
@@ -191,11 +205,8 @@ class _MarketTypeMoreItem extends StatelessWidget {
                 child: Icon(AppIcons.category, color: colors.primary, size: 25),
               ),
               const SizedBox(height: 6),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
+              CategoryLabel(
+                label: label,
                 style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   color: colors.primary,
                   fontSize: AppFontSizes.small,
@@ -289,12 +300,7 @@ class _MarketTypeItem extends StatelessWidget {
                               ? FontWeight.w900
                               : FontWeight.w700,
                         ),
-                child: Text(
-                  label,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                ),
+                child: CategoryLabel(label: label),
               ),
             ],
           ),

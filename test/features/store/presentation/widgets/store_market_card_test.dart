@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -13,6 +14,54 @@ import 'package:yalla_market/features/wishlist/domain/usecases/market_wishlist_u
 import 'package:yalla_market/features/wishlist/presentation/cubit/market_wishlist_cubit.dart';
 
 void main() {
+  for (final scale in [1.0, 1.5, 2.0]) {
+    testWidgets(
+      'description uses two lines in a compact card at scale $scale',
+      (tester) async {
+        const description =
+            'كل احتياجات البيت من منتجات طازجة وأطعمة ومشروبات يومية';
+        await tester.pumpWidget(
+          MaterialApp(
+            home: MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+              child: Scaffold(
+                body: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: Center(
+                    child: SizedBox(
+                      width: 230,
+                      child: StoreMarketCard(
+                        market: _market(1, description: description),
+                        onTap: () {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final label = find.text(description);
+        final paragraph = tester.renderObject<RenderParagraph>(label);
+        final lines = paragraph
+            .getBoxesForSelection(
+              const TextSelection(
+                baseOffset: 0,
+                extentOffset: description.length,
+              ),
+            )
+            .map((box) => box.top)
+            .toSet();
+        expect(lines, hasLength(2));
+        final details = tester.getRect(
+          find.byKey(const ValueKey('store_market_details')),
+        );
+        expect(tester.getRect(label).bottom, lessThan(details.bottom - 37));
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('floats store details over the full-width cover', (tester) async {
     for (var productCount = 0; productCount <= 3; productCount++) {
       await tester.pumpWidget(
@@ -102,7 +151,7 @@ void main() {
     final image = tester.widget<AppImage>(
       find.byKey(const ValueKey('dark_store_market_cover')),
     );
-    expect(image.source, AppAssets.emptyStoreLight);
+    expect(image.source, AppAssets.defaultOffer);
   });
 
   testWidgets('fits compact iPhone widths with long Arabic content', (
@@ -196,7 +245,11 @@ void main() {
   });
 }
 
-StoreMarketData _market(int productCount, {String name = 'Unified Store'}) {
+StoreMarketData _market(
+  int productCount, {
+  String name = 'Unified Store',
+  String description = 'Everyday essentials',
+}) {
   return StoreMarketData(
     id: 'market',
     name: name,
@@ -205,8 +258,8 @@ StoreMarketData _market(int productCount, {String name = 'Unified Store'}) {
     classificationId: 'classification',
     products: List.generate(productCount, _product),
     image: AppAssets.defaultStore,
-    coverImage: AppAssets.emptyStoreLight,
-    description: 'Everyday essentials',
+    coverImage: AppAssets.defaultOffer,
+    description: description,
     deliveryTimeMinMinutes: 20,
     deliveryTimeMaxMinutes: 30,
     accentColorValue: 0xFF013C7E,

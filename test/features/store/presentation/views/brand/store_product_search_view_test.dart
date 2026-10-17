@@ -274,6 +274,6 @@ const _market = StoreMarketData(
   classificationId: 'food',
   products: [],
   image: AppAssets.defaultStore,
-  coverImage: AppAssets.emptyStoreLight,
+  coverImage: AppAssets.defaultOffer,
   accentColorValue: 0xFF013C7E,
 );

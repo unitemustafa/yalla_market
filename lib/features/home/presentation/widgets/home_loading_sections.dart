@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_media_specs.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/presentation/widgets/brands/category_tile.dart';
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 
 class HomePromoSkeleton extends StatelessWidget {
@@ -22,46 +23,46 @@ class HomeCatalogSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
-    children: const [
-      AppSkeleton(child: SkeletonBox(height: 20, width: 150, radius: 6)),
-      SizedBox(height: 12),
+    children: [
+      const AppSkeleton(child: SkeletonBox(height: 20, width: 150, radius: 6)),
+      const SizedBox(height: 12),
       AppSkeleton(
         child: Row(
           children: [
             Expanded(
               child: SkeletonBox(
-                height: AppCategoryLayout.height,
+                height: CategoryTile.heightFor(context),
                 radius: AppCategoryLayout.cornerRadius,
               ),
             ),
-            SizedBox(width: AppCategoryLayout.spacing),
+            const SizedBox(width: AppCategoryLayout.spacing),
             Expanded(
               child: SkeletonBox(
-                height: AppCategoryLayout.height,
+                height: CategoryTile.heightFor(context),
                 radius: AppCategoryLayout.cornerRadius,
               ),
             ),
-            SizedBox(width: AppCategoryLayout.spacing),
+            const SizedBox(width: AppCategoryLayout.spacing),
             Expanded(
               child: SkeletonBox(
-                height: AppCategoryLayout.height,
+                height: CategoryTile.heightFor(context),
                 radius: AppCategoryLayout.cornerRadius,
               ),
             ),
-            SizedBox(width: AppCategoryLayout.spacing),
+            const SizedBox(width: AppCategoryLayout.spacing),
             Expanded(
               child: SkeletonBox(
-                height: AppCategoryLayout.height,
+                height: CategoryTile.heightFor(context),
                 radius: AppCategoryLayout.cornerRadius,
               ),
             ),
           ],
         ),
       ),
-      SizedBox(height: 22),
-      AppSkeleton(child: SkeletonBox(height: 20, width: 150, radius: 6)),
-      SizedBox(height: 14),
-      AppProductSkeletonRail(),
+      const SizedBox(height: 22),
+      const AppSkeleton(child: SkeletonBox(height: 20, width: 150, radius: 6)),
+      const SizedBox(height: 14),
+      const AppProductSkeletonRail(),
     ],
   );
 }

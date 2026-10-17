@@ -156,7 +156,7 @@ void main() {
   });
 
   testWidgets('1000 orders retain the lazy separated list', (tester) async {
-    await mount(tester, const OrdersView(useDemoOrders: false));
+    await mount(tester, const OrdersView());
     expect(
       find.byType(OrderListItem).evaluate().length,
       inInclusiveRange(1, 10),

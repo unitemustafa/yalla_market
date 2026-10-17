@@ -65,23 +65,6 @@ class CustomSnackBar {
     );
   }
 
-  static void showPersistentSuccess({
-    required BuildContext context,
-    required String title,
-    String? message,
-    String actionLabel = 'Done',
-  }) {
-    _show(
-      context: context,
-      title: title,
-      message: message,
-      icon: AppIcons.tick_circle,
-      accentColor: AppColors.success,
-      duration: const Duration(days: 365),
-      actionLabel: actionLabel,
-    );
-  }
-
   static void showWarning({
     required BuildContext context,
     required String title,

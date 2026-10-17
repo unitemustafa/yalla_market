@@ -4,20 +4,24 @@ import '../../../constants/app_colors.dart';
 import '../../../constants/app_constants.dart';
 import '../../../localization/app_translations.dart';
 import '../images/app_image.dart';
+import 'category_label.dart';
 
 class CategoryTile extends StatelessWidget {
   const CategoryTile({
     super.key,
     required this.name,
     required this.image,
-    required this.accentColor,
     required this.onTap,
   });
 
   final String name;
   final String image;
-  final Color accentColor;
   final VoidCallback onTap;
+
+  static double heightFor(BuildContext context) =>
+      AppCategoryLayout.height +
+      CategoryLabel.heightFor(context, AppFontSizes.caption) -
+      (AppFontSizes.caption * CategoryLabel.lineHeight * 2 + 4);
 
   @override
   Widget build(BuildContext context) {
@@ -55,26 +59,13 @@ class CategoryTile extends StatelessWidget {
                 ),
               ),
               Expanded(
-                child: LayoutBuilder(
-                  builder: (context, constraints) => Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: SizedBox(
-                        width: constraints.maxWidth,
-                        child: Text(
-                          context.tr(name),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.labelMedium
-                              ?.copyWith(
-                                color: textColor,
-                                fontSize: AppFontSizes.caption,
-                                height: 1,
-                                fontWeight: FontWeight.w600,
-                              ),
-                        ),
-                      ),
+                child: Center(
+                  child: CategoryLabel(
+                    label: context.tr(name),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: textColor,
+                      fontSize: AppFontSizes.caption,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),

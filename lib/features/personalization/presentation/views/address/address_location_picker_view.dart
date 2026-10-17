@@ -434,7 +434,6 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
       target: target,
       tileUrlTemplate:
           widget.tileUrlTemplateOverride ?? MapTilerMapConfig.tileUrl(),
-      isInsideCity: isInsideCity,
       locationLabel: locationLabel,
       title: context.tr('Delivery address'),
       deliveryMessage: context.tr(

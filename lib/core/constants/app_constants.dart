@@ -8,7 +8,7 @@ abstract final class AppRadius {
 
 /// Shared category layout measured from the reference at a 360 logical-pixel width.
 abstract final class AppCategoryLayout {
-  static const height = 84.0;
+  static const height = 100.0;
   static const cardWidth = 76.0;
   static const iconSize = 56.0;
   static const cornerRadius = 12.0;

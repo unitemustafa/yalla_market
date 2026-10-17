@@ -49,11 +49,6 @@ class PersistentJsonCache {
     await preferences.setString(_storageKey(key), jsonEncode(envelope));
   }
 
-  Future<void> remove(String key) async {
-    final preferences = await SharedPreferences.getInstance();
-    await preferences.remove(_storageKey(key));
-  }
-
   String _storageKey(String key) {
     final normalized = key.trim().toLowerCase().replaceAll(
       RegExp(r'[^a-z0-9._-]+'),

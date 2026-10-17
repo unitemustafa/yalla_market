@@ -1,16 +1,6 @@
 import 'auth_session.dart';
 
-enum SocialAuthProvider {
-  google,
-  facebook,
-  apple;
-
-  String get displayName => switch (this) {
-    SocialAuthProvider.google => 'Google',
-    SocialAuthProvider.facebook => 'Facebook',
-    SocialAuthProvider.apple => 'Apple',
-  };
-}
+enum SocialAuthProvider { google, facebook, apple }
 
 enum SocialAuthAction { authenticated, completeProfile, linkAccount }
 

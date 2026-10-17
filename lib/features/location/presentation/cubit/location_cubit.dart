@@ -136,15 +136,6 @@ class LocationCubit extends Cubit<LocationState> {
     );
   }
 
-  Future<bool> hasSeenCitySelection() async {
-    final result = await _useCases.hasSeenCitySelection();
-    return result.when(success: (seen) => seen, failure: (_) => false);
-  }
-
-  Future<void> markCitySelectionSeen() async {
-    await _useCases.markCitySelectionSeen();
-  }
-
   Future<bool> clearSelectedCity() async {
     final result = await _useCases.clearSelectedCity();
     return result.when(
@@ -238,43 +229,6 @@ class LocationCubit extends Cubit<LocationState> {
         return null;
       },
     );
-  }
-
-  Future<CityData?> previewCurrentLocation() async {
-    final result = await _useCases.detectCurrentLocation(
-      requestPermission: false,
-    );
-    return result.when(success: (city) => city, failure: (_) => null);
-  }
-
-  Future<CityData?> useCurrentLocation() async {
-    emit(LocationDetecting(state.selectedCity, state.availableCities));
-
-    final result = await _useCases.useCurrentLocation();
-    return result.when(
-      success: (city) {
-        emit(LocationReady(city, state.availableCities));
-        return city;
-      },
-      failure: (failure) {
-        emit(
-          LocationFailure(
-            failure.message,
-            state.selectedCity,
-            state.availableCities,
-          ),
-        );
-        return null;
-      },
-    );
-  }
-
-  Future<void> openAppSettings() async {
-    await _useCases.openAppSettings();
-  }
-
-  Future<void> openLocationSettings() async {
-    await _useCases.openLocationSettings();
   }
 
   String _suggestionKey(CityData? current, CityData? detected) {

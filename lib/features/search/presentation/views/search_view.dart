@@ -208,7 +208,6 @@ class _SearchViewState extends State<SearchView> {
                                             )
                                           else if (query.isEmpty)
                                             _SearchStarter(
-                                              isDark: isDark,
                                               onQuerySelected: (value) =>
                                                   _queryController.text = value,
                                             )
@@ -517,9 +516,8 @@ class _FilterBar extends StatelessWidget {
 }
 
 class _SearchStarter extends StatelessWidget {
-  const _SearchStarter({required this.isDark, required this.onQuerySelected});
+  const _SearchStarter({required this.onQuerySelected});
 
-  final bool isDark;
   final ValueChanged<String> onQuerySelected;
 
   @override

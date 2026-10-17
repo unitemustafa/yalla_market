@@ -1,14 +1,13 @@
 import 'product_data.dart';
 
 enum StoreProductSort {
-  name('name', 'Name'),
-  priceAsc('price_asc', 'Lower Price'),
-  priceDesc('price_desc', 'Higher Price'),
-  newest('newest', 'Newest');
+  name('name'),
+  priceAsc('price_asc'),
+  priceDesc('price_desc'),
+  newest('newest');
 
-  const StoreProductSort(this.apiValue, this.label);
+  const StoreProductSort(this.apiValue);
   final String apiValue;
-  final String label;
 }
 
 class StoreProductPage {

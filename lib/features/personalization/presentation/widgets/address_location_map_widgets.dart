@@ -18,7 +18,6 @@ class AddressLocationMapPage extends StatelessWidget {
     required this.tileProvider,
     required this.target,
     required this.tileUrlTemplate,
-    required this.isInsideCity,
     required this.locationLabel,
     required this.title,
     required this.deliveryMessage,
@@ -37,7 +36,6 @@ class AddressLocationMapPage extends StatelessWidget {
   final NetworkTileProvider tileProvider;
   final DeviceCoordinates target;
   final String tileUrlTemplate;
-  final bool isInsideCity;
   final String? locationLabel;
   final String title;
   final String deliveryMessage;

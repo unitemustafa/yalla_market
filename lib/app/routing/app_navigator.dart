@@ -14,11 +14,4 @@ abstract final class AppNavigator {
       (route) => false,
     );
   }
-
-  static void goToAccountDisabled() {
-    key.currentState?.pushNamedAndRemoveUntil(
-      AppRoutes.accountDisabled,
-      (route) => false,
-    );
-  }
 }

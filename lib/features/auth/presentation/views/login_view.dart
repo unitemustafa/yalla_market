@@ -89,7 +89,6 @@ class _LoginViewState extends State<LoginView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDarkMode = theme.brightness == Brightness.dark;
-    final logoAsset = AppAssets.themedLogo(isDarkMode: isDarkMode);
     final strings = AppTranslations.of(context);
 
     return BlocConsumer<AuthCubit, AuthState>(
@@ -255,7 +254,7 @@ class _LoginViewState extends State<LoginView> {
                                           end: Alignment.bottomCenter,
                                           colors: [
                                             Colors.black.withValues(
-                                              alpha: isDarkMode ? 0.35 : 0.05,
+                                              alpha: isDarkMode ? 0.40 : 0.28,
                                             ),
                                             Colors.transparent,
                                             Colors.black.withValues(
@@ -415,41 +414,16 @@ class _LoginViewState extends State<LoginView> {
                                     ),
                                   ),
 
-                                  // Centered floating logo badge positioned on the curve
+                                  // Floating ribbon wordmark across the sheet curve.
                                   Positioned(
-                                    top: -37,
-                                    child: Container(
-                                      width: 74,
-                                      height: 74,
-                                      padding: const EdgeInsets.all(5),
-                                      decoration: BoxDecoration(
-                                        color: isDarkMode
-                                            ? const Color(0xFF013C7E)
-                                            : Colors.white,
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: surfaceColor,
-                                          width: 3.5,
-                                        ),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(
-                                              0xFF013C7E,
-                                            ).withValues(alpha: 0.35),
-                                            blurRadius: 14,
-                                            offset: const Offset(0, 4),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(15),
-                                        child: AppImage(
-                                          source: logoAsset,
-                                          role: AppImageRole.logo,
-                                          cacheWidth: 160,
-                                          cacheHeight: 160,
-                                        ),
-                                      ),
+                                    top: -32,
+                                    child: AppImage(
+                                      source: AppAssets.loginBrandLogo,
+                                      role: AppImageRole.logo,
+                                      width: 192,
+                                      height: 64,
+                                      cacheWidth: 576,
+                                      semanticLabel: 'Yalla Market',
                                     ),
                                   ),
                                 ],
@@ -465,21 +439,29 @@ class _LoginViewState extends State<LoginView> {
                           bottom: false,
                           child: Tooltip(
                             message: strings.languageTooltip,
-                            child: TextButton.icon(
+                            child: TextButton(
                               key: const ValueKey('login_language_switcher'),
                               onPressed: () => AppLanguageController.instance
                                   .toggleLanguage(),
                               style: TextButton.styleFrom(
-                                backgroundColor: surfaceColor,
-                                foregroundColor: theme.colorScheme.primary,
+                                backgroundColor: Colors.transparent,
+                                foregroundColor: const Color(0xFFFFC233),
                                 minimumSize: const Size(48, 48),
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: 16,
+                                  horizontal: 8,
                                 ),
-                                shape: const StadiumBorder(),
+                                textStyle: theme.textTheme.labelLarge?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  shadows: const [
+                                    Shadow(
+                                      color: Color(0x99000000),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              icon: const Icon(AppIcons.global, size: 20),
-                              label: Text(
+                              child: Text(
                                 strings.language.isArabic
                                     ? AppLanguage.english.label
                                     : AppLanguage.arabic.label,
@@ -613,31 +595,34 @@ class _LoginViewState extends State<LoginView> {
         ),
         const SizedBox(height: 18),
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: _socialPillButton(
-                context,
-                provider: SocialAuthProvider.google,
-                icon: Image.asset(AppAssets.googleLogo, width: 20, height: 20),
-                label: 'Google',
-                isLoading: isLoading,
-                isDarkMode: isDarkMode,
-              ),
+            _socialIconButton(
+              context,
+              provider: SocialAuthProvider.google,
+              icon: Image.asset(AppAssets.googleLogo, width: 30, height: 30),
+              label: 'Google',
+              isLoading: isLoading,
+              isDarkMode: isDarkMode,
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: _socialPillButton(
-                context,
-                provider: SocialAuthProvider.facebook,
-                icon: const FaIcon(
-                  FontAwesomeIcons.facebookF,
-                  size: 20,
+            _socialIconButton(
+              context,
+              provider: SocialAuthProvider.facebook,
+              icon: const DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: FaIcon(
+                  FontAwesomeIcons.facebook,
+                  size: 30,
                   color: Color(0xFF1877F2),
                 ),
-                label: 'Facebook',
-                isLoading: isLoading,
-                isDarkMode: isDarkMode,
               ),
+              label: 'Facebook',
+              isLoading: isLoading,
+              isDarkMode: isDarkMode,
             ),
           ],
         ),
@@ -647,7 +632,7 @@ class _LoginViewState extends State<LoginView> {
     );
   }
 
-  Widget _socialPillButton(
+  Widget _socialIconButton(
     BuildContext context, {
     required SocialAuthProvider provider,
     required Widget icon,
@@ -655,50 +640,37 @@ class _LoginViewState extends State<LoginView> {
     required bool isLoading,
     required bool isDarkMode,
   }) {
-    final bgColor = isDarkMode
-        ? const Color(0xFF23242A)
-        : const Color(0xFFF3F4F6);
+    final bgColor = isDarkMode ? const Color(0xFF23242A) : Colors.white;
     final borderColor = isDarkMode
         ? const Color(0xFF383A42)
         : const Color(0xFFE5E7EB);
-    final textColor = isDarkMode ? Colors.white : const Color(0xFF1F2937);
+    final accessibleLabel = context.tr(label);
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(24),
-        onTap: isLoading
-            ? null
-            : () => context.read<AuthCubit>().socialSignIn(
-                provider: provider,
-                rememberMe: _rememberMe,
-              ),
-        child: Ink(
-          height: 48,
-          decoration: BoxDecoration(
-            color: bgColor,
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: borderColor, width: 1.1),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              icon,
-              const SizedBox(width: 8),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    context.tr(label),
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+    return Tooltip(
+      message: accessibleLabel,
+      excludeFromSemantics: true,
+      child: SizedBox(
+        width: 96,
+        height: 56,
+        child: OutlinedButton(
+          key: ValueKey('login_${provider.name}_button'),
+          onPressed: isLoading
+              ? null
+              : () => context.read<AuthCubit>().socialSignIn(
+                  provider: provider,
+                  rememberMe: _rememberMe,
                 ),
-              ),
-            ],
+          style: OutlinedButton.styleFrom(
+            backgroundColor: bgColor,
+            padding: EdgeInsets.zero,
+            side: BorderSide(color: borderColor, width: 1.1),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: Semantics(
+            label: accessibleLabel,
+            child: ExcludeSemantics(child: icon),
           ),
         ),
       ),

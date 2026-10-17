@@ -38,9 +38,6 @@ class BrandData {
     );
   }
 
-  String get productCountLabel =>
-      '$productCount product${productCount == 1 ? '' : 's'}';
-
   Map<String, Object?> toJson() {
     return {
       'id': id,

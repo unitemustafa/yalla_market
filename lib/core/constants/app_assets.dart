@@ -24,17 +24,13 @@ class AppAssets {
   static const String defaultOffer = '$_placeholdersPath/default_offer.webp';
   static const String defaultCourier =
       '$_placeholdersPath/default_courier.webp';
-  static const String emptyStoreLight =
-      '$_placeholdersPath/empty_store_light.jpg';
   // Logos
   static const String homeBrandLogo = '$_logosPath/yallamarket_home_logo.png';
   static const String splashBrandLogo =
       '$_logosPath/yallamarket_splash_logo.webp';
   static const String googleLogo = '$_logosPath/google_logo.png';
-
-  static String themedLogo({required bool isDarkMode}) {
-    return homeBrandLogo;
-  }
+  static const String loginBrandLogo =
+      '$_logosPath/yallamarket_login_ribbon.png';
 
   static String defaultAvatarForGender(String? gender) {
     return gender?.trim().toLowerCase() == 'female'

@@ -6,7 +6,6 @@ import '../../../store/domain/entities/product_data.dart';
 import 'home_campaign_data.dart';
 
 typedef HomeOfferData = OfferData;
-typedef HomeOfferMarketData = OfferMarketData;
 
 class HomeData {
   const HomeData({

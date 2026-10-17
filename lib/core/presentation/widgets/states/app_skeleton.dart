@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../localization/app_translations.dart';
 import '../../../constants/app_constants.dart';
 import '../layouts/grid_layout.dart';
+import '../brands/category_tile.dart';
 
 /// One shared shimmer animation for a group of placeholders, not one ticker
 /// per card. Static shapes are retained between animation frames.
@@ -200,13 +201,13 @@ class AppCategorySkeletonGrid extends StatelessWidget {
   Widget build(BuildContext context) => AppSkeleton(
     child: GridLayout(
       itemCount: 8,
-      mainAxisExtent: AppCategoryLayout.height,
+      mainAxisExtent: CategoryTile.heightFor(context),
       mainAxisSpacing: AppCategoryLayout.rowSpacing,
       minimumCardWidth: AppCategoryLayout.cardWidth,
       minCrossAxisCount: AppCategoryLayout.columns,
       maxCrossAxisCount: AppCategoryLayout.columns,
-      itemBuilder: (_, _) => const SkeletonBox(
-        height: AppCategoryLayout.height,
+      itemBuilder: (_, _) => SkeletonBox(
+        height: CategoryTile.heightFor(context),
         radius: AppCategoryLayout.cornerRadius,
       ),
     ),

@@ -27,18 +27,6 @@ bool geoCoverageContains({
       radiusKm;
 }
 
-bool hasGeoCoverage({
-  Map<String, dynamic>? boundaryGeoJson,
-  Map<String, dynamic>? boundaryBbox,
-  double? centerLatitude,
-  double? centerLongitude,
-  double? radiusKm,
-}) {
-  return boundaryGeoJson != null ||
-      boundaryBbox != null ||
-      (centerLatitude != null && centerLongitude != null && radiusKm != null);
-}
-
 bool? _pointInGeoJson(
   double latitude,
   double longitude,

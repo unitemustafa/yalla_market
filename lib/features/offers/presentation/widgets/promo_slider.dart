@@ -77,9 +77,7 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: 'EGP 269',
       deliveryFee: 'غير محدد',
       total: 'EGP 269',
-      actionEn: 'Add package to cart',
       visibilityMode: 'general',
-      actionAr: 'ضيف الباكج للسلة',
       products: [
         _OfferProduct(
           image: AppAssets.temporaryMarketPlaceholder,
@@ -138,11 +136,9 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: 'EGP 160',
       deliveryFee: 'غير محدد',
       total: 'EGP 160',
-      actionEn: 'Add flash offer',
       visibilityMode: 'regions',
       regionSlugs: ['sharm-el-sheikh'],
       regionNames: ['Sharm El Sheikh'],
-      actionAr: 'ضيف عرض الفلاش',
       products: [
         _OfferProduct(
           image: AppAssets.temporaryMarketPlaceholder,
@@ -184,9 +180,7 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: 'EGP 150',
       deliveryFee: 'غير محدد',
       total: 'EGP 150',
-      actionEn: 'Add free delivery item',
       visibilityMode: 'general',
-      actionAr: 'ضيف منتج التوصيل المجاني',
       products: [
         _OfferProduct(
           image: AppAssets.temporaryMarketPlaceholder,
@@ -228,9 +222,7 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: 'EGP 270',
       deliveryFee: 'غير محدد',
       total: 'EGP 270',
-      actionEn: 'Add sponsored offer',
       visibilityMode: 'general',
-      actionAr: 'ضيف العرض الإعلاني',
       products: [
         _OfferProduct(
           image: AppAssets.temporaryMarketPlaceholder,
@@ -271,12 +263,8 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: 'EGP 350',
       deliveryFee: 'غير محدد',
       total: 'EGP 350',
-      actionEn: 'Add linked ad offer',
       visibilityMode: 'general',
-      actionAr: 'ضيف عرض الإعلان بالرابط',
       linkUrl: 'https://yalla.market/offers/partner-link',
-      linkLabelEn: 'yalla.market/offers/partner-link',
-      linkLabelAr: 'yalla.market/offers/partner-link',
       products: [
         _OfferProduct(
           image: AppAssets.temporaryMarketPlaceholder,
@@ -318,11 +306,9 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: 'EGP 380',
       deliveryFee: 'غير محدد',
       total: 'EGP 380',
-      actionEn: 'Add discounted item',
       visibilityMode: 'regions',
       regionSlugs: ['sharm-el-sheikh'],
       regionNames: ['Sharm El Sheikh'],
-      actionAr: 'ضيف المنتج المخفض',
       products: [
         _OfferProduct(
           image: AppAssets.samsungS9Mobile,
@@ -593,12 +579,6 @@ class _PromoSliderState extends State<PromoSlider> {
       afterDiscount: AppCurrency.format(totalValue, fractionDigits: 0),
       deliveryFee: 'غير محدد',
       total: AppCurrency.format(totalValue, fractionDigits: 0),
-      actionEn: isAnnouncement && offer.announcementCtaLabel.isNotEmpty
-          ? offer.announcementCtaLabel
-          : 'Open campaign',
-      actionAr: isAnnouncement && offer.announcementCtaLabel.isNotEmpty
-          ? offer.announcementCtaLabel
-          : 'فتح الإعلان',
       products: products.isEmpty
           ? [
               _OfferProduct(
@@ -620,8 +600,6 @@ class _PromoSliderState extends State<PromoSlider> {
           .toList(growable: false),
       regionNames: offer.serviceCityNames,
       linkUrl: isAnnouncement ? offer.announcementUrl : null,
-      linkLabelEn: isAnnouncement ? offer.announcementCtaLabel : null,
-      linkLabelAr: isAnnouncement ? offer.announcementCtaLabel : null,
       displaySeconds: isAnnouncement ? offer.announcementDisplaySeconds : 5,
     );
   }

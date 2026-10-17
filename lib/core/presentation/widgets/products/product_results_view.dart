@@ -61,7 +61,6 @@ class ProductResultsView extends StatefulWidget {
     this.showSummary = true,
     this.emptyTitle = 'No products found',
     this.emptyMessage = 'Try another search, category, or sorting option.',
-    this.loadingMessage = 'Loading products...',
     this.errorTitle = 'Products could not load',
     this.errorMessage = 'Please check your connection and try again.',
     this.onRetry,
@@ -88,7 +87,6 @@ class ProductResultsView extends StatefulWidget {
   final bool showSummary;
   final String emptyTitle;
   final String emptyMessage;
-  final String loadingMessage;
   final String errorTitle;
   final String errorMessage;
   final VoidCallback? onRetry;

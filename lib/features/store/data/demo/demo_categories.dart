@@ -391,42 +391,7 @@ class MarketCategories {
     services,
   ];
 
-  static const featured = [
-    restaurants,
-    vegetables,
-    supermarket,
-    pharmacy,
-    clothes,
-    electronics,
-  ];
-
-  static const food = [
-    restaurants,
-    vegetables,
-    fruits,
-    supermarket,
-    dairy,
-    bakeries,
-    cafe,
-    snacks,
-    sweets,
-  ];
-
-  static const fresh = [poultry, fish, freshMeat, vegetables, fruits, dairy];
-
   static const shopping = [pharmacy, stationery, personalCare, perfumes];
-
-  static const home = [
-    decor,
-    electricalTools,
-    homeAppliances,
-    furnishings,
-    electronics,
-  ];
-
-  static const fashion = [clothes, sportswear, shoes];
-
-  static const business = [advertising, services, stationery];
 
   static const localShopCategories = [restaurants, supermarket, pharmacy];
 

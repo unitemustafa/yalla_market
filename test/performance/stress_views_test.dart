@@ -78,6 +78,55 @@ void main() {
     },
   );
 
+  testWidgets('storefront preserves the visible product after detail return', (
+    tester,
+  ) async {
+    await mount(
+      tester,
+      const BrandProductsView(
+        brand: 'Stress',
+        logo: '',
+        productCount: '10000',
+        classificationId: 'stress',
+        marketId: '1',
+      ),
+    );
+    final position = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position;
+    position.jumpTo(900);
+    await tester.pumpAndSettle();
+    final cards = find.byType(ProductCardVertical).hitTestable();
+    expect(cards, findsWidgets);
+    final card = cards.first;
+    final productId = tester.widget<ProductCardVertical>(card).productId;
+    final offsetBefore = position.pixels;
+    final topBefore = tester.getTopLeft(card).dy;
+    expect(offsetBefore, greaterThan(0));
+
+    // Tap the card's own route handler, away from quantity/favorite controls.
+    final openDetails = find.descendant(
+      of: card,
+      matching: find.byType(InkWell),
+    );
+    await tester.tapAt(
+      tester.getTopLeft(openDetails.first) + const Offset(30, 30),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(ProductDetailView), findsOneWidget);
+    tester.state<NavigatorState>(find.byType(Navigator).first).pop();
+    await tester.pumpAndSettle();
+
+    final returnedCard = find.byWidgetPredicate(
+      (widget) =>
+          widget is ProductCardVertical && widget.productId == productId,
+    );
+    expect(returnedCard.hitTestable(), findsOneWidget);
+    expect(position.pixels, closeTo(offsetBefore, 0.01));
+    expect(tester.getTopLeft(returnedCard).dy, closeTo(topBefore, 0.01));
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     '1000 favorite products remain lazy and retain horizontal stores',
     (tester) async {

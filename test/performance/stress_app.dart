@@ -107,8 +107,13 @@ class _StressStoreProductsRepository implements StoreProductsRepository {
 }
 
 class StressApp extends StatefulWidget {
-  const StressApp({super.key, this.home = const NavigationMenuView()});
+  const StressApp({
+    super.key,
+    this.home = const NavigationMenuView(),
+    this.languageCode = 'en',
+  });
   final Widget home;
+  final String languageCode;
   @override
   State<StressApp> createState() => _StressAppState();
 }
@@ -134,7 +139,7 @@ class _StressAppState extends State<StressApp> {
         }
         return MaterialApp(
           debugShowCheckedModeBanner: false,
-          locale: const Locale('en'),
+          locale: Locale(widget.languageCode),
           supportedLocales: const [Locale('en'), Locale('ar')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
           theme: AppTheme.lightTheme,

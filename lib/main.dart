@@ -29,6 +29,8 @@ Future<void> main() async {
 }
 
 Future<void> _initializeFirebase() async {
+  // Isolated measurement packages must never contact production Firebase.
+  if (const bool.fromEnvironment('PERFORMANCE_TEST_BUILD')) return;
   if (kIsWeb ||
       defaultTargetPlatform != TargetPlatform.android &&
           defaultTargetPlatform != TargetPlatform.iOS) {
@@ -46,6 +48,7 @@ Future<void> _initializeFirebase() async {
 }
 
 Future<void> _initializeBackgroundServices() async {
+  if (const bool.fromEnvironment('PERFORMANCE_TEST_BUILD')) return;
   await sl<PushNotificationService>().initialize();
   if (Firebase.apps.isNotEmpty) {
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(

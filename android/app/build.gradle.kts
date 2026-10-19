@@ -61,6 +61,8 @@ fun decodedDartDefines(): Map<String, String> {
         .toMap()
 }
 
+val performanceBuild = decodedDartDefines()["PERFORMANCE_TEST_BUILD"] == "true"
+
 if (requestedReleaseBuild && !hasReleaseKeystore) {
     throw GradleException(
         "Release signing is not configured. Add android/key.properties and the release keystore."
@@ -71,7 +73,8 @@ if (requestedReleaseBuild) {
     val releaseDefines = decodedDartDefines()
     val apiBaseUrl = releaseDefines["API_BASE_URL"].orEmpty()
     val mapTilerApiKey = releaseDefines["MAPTILER_API_KEY"].orEmpty()
-    if (!apiBaseUrl.startsWith("https://")) {
+    if (!apiBaseUrl.startsWith("https://") &&
+        !(performanceBuild && apiBaseUrl == "http://127.0.0.1:18081")) {
         throw GradleException(
             "Release requires an HTTPS API_BASE_URL dart define."
         )
@@ -104,6 +107,10 @@ android {
 
     defaultConfig {
         applicationId = "com.yallamarket.app"
+        if (performanceBuild) {
+            applicationIdSuffix = ".performance"
+            versionNameSuffix = "-performance"
+        }
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -134,9 +141,21 @@ android {
                 signingConfig = signingConfigs.getByName("release")
             }
             configure<CrashlyticsExtension> {
-                mappingFileUploadEnabled = !skipCrashlyticsMappingUpload
+                mappingFileUploadEnabled = !skipCrashlyticsMappingUpload && !performanceBuild
             }
         }
+    }
+}
+
+// Fixture builds never initialize Firebase and have their own application ID.
+// Keep the production google-services configuration out of this package.
+if (performanceBuild) {
+    android.sourceSets.getByName("debug").manifest.srcFile("src/performance/AndroidManifest.xml")
+    android.sourceSets.getByName("profile").manifest.srcFile("src/performance/AndroidManifest.xml")
+    android.sourceSets.getByName("release").manifest.srcFile("src/performance/AndroidManifest.xml")
+    tasks.configureEach {
+        if (name.endsWith("GoogleServices")) enabled = false
+        if (name.startsWith("uploadCrashlytics")) enabled = false
     }
 }
 

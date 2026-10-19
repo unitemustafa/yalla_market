@@ -67,6 +67,8 @@ dependencies:
   package_info_plus: ^10.2.1
 
 dev_dependencies:
+  # Host-only heap snapshots for the opt-in performance diagnostic.
+  vm_service: 15.2.0
   flutter_test:
     sdk: flutter
   integration_test:

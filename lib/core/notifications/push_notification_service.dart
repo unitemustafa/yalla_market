@@ -22,6 +22,7 @@ const _pendingAccountDisabledDataKey = 'push.pending_account_disabled.v2';
 const _lastRegisteredTokenKey = 'push.last_registered_token';
 
 bool get pushNotificationsSupported {
+  if (const bool.fromEnvironment('PERFORMANCE_TEST_BUILD')) return false;
   if (kIsWeb) return false;
   return defaultTargetPlatform == TargetPlatform.android ||
       defaultTargetPlatform == TargetPlatform.iOS;

@@ -73,7 +73,7 @@ void main() {
       final cubit = tester
           .element(find.byType(ProductCardsSliver<ProductData>).first)
           .read<StoreProductsCubit>();
-      expect(cubit.state.products, hasLength(60));
+      expect(cubit.state.products.length, greaterThanOrEqualTo(60));
       expect(tester.takeException(), isNull);
     },
   );

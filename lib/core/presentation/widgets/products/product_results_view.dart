@@ -55,9 +55,8 @@ class ProductResultsView extends StatefulWidget {
     this.initialSortOption = 'Name',
     this.initialQuery = '',
     this.searchFocusNode,
-    this.maxCrossAxisCount = 6,
+    this.maxCrossAxisCount = 3,
     this.gridMainAxisExtent = ProductCardVertical.compactGridMainAxisExtent,
-    this.compactProductCards = true,
     this.showSummary = true,
     this.emptyTitle = 'No products found',
     this.emptyMessage = 'Try another search, category, or sorting option.',
@@ -83,7 +82,6 @@ class ProductResultsView extends StatefulWidget {
   final FocusNode? searchFocusNode;
   final int maxCrossAxisCount;
   final double gridMainAxisExtent;
-  final bool compactProductCards;
   final bool showSummary;
   final String emptyTitle;
   final String emptyMessage;
@@ -226,7 +224,6 @@ class _ProductResultsViewState extends State<ProductResultsView> {
       final child = ProductCardTile(
         key: ValueKey(product.id),
         product: productCardTileData(product),
-        compact: widget.compactProductCards,
       );
       if (!widget.sliver || widget.categorySelectionKey == null) return child;
       // Only visible slots retain an outgoing card during the category fade.
@@ -272,6 +269,7 @@ class _ProductResultsViewState extends State<ProductResultsView> {
           GridLayout(
             itemCount: ready.itemCount,
             mainAxisExtent: widget.gridMainAxisExtent,
+            minCrossAxisCount: 3,
             maxCrossAxisCount: widget.maxCrossAxisCount,
             itemBuilder: card,
           ),
@@ -356,7 +354,6 @@ class _ProductResultsViewState extends State<ProductResultsView> {
               itemCount: ready.itemCount,
               mainAxisExtent: widget.gridMainAxisExtent,
               maxCrossAxisCount: widget.maxCrossAxisCount,
-              compact: widget.compactProductCards,
               categoryKey: ready.categoryKey,
             ),
             if (totalPages > 1) SliverToBoxAdapter(child: pagination),

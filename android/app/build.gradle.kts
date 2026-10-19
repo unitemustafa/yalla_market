@@ -39,7 +39,7 @@ if (!facebookAppId.matches(Regex("[1-9][0-9]+")) ||
     !facebookClientToken.matches(Regex("[a-fA-F0-9]{32}"))) {
     throw GradleException(
         "Facebook Login requires FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN, " +
-            "or android/facebook.properties. See docs/facebook-login.md."
+            "or android/facebook.properties (appId and clientToken)."
     )
 }
 

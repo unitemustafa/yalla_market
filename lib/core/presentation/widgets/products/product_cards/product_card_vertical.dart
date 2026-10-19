@@ -27,9 +27,7 @@ String? _discountBadgeLabel(BuildContext context, String? discount) {
 
 class ProductCardVertical extends StatefulWidget {
   static const double compactGridMainAxisExtent = 188;
-  static const double storefrontGridMainAxisExtent = 242;
   static const double compactImageHeight = 90;
-  static const double storefrontImageHeight = 110;
 
   const ProductCardVertical({
     super.key,
@@ -44,14 +42,12 @@ class ProductCardVertical extends StatefulWidget {
     this.marketName,
     this.oldPrice,
     this.discount,
-    this.compact = true,
   });
 
   final String image, title, brand, price;
   final String productId;
   final String? productSlug, defaultVariantId, marketId, marketName;
   final String? oldPrice, discount;
-  final bool compact;
 
   @override
   State<ProductCardVertical> createState() => _ProductCardVerticalState();
@@ -146,7 +142,6 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
 
   @override
   Widget build(BuildContext context) {
-    final compact = widget.compact;
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final panelColor = isDark ? AppColors.darkCardColor : Colors.white;
     final imagePanelColor = isDark
@@ -198,9 +193,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                 ),
                 child: SizedBox(
                   key: ValueKey('product_image_${widget.productId}'),
-                  height: compact
-                      ? ProductCardVertical.compactImageHeight
-                      : ProductCardVertical.storefrontImageHeight,
+                  height: ProductCardVertical.compactImageHeight,
                   child: ColoredBox(
                     color: imagePanelColor,
                     child: Stack(
@@ -219,15 +212,15 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         ),
                         if (discount != null)
                           PositionedDirectional(
-                            top: compact ? 4 : 6,
-                            start: compact ? 4 : 6,
+                            top: 4,
+                            start: 4,
                             child: Container(
                               key: ValueKey(
                                 'product_discount_badge_${widget.productId}',
                               ),
-                              padding: EdgeInsets.symmetric(
-                                horizontal: compact ? 4 : 6,
-                                vertical: compact ? 2 : 3,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 4,
+                                vertical: 2,
                               ),
                               decoration: BoxDecoration(
                                 color: AppColors.warning,
@@ -235,19 +228,17 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                               ),
                               child: Text(
                                 discount,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.black,
-                                  fontSize: compact
-                                      ? AppFontSizes.micro
-                                      : AppFontSizes.caption,
+                                  fontSize: AppFontSizes.micro,
                                   fontWeight: FontWeight.w900,
                                 ),
                               ),
                             ),
                           ),
                         PositionedDirectional(
-                          top: compact ? 5 : 8,
-                          end: compact ? 5 : 8,
+                          top: 5,
+                          end: 5,
                           child:
                               BlocSelector<
                                 WishlistCubit,
@@ -275,7 +266,6 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                                               ? Colors.white70
                                               : Colors.black45),
                                     isDark: isDark,
-                                    compact: compact,
                                     onTap: () =>
                                         _toggleWishlist(context, isFavorite),
                                   );
@@ -289,9 +279,9 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
               ),
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: compact ? 5 : 8,
-                    vertical: compact ? 4 : 5,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 5,
+                    vertical: 4,
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -301,7 +291,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         context.tr(widget.title),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: textColor,
-                          fontSize: compact ? AppFontSizes.small : null,
+                          fontSize: AppFontSizes.small,
                           height: 1.18,
                           fontWeight: FontWeight.w900,
                         ),
@@ -309,7 +299,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         overflow: TextOverflow.ellipsis,
                         maxLines: 1,
                       ),
-                      SizedBox(height: compact ? 3 : 5),
+                      const SizedBox(height: 3),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -319,9 +309,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                               style: Theme.of(context).textTheme.labelMedium
                                   ?.copyWith(
                                     color: mutedColor,
-                                    fontSize: compact
-                                        ? AppFontSizes.caption
-                                        : null,
+                                    fontSize: AppFontSizes.caption,
                                     fontWeight: FontWeight.w700,
                                   ),
                               textAlign: TextAlign.center,
@@ -329,15 +317,15 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                               maxLines: 1,
                             ),
                           ),
-                          SizedBox(width: compact ? 2 : 4),
-                          Icon(
+                          const SizedBox(width: 2),
+                          const Icon(
                             AppIcons.verify5,
                             color: AppColors.primary,
-                            size: compact ? 11 : 14,
+                            size: 11,
                           ),
                         ],
                       ),
-                      SizedBox(height: compact ? 2 : 4),
+                      const SizedBox(height: 2),
                       _ProductPriceBlock(
                         price: displayedPrice,
                         oldPrice: originalPrice.isNotEmpty
@@ -345,9 +333,8 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                             : _formatPrice(widget.oldPrice),
                         textColor: textColor,
                         mutedColor: mutedColor,
-                        compact: compact,
                       ),
-                      SizedBox(height: compact ? 3 : 4),
+                      const SizedBox(height: 3),
                       BlocSelector<CartCubit, List<CartItemData>, int>(
                         selector: (items) {
                           final cartItem = items
@@ -367,7 +354,6 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                               'product_add_to_cart_$_resolvedProductId',
                             ),
                             quantity: currentQuantity,
-                            compact: compact,
                             onTap: () => _addToCart(context),
                           );
                         },
@@ -390,20 +376,18 @@ class _ProductPriceBlock extends StatelessWidget {
     required this.oldPrice,
     required this.textColor,
     required this.mutedColor,
-    required this.compact,
   });
 
   final String price;
   final String oldPrice;
   final Color textColor;
   final Color mutedColor;
-  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: compact ? 16 : 20,
+      height: 16,
       child: FittedBox(
         fit: BoxFit.scaleDown,
         alignment: Alignment.center,
@@ -414,17 +398,17 @@ class _ProductPriceBlock extends StatelessWidget {
               price: price,
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: textColor,
-                fontSize: compact ? AppFontSizes.caption : AppFontSizes.body,
+                fontSize: AppFontSizes.caption,
                 fontWeight: FontWeight.w900,
               ),
             ),
             if (oldPrice.isNotEmpty) ...[
-              SizedBox(width: compact ? 3 : 6),
+              const SizedBox(width: 3),
               AppCurrencyText(
                 text: oldPrice,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: mutedColor,
-                  fontSize: compact ? AppFontSizes.micro : AppFontSizes.caption,
+                  fontSize: AppFontSizes.micro,
                   decoration: TextDecoration.lineThrough,
                 ),
               ),
@@ -442,14 +426,12 @@ class _ProductIconButton extends StatelessWidget {
     required this.icon,
     required this.iconColor,
     required this.isDark,
-    required this.compact,
     required this.onTap,
   });
 
   final IconData icon;
   final Color iconColor;
   final bool isDark;
-  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -463,9 +445,9 @@ class _ProductIconButton extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
-          width: compact ? 27 : 32,
-          height: compact ? 27 : 32,
-          child: Icon(icon, color: iconColor, size: compact ? 15 : 18),
+          width: 27,
+          height: 27,
+          child: Icon(icon, color: iconColor, size: 15),
         ),
       ),
     );
@@ -476,12 +458,10 @@ class _AddToCartButton extends StatelessWidget {
   const _AddToCartButton({
     super.key,
     required this.quantity,
-    required this.compact,
     required this.onTap,
   });
 
   final int quantity;
-  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -494,7 +474,7 @@ class _AddToCartButton extends StatelessWidget {
         borderRadius: BorderRadius.circular(8),
         child: SizedBox(
           width: double.infinity,
-          height: compact ? 34 : 44,
+          height: 34,
           child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
@@ -505,32 +485,24 @@ class _AddToCartButton extends StatelessWidget {
                     context.tr('Add to cart'),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Colors.white,
-                      fontSize: compact
-                          ? AppFontSizes.caption
-                          : AppFontSizes.small,
+                      fontSize: AppFontSizes.caption,
                       fontWeight: FontWeight.w900,
                     ),
                   ),
-                  SizedBox(width: compact ? 1 : 3),
+                  const SizedBox(width: 1),
                   SizedBox(
-                    width: compact ? 14 : 18,
-                    height: compact ? 14 : 18,
+                    width: 14,
+                    height: 14,
                     child: Center(
                       child: quantity == 0
-                          ? Icon(
-                              AppIcons.add,
-                              color: Colors.white,
-                              size: compact ? 11 : 14,
-                            )
+                          ? Icon(AppIcons.add, color: Colors.white, size: 11)
                           : Text(
                               '$quantity',
                               key: ValueKey('cart_quantity_$quantity'),
                               style: Theme.of(context).textTheme.labelSmall
                                   ?.copyWith(
                                     color: Colors.white,
-                                    fontSize: compact
-                                        ? AppFontSizes.caption
-                                        : AppFontSizes.small,
+                                    fontSize: AppFontSizes.caption,
                                     height: 1,
                                     fontWeight: FontWeight.w900,
                                   ),

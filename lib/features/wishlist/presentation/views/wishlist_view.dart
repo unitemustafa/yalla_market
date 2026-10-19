@@ -10,7 +10,6 @@ import '../../../../core/presentation/widgets/products/product_cards_sliver.dart
 import '../../../../core/presentation/widgets/products/product_card_tile_data.dart';
 import '../../../../core/presentation/widgets/layouts/horizontal_card_layout.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
-import '../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
@@ -135,12 +134,7 @@ class WishlistView extends StatelessWidget {
                                               const SliverToBoxAdapter(
                                                 child: Column(
                                                   children: [
-                                                    AppProductSkeletonGrid(
-                                                      maxCrossAxisCount: 2,
-                                                      mainAxisExtent:
-                                                          ProductCardVertical
-                                                              .storefrontGridMainAxisExtent,
-                                                    ),
+                                                    AppProductSkeletonGrid(),
                                                     SizedBox(height: 18),
                                                   ],
                                                 ),
@@ -166,10 +160,6 @@ class WishlistView extends StatelessWidget {
                                                 idOf: _wishlistProductId,
                                                 cardOf:
                                                     _wishlistProductCardData,
-                                                maxCrossAxisCount: 2,
-                                                mainAxisExtent: ProductCardVertical
-                                                    .storefrontGridMainAxisExtent,
-                                                compact: false,
                                               ),
                                             ],
                                             if (wishlist.isNotEmpty &&

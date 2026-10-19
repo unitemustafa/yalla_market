@@ -114,9 +114,7 @@ Fill in the local values, then run:
 flutter run --dart-define-from-file=env/development.local.json
 ```
 
-The application expects the REST API under `API_BASE_URL/api/v1`. See the
-[API contract](docs/api-contract.md) for the required endpoints, payloads, and
-response envelopes.
+The application expects the REST API under `API_BASE_URL/api/v1`.
 
 ## Environment configuration
 
@@ -149,9 +147,6 @@ The application follows a feature-first, layered architecture:
 ```text
 Widget -> Cubit -> Use case -> Repository contract <- Repository implementation
 ```
-
-Read [ARCHITECTURE.md](ARCHITECTURE.md) before changing a feature and
-[CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request.
 
 ## Quality checks
 
@@ -188,18 +183,8 @@ flutter build appbundle --release --obfuscate \
 
 ### iOS
 
-Run the release preflight with `--platform=ios`, then follow the
-[iOS release guide](ios/README_RELEASE.md) on a Mac with Xcode.
+Run the release preflight with `--platform=ios`, then build and sign the app
+on a Mac with Xcode.
 
 Archive the matching debug symbols before running `flutter clean`; obfuscated
-Crashlytics traces require them. Complete the
-[release checklist](docs/RELEASE_CHECKLIST.md) before publishing either mobile
-build.
-
-## Documentation
-
-- [Architecture](ARCHITECTURE.md)
-- [Contributing guide](CONTRIBUTING.md)
-- [API contract](docs/api-contract.md)
-- [Release checklist](docs/RELEASE_CHECKLIST.md)
-- [iOS release guide](ios/README_RELEASE.md)
+Crashlytics traces require them.

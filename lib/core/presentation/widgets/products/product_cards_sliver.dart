@@ -15,8 +15,7 @@ class ProductCardsSliver<T> extends StatefulWidget {
     this.start = 0,
     this.itemCount,
     this.mainAxisExtent = ProductCardVertical.compactGridMainAxisExtent,
-    this.maxCrossAxisCount = 6,
-    this.compact = true,
+    this.maxCrossAxisCount = 3,
     this.categoryKey,
   });
 
@@ -27,7 +26,6 @@ class ProductCardsSliver<T> extends StatefulWidget {
   final int? itemCount;
   final double mainAxisExtent;
   final int maxCrossAxisCount;
-  final bool compact;
   final Object? categoryKey;
 
   @override
@@ -64,6 +62,7 @@ class _ProductCardsSliverState<T> extends State<ProductCardsSliver<T>> {
   Widget build(BuildContext context) => SliverGridLayout(
     itemCount: _count,
     mainAxisExtent: widget.mainAxisExtent,
+    minCrossAxisCount: 3,
     maxCrossAxisCount: widget.maxCrossAxisCount,
     findChildIndexCallback: widget.categoryKey == null
         ? (key) => key is ValueKey<String> ? _indices[key.value] : null
@@ -71,11 +70,7 @@ class _ProductCardsSliverState<T> extends State<ProductCardsSliver<T>> {
               key is ValueKey<int> && key.value < _count ? key.value : null,
     itemBuilder: (_, index) {
       final product = widget.cardOf(widget.products[widget.start + index]);
-      final tile = ProductCardTile(
-        key: ValueKey(product.id),
-        product: product,
-        compact: widget.compact,
-      );
+      final tile = ProductCardTile(key: ValueKey(product.id), product: product);
       if (widget.categoryKey == null) return tile;
       // Category fades retain slot identity, while each inner card has its ID.
       return CategoryContentTransition(

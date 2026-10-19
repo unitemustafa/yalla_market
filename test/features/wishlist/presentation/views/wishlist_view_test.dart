@@ -20,7 +20,7 @@ import 'package:yalla_market/features/wishlist/presentation/views/wishlist_view.
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
-  testWidgets('favorite products always use two columns', (tester) async {
+  testWidgets('favorite products use three compact columns', (tester) async {
     await tester.binding.setSurfaceSize(const Size(430, 900));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -61,15 +61,13 @@ void main() {
     final third = tester.getRect(find.byWidget(cards[2]));
     expect(second.top, first.top);
     expect(second.left, greaterThan(first.left));
-    expect(third.top, greaterThan(first.bottom));
-    expect(third.left, first.left);
-    expect(first.height, ProductCardVertical.storefrontGridMainAxisExtent);
-    expect(
-      tester
-          .widgetList<ProductCardVertical>(find.byType(ProductCardVertical))
-          .every((card) => !card.compact),
-      isTrue,
+    expect(third.top, first.top);
+    expect(third.left, greaterThan(second.left));
+    expect(first.height, ProductCardVertical.compactGridMainAxisExtent);
+    final image = tester.getSize(
+      find.byKey(const ValueKey('product_image_product-0')),
     );
+    expect(image.height, ProductCardVertical.compactImageHeight);
     expect(tester.takeException(), isNull);
   });
 

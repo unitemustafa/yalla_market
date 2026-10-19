@@ -176,7 +176,7 @@ class AppSkeletonList extends StatelessWidget {
 class AppProductSkeletonGrid extends StatelessWidget {
   const AppProductSkeletonGrid({
     super.key,
-    this.maxCrossAxisCount = 6,
+    this.maxCrossAxisCount = 3,
     this.mainAxisExtent = 188,
   });
 
@@ -187,6 +187,7 @@ class AppProductSkeletonGrid extends StatelessWidget {
   Widget build(BuildContext context) => AppSkeleton(
     child: GridLayout(
       itemCount: 6,
+      minCrossAxisCount: 3,
       maxCrossAxisCount: maxCrossAxisCount,
       mainAxisExtent: mainAxisExtent,
       itemBuilder: (_, _) => const SkeletonBox(height: 188),

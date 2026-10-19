@@ -24,6 +24,53 @@ void main() {
 
   tearDown(() => sl.reset());
 
+  for (final sliver in [false, true]) {
+    testWidgets('results use three compact columns (sliver: $sliver)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(430, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      SharedPreferences.setMockInitialValues({});
+      final cart = makeCartCubit();
+      final wishlist = makeWishlistCubit();
+      addTearDown(cart.close);
+      addTearDown(wishlist.close);
+      final results = ProductResultsView(
+        products: List.generate(4, _product),
+        sliver: sliver,
+        showSearch: false,
+      );
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: cart),
+            BlocProvider.value(value: wishlist),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: sliver
+                  ? CustomScrollView(slivers: [results])
+                  : SingleChildScrollView(child: results),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final cards = find
+          .byType(ProductCardVertical)
+          .evaluate()
+          .map((element) => tester.getRect(find.byWidget(element.widget)))
+          .toList();
+      expect(cards, hasLength(4));
+      expect(cards[1].top, cards[0].top);
+      expect(cards[2].top, cards[0].top);
+      expect(cards[3].top, greaterThan(cards[0].bottom));
+      expect(cards[0].height, ProductCardVertical.compactGridMainAxisExtent);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('keeps the search and sorting controls when a category changes', (
     tester,
   ) async {

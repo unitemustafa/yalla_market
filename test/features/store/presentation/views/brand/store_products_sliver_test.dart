@@ -15,6 +15,39 @@ import 'package:yalla_market/core/presentation/widgets/products/product_cards/pr
 import '../../../../../helpers/cubit_factories.dart';
 
 void main() {
+  for (final width in [320.0, 430.0, 800.0]) {
+    testWidgets('store products use three compact columns at width $width', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(Size(width, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final products = List.generate(4, (i) => _product('product-$i'));
+      final repository = _PagedRepository(
+        (_, _) => ApiResult.success(_page(products)),
+      );
+      final cubit = StoreProductsCubit(GetStoreProductsUseCase(repository));
+      addTearDown(cubit.close);
+      await cubit.configure(marketId: 'market');
+      await _pumpSliver(tester, cubit);
+
+      final rects = List.generate(
+        4,
+        (i) => tester.getRect(_card('product-$i')),
+      );
+      expect(rects[1].top, rects[0].top);
+      expect(rects[2].top, rects[0].top);
+      expect(rects[3].top, greaterThan(rects[0].bottom));
+      expect(rects[0].height, ProductCardVertical.compactGridMainAxisExtent);
+      expect(
+        tester
+            .getSize(find.byKey(const ValueKey('product_image_product-0')))
+            .height,
+        ProductCardVertical.compactImageHeight,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets(
     'keeps prior category cards visible until the replacement commits',
     (tester) async {

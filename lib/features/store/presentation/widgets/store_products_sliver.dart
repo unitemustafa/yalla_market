@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/presentation/widgets/products/product_cards_sliver.dart';
 import '../../../../core/presentation/widgets/products/product_results_view.dart'
     show productCardId, productCardTileData;
-import '../../../../core/presentation/widgets/products/product_cards/product_card_vertical.dart';
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../domain/entities/product_data.dart';
@@ -60,9 +59,6 @@ class StoreProductsSliver extends StatelessWidget {
             products: content.$1,
             idOf: productCardId,
             cardOf: productCardTileData,
-            mainAxisExtent: ProductCardVertical.storefrontGridMainAxisExtent,
-            maxCrossAxisCount: 2,
-            compact: false,
             categoryKey: content.$4 ?? categoryKey,
           );
         },

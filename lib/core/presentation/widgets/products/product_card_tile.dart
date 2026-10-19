@@ -6,14 +6,9 @@ import 'product_cards/product_card_vertical.dart';
 /// Retains only a mounted tile's card. Appending or rebuilding a list does not
 /// rebuild unchanged cards; their own theme, cart and wishlist listeners live on.
 class ProductCardTile extends StatefulWidget {
-  const ProductCardTile({
-    super.key,
-    required this.product,
-    this.compact = true,
-  });
+  const ProductCardTile({super.key, required this.product});
 
   final ProductCardTileData product;
-  final bool compact;
 
   @override
   State<ProductCardTile> createState() => _ProductCardTileState();
@@ -35,7 +30,6 @@ class _ProductCardTileState extends State<ProductCardTile> {
       p.marketId,
       p.oldPrice,
       p.discount,
-      tile.compact,
     );
   }
 
@@ -66,7 +60,6 @@ class _ProductCardTileState extends State<ProductCardTile> {
       marketName: p.brand,
       oldPrice: p.oldPrice,
       discount: p.discount,
-      compact: widget.compact,
     );
   }
 

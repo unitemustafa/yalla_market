@@ -14,6 +14,7 @@ import '../preferences/app_preferences_controller.dart';
 import '../storage/token_store.dart';
 import '../../firebase_options.dart';
 import 'account_notification_presenter.dart';
+import 'fcm_registration_token_provider.dart';
 
 export 'account_notification_presenter.dart';
 
@@ -70,6 +71,7 @@ class PushNotificationService {
 
   final ApiClient _apiClient;
   final TokenStore _tokenStore;
+  final _registrationTokenProvider = FcmRegistrationTokenProvider();
   final AccountInactiveNotifier _accountInactiveNotifier;
   final AccountRestoredNotifier _accountRestoredNotifier;
   final AccountNotificationPresenter _accountNotificationPresenter;
@@ -151,6 +153,7 @@ class PushNotificationService {
   }
 
   Future<void> registerAuthenticatedDevice() async {
+    final generation = _tokenStore.sessionGeneration;
     await initialize();
     if (!pushNotificationsSupported) return;
     if (!AppPreferencesController.instance.mobileNotificationsEnabled) return;
@@ -167,7 +170,11 @@ class PushNotificationService {
       } catch (error, stackTrace) {
         _debugPushError('local notification permission', error, stackTrace);
       }
-      final token = await FirebaseMessaging.instance.getToken();
+      final token = await _registrationTokenProvider.getToken(
+        isActive: () =>
+            generation == _tokenStore.sessionGeneration &&
+            AppPreferencesController.instance.mobileNotificationsEnabled,
+      );
       if (token == null || token.isEmpty) return;
       await _replaceToken(token);
     } catch (error, stackTrace) {

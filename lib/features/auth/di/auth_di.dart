@@ -6,12 +6,16 @@ import '../../../core/session/session_deadline_controller.dart';
 import '../../../core/storage/token_store.dart';
 import '../../../core/notifications/push_notification_service.dart';
 import '../../../features/auth/data/repositories/auth_remote_repository_impl.dart';
+import '../data/datasources/facebook_credential_data_source.dart';
 import '../../../features/auth/data/repositories/auth_repository_impl.dart';
 import '../../../features/auth/domain/repositories/auth_repository.dart';
 import '../../../features/auth/domain/usecases/auth_usecases.dart';
 import '../../../features/auth/presentation/cubit/auth_cubit.dart';
 
 void registerAuthDependencies(GetIt sl) {
+  if (!sl.isRegistered<FacebookCredentialDataSource>()) {
+    sl.registerLazySingleton(FacebookCredentialDataSource.new);
+  }
   if (!sl.isRegistered<AuthRepository>()) {
     sl.registerLazySingleton<AuthRepository>(
       () => AppEnvironment.useDemoRepositories
@@ -20,6 +24,7 @@ void registerAuthDependencies(GetIt sl) {
               sl<ApiClient>(),
               sl<TokenStore>(),
               sessionDeadlineController: sl<SessionDeadlineController>(),
+              facebookCredentialDataSource: sl<FacebookCredentialDataSource>(),
             ),
     );
   }

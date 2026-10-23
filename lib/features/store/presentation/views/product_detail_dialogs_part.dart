@@ -33,15 +33,11 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
     );
   }
 
-  Future<void> _copyProductLink() async {
-    await Clipboard.setData(ClipboardData(text: _productShareLink));
-    if (!mounted) return;
-    CustomSnackBar.showSuccess(
-      context: context,
-      title: 'Product link copied',
-      message: 'You can share it with anyone.',
-    );
-  }
+  Future<void> _copyProductLink() => copyContentLink(
+    context: context,
+    link: _productShareLink,
+    successTitle: 'Product link copied',
+  );
 
   Future<void> _shareProduct(Rect sharePositionOrigin) async {
     try {

@@ -27,6 +27,39 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump();
   });
+
+  testWidgets(
+    'centers the iPad app shell and expands it again in portrait',
+    (tester) async {
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = const Size(1024, 768);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      await tester.pumpWidget(const YallaMarketApp());
+      await tester.pump();
+
+      expect(
+        tester.getRect(find.byType(Navigator)),
+        const Rect.fromLTWH(224, 0, 576, 768),
+      );
+      final splashContext = tester.element(
+        find.byKey(const ValueKey('splash_brand_logo')),
+      );
+      expect(MediaQuery.sizeOf(splashContext), const Size(576, 768));
+      expect(tester.takeException(), isNull);
+
+      tester.view.physicalSize = const Size(768, 1024);
+      await tester.pump();
+      expect(tester.getSize(find.byType(Navigator)), const Size(768, 1024));
+      expect(MediaQuery.sizeOf(splashContext), const Size(768, 1024));
+      expect(tester.takeException(), isNull);
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+  );
 }
 
 class _LocalAppMediaRepository implements AppMediaRepository {

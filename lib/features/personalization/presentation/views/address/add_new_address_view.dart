@@ -81,7 +81,9 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
 
     _nameController = TextEditingController(text: address?.recipientName ?? '');
     _phoneController = TextEditingController(
-      text: profilePhone.isNotEmpty ? profilePhone : address?.phoneNumber ?? '',
+      text: address?.phoneNumber.trim().isNotEmpty == true
+          ? address!.phoneNumber
+          : profilePhone,
     );
     _detailsController = TextEditingController(text: address?.details ?? '');
     _buildingController = TextEditingController(
@@ -158,6 +160,12 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
           break;
         }
       }
+      addressCity ??= CityData.fromServiceCityJson({
+        'id': addressCityId,
+        'name': widget.address!.cityLabel,
+      });
+    } else if (widget.address != null) {
+      addressCity = CityData.general;
     }
     _formCity =
         widget.initialCity ??

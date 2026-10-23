@@ -538,6 +538,93 @@ void main() {
     expect(cartCubit.state.single.price, 20);
   });
 
+  testWidgets('a linked variant keeps its selection, price and shared link', (
+    tester,
+  ) async {
+    String? copiedLink;
+    String? sharedText;
+    const shareChannel = MethodChannel('dev.fluttercommunity.plus/share');
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'Clipboard.setData') {
+        copiedLink = (call.arguments as Map)['text'] as String;
+      }
+      return null;
+    });
+    messenger.setMockMethodCallHandler(shareChannel, (call) async {
+      sharedText = (call.arguments as Map)['text'] as String;
+      return '';
+    });
+    addTearDown(() {
+      messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+      messenger.setMockMethodCallHandler(shareChannel, null);
+    });
+    await _pumpProduct(
+      tester,
+      initialVariantId: '202',
+      product: _productWith(
+        variants: [
+          {
+            'id': '101',
+            'price': '10.00',
+            'attribute_values': _attributeValues(size: 'صغير'),
+          },
+          {
+            'id': '202',
+            'price': '20.00',
+            'attribute_values': _attributeValues(size: 'كبير'),
+          },
+        ],
+      ),
+    );
+    await tester.tap(find.byIcon(AppIcons.send_1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Copy link'));
+    await tester.pumpAndSettle();
+    expect(Uri.parse(copiedLink!).queryParameters['variant'], '202');
+
+    await tester.tap(find.byIcon(AppIcons.send_1));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Share'));
+    await tester.pumpAndSettle();
+    expect(sharedText, contains('الحجم: كبير'));
+    expect(sharedText, contains('20'));
+    expect(sharedText, contains('variant=202'));
+    expect(sharedText, isNot(contains('10 - 20')));
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'a removed linked variant falls back to current product choices',
+    (tester) async {
+      await _pumpProduct(
+        tester,
+        initialVariantId: '999',
+        product: _productWith(
+          variants: [
+            {
+              'id': '101',
+              'price': '10.00',
+              'attribute_values': _attributeValues(size: 'صغير'),
+            },
+            {
+              'id': '202',
+              'price': '20.00',
+              'attribute_values': _attributeValues(size: 'كبير'),
+            },
+          ],
+        ),
+      );
+      expect(find.byIcon(Icons.check), findsNothing);
+      final priceTexts = tester
+          .widgetList<RichText>(find.byType(RichText))
+          .map((widget) => widget.text.toPlainText());
+      expect(priceTexts.any((text) => text.contains('10 - 20')), isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('shows discounted price range before selecting a variant', (
     tester,
   ) async {
@@ -610,6 +697,7 @@ Future<void> _pumpProduct(
   required ProductData product,
   CartCubit? cartCubit,
   RouteFactory? onGenerateRoute,
+  String? initialVariantId,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final cart = cartCubit ?? makeCartCubit();
@@ -637,12 +725,13 @@ Future<void> _pumpProduct(
       ],
       child: MaterialApp(
         onGenerateRoute: onGenerateRoute,
-        home: const ProductDetailView(
+        home: ProductDetailView(
           productId: 'variant-product',
           image: AppAssets.defaultProduct,
           title: 'Product',
           brand: 'Yalla',
           price: '0.00',
+          initialVariantId: initialVariantId,
         ),
       ),
     ),

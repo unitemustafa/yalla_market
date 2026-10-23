@@ -1093,6 +1093,7 @@ abstract final class FavoriteTexts {
   static const offerLinkCopied = 'تم نسخ رابط العرض';
   static const youCanShareItWithAnyone = 'تقدر تبعته لأي حد دلوقتي.';
   static const couldNotShareProduct = 'تعذر مشاركة المنتج';
+  static const couldNotCopyLink = 'تعذر نسخ الرابط';
   static const couldNotShareOffer = 'تعذر مشاركة العرض';
   static const couldNotShareStore = 'تعذر مشاركة المحل';
 }
@@ -1306,6 +1307,17 @@ abstract final class GeneralTexts {
   static const egp = 'جنيه';
   static const version = 'الإصدار';
   static const frequentlyAskedQuestions = 'أسئلة متكررة';
+  static const website = 'الموقع الإلكتروني';
+  static const faqPaymentMethods = 'إيه طرق الدفع المتاحة؟';
+  static const faqPaymentMethodsAnswer =
+      'الدفع حاليًا كاش عند الاستلام. هتدفع لما طلبك يوصلك.';
+  static const faqChangeDeliveryAddress =
+      'إزاي أغيّر عنوان التوصيل قبل تأكيد الطلب؟';
+  static const faqChangeDeliveryAddressAnswer =
+      'افتح «عناويني» من صفحة الحساب لإضافة عنوان أو تعديله، وبعدها اختار العنوان اللي عايزه في صفحة إتمام الطلب قبل ما تأكّد طلبك.';
+  static const faqDeliveryFee = 'إزاي أعرف رسوم التوصيل؟';
+  static const faqDeliveryFeeAnswer =
+      'راجع رسوم الشحن في ملخص الطلب قبل التأكيد. لو الرسوم مش محددة، تواصل مع الدعم عشان تتأكد من التكلفة.';
 
   // ─── إجراءات ───
   static const add = 'إضافة';

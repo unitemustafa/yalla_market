@@ -9,6 +9,87 @@ import 'package:yalla_market/features/personalization/data/datasources/geoapify_
 import 'package:yalla_market/features/personalization/presentation/views/address/address_location_picker_view.dart';
 
 void main() {
+  testWidgets(
+    'configured city coverage restricts pins inside the legacy city cap',
+    (tester) async {
+      for (final city in const [
+        CityData(
+          name: 'Cairo',
+          slug: '7',
+          serviceCityId: 7,
+          centerLatitude: 30.0444,
+          centerLongitude: 31.2357,
+          radiusKm: 1,
+        ),
+        CityData(
+          name: 'Cairo',
+          slug: '7',
+          serviceCityId: 7,
+          boundaryBbox: {
+            'west': 31.23,
+            'south': 30.04,
+            'east': 31.24,
+            'north': 30.05,
+          },
+        ),
+        CityData(
+          name: 'Cairo',
+          slug: '7',
+          serviceCityId: 7,
+          boundaryGeoJson: {
+            'type': 'Polygon',
+            'coordinates': [
+              [
+                [31.23, 30.04],
+                [31.24, 30.04],
+                [31.24, 30.05],
+                [31.23, 30.05],
+                [31.23, 30.04],
+              ],
+            ],
+          },
+        ),
+      ]) {
+        final geocoding = _FakeGeocodingDataSource();
+        await tester.pumpWidget(
+          _picker(geocoding: geocoding, selectedCity: city),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 700));
+        await tester.tap(find.byKey(const ValueKey('map-picker-search-open')));
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.byKey(const ValueKey('map-picker-search-field')),
+          'Edge',
+        );
+        await tester.pump(const Duration(milliseconds: 500));
+        geocoding.completeSearch('Edge', const [
+          GeoapifyPlace(
+            addressLine1: 'Edge result',
+            latitude: 30.10,
+            longitude: 31.2357,
+          ),
+        ]);
+        await tester.pump();
+        await tester.tap(find.text('Edge result'));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Outside the delivery area. Adjust the location.'),
+          findsOneWidget,
+        );
+        final button = tester.widget<ElevatedButton>(
+          find.ancestor(
+            of: find.text('Continue with this location'),
+            matching: find.byType(ElevatedButton),
+          ),
+        );
+        expect(button.onPressed, isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+        await tester.pumpAndSettle();
+      }
+    },
+  );
+
   testWidgets('debounces search and ignores an older response', (tester) async {
     final geocoding = _FakeGeocodingDataSource();
     await tester.pumpWidget(_picker(geocoding: geocoding));

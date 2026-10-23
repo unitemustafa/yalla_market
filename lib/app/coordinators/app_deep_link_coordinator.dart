@@ -52,6 +52,7 @@ class AppDeepLinkCoordinator {
             brand: '',
             price: '',
             productId: target.id,
+            initialVariantId: target.variantId,
           ),
         );
         break;

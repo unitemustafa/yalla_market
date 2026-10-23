@@ -82,6 +82,22 @@ class _AboutAppViewState extends State<AboutAppView> {
                                     'Open My Orders from the account page to see the latest order status and delivery updates.',
                               ),
                               AboutInfoSection(
+                                title: 'What payment methods are available?',
+                                body:
+                                    'Payment is currently cash on delivery. Pay when your order arrives.',
+                              ),
+                              AboutInfoSection(
+                                title:
+                                    'How do I change my delivery address before confirming?',
+                                body:
+                                    'Open My Addresses from the account page to add or edit an address, then select the address you want at checkout before confirming your order.',
+                              ),
+                              AboutInfoSection(
+                                title: 'How do I check the delivery fee?',
+                                body:
+                                    'Check the shipping fee in the order summary before confirming your order. If the fee is not specified, contact support to confirm it.',
+                              ),
+                              AboutInfoSection(
                                 title: 'How do I contact support?',
                                 body:
                                     'Use the WhatsApp button on the account page for direct assistance.',
@@ -142,26 +158,12 @@ class _AboutAppViewState extends State<AboutAppView> {
                       isDark: isDark,
                       children: [
                         AboutMenuTile(
-                          customIcon: const FaIcon(
-                            FontAwesomeIcons.facebookF,
-                            size: 18,
+                          icon: AppIcons.global,
+                          title: 'Website',
+                          accentColor: AppColors.primary,
+                          onTap: () => _openExternalLink(
+                            Uri.https('yallamarket.org', '/'),
                           ),
-                          title: 'Facebook',
-                          accentColor: const Color(0xFF1877F2),
-                          onTap: () => _openSocial(
-                            Uri.https('www.facebook.com', '/yallamarket'),
-                          ),
-                        ),
-                        AboutDivider(isDark: isDark),
-                        AboutMenuTile(
-                          customIcon: const FaIcon(
-                            FontAwesomeIcons.xTwitter,
-                            size: 18,
-                          ),
-                          title: 'X',
-                          accentColor: isDark ? Colors.white : Colors.black,
-                          onTap: () =>
-                              _openSocial(Uri.https('x.com', '/yallamarket')),
                         ),
                         AboutDivider(isDark: isDark),
                         AboutMenuTile(
@@ -171,7 +173,7 @@ class _AboutAppViewState extends State<AboutAppView> {
                           ),
                           title: 'Instagram',
                           accentColor: const Color(0xFFE1306C),
-                          onTap: () => _openSocial(
+                          onTap: () => _openExternalLink(
                             Uri.https('www.instagram.com', '/yallamarket'),
                           ),
                         ),
@@ -213,7 +215,7 @@ class _AboutAppViewState extends State<AboutAppView> {
     );
   }
 
-  Future<void> _openSocial(Uri uri) async {
+  Future<void> _openExternalLink(Uri uri) async {
     try {
       final launched = await launchUrl(
         uri,

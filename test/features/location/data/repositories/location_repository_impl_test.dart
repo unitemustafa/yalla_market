@@ -28,6 +28,24 @@ void main() {
                 'label': 'القاهرة',
                 'service_city': {
                   'id': 7,
+                  'boundary_bbox': {
+                    'west': 31.0,
+                    'south': 30.0,
+                    'east': 31.5,
+                    'north': 30.5,
+                  },
+                  'boundary_geojson': {
+                    'type': 'Polygon',
+                    'coordinates': [
+                      [
+                        [31.0, 30.0],
+                        [31.5, 30.0],
+                        [31.5, 30.5],
+                        [31.0, 30.5],
+                        [31.0, 30.0],
+                      ],
+                    ],
+                  },
                   'name': 'القاهرة',
                   'delivery_price': '0.00',
                   'is_active': true,
@@ -49,6 +67,8 @@ void main() {
           success: (cities) {
             expect(cities.first.isGeneral, isTrue);
             expect(cities.last.serviceCityId, 7);
+            expect(cities.last.boundaryBbox?['west'], 31.0);
+            expect(cities.last.boundaryGeoJson?['type'], 'Polygon');
             expect(cities.last.name, 'القاهرة');
           },
           failure: (failure) => fail(failure.message),

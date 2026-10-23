@@ -120,10 +120,11 @@ jobs:
         env:
           API_BASE_URL: ${{ secrets.API_BASE_URL }}
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
-        run: >-
-          flutter build ios --release --no-codesign
-          --dart-define=API_BASE_URL="$API_BASE_URL"
-          --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY"
+        run: |
+          python3 tool/configure_shared_links.py
+          flutter build ios --release --no-codesign \
+            --dart-define=API_BASE_URL="$API_BASE_URL" \
+            --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY"
       - name: Remove iOS Firebase configuration
         if: always()
         run: rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.xcconfig

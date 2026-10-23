@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../../../core/cache/data_freshness.dart';
 import '../../../../core/presentation/widgets/refresh_on_return.dart';
 import '../../../../core/utils/coalesced_operation.dart';
+import '../../../../core/presentation/actions/copy_content_link.dart';
 
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -154,20 +154,31 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   String get _resolvedProductId => _productId;
 
   String get _productShareLink {
-    return SharedContentLinks.product(_resolvedProductId);
+    return SharedContentLinks.product(
+      _resolvedProductId,
+      variantId: _selectedVariant?.id,
+    );
   }
 
   String get _productShareText {
     final title = context.tr(_productTitle);
     final brand = context.tr(_productBrand);
+    final selection = _selectedVariant?.attributeValues.entries
+        .map((entry) => '${context.tr(entry.key)}: ${context.tr(entry.value)}')
+        .join('، ');
+    final selectionLine = selection == null || selection.isEmpty
+        ? ''
+        : '$selection\n';
     if (context.isArabicLanguage) {
       return 'شوف $title على يلا ماركت\n'
           'من $brand\n'
+          '$selectionLine'
           'السعر: $_selectedDisplayPrice\n'
           '$_productShareLink';
     }
     return 'Check out $title on Yalla Market\n'
         'By $brand\n'
+        '$selectionLine'
         'Price: $_selectedDisplayPrice\n'
         '$_productShareLink';
   }

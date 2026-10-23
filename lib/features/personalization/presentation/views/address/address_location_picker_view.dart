@@ -232,21 +232,27 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
     return geoCoverageContains(
       latitude: coordinates.latitude,
       longitude: coordinates.longitude,
-      centerLatitude: knownCity?.slug == 'cairo'
-          ? 30.0444
-          : knownCity?.slug == 'sharm-el-sheikh'
-          ? 27.9158
-          : city.centerLatitude,
-      centerLongitude: knownCity?.slug == 'cairo'
-          ? 31.2357
-          : knownCity?.slug == 'sharm-el-sheikh'
-          ? 34.3299
-          : city.centerLongitude,
-      radiusKm: knownCity?.slug == 'cairo'
-          ? 50
-          : knownCity?.slug == 'sharm-el-sheikh'
-          ? 40
-          : city.radiusKm,
+      centerLatitude:
+          city.centerLatitude ??
+          (knownCity?.slug == 'cairo'
+              ? 30.0444
+              : knownCity?.slug == 'sharm-el-sheikh'
+              ? 27.9158
+              : null),
+      centerLongitude:
+          city.centerLongitude ??
+          (knownCity?.slug == 'cairo'
+              ? 31.2357
+              : knownCity?.slug == 'sharm-el-sheikh'
+              ? 34.3299
+              : null),
+      radiusKm:
+          city.radiusKm ??
+          (knownCity?.slug == 'cairo'
+              ? 50
+              : knownCity?.slug == 'sharm-el-sheikh'
+              ? 40
+              : null),
     );
   }
 

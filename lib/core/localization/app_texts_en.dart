@@ -1127,6 +1127,7 @@ abstract final class FavoriteTexts {
   static const offerLinkCopied = 'Offer link copied';
   static const youCanShareItWithAnyone = 'You can share it with anyone.';
   static const couldNotShareProduct = 'Could not share product';
+  static const couldNotCopyLink = 'Could not copy link';
   static const couldNotShareOffer = 'Could not share offer';
   static const couldNotShareStore = 'Could not share store';
 }
@@ -1343,6 +1344,17 @@ abstract final class GeneralTexts {
   static const egp = 'EGP';
   static const version = 'Version';
   static const frequentlyAskedQuestions = 'Frequently asked questions';
+  static const website = 'Website';
+  static const faqPaymentMethods = 'What payment methods are available?';
+  static const faqPaymentMethodsAnswer =
+      'Payment is currently cash on delivery. Pay when your order arrives.';
+  static const faqChangeDeliveryAddress =
+      'How do I change my delivery address before confirming?';
+  static const faqChangeDeliveryAddressAnswer =
+      'Open My Addresses from the account page to add or edit an address, then select the address you want at checkout before confirming your order.';
+  static const faqDeliveryFee = 'How do I check the delivery fee?';
+  static const faqDeliveryFeeAnswer =
+      'Check the shipping fee in the order summary before confirming your order. If the fee is not specified, contact support to confirm it.';
 
   // ─── إجراءات ───
   static const add = 'Add';

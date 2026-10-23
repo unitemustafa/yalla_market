@@ -3,6 +3,55 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/presentation/widgets/layouts/android_tablet_viewport.dart';
 
 void main() {
+  testWidgets('centers a 3:4 viewport on a landscape iPad', (tester) async {
+    final observed = await _pumpViewport(
+      tester,
+      size: const Size(1024, 768),
+      platform: TargetPlatform.iOS,
+      padding: const FakeViewPadding(top: 24, bottom: 20),
+      viewInsets: const FakeViewPadding(bottom: 300),
+    );
+
+    expect(
+      tester.getRect(find.byKey(const ValueKey('android_tablet_viewport'))),
+      const Rect.fromLTWH(224, 0, 576, 768),
+    );
+    expect(observed.size, const Size(576, 768));
+    expect(observed.orientation, Orientation.portrait);
+    expect(observed.padding, const EdgeInsets.only(top: 24, bottom: 20));
+    expect(observed.viewInsets.bottom, 300);
+  });
+
+  testWidgets('keeps a portrait iPad full screen', (tester) async {
+    final observed = await _pumpViewport(
+      tester,
+      size: const Size(768, 1024),
+      platform: TargetPlatform.iOS,
+    );
+
+    expect(
+      find.byKey(const ValueKey('android_tablet_letterbox')),
+      findsNothing,
+    );
+    expect(observed.size, const Size(768, 1024));
+  });
+
+  for (final size in [const Size(390, 844), const Size(844, 390)]) {
+    testWidgets('keeps iPhone $size full screen', (tester) async {
+      final observed = await _pumpViewport(
+        tester,
+        size: size,
+        platform: TargetPlatform.iOS,
+      );
+
+      expect(
+        find.byKey(const ValueKey('android_tablet_letterbox')),
+        findsNothing,
+      );
+      expect(observed.size, size);
+    });
+  }
+
   testWidgets('keeps a portrait phone full screen', (tester) async {
     final observed = await _pumpViewport(tester, size: const Size(412, 915));
 
@@ -54,13 +103,11 @@ void main() {
     expect(observed.viewInsets.bottom, 280);
   });
 
-  testWidgets('does not letterbox a non-Android landscape tablet', (
-    tester,
-  ) async {
+  testWidgets('does not letterbox a desktop landscape window', (tester) async {
     final observed = await _pumpViewport(
       tester,
       size: const Size(1280, 800),
-      platform: TargetPlatform.iOS,
+      platform: TargetPlatform.windows,
     );
 
     expect(

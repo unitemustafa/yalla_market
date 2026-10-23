@@ -21,6 +21,7 @@ import '../../domain/entities/auth_user.dart';
 import '../../domain/entities/otp_delivery_result.dart';
 import '../../domain/entities/social_auth_result.dart';
 import '../../domain/repositories/auth_repository.dart';
+import '../datasources/facebook_credential_data_source.dart';
 
 class AuthRemoteRepositoryImpl implements AuthRepository {
   AuthRemoteRepositoryImpl(
@@ -28,10 +29,13 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     this._tokenStore, {
     SessionDeadlineController? sessionDeadlineController,
     Future<String> Function(SocialAuthProvider)? socialIdTokenProvider,
+    FacebookCredentialDataSource? facebookCredentialDataSource,
   }) : _sessionDeadlineController =
            sessionDeadlineController ??
            SessionDeadlineController(tokenStore: _tokenStore),
-       _socialIdTokenProvider = socialIdTokenProvider;
+       _socialIdTokenProvider = socialIdTokenProvider,
+       _facebookCredentialDataSource =
+           facebookCredentialDataSource ?? FacebookCredentialDataSource();
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
@@ -43,6 +47,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   final TokenStore _tokenStore;
   final SessionDeadlineController _sessionDeadlineController;
   final Future<String> Function(SocialAuthProvider)? _socialIdTokenProvider;
+  final FacebookCredentialDataSource _facebookCredentialDataSource;
   String? _pendingSocialIdToken;
   SocialAuthProvider? _pendingSocialProvider;
   Future<void>? _googleInitialization;
@@ -281,20 +286,8 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     return firebase_auth.FirebaseAuth.instance.signInWithCredential(credential);
   }
 
-  Future<firebase_auth.OAuthCredential> _facebookCredential() async {
-    final result = await FacebookAuth.instance.login(
-      permissions: const ['email', 'public_profile'],
-    );
-    if (result.status != LoginStatus.success || result.accessToken == null) {
-      final message = result.status == LoginStatus.cancelled
-          ? 'Facebook sign-in was cancelled.'
-          : 'Facebook sign-in could not be completed.';
-      throw ValidationFailure(message);
-    }
-    return firebase_auth.FacebookAuthProvider.credential(
-      result.accessToken!.tokenString,
-    );
-  }
+  Future<firebase_auth.OAuthCredential> _facebookCredential() =>
+      _facebookCredentialDataSource.createCredential();
 
   Future<firebase_auth.UserCredential> _signInWithApple() {
     return firebase_auth.FirebaseAuth.instance.signInWithProvider(

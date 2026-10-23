@@ -38,12 +38,10 @@ class _PromoOfferSheet extends StatelessWidget {
           detail: offer.value(pageContext),
           onCopyLink: () async {
             Navigator.pop(sheetContext);
-            await Clipboard.setData(ClipboardData(text: link));
-            if (!pageContext.mounted) return;
-            CustomSnackBar.showSuccess(
+            await copyContentLink(
               context: pageContext,
-              title: 'Offer link copied',
-              message: 'You can share it with anyone.',
+              link: link,
+              successTitle: 'Offer link copied',
             );
           },
           onShare: (sourceContext) async {

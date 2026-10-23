@@ -117,7 +117,7 @@ void main() {
     final slider = find.byKey(
       const ValueKey('popular_stores_horizontal_slider'),
     );
-    expect(tester.widget<PageView>(slider).controller?.viewportFraction, 0.8);
+    expect(tester.widget<ListView>(slider).semanticChildCount, 2);
     expect(
       find.byKey(const ValueKey('popular_store_market-category-0')),
       findsOneWidget,
@@ -127,8 +127,8 @@ void main() {
     final secondStore = find.byKey(
       const ValueKey('popular_store_market-category-2'),
     );
-    expect(secondStore.hitTestable(), findsWidgets);
-    await tester.tapAt(tester.getCenter(slider));
+    expect(secondStore, findsOneWidget);
+    await tester.tap(secondStore);
     await tester.pumpAndSettle();
 
     expect(openedStore?.marketId, 'market-category-2');
@@ -139,16 +139,11 @@ void main() {
   for (final width in [320.0, 390.0]) {
     for (final direction in TextDirection.values) {
       testWidgets(
-        'store carousels center a full card between two previews at $width in $direction',
+        'store sliders show compact cards with a preview at $width in $direction',
         (tester) async {
           await tester.binding.setSurfaceSize(Size(width, 844));
           addTearDown(() => tester.binding.setSurfaceSize(null));
-          final source = _storeData();
-          final markets = [...source.popularMarkets, ...source.latestMarkets];
-          final store = source.copyWith(
-            popularMarkets: markets,
-            latestMarkets: markets,
-          );
+          final store = _storeData();
           await tester.pumpWidget(
             MaterialApp(
               home: Directionality(
@@ -156,7 +151,11 @@ void main() {
                 child: Scaffold(
                   body: SingleChildScrollView(
                     padding: const EdgeInsets.all(16),
-                    child: StoreHighlightsSections(store: store),
+                    child: StoreHighlightsSections(
+                      store: store.copyWith(
+                        latestMarkets: store.popularMarkets,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -174,26 +173,11 @@ void main() {
             final second = tester.getRect(
               find.byKey(ValueKey('${prefix}_store_market-category-2')),
             );
-            final previous = tester.getRect(
-              find.byKey(ValueKey('${prefix}_store_market-category-1')),
-            );
             expect(first.height, StoreMarketCard.height);
-            expect(first.center.dx, closeTo(viewport.center.dx, 0.1));
             expect(viewport.intersect(first).width, closeTo(first.width, 0.1));
             expect(viewport.intersect(second).width, greaterThan(0));
-            expect(viewport.intersect(previous).width, greaterThan(0));
-            expect(second.width, lessThan(first.width));
-            expect(previous.width, lessThan(first.width));
             expect(first.width, lessThan(viewport.width));
-            expect(first.width, greaterThan(viewport.width * 0.70));
-            expect(
-              direction == TextDirection.ltr
-                  ? previous.center.dx < first.center.dx &&
-                        second.center.dx > first.center.dx
-                  : previous.center.dx > first.center.dx &&
-                        second.center.dx < first.center.dx,
-              isTrue,
-            );
+            expect(first.width, greaterThan(viewport.width * 0.75));
           }
           expect(tester.takeException(), isNull);
         },
@@ -241,10 +225,12 @@ void main() {
         const ValueKey('popular_stores_horizontal_slider'),
       );
       expect(
-        tester.widget<PageView>(slider).controller?.viewportFraction,
-        count == 1 ? 1 : 0.8,
+        tester.widget<ListView>(slider).semanticChildCount,
+        count > 5 ? 6 : count,
       );
-      final viewAll = find.text('View all');
+      await tester.drag(slider, const Offset(-3000, 0));
+      await tester.pumpAndSettle();
+      final viewAll = find.byKey(const ValueKey('popular_stores_view_all'));
       expect(viewAll, count > 5 ? findsOneWidget : findsNothing);
       expect(
         find.byKey(const ValueKey('popular_store_popular-5')),

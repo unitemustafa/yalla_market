@@ -2452,6 +2452,10 @@ abstract final class AppTextCatalog {
       ar: ar.FavoriteTexts.couldNotShareProduct,
       en: en.FavoriteTexts.couldNotShareProduct,
     ),
+    'Could not copy link': (
+      ar: ar.FavoriteTexts.couldNotCopyLink,
+      en: en.FavoriteTexts.couldNotCopyLink,
+    ),
     'Could not share offer': (
       ar: ar.FavoriteTexts.couldNotShareOffer,
       en: en.FavoriteTexts.couldNotShareOffer,
@@ -3186,6 +3190,33 @@ abstract final class AppTextCatalog {
       ar: ar.GeneralTexts.frequentlyAskedQuestions,
       en: en.GeneralTexts.frequentlyAskedQuestions,
     ),
+    'Website': (ar: ar.GeneralTexts.website, en: en.GeneralTexts.website),
+    'What payment methods are available?': (
+      ar: ar.GeneralTexts.faqPaymentMethods,
+      en: en.GeneralTexts.faqPaymentMethods,
+    ),
+    'Payment is currently cash on delivery. Pay when your order arrives.': (
+      ar: ar.GeneralTexts.faqPaymentMethodsAnswer,
+      en: en.GeneralTexts.faqPaymentMethodsAnswer,
+    ),
+    'How do I change my delivery address before confirming?': (
+      ar: ar.GeneralTexts.faqChangeDeliveryAddress,
+      en: en.GeneralTexts.faqChangeDeliveryAddress,
+    ),
+    'Open My Addresses from the account page to add or edit an address, then select the address you want at checkout before confirming your order.':
+        (
+          ar: ar.GeneralTexts.faqChangeDeliveryAddressAnswer,
+          en: en.GeneralTexts.faqChangeDeliveryAddressAnswer,
+        ),
+    'How do I check the delivery fee?': (
+      ar: ar.GeneralTexts.faqDeliveryFee,
+      en: en.GeneralTexts.faqDeliveryFee,
+    ),
+    'Check the shipping fee in the order summary before confirming your order. If the fee is not specified, contact support to confirm it.':
+        (
+          ar: ar.GeneralTexts.faqDeliveryFeeAnswer,
+          en: en.GeneralTexts.faqDeliveryFeeAnswer,
+        ),
     'Add': (ar: ar.GeneralTexts.add, en: en.GeneralTexts.add),
     'Add to Bag': (ar: ar.GeneralTexts.addToBag, en: en.GeneralTexts.addToBag),
     'Apply': (ar: ar.GeneralTexts.apply, en: en.GeneralTexts.apply),

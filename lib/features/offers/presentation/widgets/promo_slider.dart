@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -16,6 +15,7 @@ import '../../../../core/domain/media_focal_point.dart';
 import '../../../../core/presentation/media/media_focal_point_alignment.dart';
 import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/actions/copy_content_link.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/sheets/content_share_sheet.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';

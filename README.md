@@ -128,6 +128,36 @@ Templates are available for development, staging, and production in `env/`.
 Keep `*.local.json`, signing material, and deployment-specific Firebase files
 out of version control.
 
+## Shared links
+
+Product links include the selected variant in `?variant=<id>`. Old product,
+offer and store links continue to work. The landing page shows a preview and
+an explicit app-open button, so a device without the test app can read it.
+Store download buttons remain hidden until the backend's store URLs are set.
+
+Android's verified-link host comes from the build's `API_BASE_URL`. Before an
+iOS build against a different backend, regenerate its Associated Domains host:
+
+```bash
+python tool/configure_shared_links.py env/production.local.json
+```
+
+The iOS release workflow runs the same step using its `API_BASE_URL` environment
+variable. Enable Associated Domains in the Apple App ID/provisioning profile.
+On the backend, configure `ANDROID_APP_LINK_FINGERPRINTS` for the certificates
+that sign installed builds and `IOS_APP_LINK_APP_IDS` for the Apple application
+identifier. Their public association documents are served at
+`/.well-known/assetlinks.json` and `/.well-known/apple-app-site-association`.
+These files must be accessible over HTTPS on the same API host without a redirect.
+
+Before store publication, these settings can remain empty and the explicit
+`yallamarket://` open button supports installed test builds. To verify direct
+HTTPS opening before publication, configure the test build's signing certificate
+and Apple application identifier. After publication, use the Play App Signing
+certificate for Play installs and set the backend's `ANDROID_APP_STORE_URL` and
+`IOS_APP_STORE_URL` to the real listings. Sharing a URL does not install the app
+or preserve a selection through a fresh installation.
+
 ## Project structure
 
 ```text
@@ -185,6 +215,21 @@ flutter build appbundle --release --obfuscate \
 
 Run the release preflight with `--platform=ios`, then build and sign the app
 on a Mac with Xcode.
+
+- Minimum supported iOS version: **15.0**.
+- Supply `ios/Runner/GoogleService-Info.plist` for `com.yallamarket.app`.
+- Select the Runner signing team and configure provisioning with Push
+  Notifications, Remote notifications, Keychain Sharing, Sign in with Apple,
+  and the configured Associated Domains capability enabled.
+- Upload the matching APNs key in Firebase and enable the Apple, Google, and
+  Facebook sign-in providers in their respective consoles.
+- Facebook Limited Login uses a per-request SHA-256 nonce and an ID token;
+  Android classic login continues to use the access token.
+
+Verify a fresh installation on a real iPhone before TestFlight: social login
+and reauthentication, remembered login after a restart, notification permissions
+and foreground/background pushes, location and photo permissions, image saving,
+sharing, and checkout. Windows tests do not validate native iOS builds.
 
 Archive the matching debug symbols before running `flutter clean`; obfuscated
 Crashlytics traces require them.

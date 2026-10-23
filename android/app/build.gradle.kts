@@ -1,5 +1,6 @@
 import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 import java.io.FileInputStream
+import java.net.URI
 import java.nio.charset.StandardCharsets
 import java.util.Base64
 import java.util.Properties
@@ -62,6 +63,9 @@ fun decodedDartDefines(): Map<String, String> {
 }
 
 val performanceBuild = decodedDartDefines()["PERFORMANCE_TEST_BUILD"] == "true"
+val sharedLinkHost = runCatching {
+    URI(decodedDartDefines()["API_BASE_URL"].orEmpty()).host
+}.getOrNull()?.lowercase()?.takeIf { it.isNotBlank() } ?: "localhost"
 
 if (requestedReleaseBuild && !hasReleaseKeystore) {
     throw GradleException(
@@ -107,6 +111,7 @@ android {
 
     defaultConfig {
         applicationId = "com.yallamarket.app"
+        manifestPlaceholders["sharedLinkHost"] = sharedLinkHost
         if (performanceBuild) {
             applicationIdSuffix = ".performance"
             versionNameSuffix = "-performance"

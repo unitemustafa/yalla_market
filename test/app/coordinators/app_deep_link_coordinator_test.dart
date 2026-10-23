@@ -20,7 +20,11 @@ void main() {
           builder: (_) {
             if (settings.name == AppRoutes.productDetail) {
               final args = settings.arguments! as ProductDetailRouteArgs;
-              return Scaffold(body: Text('product:${args.productId}'));
+              return Scaffold(
+                body: Text(
+                  'product:${args.productId}:${args.initialVariantId}',
+                ),
+              );
             }
             return Scaffold(body: Text(settings.name ?? 'unknown'));
           },
@@ -28,15 +32,15 @@ void main() {
       ),
     );
 
-    coordinator.handleUri(Uri.parse('yallamarket://products/42'));
+    coordinator.handleUri(Uri.parse('yallamarket://products/42?variant=202'));
     await tester.pump();
-    expect(find.text('product:42'), findsNothing);
+    expect(find.text('product:42:202'), findsNothing);
 
     AppNavigator.key.currentState!.pushReplacementNamed(
       AppRoutes.navigationMenu,
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('product:42'), findsOneWidget);
+    expect(find.text('product:42:202'), findsOneWidget);
   });
 }

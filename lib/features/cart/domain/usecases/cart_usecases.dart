@@ -5,6 +5,7 @@ import '../repositories/cart_repository.dart';
 class CartUseCases {
   const CartUseCases({
     required this.getItems,
+    this.releaseMemory,
     required this.addItem,
     required this.incrementQuantity,
     required this.decrementQuantity,
@@ -13,6 +14,7 @@ class CartUseCases {
   });
 
   final GetCartItemsUseCase getItems;
+  final ReleaseCartMemoryUseCase? releaseMemory;
   final AddCartItemUseCase addItem;
   final IncrementCartItemQuantityUseCase incrementQuantity;
   final DecrementCartItemQuantityUseCase decrementQuantity;
@@ -81,5 +83,17 @@ class ClearCartUseCase {
 
   Future<ApiResult<List<CartItemData>>> call(String userKey) {
     return _repository.clear(userKey);
+  }
+}
+
+class ReleaseCartMemoryUseCase {
+  const ReleaseCartMemoryUseCase(this._repository);
+  final CartRepository _repository;
+  ApiResult<void> call(String userKey) {
+    final repository = _repository;
+    if (repository is CartMemoryCache) {
+      (repository as CartMemoryCache).releaseMemory(userKey);
+    }
+    return const ApiResult.success(null);
   }
 }

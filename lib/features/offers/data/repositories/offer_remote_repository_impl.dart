@@ -7,15 +7,33 @@ import '../../../../core/network/api_result.dart';
 import '../../domain/entities/offer_data.dart';
 import '../../domain/repositories/offer_repository.dart';
 
-class OfferRemoteRepositoryImpl implements OfferRepository {
+class OfferRemoteRepositoryImpl
+    implements OfferRepository, OfferDetailRepository {
   const OfferRemoteRepositoryImpl(this._apiClient);
 
   final ApiClient _apiClient;
 
   @override
+  Future<ApiResult<OfferData>> getOffer(String id) async {
+    try {
+      final payload = await _apiClient.get<Map<String, dynamic>>(
+        '/offers/$id/',
+      );
+      return ApiResult.success(OfferData.fromJson(payload));
+    } on DioException catch (error) {
+      return ApiResult.failure(ApiErrorHandler.handle(error));
+    } catch (_) {
+      return const ApiResult.failure(UnknownFailure('Could not load offer.'));
+    }
+  }
+
+  @override
   Future<ApiResult<List<OfferData>>> getOffers() async {
     try {
-      final payload = await _apiClient.get<Object?>('/offers/');
+      final payload = await _apiClient.get<Object?>(
+        '/offers/',
+        queryParameters: const {'summary': 'true'},
+      );
       final rawItems = payload is Map<String, dynamic>
           ? payload['results'] ?? payload['items'] ?? payload['data']
           : payload;

@@ -209,18 +209,23 @@ class _StoreCover extends StatelessWidget {
                     favorite: market.isLiked,
                     isDark: isDark,
                   )
-                : BlocBuilder<MarketWishlistCubit, MarketWishlistState>(
+                : BlocSelector<
+                    MarketWishlistCubit,
+                    MarketWishlistState,
+                    (bool, bool)
+                  >(
                     bloc: wishlist,
-                    buildWhen: (previous, current) =>
-                        previous.items != current.items ||
-                        previous.busyIds != current.busyIds,
+                    selector: (state) => (
+                      wishlist!.isFavorite(market),
+                      state.busyIds.contains(market.id),
+                    ),
                     builder: (context, state) {
                       final cubit = wishlist!;
                       return _FavoriteButton(
                         key: ValueKey('${keyPrefix}_${market.id}_favorite'),
-                        favorite: cubit.isFavorite(market),
+                        favorite: state.$1,
                         isDark: isDark,
-                        onPressed: state.busyIds.contains(market.id)
+                        onPressed: state.$2
                             ? null
                             : () => toggleMarketFavoriteWithFeedback(
                                 context: context,

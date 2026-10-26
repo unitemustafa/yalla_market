@@ -6,6 +6,7 @@ import '../data/repositories/offer_remote_repository_impl.dart';
 import '../data/repositories/offer_repository_impl.dart';
 import '../domain/repositories/offer_repository.dart';
 import '../domain/usecases/get_offers_usecase.dart';
+import '../domain/usecases/get_offer_details_usecase.dart';
 import '../presentation/cubit/offer_catalog_cubit.dart';
 
 void registerOfferDependencies(GetIt sl) {
@@ -19,7 +20,17 @@ void registerOfferDependencies(GetIt sl) {
   if (!sl.isRegistered<GetOffersUseCase>()) {
     sl.registerLazySingleton(() => GetOffersUseCase(sl<OfferRepository>()));
   }
+  if (!sl.isRegistered<GetOfferDetailsUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetOfferDetailsUseCase(sl<OfferRepository>()),
+    );
+  }
   if (!sl.isRegistered<OfferCatalogCubit>()) {
-    sl.registerFactory(() => OfferCatalogCubit(sl<GetOffersUseCase>()));
+    sl.registerFactory(
+      () => OfferCatalogCubit(
+        sl<GetOffersUseCase>(),
+        getDetails: sl<GetOfferDetailsUseCase>(),
+      ),
+    );
   }
 }

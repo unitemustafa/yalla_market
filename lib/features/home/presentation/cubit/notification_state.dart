@@ -11,6 +11,9 @@ class NotificationState {
     this.markingReadIds = const <int>{},
     this.errorMessage,
     this.hasLoaded = false,
+    this.hasMore = false,
+    this.loadingMore = false,
+    this.moreError,
   });
 
   final List<AppNotification> notifications;
@@ -22,6 +25,9 @@ class NotificationState {
   final Set<int> markingReadIds;
   final String? errorMessage;
   final bool hasLoaded;
+  final bool hasMore;
+  final bool loadingMore;
+  final String? moreError;
 
   NotificationState copyWith({
     List<AppNotification>? notifications,
@@ -34,6 +40,10 @@ class NotificationState {
     String? errorMessage,
     bool clearError = false,
     bool? hasLoaded,
+    bool? hasMore,
+    bool? loadingMore,
+    String? moreError,
+    bool clearMoreError = false,
   }) {
     return NotificationState(
       notifications: notifications ?? this.notifications,
@@ -45,6 +55,9 @@ class NotificationState {
       markingReadIds: markingReadIds ?? this.markingReadIds,
       errorMessage: clearError ? null : errorMessage ?? this.errorMessage,
       hasLoaded: hasLoaded ?? this.hasLoaded,
+      hasMore: hasMore ?? this.hasMore,
+      loadingMore: loadingMore ?? this.loadingMore,
+      moreError: clearMoreError ? null : moreError ?? this.moreError,
     );
   }
 }

@@ -1,5 +1,10 @@
 import '../../../../core/network/api_result.dart';
 import '../entities/app_notification.dart';
+import '../entities/notification_page.dart';
+
+abstract interface class PagedNotificationRepository {
+  Future<ApiResult<NotificationPage>> getNotificationPage({int page = 1});
+}
 
 abstract class NotificationRepository {
   Future<ApiResult<List<AppNotification>>> getNotifications({

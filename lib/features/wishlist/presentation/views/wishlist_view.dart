@@ -61,7 +61,11 @@ class WishlistView extends StatelessWidget {
         builder: (context, wishlist) {
           return BlocBuilder<MarketWishlistCubit, MarketWishlistState>(
             builder: (context, marketWishlist) {
-              final isEmpty = wishlist.isEmpty && marketWishlist.items.isEmpty;
+              final isEmpty =
+                  wishlist.isEmpty &&
+                  marketWishlist.items.isEmpty &&
+                  !(wishlist is WishlistState && wishlist.hasMore) &&
+                  !marketWishlist.hasMore;
               final productsLoading =
                   wishlist is WishlistState &&
                   wishlist.loading &&
@@ -162,6 +166,23 @@ class WishlistView extends StatelessWidget {
                                                     _wishlistProductCardData,
                                               ),
                                             ],
+                                            if (wishlist is WishlistState &&
+                                                (wishlist.hasMore ||
+                                                    wishlist.moreError != null))
+                                              SliverToBoxAdapter(
+                                                child: _FavoriteLoadMore(
+                                                  key: const ValueKey(
+                                                    'wishlist_products_load_more',
+                                                  ),
+                                                  loading:
+                                                      wishlist.loading ||
+                                                      wishlist.loadingMore,
+                                                  error: wishlist.moreError,
+                                                  onPressed: context
+                                                      .read<WishlistCubit>()
+                                                      .loadMore,
+                                                ),
+                                              ),
                                             if (wishlist.isNotEmpty &&
                                                 marketWishlist.items.isNotEmpty)
                                               const SliverToBoxAdapter(
@@ -245,6 +266,27 @@ class WishlistView extends StatelessWidget {
                                                       ),
                                                     ),
                                                   ],
+                                                ),
+                                              ),
+                                            if (marketWishlist.hasMore ||
+                                                marketWishlist.moreError !=
+                                                    null)
+                                              SliverToBoxAdapter(
+                                                child: _FavoriteLoadMore(
+                                                  key: const ValueKey(
+                                                    'wishlist_stores_load_more',
+                                                  ),
+                                                  loading:
+                                                      marketWishlist.loading ||
+                                                      marketWishlist
+                                                          .loadingMore,
+                                                  error:
+                                                      marketWishlist.moreError,
+                                                  onPressed: context
+                                                      .read<
+                                                        MarketWishlistCubit
+                                                      >()
+                                                      .loadMore,
                                                 ),
                                               ),
                                           ],

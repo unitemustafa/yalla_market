@@ -84,11 +84,10 @@ abstract final class AppCatalogRefreshCoordinator {
     await store.loadStore();
     if (!context.mounted) return;
     final id = marketId?.trim() ?? '';
-    final category = classificationId?.trim() ?? '';
+
     await Future.wait([
       if (id.isNotEmpty) store.ensureMarket(id),
-      if (id.isEmpty && category.isNotEmpty)
-        store.ensureClassification(category),
+
       offers.loadOffers(),
     ]);
   }

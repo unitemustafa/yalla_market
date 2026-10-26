@@ -29,8 +29,10 @@ class OfferData {
     this.announcementPriority = 0,
     this.announcementDisplaySeconds = 15,
     required this.products,
+    this.isSummary = false,
   });
 
+  final bool isSummary;
   final String id;
   final String title;
   final String description;
@@ -63,6 +65,7 @@ class OfferData {
 
     return OfferData(
       id: json['id']?.toString() ?? '',
+      isSummary: json['is_summary'] == true,
       title: json['title']?.toString() ?? '',
       description: json['description']?.toString() ?? '',
       image: _resolveImage(json['image']),

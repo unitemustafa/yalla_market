@@ -13,6 +13,38 @@ import '../../../../helpers/pending_order_request_store_fake.dart';
 void main() {
   group('OrderRemoteRepositoryImpl', () {
     test(
+      'focused history requests only the selected order, with no full history download',
+      () async {
+        final api = FakeApiClient((request) {
+          expect(request.path, '/orders/my/');
+          expect(request.queryParameters, {
+            'page': 1,
+            'page_size': 1,
+            'order_id': '90',
+          });
+          return {
+            'count': 1,
+            'next': null,
+            'results': [
+              {
+                'id': 90,
+                'status': 'pending',
+                'created_at': '2030-01-01T12:00:00Z',
+              },
+            ],
+          };
+        });
+        final repository = OrderRemoteRepositoryImpl(
+          api,
+          requestStore: FakePendingOrderRequestStore(),
+        );
+        final result = await repository.findOrder('90');
+        expect((result as ApiSuccess<OrderData?>).data!.id, '90');
+        expect(api.requests.length, 1);
+      },
+    );
+
+    test(
       'preview and checkout send the selected additions in stable order',
       () async {
         final apiClient = FakeApiClient(

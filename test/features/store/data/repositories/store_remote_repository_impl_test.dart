@@ -139,7 +139,7 @@ void main() {
         final apiClient = FakeApiClient((request) {
           if (request.path == '/home/classifications/') {
             expect(request.method, 'GET');
-            expect(request.queryParameters, isNull);
+            expect(request.queryParameters, {'include_products': false});
             return {
               'common_market_classifications': [
                 {

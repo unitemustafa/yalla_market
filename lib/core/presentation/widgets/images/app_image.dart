@@ -40,6 +40,7 @@ class AppImage extends StatelessWidget {
   const AppImage({
     super.key,
     this.source,
+    this.decodeToLayoutBounds = false,
     this.bytes,
     this.width,
     this.height,
@@ -57,6 +58,7 @@ class AppImage extends StatelessWidget {
     this.filterQuality = FilterQuality.medium,
   });
 
+  final bool decodeToLayoutBounds;
   final String? source;
   final Uint8List? bytes;
   final double? width;
@@ -76,7 +78,29 @@ class AppImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final image = _buildImage(context);
+    if (!decodeToLayoutBounds) return _build(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final dpr = MediaQuery.devicePixelRatioOf(context);
+        return _build(
+          context,
+          boundedWidth: constraints.hasBoundedWidth
+              ? (constraints.maxWidth * dpr).ceil().clamp(1, 2048)
+              : null,
+          boundedHeight: constraints.hasBoundedHeight
+              ? (constraints.maxHeight * dpr).ceil().clamp(1, 2048)
+              : null,
+        );
+      },
+    );
+  }
+
+  Widget _build(BuildContext context, {int? boundedWidth, int? boundedHeight}) {
+    final image = _buildImage(
+      context,
+      boundedWidth: boundedWidth,
+      boundedHeight: boundedHeight,
+    );
     final clipped = borderRadius == null
         ? image
         : ClipRRect(
@@ -96,10 +120,15 @@ class AppImage extends StatelessWidget {
     );
   }
 
-  Widget _buildImage(BuildContext context) {
+  Widget _buildImage(
+    BuildContext context, {
+    int? boundedWidth,
+    int? boundedHeight,
+  }) {
     final pickedBytes = bytes;
-    final effectiveCacheWidth = _effectiveCacheWidth(context);
-    final effectiveCacheHeight = _effectiveCacheHeight(context);
+    final effectiveCacheWidth = _effectiveCacheWidth(context) ?? boundedWidth;
+    final effectiveCacheHeight =
+        _effectiveCacheHeight(context) ?? boundedHeight;
     final effectiveFit = _effectiveFit;
 
     if (pickedBytes != null && pickedBytes.isNotEmpty) {

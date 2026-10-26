@@ -156,27 +156,11 @@ class _OfferCountdownChip extends StatefulWidget {
   State<_OfferCountdownChip> createState() => _OfferCountdownChipState();
 }
 
-class _OfferCountdownChipState extends State<_OfferCountdownChip> {
-  Timer? _timer;
-  DateTime _now = DateTime.now();
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
+class _OfferCountdownChipState
+    extends VisiblePeriodicState<_OfferCountdownChip> {
   @override
   Widget build(BuildContext context) {
-    final remaining = widget.endsAt.difference(_now);
+    final remaining = widget.endsAt.difference(currentTime);
     final duration = remaining.isNegative ? Duration.zero : remaining;
 
     return Container(

@@ -12,34 +12,119 @@ class NotificationCubit extends Cubit<NotificationState> {
   final NotificationUseCases _useCases;
   final _loads = CoalescedOperation();
   int _generation = 0;
+  int _page = 1;
+  int _contentRevision = 0;
+  final Set<int> _removedIds = {};
+  Future<bool>? _mutation;
+  String? _mutationKind;
+  int _sessionGeneration = 0;
 
-  Future<void> loadNotifications({bool forceRefresh = false}) =>
-      _loads.run(() => _loadNotifications(forceRefresh: forceRefresh));
+  Future<bool> _runMutation(String kind, Future<bool> Function() action) async {
+    final running = _mutation;
+    if (running != null) {
+      if (_mutationKind == kind) return running;
+      final session = _sessionGeneration;
+      await running;
+      if (isClosed || session != _sessionGeneration) return false;
+      return _runMutation(kind, action);
+    }
+    final generation = _generation;
+    final operation = () async {
+      if (_loads.isRunning) await _loads.run(() async {});
+      if (isClosed || generation != _generation) return false;
+      return action();
+    }();
+    _mutation = operation;
+    _mutationKind = kind;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_mutation, operation)) {
+        _mutation = null;
+        _mutationKind = null;
+      }
+    }
+  }
+
+  Future<void> loadMore() async {
+    if (!state.hasMore ||
+        state.loadingMore ||
+        _loads.isRunning ||
+        state.isDeletingAll ||
+        state.isMarkingAllRead) {
+      return;
+    }
+    final generation = _generation;
+    final revision = _contentRevision;
+    emit(state.copyWith(loadingMore: true, clearMoreError: true));
+    final result = await _useCases.page(page: _page + 1);
+    if (isClosed || generation != _generation) {
+      return;
+    }
+    result.when(
+      success: (data) {
+        _page++;
+        final merged = {for (final item in state.notifications) item.id: item};
+        for (final item in data.items) {
+          if (!_removedIds.contains(item.id)) {
+            merged.putIfAbsent(item.id, () => item);
+          }
+        }
+        emit(
+          state.copyWith(
+            notifications: List.unmodifiable(merged.values),
+            loadingMore: false,
+            hasMore: data.hasMore,
+            unreadCount: revision == _contentRevision
+                ? data.unreadCount
+                : state.unreadCount,
+          ),
+        );
+      },
+      failure: (failure) =>
+          emit(state.copyWith(loadingMore: false, moreError: failure.message)),
+    );
+  }
+
+  Future<void> loadNotifications({bool forceRefresh = false}) async {
+    final mutation = _mutation;
+    if (mutation != null) await mutation;
+    if (isClosed) return;
+    await _loads.run(() => _loadNotifications(forceRefresh: forceRefresh));
+  }
 
   Future<void> _loadNotifications({bool forceRefresh = false}) async {
     if (state.hasLoaded && !forceRefresh) return;
 
-    final generation = _generation;
+    final generation = ++_generation;
     final isInitial = !state.hasLoaded && state.notifications.isEmpty;
     emit(
       state.copyWith(
         isInitialLoading: isInitial,
         isRefreshing: !isInitial,
+        loadingMore: false,
+        clearMoreError: true,
         clearError: true,
+        markingReadIds: const {},
       ),
     );
 
-    final result = await _useCases.getNotifications();
+    final result = await _useCases.page();
     if (generation != _generation || isClosed) return;
 
     result.when(
-      success: (notifications) {
-        final sorted = List<AppNotification>.of(notifications)
+      success: (page) {
+        _page = 1;
+        _removedIds.clear();
+        final sorted = List<AppNotification>.of(page.items)
           ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         emit(
           state.copyWith(
             notifications: List.unmodifiable(sorted),
-            unreadCount: sorted.where((item) => !item.isRead).length,
+            unreadCount: page.unreadCount,
+            hasMore: page.hasMore,
+            loadingMore: false,
+            clearMoreError: true,
             isInitialLoading: false,
             isRefreshing: false,
             hasLoaded: true,
@@ -66,8 +151,11 @@ class NotificationCubit extends Cubit<NotificationState> {
 
   Future<void> refreshUnreadCount() async {
     final generation = _generation;
+    final revision = _contentRevision;
     final result = await _useCases.getUnreadCount();
-    if (generation != _generation || isClosed) return;
+    if (generation != _generation || revision != _contentRevision || isClosed) {
+      return;
+    }
 
     result.when(
       success: (count) => emit(
@@ -92,6 +180,7 @@ class NotificationCubit extends Cubit<NotificationState> {
 
     return result.when(
       success: (_) {
+        _contentRevision++;
         final nextNotifications = List<AppNotification>.of(state.notifications);
         final currentIndex = nextNotifications.indexWhere(
           (item) => item.id == id,
@@ -140,12 +229,23 @@ class NotificationCubit extends Cubit<NotificationState> {
     );
   }
 
-  Future<bool> deleteAllNotifications() async {
+  Future<bool> deleteAllNotifications() =>
+      _runMutation('delete', _deleteAllNotifications);
+
+  Future<bool> _deleteAllNotifications() async {
     if (state.notifications.isEmpty) return true;
     if (state.isDeletingAll) return false;
 
-    final generation = _generation;
-    emit(state.copyWith(isDeletingAll: true, clearError: true));
+    final generation = ++_generation;
+    _contentRevision++;
+    emit(
+      state.copyWith(
+        loadingMore: false,
+        markingReadIds: const {},
+        isDeletingAll: true,
+        clearError: true,
+      ),
+    );
 
     final markResult = await _useCases.markAllAsRead();
     if (generation != _generation || isClosed) return false;
@@ -175,9 +275,14 @@ class NotificationCubit extends Cubit<NotificationState> {
             notifications: List.unmodifiable(protectedNotifications),
             unreadCount: 0,
             isDeletingAll: false,
+            hasMore: false,
             clearError: true,
           ),
         );
+        if (_useCases.supportsPaging) {
+          _page = 1;
+          loadNotifications(forceRefresh: true);
+        }
         return true;
       },
       failure: (failure) {
@@ -200,6 +305,8 @@ class NotificationCubit extends Cubit<NotificationState> {
     final index = state.notifications.indexWhere((item) => item.id == id);
     if (index == -1) return;
     final notification = state.notifications[index];
+    _removedIds.add(id);
+    _contentRevision++;
 
     emit(
       state.copyWith(
@@ -214,11 +321,21 @@ class NotificationCubit extends Cubit<NotificationState> {
     );
   }
 
-  Future<bool> markAllRead() async {
+  Future<bool> markAllRead() => _runMutation('read', _markAllRead);
+
+  Future<bool> _markAllRead() async {
     if (state.unreadCount == 0 || state.isMarkingAllRead) return true;
 
-    final generation = _generation;
-    emit(state.copyWith(isMarkingAllRead: true, clearError: true));
+    final generation = ++_generation;
+    _contentRevision++;
+    emit(
+      state.copyWith(
+        loadingMore: false,
+        markingReadIds: const {},
+        isMarkingAllRead: true,
+        clearError: true,
+      ),
+    );
     final result = await _useCases.markAllAsRead();
     if (generation != _generation || isClosed) return false;
 
@@ -249,8 +366,14 @@ class NotificationCubit extends Cubit<NotificationState> {
   }
 
   void clear() {
+    _sessionGeneration++;
+    _mutation = null;
+    _mutationKind = null;
     _loads.reset();
     _generation++;
+    _page = 1;
+    _removedIds.clear();
+    _contentRevision++;
     emit(const NotificationState());
   }
 

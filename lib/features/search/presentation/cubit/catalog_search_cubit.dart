@@ -16,6 +16,7 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
     CatalogSearchResults results, {
     bool loadingMore = false,
     String? moreError,
+    CatalogSection? moreSection,
   }) => emit(
     CatalogSearchReady(
       query: query,
@@ -23,20 +24,21 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
       visibleProducts: results.products,
       loadingMore: loadingMore,
       moreError: moreError,
+      moreSection: moreSection,
     ),
   );
 
   final SearchCatalogUseCase _search;
   final GetSelectedCityUseCase _getSelectedCity;
   int _generation = 0;
-  int _page = 1;
+  final Map<CatalogSection, int> _pages = {};
   String? _citySlug;
 
   Future<void> search(String query) async {
     final normalized = query.trim();
     final generation = ++_generation;
 
-    _page = 1;
+    _pages.clear();
     if (normalized.isEmpty) {
       emit(const CatalogSearchInitial());
       return;
@@ -64,53 +66,86 @@ class CatalogSearchCubit extends Cubit<CatalogSearchState> {
     );
   }
 
-  Future<void> loadMore() async {
+  Future<void> loadMore() => loadSection(CatalogSection.products);
+
+  Future<void> loadSection(CatalogSection section) async {
     final previous = state;
     if (previous is! CatalogSearchReady ||
         previous.loadingMore ||
-        !previous.results.hasMoreProducts ||
         _citySlug == null) {
       return;
     }
+    final hasMore = switch (section) {
+      CatalogSection.products => previous.results.hasMoreProducts,
+      CatalogSection.markets => previous.results.hasMoreMarkets,
+      CatalogSection.categories => previous.results.hasMoreCategories,
+      CatalogSection.all => false,
+    };
+    if (!hasMore) {
+      return;
+    }
     final generation = _generation;
+    final page = (_pages[section] ?? 1) + 1;
     emit(
       CatalogSearchReady(
         query: previous.query,
         results: previous.results,
         visibleProducts: previous.visibleProducts,
         loadingMore: true,
+        moreSection: section,
       ),
     );
-    final result = await _search(
+    final result = await _search.section(
       previous.query,
       citySlug: _citySlug!,
-      page: _page + 1,
+      section: section,
+      page: page,
     );
     if (!_isCurrent(generation)) return;
-    result.when(
-      success: (next) {
-        _page++;
-        final seen = <String>{};
+    switch (result) {
+      case ApiSuccess(:final data):
+        _pages[section] = page;
+        final old = previous.results;
         _emitReady(
           previous.query,
           CatalogSearchResults(
-            products: [
-              ...previous.results.products,
-              ...next.products,
-            ].where((product) => seen.add(product.id)).toList(growable: false),
-            markets: previous.results.markets,
-            categories: previous.results.categories,
-            hasMoreProducts: next.hasMoreProducts,
+            products: section == CatalogSection.products
+                ? _merge(old.products, data.products, (p) => p.id)
+                : old.products,
+            markets: section == CatalogSection.markets
+                ? _merge(old.markets, data.markets, (m) => m.id)
+                : old.markets,
+            categories: section == CatalogSection.categories
+                ? _merge(old.categories, data.categories, (c) => c.id)
+                : old.categories,
+            hasMoreProducts: section == CatalogSection.products
+                ? data.hasMoreProducts
+                : old.hasMoreProducts,
+            hasMoreMarkets: section == CatalogSection.markets
+                ? data.hasMoreMarkets
+                : old.hasMoreMarkets,
+            hasMoreCategories: section == CatalogSection.categories
+                ? data.hasMoreCategories
+                : old.hasMoreCategories,
           ),
         );
-      },
-      failure: (failure) => _emitReady(
-        previous.query,
-        previous.results,
-        moreError: failure.message,
-      ),
-    );
+      case ApiFailure(:final failure):
+        _emitReady(
+          previous.query,
+          previous.results,
+          moreError: failure.message,
+          moreSection: section,
+        );
+    }
   }
+
+  List<T> _merge<T>(List<T> first, List<T> next, String Function(T) id) =>
+      List.unmodifiable(
+        {
+          for (final item in first) id(item): item,
+          for (final item in next) id(item): item,
+        }.values,
+      );
 
   bool _isCurrent(int generation) => !isClosed && generation == _generation;
 }

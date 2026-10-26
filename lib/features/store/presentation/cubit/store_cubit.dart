@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/cache/data_freshness.dart';
@@ -15,11 +16,105 @@ class StoreCubit extends Cubit<StoreState> {
     GetMarketUseCase? getMarket,
     GetClassificationMarketsUseCase? getClassificationMarkets,
     DateTime Function()? now,
+    this.maxCachedMarkets = 32,
   }) : _getMarket = getMarket,
        _getClassificationMarkets = getClassificationMarkets,
        _now = now ?? DateTime.now,
        _freshness = DataFreshness(now: now),
        super(const StoreInitial());
+
+  final int maxCachedMarkets;
+  final Set<String> _marketOrder = {};
+  final Map<String, int> _marketPins = {};
+  StoreData? _summaryData;
+  void retainMarket(String marketId) {
+    final id = marketId.trim();
+    if (id.isEmpty || isClosed) return;
+    _marketPins[id] = (_marketPins[id] ?? 0) + 1;
+    _touch(id);
+  }
+
+  void releaseMarket(String marketId) {
+    final id = marketId.trim();
+    final count = _marketPins[id] ?? 0;
+    if (count <= 1) {
+      _marketPins.remove(id);
+    } else {
+      _marketPins[id] = count - 1;
+    }
+    scheduleMicrotask(() {
+      if (isClosed) return;
+      final data = state.data;
+      if (data == null) return;
+      final trimmed = _trimMarkets(data);
+      if (!identical(trimmed, data)) {
+        emit(switch (state) {
+          StoreLoading() => StoreLoading(previousData: trimmed),
+          StoreFailure(:final message) => StoreFailure(
+            message,
+            previousData: trimmed,
+          ),
+          _ => StoreReady(trimmed),
+        });
+      }
+      for (final key in List<String>.of(_marketLoads.keys)) {
+        if (!_loadedMarketIds.contains(key) &&
+            !_marketPins.containsKey(key) &&
+            _marketLoads[key]?.isRunning != true) {
+          _forget(key);
+        }
+      }
+    });
+  }
+
+  void _touch(String id) {
+    if (!_loadedMarketIds.contains(id)) return;
+    _marketOrder.remove(id);
+    _marketOrder.add(id);
+  }
+
+  void _forget(String id) {
+    _marketOrder.remove(id);
+    _loadedMarketIds.remove(id);
+    _marketFreshness.remove(id);
+    _marketLoads.remove(id);
+    _marketRequestRevisions.remove(id);
+  }
+
+  StoreData _trimMarkets(StoreData data) {
+    final inactive = _marketOrder
+        .where((id) => !_marketPins.containsKey(id))
+        .toList();
+    final victims = <String>{};
+    var excess =
+        inactive.length - (maxCachedMarkets < 0 ? 0 : maxCachedMarkets);
+    for (final id in inactive) {
+      if (excess <= 0) break;
+      if (_marketLoads[id]?.isRunning == true) continue;
+      victims.add(id);
+      _forget(id);
+      excess--;
+    }
+    if (victims.isEmpty) return data;
+    final summary = {
+      for (final rows
+          in _summaryData?.marketsByClassificationId.values ??
+              <List<StoreMarketData>>[])
+        for (final item in rows) item.id: item,
+    };
+    return data.copyWith(
+      marketsByClassificationId: {
+        for (final entry in data.marketsByClassificationId.entries)
+          entry.key: [
+            for (final item in entry.value)
+              if (!victims.contains(item.id))
+                item
+              else if (summary.containsKey(item.id))
+                summary[item.id]!,
+          ],
+      },
+    );
+  }
 
   final GetStoreUseCase _getStoreUseCase;
   final GetMarketUseCase? _getMarket;
@@ -62,8 +157,6 @@ class StoreCubit extends Cubit<StoreState> {
   Future<void> refreshIfStale() async {
     if (_freshness.isStale) {
       await refreshSilently();
-    } else {
-      await _refreshLoadedDetails();
     }
   }
 
@@ -133,7 +226,7 @@ class StoreCubit extends Cubit<StoreState> {
             emit(StoreReady(_preserveLoadedDetails(data)));
           }
         }
-        await _refreshLoadedDetails(force: force);
+
       case ApiFailure(:final failure):
         if (!silent || previousData == null) {
           emit(StoreFailure(failure.message, previousData: previousData));
@@ -142,6 +235,7 @@ class StoreCubit extends Cubit<StoreState> {
   }
 
   StoreData _preserveLoadedDetails(StoreData summary) {
+    _summaryData = summary;
     final previous = state.data;
     if (previous == null) return summary;
     final knownClasses = {
@@ -170,33 +264,29 @@ class StoreCubit extends Cubit<StoreState> {
         }
       }
     }
-    return summary.copyWith(marketsByClassificationId: updated);
-  }
-
-  Future<void> _refreshLoadedDetails({bool force = false}) async {
-    // A classification response contains previews, so restore full storefronts
-    // afterwards even when their independent freshness window has not elapsed.
-    for (final id in List.of(_classificationFreshness.keys)) {
-      await ensureClassification(id, force: force);
-    }
-    await Future.wait([
-      for (final id in List.of(_marketFreshness.keys))
-        ensureMarket(id, force: force),
-    ]);
+    return _trimMarkets(summary.copyWith(marketsByClassificationId: updated));
   }
 
   Future<void> ensureMarket(String marketId, {bool force = false}) async {
     final id = marketId.trim();
     if (id.isEmpty || _getMarket == null) return;
+    _touch(id);
     final loads = _marketLoads[id] ??= CoalescedOperation();
     final freshness = _marketFreshness[id] ??= DataFreshness(now: _now);
     final generation = _generation;
     final invalidatedWhileLoading =
         loads.isRunning && _marketRequestRevisions[id] != freshness.revision;
+    final revision = freshness.revision;
     await loads.run(() => _loadMarket(id, force: force));
+    if (generation == _generation &&
+        !isClosed &&
+        !_loadedMarketIds.contains(id) &&
+        !_marketPins.containsKey(id)) {
+      _forget(id);
+    }
     if (!isClosed &&
         generation == _generation &&
-        invalidatedWhileLoading &&
+        (invalidatedWhileLoading || revision != freshness.revision) &&
         freshness.isStale) {
       await ensureMarket(id, force: true);
     }
@@ -235,11 +325,16 @@ class StoreCubit extends Cubit<StoreState> {
           markets[index] = market;
         }
         _loadedMarketIds.add(normalized);
+        _touch(normalized);
         if (result case ApiSuccess(origin: DataOrigin.network)) {
           freshness.markNetworkSuccess(revision: revision);
         }
         emit(
-          StoreReady(current.copyWith(marketsByClassificationId: updatedMap)),
+          StoreReady(
+            _trimMarkets(
+              current.copyWith(marketsByClassificationId: updatedMap),
+            ),
+          ),
         );
       },
       failure: (_) {},
@@ -258,10 +353,11 @@ class StoreCubit extends Cubit<StoreState> {
     final invalidatedWhileLoading =
         loads.isRunning &&
         _classificationRequestRevisions[id] != freshness.revision;
+    final revision = freshness.revision;
     await loads.run(() => _loadClassification(id, force: force));
     if (!isClosed &&
         generation == _generation &&
-        invalidatedWhileLoading &&
+        (invalidatedWhileLoading || revision != freshness.revision) &&
         freshness.isStale) {
       await ensureClassification(id, force: true);
     }
@@ -312,7 +408,11 @@ class StoreCubit extends Cubit<StoreState> {
           freshness.markNetworkSuccess(revision: revision);
         }
         emit(
-          StoreReady(current.copyWith(marketsByClassificationId: updatedMap)),
+          StoreReady(
+            _trimMarkets(
+              current.copyWith(marketsByClassificationId: updatedMap),
+            ),
+          ),
         );
       },
       failure: (_) {},
@@ -322,6 +422,8 @@ class StoreCubit extends Cubit<StoreState> {
   void clearSession() {
     _generation++;
     _loadInFlight = null;
+    _summaryData = null;
+    _marketOrder.clear();
     _loadedMarketIds.clear();
     _marketLoads.clear();
     _loadedClassificationIds.clear();

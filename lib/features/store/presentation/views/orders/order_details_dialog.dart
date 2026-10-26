@@ -22,6 +22,7 @@ void showOrderDetailsDialog(
   final mutedColor = isDark
       ? Colors.white.withValues(alpha: 0.62)
       : Colors.black.withValues(alpha: 0.58);
+  var displayedOrder = initialOrder;
 
   showModalBottomSheet<void>(
     context: context,
@@ -37,9 +38,14 @@ void showOrderDetailsDialog(
             _ => const <OrderData>[],
           };
           final matches = source.where((item) => item.id == initialOrder.apiId);
-          final order = matches.isEmpty
-              ? initialOrder
-              : mapStoredOrder(matches.first);
+          if (matches.isNotEmpty) {
+            displayedOrder = mapStoredOrder(matches.first);
+          }
+          if (state is OrderHistoryReady &&
+              state.updatedOrder?.id == initialOrder.apiId) {
+            displayedOrder = mapStoredOrder(state.updatedOrder!);
+          }
+          final order = displayedOrder;
           return SafeArea(
             top: false,
             child: Container(

@@ -12,6 +12,7 @@ abstract final class BrandTexts {
 
 /// الأزرار والرسائل العامة.
 abstract final class CommonTexts {
+  static const loadMore = 'Load more';
   // ─── الأزرار العامة ───
   static const skip = 'Skip';
   static const continueText = 'Continue';

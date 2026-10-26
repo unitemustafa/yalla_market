@@ -1,11 +1,32 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/offers/domain/entities/offer_data.dart';
 import 'package:yalla_market/features/offers/domain/repositories/offer_repository.dart';
 import 'package:yalla_market/features/offers/domain/usecases/get_offers_usecase.dart';
+import 'package:yalla_market/features/offers/domain/usecases/get_offer_details_usecase.dart';
 import 'package:yalla_market/features/offers/presentation/cubit/offer_catalog_cubit.dart';
 
 void main() {
+  test(
+    'coalesced detail callers all reject a previous session response',
+    () async {
+      final repository = _PendingDetails();
+      final cubit = OfferCatalogCubit(
+        GetOffersUseCase(repository),
+        getDetails: GetOfferDetailsUseCase(repository),
+      );
+      addTearDown(cubit.close);
+      final first = cubit.loadDetails('1');
+      final second = cubit.loadDetails('1');
+      expect(repository.calls, 1);
+      cubit.clearSession();
+      repository.pending.complete(const ApiResult.success(_offer));
+      expect(await first, isA<ApiFailure<OfferData>>());
+      expect(await second, isA<ApiFailure<OfferData>>());
+    },
+  );
   test('cached offers do not make the catalog fresh', () async {
     final repository = _OfferRepository(
       origins: [DataOrigin.cache, DataOrigin.network],
@@ -37,6 +58,20 @@ void main() {
     await cubit.loadOffers();
     expect(repository.calls, 2);
   });
+}
+
+class _PendingDetails implements OfferRepository, OfferDetailRepository {
+  final pending = Completer<ApiResult<OfferData>>();
+  int calls = 0;
+  @override
+  Future<ApiResult<OfferData>> getOffer(String id) {
+    calls++;
+    return pending.future;
+  }
+
+  @override
+  Future<ApiResult<List<OfferData>>> getOffers() async =>
+      const ApiResult.success([]);
 }
 
 class _OfferRepository implements OfferRepository {

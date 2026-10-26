@@ -21,9 +21,11 @@ import '../../../store/domain/entities/category_data.dart';
 import '../../../store/domain/entities/product_data.dart';
 import '../cubit/catalog_search_cubit.dart';
 import '../cubit/catalog_search_state.dart';
+import '../../domain/entities/catalog_search_results.dart' show CatalogSection;
 import '../../../store/domain/entities/store_data.dart';
 import '../../../store/presentation/widgets/store_market_card.dart';
 
+// UI filters are independent of the server page cursors.
 enum SearchFilter { all, products, markets, categories }
 
 class SearchView extends StatefulWidget {
@@ -273,6 +275,13 @@ class _SearchViewState extends State<SearchView> {
                                           child: SizedBox(height: 10),
                                         ),
                                       ],
+                                      if (_shows(SearchFilter.markets) &&
+                                          results.hasMoreMarkets)
+                                        const SliverToBoxAdapter(
+                                          child: _LoadMoreProducts(
+                                            section: CatalogSection.markets,
+                                          ),
+                                        ),
                                       if (_shows(SearchFilter.categories) &&
                                           categoryResults.isNotEmpty) ...[
                                         SliverToBoxAdapter(
@@ -318,6 +327,13 @@ class _SearchViewState extends State<SearchView> {
                                           child: SizedBox(height: 10),
                                         ),
                                       ],
+                                      if (_shows(SearchFilter.categories) &&
+                                          results.hasMoreCategories)
+                                        const SliverToBoxAdapter(
+                                          child: _LoadMoreProducts(
+                                            section: CatalogSection.categories,
+                                          ),
+                                        ),
                                       if (_shows(SearchFilter.products) &&
                                           productResults.isNotEmpty) ...[
                                         SliverToBoxAdapter(
@@ -768,12 +784,14 @@ class _ClearSearchButton extends StatelessWidget {
 }
 
 class _LoadMoreProducts extends StatelessWidget {
-  const _LoadMoreProducts();
+  const _LoadMoreProducts({this.section = CatalogSection.products});
+  final CatalogSection section;
 
   @override
   Widget build(BuildContext context) =>
       BlocSelector<CatalogSearchCubit, CatalogSearchState, (bool, String?)>(
-        selector: (state) => state is CatalogSearchReady
+        selector: (state) =>
+            state is CatalogSearchReady && state.moreSection == section
             ? (state.loadingMore, state.moreError)
             : (false, null),
         builder: (context, footer) => Column(
@@ -787,7 +805,8 @@ class _LoadMoreProducts extends StatelessWidget {
             TextButton(
               onPressed: footer.$1
                   ? null
-                  : context.read<CatalogSearchCubit>().loadMore,
+                  : () =>
+                        context.read<CatalogSearchCubit>().loadSection(section),
               child: footer.$1
                   ? const SizedBox(
                       width: 20,
@@ -796,7 +815,11 @@ class _LoadMoreProducts extends StatelessWidget {
                     )
                   : Text(
                       context.tr(
-                        footer.$2 == null ? 'Load more products' : 'Retry',
+                        footer.$2 == null
+                            ? (section == CatalogSection.products
+                                  ? 'Load more products'
+                                  : 'Load more')
+                            : 'Retry',
                       ),
                     ),
             ),

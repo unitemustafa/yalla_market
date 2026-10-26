@@ -276,7 +276,8 @@ class _NotificationsViewState extends State<NotificationsView> {
                                                 ),
                                           ),
                                         )
-                                      else if (state.notifications.isEmpty)
+                                      else if (state.notifications.isEmpty &&
+                                          !state.hasMore)
                                         const SizedBox(
                                           height: 420,
                                           child: _EmptyNotificationsView(),
@@ -321,6 +322,31 @@ class _NotificationsViewState extends State<NotificationsView> {
                                           ),
                                         );
                                       },
+                                    ),
+                                  ),
+                                if (state.hasMore || state.moreError != null)
+                                  SliverToBoxAdapter(
+                                    child: Column(
+                                      children: [
+                                        if (state.moreError != null)
+                                          Text(context.tr(state.moreError!)),
+                                        TextButton(
+                                          onPressed: state.loadingMore
+                                              ? null
+                                              : context
+                                                    .read<NotificationCubit>()
+                                                    .loadMore,
+                                          child: state.loadingMore
+                                              ? const CircularProgressIndicator()
+                                              : Text(
+                                                  context.tr(
+                                                    state.moreError == null
+                                                        ? 'Load more'
+                                                        : 'Try again',
+                                                  ),
+                                                ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                               ],

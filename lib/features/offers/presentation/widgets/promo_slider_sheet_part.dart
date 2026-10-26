@@ -154,34 +154,39 @@ class _PromoOfferSheet extends StatelessWidget {
               const SizedBox(height: 14),
             ],
             Expanded(
-              child: ListView(
-                padding: EdgeInsets.zero,
-                children: [
-                  _OfferStatusPanel(
-                    offer: offer,
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    isDark: isDark,
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: _OfferStatusPanel(
+                      offer: offer,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      isDark: isDark,
+                    ),
                   ),
-                  const SizedBox(height: 14),
+                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
                   _OfferProductsPanel(
                     offer: offer,
                     textColor: textColor,
                     mutedColor: mutedColor,
                     isDark: isDark,
                   ),
-                  const SizedBox(height: 14),
-                  _OfferSummaryPanel(
-                    offer: offer,
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    isDark: isDark,
+                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                  SliverToBoxAdapter(
+                    child: _OfferSummaryPanel(
+                      offer: offer,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      isDark: isDark,
+                    ),
                   ),
-                  const SizedBox(height: 14),
-                  _OfferPaymentPanel(
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    isDark: isDark,
+                  const SliverToBoxAdapter(child: SizedBox(height: 14)),
+                  SliverToBoxAdapter(
+                    child: _OfferPaymentPanel(
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      isDark: isDark,
+                    ),
                   ),
                 ],
               ),
@@ -299,30 +304,14 @@ class _OfferCountdownPanel extends StatefulWidget {
   State<_OfferCountdownPanel> createState() => _OfferCountdownPanelState();
 }
 
-class _OfferCountdownPanelState extends State<_OfferCountdownPanel> {
-  Timer? _timer;
-  DateTime _now = DateTime.now();
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _now = DateTime.now());
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
+class _OfferCountdownPanelState
+    extends VisiblePeriodicState<_OfferCountdownPanel> {
   @override
   Widget build(BuildContext context) {
     final endsAt = widget.offer.endsAt;
     if (endsAt == null) return const SizedBox.shrink();
 
-    final remaining = endsAt.difference(_now);
+    final remaining = endsAt.difference(currentTime);
     final duration = remaining.isNegative ? Duration.zero : remaining;
     final title = remaining.isNegative
         ? (context.isArabicLanguage ? 'انتهى العرض' : 'Offer ended')
@@ -451,30 +440,44 @@ class _OfferProductsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _OfferPanel(
-      isDark: isDark,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _PanelTitle(
-            icon: AppIcons.shopping_bag,
-            title: context.isArabicLanguage
-                ? 'العناصر داخل العرض'
-                : 'Offer items',
-            textColor: textColor,
-            isDark: isDark,
-          ),
-          const SizedBox(height: 12),
-          for (var index = 0; index < offer.products.length; index++) ...[
-            _OfferProductRow(
-              offer: offer,
-              product: offer.products[index],
-              textColor: textColor,
-              mutedColor: mutedColor,
-              isDark: isDark,
+    return DecoratedSliver(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.darkCardColor : const Color(0xFFF7F8FB),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: .08)
+              : Colors.black.withValues(alpha: .05),
+        ),
+      ),
+      sliver: SliverMainAxisGroup(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+              child: _PanelTitle(
+                icon: AppIcons.shopping_bag,
+                title: context.isArabicLanguage
+                    ? 'العناصر داخل العرض'
+                    : 'Offer items',
+                textColor: textColor,
+                isDark: isDark,
+              ),
             ),
-            if (index != offer.products.length - 1) const SizedBox(height: 10),
-          ],
+          ),
+          SliverList.builder(
+            itemCount: offer.products.length,
+            itemBuilder: (context, index) => Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: _OfferProductRow(
+                offer: offer,
+                product: offer.products[index],
+                textColor: textColor,
+                mutedColor: mutedColor,
+                isDark: isDark,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -649,4 +652,58 @@ bool _looksLikeDiscountLabel(String value) {
 bool _useArabicCopy(BuildContext context) {
   return context.isArabicLanguage ||
       Directionality.of(context) == TextDirection.rtl;
+}
+
+class _RemoteOfferSheet extends StatefulWidget {
+  const _RemoteOfferSheet({required this.load, required this.map});
+  final Future<ApiResult<OfferData>> Function() load;
+  final _PromoOfferData Function(OfferData) map;
+  @override
+  State<_RemoteOfferSheet> createState() => _RemoteOfferSheetState();
+}
+
+class _RemoteOfferSheetState extends State<_RemoteOfferSheet> {
+  late Future<ApiResult<OfferData>> _future;
+  @override
+  void initState() {
+    super.initState();
+    _future = widget.load();
+  }
+
+  @override
+  Widget build(BuildContext context) => FutureBuilder<ApiResult<OfferData>>(
+    future: _future,
+    builder: (context, snapshot) {
+      final result = snapshot.data;
+      if (result case ApiSuccess(:final data)) {
+        return _PromoOfferSheet(offer: widget.map(data));
+      }
+      return Container(
+        height: MediaQuery.sizeOf(context).height * .55,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        child: Center(
+          child: result == null && !snapshot.hasError
+              ? const CircularProgressIndicator()
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      result is ApiFailure<OfferData>
+                          ? result.failure.message
+                          : context.tr('Could not load offer.'),
+                    ),
+                    TextButton(
+                      onPressed: () => setState(() => _future = widget.load()),
+                      child: Text(context.tr('Try again')),
+                    ),
+                  ],
+                ),
+        ),
+      );
+    },
+  );
 }

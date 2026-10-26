@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../../core/network/api_result.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/formatters/app_currency.dart';
@@ -49,16 +50,34 @@ class _OrdersViewState extends State<OrdersView> {
       OrderHistoryLoading(:final orders) => orders,
       _ => const <OrderData>[],
     };
-    final match = orders.where(
-      (order) => int.tryParse(order.id) == widget.focusOrderId,
-    );
-    if (match.isEmpty) {
+    var match = orders
+        .where((order) => int.tryParse(order.id) == widget.focusOrderId)
+        .firstOrNull;
+    if (match == null) {
+      final result = await context.read<OrderHistoryCubit>().findOrder(
+        widget.focusOrderId.toString(),
+      );
+      if (!mounted) return;
+      match = result.when(
+        success: (order) => order,
+        failure: (failure) {
+          CustomSnackBar.showError(
+            context: context,
+            title: 'Orders could not load',
+            message: failure.message,
+          );
+          return null;
+        },
+      );
+      if (result is ApiFailure) return;
+    }
+    if (match == null) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('تعذر العثور على الطلب')));
       return;
     }
-    _showOrderDetails(context, _mapStoredOrder(match.first));
+    _showOrderDetails(context, _mapStoredOrder(match));
   }
 
   @override
@@ -133,12 +152,45 @@ class _OrdersViewState extends State<OrdersView> {
                       child: ListView.separated(
                         physics: AppRefreshIndicator.scrollPhysics,
                         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                        itemCount: filteredOrders.isEmpty
-                            ? 4
-                            : filteredOrders.length + 3,
+                        itemCount:
+                            (filteredOrders.isEmpty
+                                ? 4
+                                : filteredOrders.length + 3) +
+                            (state is OrderHistoryReady && state.hasMore
+                                ? 1
+                                : 0),
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: 12),
                         itemBuilder: (context, index) {
+                          if (state is OrderHistoryReady &&
+                              state.hasMore &&
+                              index ==
+                                  (filteredOrders.isEmpty
+                                      ? 4
+                                      : filteredOrders.length + 3)) {
+                            return Column(
+                              children: [
+                                if (state.moreError != null)
+                                  Text(context.tr(state.moreError!)),
+                                TextButton(
+                                  onPressed: state.loadingMore
+                                      ? null
+                                      : context
+                                            .read<OrderHistoryCubit>()
+                                            .loadMore,
+                                  child: state.loadingMore
+                                      ? const CircularProgressIndicator()
+                                      : Text(
+                                          context.tr(
+                                            state.moreError == null
+                                                ? 'Load more'
+                                                : 'Try again',
+                                          ),
+                                        ),
+                                ),
+                              ],
+                            );
+                          }
                           if (index == 0) {
                             return const Column(
                               children: [
@@ -165,6 +217,8 @@ class _OrdersViewState extends State<OrdersView> {
                             return OrdersSummaryCard(
                               isDark: isDark,
                               orders: filteredOrders,
+                              totalCount: state.totalCount,
+                              deliveredCount: state.deliveredCount,
                             );
                           }
 
@@ -304,6 +358,11 @@ class _OrdersViewState extends State<OrdersView> {
   ) async {
     if (filter != OrdersDateFilter.custom) {
       setState(() => _dateFilter = filter);
+      final range = _selectedDateRange;
+      await context.read<OrderHistoryCubit>().selectRange(
+        range?.start,
+        range?.end,
+      );
       return;
     }
 
@@ -324,12 +383,18 @@ class _OrdersViewState extends State<OrdersView> {
       ),
     );
 
-    if (range == null) return;
+    if (range == null || !mounted || !context.mounted) {
+      return;
+    }
 
     setState(() {
       _dateFilter = filter;
       _customDateRange = range;
     });
+    if (!context.mounted) {
+      return;
+    }
+    await context.read<OrderHistoryCubit>().selectRange(range.start, range.end);
   }
 
   DateTime _dateOnly(DateTime value) {

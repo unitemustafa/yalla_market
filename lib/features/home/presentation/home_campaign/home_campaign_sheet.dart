@@ -232,6 +232,7 @@ class _CampaignMedia extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: AppImage(
+          decodeToLayoutBounds: true,
           source: selectedUrl,
           fallbackType: AppImagePlaceholderType.offer,
           width: double.infinity,
@@ -270,6 +271,7 @@ class _PosterOrPlaceholder extends StatelessWidget {
   final String posterUrl;
   @override
   Widget build(BuildContext context) => AppImage(
+    decodeToLayoutBounds: true,
     source: posterUrl,
     fallbackType: AppImagePlaceholderType.offer,
     fit: BoxFit.contain,

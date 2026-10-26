@@ -115,10 +115,15 @@ class StoreProductsCubit extends Cubit<StoreProductsState> {
     final merged = <String, ProductData>{};
     StoreProductPage? last;
     var loadedPage = 0;
-    for (var page = 1; page <= pages; page++) {
+    // Three 30-item pages fit under the server's 100-item cap. Revalidate
+    // atomically in aligned batches so subsequent page numbers remain valid.
+    final batch = _getProducts.supportsBatchedRefresh ? pages.clamp(1, 3) : 1;
+    final requests = (pages / batch).ceil();
+    for (var page = 1; page <= requests; page++) {
       final result = await _getProducts(
         _marketId,
         page: page,
+        pageSize: 30 * batch,
         query: _query,
         subcategoryId: _subcategoryId,
         sort: _sort,
@@ -136,7 +141,7 @@ class StoreProductsCubit extends Cubit<StoreProductsState> {
           return;
         case ApiSuccess(:final data):
           last = data;
-          loadedPage = page;
+          loadedPage = page * batch;
           for (final product in data.products) {
             merged[product.id] = product;
           }

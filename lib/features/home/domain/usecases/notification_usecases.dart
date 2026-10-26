@@ -1,11 +1,40 @@
 import '../../../../core/network/api_result.dart';
+import '../../../../core/errors/failure.dart';
 import '../entities/app_notification.dart';
 import '../repositories/notification_repository.dart';
+import '../entities/notification_page.dart';
 
 class NotificationUseCases {
   const NotificationUseCases(this._repository);
 
   final NotificationRepository _repository;
+
+  bool get supportsPaging => _repository is PagedNotificationRepository;
+  Future<ApiResult<NotificationPage>> page({int page = 1}) async {
+    if (page < 1) {
+      return const ApiResult.failure(
+        ValidationFailure('Invalid notification page.'),
+      );
+    }
+    final repository = _repository;
+    if (repository is PagedNotificationRepository) {
+      return (repository as PagedNotificationRepository).getNotificationPage(
+        page: page,
+      );
+    }
+    final result = await getNotifications();
+    return result.when(
+      success: (items) => ApiResult.success(
+        NotificationPage(
+          items: items,
+          count: items.length,
+          hasMore: false,
+          unreadCount: items.where((item) => !item.isRead).length,
+        ),
+      ),
+      failure: ApiResult.failure,
+    );
+  }
 
   Future<ApiResult<List<AppNotification>>> getNotifications({
     bool? unread,

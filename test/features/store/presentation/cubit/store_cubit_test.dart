@@ -177,6 +177,32 @@ void main() {
     },
   );
 
+  test(
+    'refreshing the summary does not request previously visited details',
+    () async {
+      var now = DateTime.utc(2030);
+      final repository = _Repository();
+      final cubit = StoreCubit(
+        GetStoreUseCase(repository),
+        getMarket: GetMarketUseCase(repository),
+        getClassificationMarkets: GetClassificationMarketsUseCase(repository),
+        now: () => now,
+      );
+      addTearDown(cubit.close);
+      await cubit.loadStore();
+      await cubit.ensureMarket('1');
+      await cubit.ensureClassification('7');
+      final markets = repository.marketCalls;
+      final classes = repository.classificationCalls;
+      now = now.add(const Duration(minutes: 2));
+      await cubit.loadStore(force: true);
+      expect(repository.marketCalls, markets);
+      expect(repository.classificationCalls, classes);
+      await cubit.ensureMarket('1');
+      expect(repository.marketCalls, markets + 1);
+    },
+  );
+
   test('market and classification detail freshness are independent', () async {
     var now = DateTime.utc(2030, 1, 1, 12);
     final repository = _Repository();

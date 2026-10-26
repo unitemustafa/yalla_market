@@ -24,3 +24,7 @@ abstract class CartRepository {
 
   Future<ApiResult<List<CartItemData>>> clear(String userKey);
 }
+
+abstract interface class CartMemoryCache {
+  void releaseMemory(String userKey);
+}

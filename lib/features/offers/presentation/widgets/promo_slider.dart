@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/config/app_environment.dart';
+import '../../../../core/presentation/widgets/visible_work.dart';
+import '../../../../core/presentation/widgets/visible_periodic_state.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/constants/app_constants.dart';
@@ -27,6 +29,8 @@ import '../../../../app/routing/shared_content_links.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../domain/entities/offer_data.dart';
+import '../cubit/offer_catalog_cubit.dart';
+import '../../../../core/network/api_result.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../../../store/domain/entities/product_data.dart';
 
@@ -47,6 +51,8 @@ class PromoSlider extends StatefulWidget {
 
 class _PromoSliderState extends State<PromoSlider> {
   bool _handledFocusedOffer = false;
+  List<OfferData>? _mappedSource;
+  List<_PromoOfferData> _mappedOffers = const [];
   Timer? _autoAdvanceTimer;
   Timer? _expiryTimer;
   String? _scheduledOfferKey;
@@ -398,100 +404,137 @@ class _PromoSliderState extends State<PromoSlider> {
       return;
     }
 
+    final offerCatalog = offer.isSummary
+        ? context.read<OfferCatalogCubit>()
+        : null;
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _PromoOfferSheet(offer: offer),
+      builder: (context) => VisibleWork(
+        builder: (sheetContext, _) => offer.isSummary
+            ? _RemoteOfferSheet(
+                load: () => offerCatalog!.loadDetails(offer.offerId!),
+                map: _offerFromApi,
+              )
+            : _PromoOfferSheet(offer: offer),
+      ),
     );
   }
 
   @override
-  Widget build(BuildContext context) {
-    final regionKey = context.select<LocationCubit, String>((cubit) {
-      final city = cubit.state.selectedCity;
-      if (city == null || city.isGeneral) return 'general';
-      return city.serviceCityId?.toString() ?? city.slug;
-    });
-    final offers = _visibleOffers(regionKey, widget.offers);
-    if (_currentIndex >= offers.length && offers.isNotEmpty) {
-      _currentIndex = 0;
-    }
-    _scheduleExpiryRefresh(offers);
-    if (offers.isEmpty) return const SizedBox.shrink();
-    _scheduleAutoAdvance(offers);
-    final focusOfferId = widget.focusOfferId;
-    if (!_handledFocusedOffer &&
-        focusOfferId != null &&
-        focusOfferId.isNotEmpty) {
-      final focusedIndex = offers.indexWhere(
-        (offer) => offer.offerId == focusOfferId,
-      );
-      if (focusedIndex >= 0) {
-        _handledFocusedOffer = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
-          _pageController.jumpToPage(focusedIndex);
-          _showOfferSheet(context, offers[focusedIndex]);
-        });
+  Widget build(BuildContext context) => VisibleWork(
+    onVisibilityChanged: (visible) {
+      if (!visible) {
+        _autoAdvanceTimer?.cancel();
+        _expiryTimer?.cancel();
+        _scheduledOfferKey = null;
+        _scheduledExpiry = null;
       }
-    }
+    },
+    builder: (context, visible) {
+      final regionKey = context.select<LocationCubit, String>((cubit) {
+        final city = cubit.state.selectedCity;
+        if (city == null || city.isGeneral) return 'general';
+        return city.serviceCityId?.toString() ?? city.slug;
+      });
+      final offers = _visibleOffers(regionKey, widget.offers);
+      if (_currentIndex >= offers.length && offers.isNotEmpty) {
+        _currentIndex = 0;
+      }
+      if (visible) {
+        _scheduleExpiryRefresh(offers);
+      } else {
+        _expiryTimer?.cancel();
+        _autoAdvanceTimer?.cancel();
+        _scheduledExpiry = null;
+        _scheduledOfferKey = null;
+      }
+      if (offers.isEmpty) return const SizedBox.shrink();
+      if (visible) _scheduleAutoAdvance(offers);
+      final focusOfferId = widget.focusOfferId;
+      if (!_handledFocusedOffer &&
+          focusOfferId != null &&
+          focusOfferId.isNotEmpty) {
+        final focusedIndex = offers.indexWhere(
+          (offer) => offer.offerId == focusOfferId,
+        );
+        if (focusedIndex >= 0) {
+          _handledFocusedOffer = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _pageController.jumpToPage(focusedIndex);
+            _showOfferSheet(context, offers[focusedIndex]);
+          });
+        }
+      }
 
-    return Column(
-      children: [
-        RepaintBoundary(
-          child: AspectRatio(
-            key: const ValueKey('promo_offer_viewport'),
-            aspectRatio: AppMediaSpecs.offerBannerAspectRatio,
-            child: PageView.builder(
-              controller: _pageController,
-              itemCount: offers.length,
-              onPageChanged: (index) {
-                setState(() {
-                  _currentIndex = index;
-                  _scheduledOfferKey = null;
-                });
-                _scheduleAutoAdvance(offers);
-              },
-              itemBuilder: (context, index) {
-                final offer = offers[index];
-                return Padding(
-                  padding: const EdgeInsets.only(right: 2),
-                  child: _PromoOfferCard(
-                    offer: offer,
-                    onTap: () => _showOfferSheet(context, offer),
-                  ),
-                );
-              },
+      return Column(
+        children: [
+          RepaintBoundary(
+            child: AspectRatio(
+              key: const ValueKey('promo_offer_viewport'),
+              aspectRatio: AppMediaSpecs.offerBannerAspectRatio,
+              child: PageView.builder(
+                controller: _pageController,
+                itemCount: offers.length,
+                onPageChanged: (index) {
+                  setState(() {
+                    _currentIndex = index;
+                    _scheduledOfferKey = null;
+                  });
+                  _scheduleAutoAdvance(offers);
+                },
+                itemBuilder: (context, index) {
+                  final offer = offers[index];
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 2),
+                    child: _PromoOfferCard(
+                      offer: offer,
+                      onTap: () => _showOfferSheet(context, offer),
+                    ),
+                  );
+                },
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(offers.length, (index) {
-            final isSelected = _currentIndex == index;
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            return AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              curve: Curves.easeOut,
-              width: isSelected ? 18 : 6,
-              height: 6,
-              margin: const EdgeInsets.symmetric(horizontal: 2.5),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? AppColors.primary
-                    : isDark
-                    ? Colors.white.withValues(alpha: 0.18)
-                    : Colors.black.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(8),
-              ),
-            );
-          }),
-        ),
-      ],
-    );
-  }
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(offers.length.clamp(0, 9), (slot) {
+              final start = (_currentIndex - 4).clamp(
+                0,
+                (offers.length - 9).clamp(0, offers.length),
+              );
+              final index = start + slot;
+              final isSelected = _currentIndex == index;
+              final isDark = Theme.of(context).brightness == Brightness.dark;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                width: isSelected ? 18 : 6,
+                height: 6,
+                margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppColors.primary
+                      : isDark
+                      ? Colors.white.withValues(alpha: 0.18)
+                      : Colors.black.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              );
+            }),
+          ),
+          if (offers.length > 9)
+            Text(
+              '${_currentIndex + 1}/${offers.length}',
+              key: const ValueKey('promo_offer_page_counter'),
+            ),
+        ],
+      );
+    },
+  );
 
   List<_PromoOfferData> _visibleOffers(
     String regionSlug,
@@ -499,8 +542,12 @@ class _PromoSliderState extends State<PromoSlider> {
   ) {
     final normalized = regionSlug.trim().toLowerCase();
     final hasRemoteOffers = apiOffers != null;
+    if (hasRemoteOffers && !identical(apiOffers, _mappedSource)) {
+      _mappedSource = apiOffers;
+      _mappedOffers = apiOffers.map(_offerFromApi).toList(growable: false);
+    }
     final source = hasRemoteOffers
-        ? apiOffers.map(_offerFromApi).toList(growable: false)
+        ? _mappedOffers
         : AppEnvironment.useDemoRepositories
         ? _offers
         : const <_PromoOfferData>[];
@@ -547,6 +594,7 @@ class _PromoSliderState extends State<PromoSlider> {
 
     return _PromoOfferData(
       offerId: offer.id,
+      isSummary: offer.isSummary,
       icon: _iconForApiOffer(type),
       color: _colorForApiOffer(type),
       image: offer.image,

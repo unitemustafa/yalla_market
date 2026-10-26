@@ -36,6 +36,9 @@ void main() {
           'q': 'مطاعم',
           'include': 'all',
           'page': 1,
+          'page_size': 30,
+          'paged': 'true',
+          'section': 'all',
         });
         return payload();
       });
@@ -123,7 +126,7 @@ void main() {
   test('offline search preserves the existing city catalog fallback', () async {
     const cache = PersistentJsonCache();
     await cache.write('products.cairo', {'products': payload()['results']});
-    await cache.write('store.v5.cairo', {
+    await cache.write('store.v6.cairo', {
       'market_classifications': [
         {
           'id': 3,

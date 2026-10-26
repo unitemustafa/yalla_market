@@ -4,6 +4,8 @@ import '../../../../core/errors/api_error_handler.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../../core/network/data_page_decoder.dart';
+import '../../domain/entities/notification_page.dart';
 import '../../domain/entities/app_notification.dart';
 import '../../domain/repositories/notification_repository.dart';
 import '../models/app_notification_model.dart';
@@ -18,10 +20,31 @@ abstract final class NotificationApiPaths {
   static String delete(int id) => '/notifications/$id/';
 }
 
-class NotificationRemoteRepositoryImpl implements NotificationRepository {
+class NotificationRemoteRepositoryImpl
+    implements NotificationRepository, PagedNotificationRepository {
   NotificationRemoteRepositoryImpl(this._apiClient);
 
   final ApiClient _apiClient;
+
+  @override
+  Future<ApiResult<NotificationPage>> getNotificationPage({int page = 1}) =>
+      _guard(() async {
+        final payload = await _apiClient.get<Map<String, dynamic>>(
+          NotificationApiPaths.notifications,
+          queryParameters: {'page': page, 'page_size': 30},
+        );
+        final data = decodeDataPage(payload, AppNotificationModel.fromJson);
+        final unread = payload['unread_count'];
+        if (unread is! int || unread < 0) {
+          throw const FormatException('Invalid notification summary');
+        }
+        return NotificationPage(
+          items: data.items,
+          count: data.count,
+          hasMore: data.hasMore,
+          unreadCount: unread,
+        );
+      });
 
   @override
   Future<ApiResult<List<AppNotification>>> getNotifications({

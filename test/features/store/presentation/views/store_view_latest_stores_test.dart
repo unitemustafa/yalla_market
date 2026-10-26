@@ -1,3 +1,8 @@
+import 'package:yalla_market/core/presentation/widgets/brands/category_tile.dart';
+import 'package:yalla_market/app/di/service_locator.dart';
+import 'package:yalla_market/features/store/presentation/cubit/market_listing_cubit.dart';
+import 'package:yalla_market/features/store/data/repositories/market_listing_demo_repository.dart';
+import 'package:yalla_market/features/store/domain/usecases/get_market_listing_usecase.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,6 +22,50 @@ import 'package:yalla_market/features/store/presentation/widgets/store_market_ca
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  testWidgets('1000 categories stay lazy and the final category is reachable', (
+    tester,
+  ) async {
+    final store = _storeData().copyWith(
+      classifications: List.generate(
+        1000,
+        (i) => StoreClassificationData(
+          id: i.toString(),
+          name: 'Category $i',
+          marketCount: 1,
+          products: const [],
+          image: '',
+          accentColorValue: 0xFF013C7E,
+          classificationType: 'normal',
+        ),
+      ),
+    );
+    final cubit = StoreCubit(GetStoreUseCase(_StoreRepository(store)));
+    final cart = makeCartCubit();
+    addTearDown(cubit.close);
+    addTearDown(cart.close);
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: cubit),
+          BlocProvider.value(value: cart),
+        ],
+        child: const MaterialApp(home: StoreView()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.byType(CategoryTile).evaluate().length,
+      inInclusiveRange(1, 50),
+    );
+    final position = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position;
+    position.jumpTo(position.maxScrollExtent);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('store_category_999')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('store page is dedicated to every category without view all', (
     tester,
   ) async {
@@ -259,6 +308,14 @@ void main() {
           }),
         ),
       );
+      sl.registerFactory<MarketListingCubit>(
+        () => MarketListingCubit(
+          GetMarketListingUseCase(
+            MarketListingDemoRepository(_StoreRepository(store)),
+          ),
+        ),
+      );
+      addTearDown(() => sl.unregister<MarketListingCubit>());
       final cubit = StoreCubit(GetStoreUseCase(_StoreRepository(store)));
       addTearDown(cubit.close);
       BrandProductsRouteArgs? openedStore;

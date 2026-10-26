@@ -247,7 +247,7 @@ void main() {
     test('loads categories and brands from remote endpoints', () async {
       final apiClient = FakeApiClient((request) {
         if (request.path == '/home/classifications/') {
-          expect(request.queryParameters, isNull);
+          expect(request.queryParameters, {'include_products': false});
           return {
             'market_classifications': [
               {

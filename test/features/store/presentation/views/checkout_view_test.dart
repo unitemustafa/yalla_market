@@ -31,6 +31,60 @@ import '../../../../helpers/test_order_repository.dart';
 
 void main() {
   testWidgets(
+    '300 checkout products build only viewport cards and the last item is reachable',
+    (tester) async {
+      SharedPreferences.setMockInitialValues({});
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final cart = makeCartCubit();
+      final addresses = makeAddressCubit();
+      final checkout = makeCheckoutCubit(repository: _CreateOrderRepository());
+      final orders = makeOrderHistoryCubit(
+        repository: _CreateOrderRepository(),
+      );
+      addTearDown(cart.close);
+      addTearDown(addresses.close);
+      addTearDown(checkout.close);
+      addTearDown(orders.close);
+      cart.emit(
+        List.generate(
+          300,
+          (i) => sampleCartItem.copyWith(
+            id: i.toString(),
+            title: 'Review product $i',
+          ),
+        ),
+      );
+      await _pumpCheckoutView(
+        tester,
+        cartCubit: cart,
+        addressCubit: addresses,
+        checkoutCubit: checkout,
+        orderHistoryCubit: orders,
+        checkoutView: const CheckoutView(useDemoRepositories: true),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find
+            .byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_CheckoutItemCard',
+            )
+            .evaluate()
+            .length,
+        inInclusiveRange(1, 15),
+      );
+      await tester.scrollUntilVisible(
+        find.text('Review product 299'),
+        500,
+        maxScrolls: 250,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Review product 299'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'requires an explicit shipping company selection when available',
     (tester) async {
       SharedPreferences.setMockInitialValues({});
@@ -89,6 +143,7 @@ void main() {
       expect(orderRepository.createCalls, 0);
 
       await tester.ensureVisible(find.text('Fast Ship'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Fast Ship'));
       await tester.tap(find.text('Confirm Order'));
       await tester.pumpAndSettle();

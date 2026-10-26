@@ -12,6 +12,7 @@ import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart'
 import 'package:yalla_market/core/presentation/widgets/texts/app_currency_text.dart';
 import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/store/domain/entities/order.dart';
+import 'package:yalla_market/features/store/domain/entities/order_history_page.dart';
 import 'package:yalla_market/features/store/domain/entities/order_preview.dart';
 import 'package:yalla_market/features/store/domain/entities/shipping_company.dart';
 import 'package:yalla_market/features/store/domain/repositories/order_repository.dart';
@@ -22,6 +23,32 @@ import 'package:yalla_market/features/store/presentation/cubit/order_history_sta
 import 'package:yalla_market/features/store/presentation/views/orders/orders_view.dart';
 
 void main() {
+  testWidgets(
+    'opens an older focused order without downloading the remaining history',
+    (tester) async {
+      final repository = _FocusedOrders();
+      final cubit = OrderHistoryCubit(
+        GetMyOrdersUseCase(repository),
+        AcceptDeliveryQuoteUseCase(repository),
+      );
+      addTearDown(cubit.close);
+      await tester.pumpWidget(
+        BlocProvider<OrderHistoryCubit>.value(
+          value: cubit,
+          child: const MaterialApp(home: OrdersView(focusOrderId: 6)),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(repository.focusedIds, ['6']);
+      expect(repository.pages, [1]);
+      expect(find.text('Approve delivery price'), findsOneWidget);
+      await tester.tap(find.text('Approve delivery price'));
+      await tester.pumpAndSettle();
+      expect(find.text('Approve delivery price'), findsNothing);
+      expect(find.byType(BottomSheet), findsOneWidget);
+    },
+  );
+
   testWidgets('refreshes cached orders when the orders page opens', (
     tester,
   ) async {
@@ -533,4 +560,41 @@ class _OrderRepositoryWithData extends _EmptyOrderRepository {
     if (loadCompleter case final completer?) return completer.future;
     return ApiResult.success(orders);
   }
+}
+
+class _FocusedOrders extends _EmptyOrderRepository
+    implements PagedOrderHistoryRepository, FocusedOrderRepository {
+  final focusedIds = <String>[];
+  final pages = <int>[];
+  @override
+  Future<ApiResult<OrderHistoryPage>> getOrderPage({
+    int page = 1,
+    DateTime? start,
+    DateTime? end,
+  }) async {
+    pages.add(page);
+    return const ApiResult.success(
+      OrderHistoryPage(
+        items: [],
+        count: 300,
+        deliveredCount: 200,
+        hasMore: true,
+      ),
+    );
+  }
+
+  @override
+  Future<ApiResult<OrderData?>> findOrder(String orderId) async {
+    focusedIds.add(orderId);
+    return ApiResult.success(
+      _orderPlacedAt(
+        DateTime(2026, 7, 14),
+        deliveryPriceStatus: OrderDeliveryPriceStatus.awaitingCustomerApproval,
+      ),
+    );
+  }
+
+  @override
+  Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) async =>
+      ApiResult.success(_orderPlacedAt(DateTime(2026, 7, 14)));
 }

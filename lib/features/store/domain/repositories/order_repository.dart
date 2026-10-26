@@ -1,6 +1,7 @@
 import '../../../../core/network/api_result.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../entities/order.dart';
+import '../entities/order_history_page.dart';
 import '../entities/order_preview.dart';
 
 abstract class OrderRepository {
@@ -31,4 +32,16 @@ abstract class OrderRepository {
     String? description,
     String? deliveryNote,
   });
+}
+
+abstract interface class PagedOrderHistoryRepository {
+  Future<ApiResult<OrderHistoryPage>> getOrderPage({
+    int page = 1,
+    DateTime? start,
+    DateTime? end,
+  });
+}
+
+abstract interface class FocusedOrderRepository {
+  Future<ApiResult<OrderData?>> findOrder(String orderId);
 }

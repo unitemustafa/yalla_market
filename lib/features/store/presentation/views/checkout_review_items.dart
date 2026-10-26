@@ -162,41 +162,50 @@ class _ReviewItemsSection extends StatelessWidget {
         ? AppColors.darkTextSecondary
         : AppColors.lightTextSecondary;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                context.tr('Items'),
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: textColor,
-                  fontWeight: FontWeight.w900,
-                ),
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      context.tr('Items'),
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: textColor,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                  ),
+                  _SoftBadge(
+                    label: context.productCount(itemCount),
+                    icon: AppIcons.shopping_bag,
+                    isDark: isDark,
+                  ),
+                ],
               ),
-            ),
-            _SoftBadge(
-              label: context.productCount(itemCount),
-              icon: AppIcons.shopping_bag,
-              isDark: isDark,
-            ),
-          ],
+              const SizedBox(height: 12),
+            ],
+          ),
         ),
-        const SizedBox(height: 12),
-        ...List.generate(items.length, (index) {
-          return Padding(
-            padding: EdgeInsets.only(
-              bottom: index == items.length - 1 ? 0 : 10,
-            ),
-            child: _CheckoutItemCard(
-              item: items[index],
-              isDark: isDark,
-              mutedColor: mutedColor,
-              textColor: textColor,
-            ),
-          );
-        }),
+        SliverList.builder(
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: index == items.length - 1 ? 0 : 10,
+              ),
+              child: _CheckoutItemCard(
+                item: items[index],
+                isDark: isDark,
+                mutedColor: mutedColor,
+                textColor: textColor,
+              ),
+            );
+          },
+        ),
       ],
     );
   }

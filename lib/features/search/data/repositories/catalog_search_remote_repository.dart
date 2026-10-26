@@ -12,7 +12,8 @@ import '../../../store/domain/entities/store_data.dart';
 import '../../domain/entities/catalog_search_results.dart';
 import '../../domain/repositories/catalog_search_repository.dart';
 
-class CatalogSearchRemoteRepository implements CatalogSearchRepository {
+class CatalogSearchRemoteRepository
+    implements CatalogSearchRepository, PagedCatalogSearchRepository {
   const CatalogSearchRemoteRepository(
     this._apiClient, {
     PersistentJsonCache? cache,
@@ -26,12 +27,32 @@ class CatalogSearchRemoteRepository implements CatalogSearchRepository {
     String query, {
     required String citySlug,
     int page = 1,
+  }) => searchSection(
+    query,
+    citySlug: citySlug,
+    page: page,
+    section: page == 1 ? CatalogSection.all : CatalogSection.products,
+  );
+
+  @override
+  Future<ApiResult<CatalogSearchResults>> searchSection(
+    String query, {
+    required String citySlug,
+    required CatalogSection section,
+    int page = 1,
   }) async {
     try {
       // The server scopes all three result types to the saved browsing region.
       final payload = await _apiClient.get<Map<String, dynamic>>(
         '/home/search/',
-        queryParameters: {'q': query, 'include': 'all', 'page': page},
+        queryParameters: {
+          'q': query,
+          'include': 'all',
+          'page': page,
+          'page_size': 30,
+          'paged': 'true',
+          'section': section.name,
+        },
       );
       return ApiResult.success(
         CatalogSearchResults(
@@ -47,6 +68,8 @@ class CatalogSearchRemoteRepository implements CatalogSearchRepository {
             required: page == 1,
           ).map(CategoryData.fromJson).toList(growable: false),
           hasMoreProducts: payload['next'] != null,
+          hasMoreMarkets: payload['markets_next'] != null,
+          hasMoreCategories: payload['categories_next'] != null,
         ),
       );
     } on DioException catch (error) {
@@ -78,7 +101,7 @@ class CatalogSearchRemoteRepository implements CatalogSearchRepository {
       final entries = await Future.wait([
         cache.read('products.$citySlug'),
         cache.read('classifications.$citySlug'),
-        cache.read('store.v5.$citySlug'),
+        cache.read('store.v6.$citySlug'),
       ]);
       if (entries.every((entry) => entry == null)) return null;
       final productPayload = entries[0]?.value;

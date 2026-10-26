@@ -137,13 +137,14 @@ class _StoreViewState extends State<StoreView> {
                             showActionButton: false,
                           ),
                           const SizedBox(height: 12),
-                          AppContentReveal(
-                            child: _StoreCategoriesGrid(
-                              categories: classifications,
-                            ),
-                          ),
                         ],
                       ),
+                    ),
+                  ),
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                    sliver: SliverContentReveal(
+                      child: _StoreCategoriesGrid(categories: classifications),
                     ),
                   ),
                 ],
@@ -204,7 +205,7 @@ class _StoreCategoriesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridLayout(
+    return SliverGridLayout(
       key: const ValueKey('all_store_categories_grid'),
       itemCount: categories.length,
       mainAxisExtent: CategoryTile.heightFor(context),

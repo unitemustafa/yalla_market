@@ -1,3 +1,5 @@
+import '../../../../core/domain/favorite_page.dart';
+import '../../../../core/network/favorite_page_decoder.dart';
 import 'package:dio/dio.dart';
 
 import '../../../../core/errors/api_error_handler.dart';
@@ -8,18 +10,71 @@ import '../../../store/domain/entities/product_data.dart';
 import '../../domain/entities/wishlist_item.dart';
 import '../../domain/repositories/wishlist_repository.dart';
 
-class WishlistRemoteRepositoryImpl implements WishlistRepository {
+class WishlistRemoteRepositoryImpl
+    implements WishlistRepository, PagedWishlistRepository {
   WishlistRemoteRepositoryImpl(this._apiClient);
 
   final ApiClient _apiClient;
   final List<WishlistItem> _items = [];
+  final Set<String> _favoriteIds = {};
+  String? _user;
+  int _generation = 0;
+  int _activate(String userKey) {
+    if (_user != userKey) {
+      _user = userKey;
+      _generation++;
+      _items.clear();
+      _favoriteIds.clear();
+    }
+    return _generation;
+  }
+
+  @override
+  Future<ApiResult<FavoritePage<WishlistItem>>> getPage(
+    String userKey, {
+    int page = 1,
+  }) {
+    final generation = _activate(userKey);
+    return _guard(() async {
+      final payload = await _apiClient.get<Map<String, dynamic>>(
+        '/catalog/products/likes/',
+        queryParameters: {
+          'page': page,
+          'page_size': 30,
+          if (page == 1) 'include_ids': 'true',
+        },
+      );
+      final data = decodeFavoritePage(
+        payload,
+        _itemFromProductJson,
+        requireIds: page == 1,
+      );
+      if (generation == _generation) {
+        if (page == 1) {
+          _items.clear();
+          _favoriteIds
+            ..clear()
+            ..addAll(data.favoriteIds!);
+        }
+        for (final item in data.items) {
+          _upsertItem(item);
+        }
+      }
+      return data;
+    });
+  }
 
   @override
   Future<ApiResult<List<WishlistItem>>> getItems(String userKey) {
+    final generation = _activate(userKey);
     return _guard(() async {
       final payload = await _apiClient.get<Object?>('/catalog/products/likes/');
       final items = _itemsFromPayload(payload);
+      if (generation != _generation) return items;
       _replaceItems(items);
+      _favoriteIds
+        ..clear()
+        ..addAll(items.map((item) => item.productId));
       return List.unmodifiable(_items);
     });
   }
@@ -29,13 +84,14 @@ class WishlistRemoteRepositoryImpl implements WishlistRepository {
     String userKey,
     WishlistItem item,
   ) {
+    final generation = _activate(userKey);
     return _guard(() async {
       final productId = item.productId.trim();
       if (productId.isEmpty) {
         return List.unmodifiable(_items);
       }
 
-      final isLiked = _items.any((entry) => entry.productId == productId);
+      final isLiked = _favoriteIds.contains(productId);
       final payload = isLiked
           ? await _apiClient.delete<Object?>(
               '/catalog/products/$productId/unlike/',
@@ -43,11 +99,14 @@ class WishlistRemoteRepositoryImpl implements WishlistRepository {
           : await _apiClient.post<Object?>(
               '/catalog/products/$productId/like/',
             );
+      if (generation != _generation) return const <WishlistItem>[];
       final liked = _likedFromPayload(payload);
 
       if (liked ?? !isLiked) {
+        _favoriteIds.add(productId);
         _upsertItem(item);
       } else {
+        _favoriteIds.remove(productId);
         _removeItem(productId);
       }
 

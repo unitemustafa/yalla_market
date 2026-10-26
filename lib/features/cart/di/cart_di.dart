@@ -31,10 +31,16 @@ void registerCartDependencies(GetIt sl) {
   if (!sl.isRegistered<ClearCartUseCase>()) {
     sl.registerLazySingleton(() => ClearCartUseCase(sl<CartRepository>()));
   }
+  if (!sl.isRegistered<ReleaseCartMemoryUseCase>()) {
+    sl.registerLazySingleton(
+      () => ReleaseCartMemoryUseCase(sl<CartRepository>()),
+    );
+  }
   if (!sl.isRegistered<CartUseCases>()) {
     sl.registerLazySingleton(
       () => CartUseCases(
         getItems: sl<GetCartItemsUseCase>(),
+        releaseMemory: sl<ReleaseCartMemoryUseCase>(),
         addItem: sl<AddCartItemUseCase>(),
         incrementQuantity: sl<IncrementCartItemQuantityUseCase>(),
         decrementQuantity: sl<DecrementCartItemQuantityUseCase>(),

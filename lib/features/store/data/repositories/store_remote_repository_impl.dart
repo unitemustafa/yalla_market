@@ -11,8 +11,11 @@ import '../../../location/domain/usecases/location_usecases.dart';
 import '../../domain/entities/store_data.dart';
 import '../../domain/repositories/store_repository.dart';
 import '../mapping/storefront_decoder.dart';
+import '../../../../core/domain/data_page.dart';
+import '../../domain/usecases/get_market_listing_usecase.dart';
 
-class StoreRemoteRepositoryImpl implements StoreRepository {
+class StoreRemoteRepositoryImpl
+    implements StoreRepository, MarketListingRepository {
   StoreRemoteRepositoryImpl(
     this._apiClient, {
     PersistentJsonCache? cache,
@@ -29,8 +32,8 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
   final GetSelectedCityUseCase? _getSelectedCity;
   @override
   Future<ApiResult<StoreData>> getStore({bool forceRefresh = false}) async {
-    final key = 'store.v5.${await _scope()}';
-    final cached = await _cache?.read(key);
+    final key = 'store.v6.${await _scope()}';
+    final cached = forceRefresh ? null : await _cache?.read(key);
     final cachedStore = _storeFromCache(cached);
 
     if (!forceRefresh && cachedStore != null) {
@@ -100,9 +103,67 @@ class StoreRemoteRepositoryImpl implements StoreRepository {
   Future<StoreData> _fetchAndCache(String key) async {
     final summary = await _apiClient.get<Map<String, dynamic>>(
       '/home/classifications/',
+      queryParameters: const {'include_products': false},
     );
     await _cache?.write(key, summary);
     return _storeFromSummary(summary);
+  }
+
+  @override
+  Future<ApiResult<DataPage<StoreMarketData>>> getMarketPage(
+    MarketListingQuery query, {
+    int page = 1,
+  }) async {
+    try {
+      final payload = await _apiClient.get<Map<String, dynamic>>(
+        '/home/store-list/',
+        queryParameters: {
+          'page': page,
+          'page_size': 30,
+          'q': query.query,
+          if (query.classificationId.isNotEmpty)
+            'classification_id': query.classificationId,
+          if (query.typeId != null) 'market_type_id': query.typeId,
+          'popular': query.popular,
+          'latest': query.latest,
+        },
+      );
+      final raw = payload['results'];
+      final count = payload['count'];
+      final next = payload['next'];
+      if (raw is! List ||
+          raw.length > 30 ||
+          count is! int ||
+          count < 0 ||
+          (next != null && next is! String) ||
+          raw.any(
+            (item) =>
+                item is! Map<String, dynamic> ||
+                (item['id']?.toString() ?? '').isEmpty,
+          )) {
+        throw const FormatException('Invalid market page');
+      }
+      return ApiResult.success(
+        MarketListingPage(
+          items: List.unmodifiable(_marketsFromPayload(raw)),
+          count: count,
+          hasMore: next != null,
+          types: List.unmodifiable(
+            _jsonMaps(
+              payload['market_types'],
+            ).map(StoreMarketTypeData.fromJson),
+          ),
+          selectedTypeId: payload['selected_type_id']?.toString(),
+          totalCount: payload['total_count'] is int
+              ? payload['total_count'] as int
+              : count,
+        ),
+      );
+    } on DioException catch (error) {
+      return ApiResult.failure(ApiErrorHandler.handle(error));
+    } catch (_) {
+      return const ApiResult.failure(UnknownFailure('Could not load stores.'));
+    }
   }
 
   StoreData? _storeFromCache(CachedJsonEntry? entry) {

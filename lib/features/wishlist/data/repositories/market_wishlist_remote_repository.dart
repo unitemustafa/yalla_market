@@ -1,3 +1,5 @@
+import '../../../../core/domain/favorite_page.dart';
+import '../../../../core/network/favorite_page_decoder.dart';
 import 'package:dio/dio.dart';
 
 import '../../../../core/errors/api_error_handler.dart';
@@ -7,10 +9,28 @@ import '../../../../core/network/api_result.dart';
 import '../../../store/domain/entities/store_data.dart';
 import '../../domain/repositories/market_wishlist_repository.dart';
 
-class MarketWishlistRemoteRepository implements MarketWishlistRepository {
+class MarketWishlistRemoteRepository
+    implements MarketWishlistRepository, PagedMarketWishlistRepository {
   const MarketWishlistRemoteRepository(this._apiClient);
 
   final ApiClient _apiClient;
+  @override
+  Future<ApiResult<FavoritePage<StoreMarketData>>> getPage({int page = 1}) =>
+      _guard(() async {
+        final payload = await _apiClient.get<Map<String, dynamic>>(
+          '/home/markets/likes/',
+          queryParameters: {
+            'page': page,
+            'page_size': 30,
+            if (page == 1) 'include_ids': 'true',
+          },
+        );
+        return decodeFavoritePage(
+          payload,
+          StoreMarketData.fromJson,
+          requireIds: page == 1,
+        );
+      });
 
   @override
   Future<ApiResult<List<StoreMarketData>>> getItems() {

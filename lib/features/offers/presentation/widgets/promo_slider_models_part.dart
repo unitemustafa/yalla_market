@@ -3,6 +3,7 @@ part of 'promo_slider.dart';
 class _PromoOfferData {
   const _PromoOfferData({
     this.offerId,
+    this.isSummary = false,
     required this.icon,
     required this.color,
     required this.image,
@@ -37,6 +38,7 @@ class _PromoOfferData {
   });
 
   final String? offerId;
+  final bool isSummary;
   final IconData icon;
   final Color color;
   final String image;

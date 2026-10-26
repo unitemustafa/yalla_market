@@ -91,6 +91,8 @@ class CartCubit extends Cubit<List<CartItemData>> {
   }
 
   void clearSession() {
+    final previousUser = _currentUserKey;
+    if (previousUser != null) _cartUseCases.releaseMemory?.call(previousUser);
     _generation++;
     _currentUserKey = null;
     lastErrorMessage = null;

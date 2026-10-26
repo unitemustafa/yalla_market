@@ -7,6 +7,8 @@ import '../../../../core/errors/checkout_error_messages.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../../core/network/data_page_decoder.dart';
+import '../../domain/entities/order_history_page.dart';
 import '../../../cart/domain/entities/cart_item.dart';
 import '../../domain/entities/order.dart';
 import '../../domain/entities/order_preview.dart';
@@ -15,7 +17,11 @@ import '../datasources/pending_order_request_store.dart';
 
 part 'order_request_payload_part.dart';
 
-class OrderRemoteRepositoryImpl implements OrderRepository {
+class OrderRemoteRepositoryImpl
+    implements
+        OrderRepository,
+        PagedOrderHistoryRepository,
+        FocusedOrderRepository {
   OrderRemoteRepositoryImpl(
     this._apiClient, {
     required PendingOrderRequestStore requestStore,
@@ -88,6 +94,44 @@ class OrderRemoteRepositoryImpl implements OrderRepository {
       return _ordersFromPayload(payload);
     });
   }
+
+  @override
+  Future<ApiResult<OrderData?>> findOrder(String orderId) => _guard(() async {
+    final payload = await _apiClient.get<Map<String, dynamic>>(
+      '/orders/my/',
+      queryParameters: {'page': 1, 'page_size': 1, 'order_id': orderId},
+    );
+    return decodeDataPage(payload, OrderData.fromJson).items.firstOrNull;
+  });
+
+  @override
+  Future<ApiResult<OrderHistoryPage>> getOrderPage({
+    int page = 1,
+    DateTime? start,
+    DateTime? end,
+  }) => _guard(() async {
+    final payload = await _apiClient.get<Map<String, dynamic>>(
+      '/orders/my/',
+      queryParameters: {
+        'page': page,
+        'page_size': 30,
+        if (start != null)
+          'from_date': start.toIso8601String().split('T').first,
+        if (end != null) 'to_date': end.toIso8601String().split('T').first,
+      },
+    );
+    final data = decodeDataPage(payload, OrderData.fromJson);
+    final delivered = payload['delivered_count'];
+    if (delivered is! int || delivered < 0 || delivered > data.count) {
+      throw const FormatException('Invalid order summary');
+    }
+    return OrderHistoryPage(
+      items: data.items,
+      count: data.count,
+      hasMore: data.hasMore,
+      deliveredCount: delivered,
+    );
+  });
 
   @override
   Future<ApiResult<OrderData>> acceptDeliveryQuote(String orderId) {

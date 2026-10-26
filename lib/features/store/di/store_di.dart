@@ -4,6 +4,9 @@ import '../domain/usecases/get_store_products_usecase.dart';
 import '../data/repositories/store_products_remote_repository_impl.dart';
 import '../data/repositories/store_products_demo_repository.dart';
 import '../presentation/cubit/store_products_cubit.dart';
+import '../domain/usecases/get_market_listing_usecase.dart';
+import '../presentation/cubit/market_listing_cubit.dart';
+import '../data/repositories/market_listing_demo_repository.dart';
 import '../../../core/domain/computation_executor.dart';
 import '../../../core/computation/catalog_computation_executor.dart';
 
@@ -166,6 +169,22 @@ void registerStoreDependencies(GetIt sl, {bool? useDemoRepositories}) {
   }
   if (!sl.isRegistered<GetStoreUseCase>()) {
     sl.registerLazySingleton(() => GetStoreUseCase(sl<StoreRepository>()));
+  }
+  if (!sl.isRegistered<MarketListingRepository>()) {
+    sl.registerLazySingleton<MarketListingRepository>(() {
+      final repository = sl<StoreRepository>();
+      return repository is MarketListingRepository
+          ? repository as MarketListingRepository
+          : MarketListingDemoRepository(repository);
+    });
+  }
+  if (!sl.isRegistered<GetMarketListingUseCase>()) {
+    sl.registerLazySingleton(
+      () => GetMarketListingUseCase(sl<MarketListingRepository>()),
+    );
+  }
+  if (!sl.isRegistered<MarketListingCubit>()) {
+    sl.registerFactory(() => MarketListingCubit(sl<GetMarketListingUseCase>()));
   }
   if (!sl.isRegistered<GetMarketUseCase>()) {
     sl.registerLazySingleton(() => GetMarketUseCase(sl<StoreRepository>()));

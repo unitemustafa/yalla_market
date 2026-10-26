@@ -318,3 +318,34 @@ class _ProductPeek extends StatelessWidget {
     );
   }
 }
+
+class _FavoriteLoadMore extends StatelessWidget {
+  const _FavoriteLoadMore({
+    super.key,
+    required this.loading,
+    this.error,
+    required this.onPressed,
+  });
+  final bool loading;
+  final String? error;
+  final VoidCallback onPressed;
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Column(
+      children: [
+        if (error != null) Text(context.tr(error!)),
+        TextButton(
+          onPressed: loading ? null : onPressed,
+          child: loading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : Text(context.tr(error == null ? 'Load more' : 'Try again')),
+        ),
+      ],
+    ),
+  );
+}

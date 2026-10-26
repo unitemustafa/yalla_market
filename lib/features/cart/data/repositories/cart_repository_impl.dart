@@ -8,8 +8,29 @@ import '../../../../core/network/api_result.dart';
 import '../../domain/entities/cart_item.dart';
 import '../../domain/repositories/cart_repository.dart';
 
-class CartRepositoryImpl implements CartRepository {
+class CartRepositoryImpl implements CartRepository, CartMemoryCache {
   static final _pending = <String, Future<void>>{};
+  // Decode once per persisted snapshot. Raw-value comparison also observes
+  // writes by another repository instance without sharing mutable cart lists.
+  String? _cachedRaw;
+  String? _cachedKey;
+  List<CartItemData> _cachedItems = const [];
+  String? _memoryUserKey;
+  int _memoryRevision = 0;
+  void _dropSnapshot() {
+    _memoryRevision++;
+    _cachedRaw = null;
+    _cachedKey = null;
+    _cachedItems = const [];
+  }
+
+  @override
+  void releaseMemory(String userKey) {
+    if (_memoryUserKey == userKey.trim()) {
+      _memoryUserKey = null;
+      _dropSnapshot();
+    }
+  }
 
   Future<ApiResult<List<CartItemData>>> _serialized(
     String userKey,
@@ -33,8 +54,14 @@ class CartRepositoryImpl implements CartRepository {
   }
 
   @override
-  Future<ApiResult<List<CartItemData>>> getItems(String userKey) =>
-      _serialized(userKey, () => _getItems(userKey));
+  Future<ApiResult<List<CartItemData>>> getItems(String userKey) {
+    final key = userKey.trim();
+    if (_memoryUserKey != key) {
+      _dropSnapshot();
+      _memoryUserKey = key;
+    }
+    return _serialized(userKey, () => _getItems(userKey));
+  }
 
   @override
   Future<ApiResult<List<CartItemData>>> addItem(
@@ -193,6 +220,7 @@ class CartRepositoryImpl implements CartRepository {
     }
 
     final preferences = await SharedPreferences.getInstance();
+    if (_memoryUserKey == normalizedUserKey) _dropSnapshot();
     final removed = await preferences.remove(_storageKey(normalizedUserKey));
     if (!removed) throw StateError('Cart storage clear failed.');
     return const ApiResult.success([]);
@@ -206,16 +234,28 @@ class CartRepositoryImpl implements CartRepository {
   ) async {
     final key = _storageKey(userKey);
     final raw = preferences.getString(key);
-    if (raw == null || raw.trim().isEmpty) return [];
+    if (raw == null || raw.trim().isEmpty) {
+      if (_cachedKey == key) _dropSnapshot();
+      return [];
+    }
+    if (_cachedKey == key && _cachedRaw == raw) {
+      return List.of(_cachedItems);
+    }
 
     try {
       final decoded = jsonDecode(raw);
       if (decoded is! List) return [];
-      return decoded
+      final items = decoded
           .whereType<Map<String, dynamic>>()
           .map(CartItemData.fromJson)
           .where((item) => item.id.trim().isNotEmpty)
           .toList();
+      if (_memoryUserKey == userKey.trim()) {
+        _cachedKey = key;
+        _cachedRaw = raw;
+        _cachedItems = List.unmodifiable(items);
+      }
+      return items;
     } catch (_) {
       await preferences.remove(key);
       return [];
@@ -227,10 +267,14 @@ class CartRepositoryImpl implements CartRepository {
     String userKey,
     List<CartItemData> items,
   ) async {
-    final saved = await preferences.setString(
-      _storageKey(userKey),
-      jsonEncode(items.map((item) => item.toJson()).toList()),
-    );
+    final revision = _memoryRevision;
+    final raw = jsonEncode(items.map((item) => item.toJson()).toList());
+    final saved = await preferences.setString(_storageKey(userKey), raw);
     if (!saved) throw StateError('Cart storage write failed.');
+    if (_memoryUserKey == userKey.trim() && revision == _memoryRevision) {
+      _cachedKey = _storageKey(userKey);
+      _cachedRaw = raw;
+      _cachedItems = List.unmodifiable(items);
+    }
   }
 }

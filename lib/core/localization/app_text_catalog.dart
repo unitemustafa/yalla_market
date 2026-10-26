@@ -6,6 +6,7 @@ import 'app_texts_en.dart' as en;
 /// هذا الملف يحتوي على المراجع فقط؛ أضف الربط هنا عند إضافة نص جديد.
 abstract final class AppTextCatalog {
   static const keyed = <String, ({String ar, String en})>{
+    'Load more': (ar: ar.CommonTexts.loadMore, en: en.CommonTexts.loadMore),
     'appName': (ar: ar.BrandTexts.appName, en: en.BrandTexts.appName),
     'skip': (ar: ar.CommonTexts.skip, en: en.CommonTexts.skip),
     'continueText': (

@@ -111,7 +111,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Fresh offer'), findsNothing);
       expect(find.text('Daily discount'), findsOneWidget);
-      await tester.drag(find.byType(ListView).last, const Offset(0, -600));
+      await tester.drag(find.byType(CustomScrollView).last, const Offset(0, -600));
       await tester.pumpAndSettle();
       expect(find.text('After discount'), findsOneWidget);
       expect(find.text('Checkout'), findsOneWidget);

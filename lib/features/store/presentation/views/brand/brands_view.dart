@@ -44,87 +44,82 @@ class BrandsView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final backgroundColor = isDark
-        ? AppColors.darkBackground
-        : const Color(0xFFF7F8FB);
-
     return Scaffold(
-      backgroundColor: backgroundColor,
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : const Color(0xFFF7F8FB),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-          child: Column(
-            children: [
-              const PageTopBar(
-                title: 'Categories',
-                subtitle: 'Explore market categories',
-              ),
-              const SizedBox(height: 18),
-              const SectionHeading(
-                title: 'All Categories',
-                showActionButton: false,
-                titleFontSize: AppFontSizes.pageTitle,
-              ),
-              const SizedBox(height: 16),
-              if (categories?.isNotEmpty == true)
-                BlocBuilder<HomeCubit, HomeState>(
-                  builder: (context, state) {
-                    final currentCategories =
-                        state.data?.categories ?? categories!;
-                    if (currentCategories.isEmpty) {
-                      return const AppEmptyState(
-                        title: 'No categories available',
-                        message:
-                            'Categories will appear here once the catalog is ready.',
-                      );
-                    }
-                    return _AllCategoriesGrid(categories: currentCategories);
-                  },
-                )
-              else
-                BlocBuilder<ProductDiscoveryCubit, ProductDiscoveryState>(
-                  builder: (context, state) {
-                    if ((state is ProductDiscoveryInitial ||
-                            state is ProductDiscoveryLoading) &&
-                        state.categories.isEmpty) {
-                      return const AppCategorySkeletonGrid();
-                    }
-
-                    if (state is ProductDiscoveryFailure &&
-                        state.categories.isEmpty) {
-                      return AppErrorState(
-                        title: 'Categories could not load',
-                        message: state.message,
-                        onRetry: () => context
-                            .read<ProductDiscoveryCubit>()
-                            .loadDiscovery(force: true),
-                      );
-                    }
-                    if (state is ProductDiscoveryNeedsCity) {
-                      return const AppEmptyState(
-                        title: 'Choose your city',
-                        message:
-                            'So we can show categories available in your area.',
-                      );
-                    }
-                    if (state.categories.isEmpty) {
-                      return const AppEmptyState(
-                        title: 'No categories available',
-                        message:
-                            'Categories will appear here once the catalog is ready.',
-                      );
-                    }
-                    return AppContentReveal(
-                      child: _AllCategoriesGrid(
-                        categories: categoriesForAllCategories(
-                          discoveryCategories: state.categories,
-                        ),
-                      ),
-                    );
-                  },
+        child: CustomScrollView(
+          slivers: [
+            const SliverPadding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 16),
+              sliver: SliverToBoxAdapter(
+                child: Column(
+                  children: [
+                    PageTopBar(
+                      title: 'Categories',
+                      subtitle: 'Explore market categories',
+                    ),
+                    SizedBox(height: 18),
+                    SectionHeading(
+                      title: 'All Categories',
+                      showActionButton: false,
+                      titleFontSize: AppFontSizes.pageTitle,
+                    ),
+                  ],
                 ),
-            ],
-          ),
+              ),
+            ),
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+              sliver: categories?.isNotEmpty == true
+                  ? BlocBuilder<HomeCubit, HomeState>(
+                      builder: (context, state) => _AllCategoriesGrid(
+                        categories: state.data?.categories ?? categories!,
+                      ),
+                    )
+                  : BlocBuilder<ProductDiscoveryCubit, ProductDiscoveryState>(
+                      builder: (context, state) {
+                        if (state.categories.isNotEmpty) {
+                          return SliverContentReveal(
+                            child: _AllCategoriesGrid(
+                              categories: categoriesForAllCategories(
+                                discoveryCategories: state.categories,
+                              ),
+                            ),
+                          );
+                        }
+                        if (state is ProductDiscoveryInitial ||
+                            state is ProductDiscoveryLoading) {
+                          return const SliverToBoxAdapter(
+                            child: AppCategorySkeletonGrid(),
+                          );
+                        }
+                        if (state is ProductDiscoveryFailure) {
+                          return SliverToBoxAdapter(
+                            child: AppErrorState(
+                              title: 'Categories could not load',
+                              message: state.message,
+                              onRetry: () => context
+                                  .read<ProductDiscoveryCubit>()
+                                  .loadDiscovery(force: true),
+                            ),
+                          );
+                        }
+                        return SliverToBoxAdapter(
+                          child: AppEmptyState(
+                            title: state is ProductDiscoveryNeedsCity
+                                ? 'Choose your city'
+                                : 'No categories available',
+                            message: state is ProductDiscoveryNeedsCity
+                                ? 'So we can show categories available in your area.'
+                                : 'Categories will appear here once the catalog is ready.',
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
       ),
     );
@@ -138,7 +133,7 @@ class _AllCategoriesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridLayout(
+    return SliverGridLayout(
       itemCount: categories.length,
       mainAxisExtent: CategoryTile.heightFor(context),
       mainAxisSpacing: AppCategoryLayout.rowSpacing,

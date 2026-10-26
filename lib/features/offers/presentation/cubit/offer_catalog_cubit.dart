@@ -5,14 +5,54 @@ import '../../../../core/network/api_result.dart';
 import '../../../../core/utils/coalesced_operation.dart';
 
 import '../../domain/usecases/get_offers_usecase.dart';
+import '../../domain/usecases/get_offer_details_usecase.dart';
+import '../../domain/entities/offer_data.dart';
+import '../../../../core/errors/failure.dart';
 import 'offer_catalog_state.dart';
 
 class OfferCatalogCubit extends Cubit<OfferCatalogState> {
-  OfferCatalogCubit(this._getOffers, {DateTime Function()? now})
-    : _freshness = DataFreshness(now: now),
-      super(const OfferCatalogState());
+  OfferCatalogCubit(
+    this._getOffers, {
+    DateTime Function()? now,
+    GetOfferDetailsUseCase? getDetails,
+  }) : _getDetails = getDetails,
+       _freshness = DataFreshness(now: now),
+       super(const OfferCatalogState());
 
   final GetOffersUseCase _getOffers;
+  final GetOfferDetailsUseCase? _getDetails;
+  final Map<String, Future<ApiResult<OfferData>>> _details = {};
+  Future<ApiResult<OfferData>> loadDetails(String id) async {
+    final existing = _details[id];
+    if (existing != null) return existing;
+    final useCase = _getDetails;
+    if (useCase == null) {
+      final offer = state.offers
+          .where((o) => o.id == id && !o.isSummary)
+          .firstOrNull;
+      return offer == null
+          ? const ApiResult.failure(
+              ServerFailure('Offer is no longer available.'),
+            )
+          : ApiResult.success(offer);
+    }
+    final generation = _generation;
+    final operation = useCase(id).then<ApiResult<OfferData>>((result) {
+      if (generation != _generation || isClosed) {
+        return const ApiResult.failure(
+          ServerFailure('Offer is no longer available.'),
+        );
+      }
+      return result;
+    });
+    _details[id] = operation;
+    try {
+      return await operation;
+    } finally {
+      if (identical(_details[id], operation)) _details.remove(id);
+    }
+  }
+
   final _loads = CoalescedOperation();
   int _generation = 0;
   final DataFreshness _freshness;
@@ -68,6 +108,7 @@ class OfferCatalogCubit extends Cubit<OfferCatalogState> {
 
   void clearSession() {
     _loads.reset();
+    _details.clear();
     _generation++;
     _freshness.invalidate();
     emit(const OfferCatalogState());

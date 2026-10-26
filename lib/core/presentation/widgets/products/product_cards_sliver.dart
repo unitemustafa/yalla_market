@@ -48,15 +48,20 @@ class _ProductCardsSliverState<T> extends State<ProductCardsSliver<T>> {
     if (!identical(oldWidget.products, widget.products) ||
         oldWidget.start != widget.start ||
         oldWidget.itemCount != widget.itemCount ||
-        !identical(oldWidget.idOf, widget.idOf)) {
+        !identical(oldWidget.idOf, widget.idOf) ||
+        (oldWidget.categoryKey == null) != (widget.categoryKey == null)) {
       _indexProducts();
     }
   }
 
-  void _indexProducts() => _indices = {
-    for (var i = 0; i < _count; i++)
-      widget.idOf(widget.products[widget.start + i]): i,
-  };
+  void _indexProducts() {
+    _indices = widget.categoryKey != null
+        ? const {}
+        : {
+            for (var i = 0; i < _count; i++)
+              widget.idOf(widget.products[widget.start + i]): i,
+          };
+  }
 
   @override
   Widget build(BuildContext context) => SliverGridLayout(

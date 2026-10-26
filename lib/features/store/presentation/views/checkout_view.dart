@@ -348,93 +348,127 @@ class _CheckoutViewState extends State<CheckoutView> {
                               ),
                             ],
                           )
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const PageTopBar(
-                                  title: 'Order Review',
-                                  subtitle: 'Confirm items and payment',
+                        : CustomScrollView(
+                            slivers: [
+                              SliverPadding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  12,
+                                  16,
+                                  20,
                                 ),
-                                const SizedBox(height: 18),
-                                _ReviewItemsSection(
-                                  items: reviewItems,
-                                  itemCount: _itemCount(reviewItems),
-                                  isDark: isDark,
+                                sliver: SliverMainAxisGroup(
+                                  slivers: [
+                                    SliverToBoxAdapter(
+                                      child: Column(
+                                        children: [
+                                          const PageTopBar(
+                                            title: 'Order Review',
+                                            subtitle:
+                                                'Confirm items and payment',
+                                          ),
+                                          const SizedBox(height: 18),
+                                        ],
+                                      ),
+                                    ),
+                                    _ReviewItemsSection(
+                                      items: reviewItems,
+                                      itemCount: _itemCount(reviewItems),
+                                      isDark: isDark,
+                                    ),
+                                    SliverToBoxAdapter(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          const SizedBox(height: 14),
+                                          _OrderSummaryCard(
+                                            subtotal: subtotal,
+                                            deliveryTypeLabel:
+                                                deliveryTypeLabel,
+                                            discount: discount,
+                                            discountLabel: discountLabel,
+                                            showMultiMarketFee:
+                                                hasPreviewTotals &&
+                                                (preview?.isMultiMarket ??
+                                                    false),
+                                            multiMarketFee: multiMarketFee,
+                                            multiMarketFeeRate:
+                                                multiMarketFeeRate,
+                                            shippingFeeLabel: shippingFeeLabel,
+                                            totalLabel: totalLabel,
+                                            isDark: isDark,
+                                          ),
+                                          if (checkoutState
+                                                  .previewErrorMessage !=
+                                              null) ...[
+                                            const SizedBox(height: 10),
+                                            _CheckoutNotice(
+                                              message:
+                                                  isCheckoutRegionRequiredMessage(
+                                                    checkoutState
+                                                        .previewErrorMessage,
+                                                  )
+                                                  ? checkoutRegionRequiredMessage
+                                                  : 'Could not refresh order totals. Try again.',
+                                              isDark: isDark,
+                                              isBlocking: true,
+                                            ),
+                                          ],
+                                          if (isRemotePreviewLoading) ...[
+                                            const SizedBox(height: 10),
+                                            _CheckoutNotice(
+                                              message:
+                                                  'Order totals are still loading.',
+                                              isDark: isDark,
+                                            ),
+                                          ],
+                                          if (hasUnavailableDelivery) ...[
+                                            const SizedBox(height: 10),
+                                            _CheckoutNotice(
+                                              message:
+                                                  'التوصيل غير متاح لأحد المحلات في سلتك. راجع مدينة عنوان التوصيل أو احذف المحل غير المتاح.',
+                                              isDark: isDark,
+                                              isBlocking: true,
+                                            ),
+                                          ],
+                                          const SizedBox(height: 14),
+                                          if (_isShippingCompaniesLoading ||
+                                              _shippingCompaniesError != null ||
+                                              _shippingCompanies
+                                                  .isNotEmpty) ...[
+                                            ShippingCompanyCard(
+                                              companies: _shippingCompanies,
+                                              selectedId:
+                                                  _selectedShippingCompanyId,
+                                              isDark: isDark,
+                                              isLoading:
+                                                  _isShippingCompaniesLoading,
+                                              errorMessage:
+                                                  _shippingCompaniesError,
+                                              onSelected: (id) {
+                                                setState(() {
+                                                  _selectedShippingCompanyId =
+                                                      id;
+                                                });
+                                              },
+                                              onRetry: _retryShippingCompanies,
+                                            ),
+                                            const SizedBox(height: 14),
+                                          ],
+                                          PaymentMethodCard(isDark: isDark),
+                                          const SizedBox(height: 14),
+                                          SavedAddressCheckoutCard(
+                                            address: selectedAddress,
+                                            isDark: isDark,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(height: 14),
-                                _OrderSummaryCard(
-                                  subtotal: subtotal,
-                                  deliveryTypeLabel: deliveryTypeLabel,
-                                  discount: discount,
-                                  discountLabel: discountLabel,
-                                  showMultiMarketFee:
-                                      hasPreviewTotals &&
-                                      (preview?.isMultiMarket ?? false),
-                                  multiMarketFee: multiMarketFee,
-                                  multiMarketFeeRate: multiMarketFeeRate,
-                                  shippingFeeLabel: shippingFeeLabel,
-                                  totalLabel: totalLabel,
-                                  isDark: isDark,
-                                ),
-                                if (checkoutState.previewErrorMessage !=
-                                    null) ...[
-                                  const SizedBox(height: 10),
-                                  _CheckoutNotice(
-                                    message:
-                                        isCheckoutRegionRequiredMessage(
-                                          checkoutState.previewErrorMessage,
-                                        )
-                                        ? checkoutRegionRequiredMessage
-                                        : 'Could not refresh order totals. Try again.',
-                                    isDark: isDark,
-                                    isBlocking: true,
-                                  ),
-                                ],
-                                if (isRemotePreviewLoading) ...[
-                                  const SizedBox(height: 10),
-                                  _CheckoutNotice(
-                                    message: 'Order totals are still loading.',
-                                    isDark: isDark,
-                                  ),
-                                ],
-                                if (hasUnavailableDelivery) ...[
-                                  const SizedBox(height: 10),
-                                  _CheckoutNotice(
-                                    message:
-                                        'التوصيل غير متاح لأحد المحلات في سلتك. راجع مدينة عنوان التوصيل أو احذف المحل غير المتاح.',
-                                    isDark: isDark,
-                                    isBlocking: true,
-                                  ),
-                                ],
-                                const SizedBox(height: 14),
-                                if (_isShippingCompaniesLoading ||
-                                    _shippingCompaniesError != null ||
-                                    _shippingCompanies.isNotEmpty) ...[
-                                  ShippingCompanyCard(
-                                    companies: _shippingCompanies,
-                                    selectedId: _selectedShippingCompanyId,
-                                    isDark: isDark,
-                                    isLoading: _isShippingCompaniesLoading,
-                                    errorMessage: _shippingCompaniesError,
-                                    onSelected: (id) {
-                                      setState(() {
-                                        _selectedShippingCompanyId = id;
-                                      });
-                                    },
-                                    onRetry: _retryShippingCompanies,
-                                  ),
-                                  const SizedBox(height: 14),
-                                ],
-                                PaymentMethodCard(isDark: isDark),
-                                const SizedBox(height: 14),
-                                SavedAddressCheckoutCard(
-                                  address: selectedAddress,
-                                  isDark: isDark,
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                   ),
                   bottomNavigationBar: cartItems.isEmpty

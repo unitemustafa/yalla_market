@@ -22,6 +22,48 @@ void main() {
     tearDown(() => cubit.close());
 
     test(
+      'revalidates 300 loaded products in aligned batches and continues without gaps',
+      () async {
+        var now = DateTime.utc(2030);
+        final repository = _BatchedRepository();
+        repository.handler = (call) {
+          final start = (call.page - 1) * call.pageSize;
+          return ApiResult.success(
+            _page(
+              List.generate(
+                call.pageSize,
+                (i) => _product((start + i).toString()),
+              ),
+              count: 1000,
+              hasMore: start + call.pageSize < 1000,
+            ),
+          );
+        };
+        final cubit = StoreProductsCubit(
+          GetStoreProductsUseCase(repository),
+          now: () => now,
+        );
+        addTearDown(cubit.close);
+        await cubit.configure(marketId: 'market');
+        for (var i = 0; i < 9; i++) {
+          await cubit.loadMore();
+        }
+        expect(cubit.state.products.length, 300);
+        repository.calls.clear();
+        now = now.add(const Duration(minutes: 2));
+        await cubit.refreshIfStale();
+        expect(repository.calls.map((c) => c.pageSize), [90, 90, 90, 90]);
+        expect(cubit.state.products.length, 360);
+        await cubit.loadMore();
+        expect(repository.calls.last.page, 13);
+        expect(
+          cubit.state.products.map((p) => p.id),
+          List.generate(390, (i) => i.toString()),
+        );
+      },
+    );
+
+    test(
       'loads all 10000 products in bounded pages and stops at the end',
       () async {
         const count = 10000;
@@ -456,3 +498,6 @@ class _StoreProductsCall {
   int get hashCode =>
       Object.hash(marketId, page, pageSize, query, subcategoryId, sort);
 }
+
+class _BatchedRepository extends _StoreProductsRepository
+    implements BatchedStoreProductsRepository {}

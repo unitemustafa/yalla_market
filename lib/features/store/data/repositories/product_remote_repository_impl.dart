@@ -142,7 +142,10 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     final existing = _classificationsInFlight;
     if (existing != null) return existing;
 
-    final operation = _apiClient.get<Object?>('/home/classifications/');
+    final operation = _apiClient.get<Object?>(
+      '/home/classifications/',
+      queryParameters: const {'include_products': false},
+    );
     _classificationsInFlight = operation;
     try {
       return await operation;
@@ -199,7 +202,7 @@ class ProductRemoteRepositoryImpl implements ProductRepository {
     required T Function(Object? payload) parse,
     required String errorMessage,
   }) async {
-    final cached = await _cache?.read(key);
+    final cached = forceRefresh ? null : await _cache?.read(key);
     final cachedValue = _parseCache(cached, parse);
 
     if (!forceRefresh && cachedValue != null) {

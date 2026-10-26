@@ -6,6 +6,8 @@ import '../repositories/store_products_repository.dart';
 class GetStoreProductsUseCase {
   const GetStoreProductsUseCase(this._repository);
   final StoreProductsRepository _repository;
+  bool get supportsBatchedRefresh =>
+      _repository is BatchedStoreProductsRepository;
 
   Future<ApiResult<StoreProductPage>> call(
     String marketId, {

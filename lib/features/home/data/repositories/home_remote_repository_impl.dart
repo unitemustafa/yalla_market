@@ -25,7 +25,7 @@ class HomeRemoteRepositoryImpl implements HomeRepository {
   @override
   Future<ApiResult<HomeData>> getHome({bool forceRefresh = false}) async {
     final key = 'home.${await _scope()}';
-    final cached = await _cache?.read(key);
+    final cached = forceRefresh ? null : await _cache?.read(key);
     final cachedHome = _homeFromCache(cached);
 
     if (!forceRefresh && cachedHome != null) {

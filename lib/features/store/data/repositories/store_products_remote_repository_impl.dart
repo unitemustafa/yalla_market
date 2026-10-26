@@ -8,7 +8,8 @@ import '../../domain/entities/product_data.dart';
 import '../../domain/entities/store_product_page.dart';
 import '../../domain/repositories/store_products_repository.dart';
 
-class StoreProductsRemoteRepositoryImpl implements StoreProductsRepository {
+class StoreProductsRemoteRepositoryImpl
+    implements StoreProductsRepository, BatchedStoreProductsRepository {
   const StoreProductsRemoteRepositoryImpl(this._client);
   final ApiClient _client;
 

@@ -29,6 +29,7 @@ final class CatalogSearchReady extends CatalogSearchState {
     required super.results,
     this.loadingMore = false,
     this.moreError,
+    this.moreSection,
     List<ProductData>? visibleProducts,
   }) : _visibleProducts = visibleProducts;
 
@@ -37,6 +38,7 @@ final class CatalogSearchReady extends CatalogSearchState {
 
   final bool loadingMore;
   final String? moreError;
+  final CatalogSection? moreSection;
 }
 
 final class CatalogSearchFailure extends CatalogSearchState {

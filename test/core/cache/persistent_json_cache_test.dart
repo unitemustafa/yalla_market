@@ -10,8 +10,8 @@ void main() {
   });
 
   test('stores JSON data with freshness metadata', () async {
-    const cache = PersistentJsonCache();
     final savedAt = DateTime.utc(2026, 7, 15, 9);
+    final cache = PersistentJsonCache(now: () => savedAt);
 
     await cache.write('products.cairo', const {
       'results': [
@@ -31,6 +31,28 @@ void main() {
       isFalse,
     );
   });
+
+  test(
+    'evicts oldest entries, expires stale data and skips oversized entries',
+    () async {
+      var time = DateTime.utc(2030);
+      final cache = PersistentJsonCache(
+        maxEntries: 2,
+        maxEntryCharacters: 200,
+        now: () => time,
+      );
+      await cache.write('a', {'id': 1});
+      time = time.add(const Duration(seconds: 1));
+      await cache.write('b', {'id': 2});
+      await cache.write('c', {'id': 3});
+      expect(await cache.read('a'), isNull);
+      expect(await cache.read('b'), isNotNull);
+      await cache.write('huge', {'value': List.filled(500, 'x').join()});
+      expect(await cache.read('huge'), isNull);
+      time = time.add(const Duration(days: 8));
+      expect(await cache.read('b'), isNull);
+    },
+  );
 
   test('removes malformed cache entries safely', () async {
     SharedPreferences.setMockInitialValues({

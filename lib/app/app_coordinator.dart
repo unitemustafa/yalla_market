@@ -258,7 +258,7 @@ class _AppCoordinatorState extends State<AppCoordinator>
       onAction: () {
         unawaited(
           launchUrl(
-            Uri.parse('https://wa.me/201016487371'),
+            Uri.parse('https://wa.me/201500355776'),
             mode: LaunchMode.externalApplication,
           ),
         );

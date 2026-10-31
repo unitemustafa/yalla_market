@@ -18,7 +18,7 @@ class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
 
   static const _whatsAppColor = Color(0xFF25D366);
-  static const _whatsAppNumber = '201016487371';
+  static const _whatsAppNumber = '201500355776';
 
   @override
   Widget build(BuildContext context) {

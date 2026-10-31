@@ -174,7 +174,9 @@ class _AboutAppViewState extends State<AboutAppView> {
                           title: 'Instagram',
                           accentColor: const Color(0xFFE1306C),
                           onTap: () => _openExternalLink(
-                            Uri.https('www.instagram.com', '/yallamarket'),
+                            Uri.parse(
+                              'https://www.instagram.com/yalla.market.26?obrf=amZ1aTBpc2tzdjlz',
+                            ),
                           ),
                         ),
                       ],

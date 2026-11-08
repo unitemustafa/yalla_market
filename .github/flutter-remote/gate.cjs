@@ -2,9 +2,7 @@
 /**
  * flutter-remote auth gate.
  *
- * serve-sim ships with no authentication, so exposing port 3200 through a public
- * tunnel would hand simulator control to anyone who guessed the URL. This is a
- * zero-dependency reverse proxy that requires `?k=<token>` once, trades it for
+ * This zero-dependency reverse proxy requires `?k=<token>` once, trades it for
  * an HttpOnly cookie, and forwards everything (including the MJPEG/H.264 stream and
  * the control WebSocket) to serve-sim on localhost.
  *
@@ -310,6 +308,8 @@ const server = http.createServer((req, res) => {
   delete upstreamHeaders['proxy-connection'];
   delete upstreamHeaders['accept-encoding'];
   upstreamHeaders['accept-encoding'] = 'identity';
+  // serve-sim requires bearer authentication for requests from a reverse proxy.
+  if (!agent) upstreamHeaders.authorization = `Bearer ${TOKEN}`;
 
   if (res.socket) {
     res.socket.setNoDelay(true);
@@ -411,6 +411,7 @@ server.on('upgrade', (req, socket, head) => {
       connection: 'Upgrade',
       'x-forwarded-proto': 'https',
       'x-forwarded-host': req.headers.host,
+      ...(!isAgent && !isSignal ? { authorization: `Bearer ${TOKEN}` } : {}),
     })
       .map(([k, v]) => (Array.isArray(v) ? v.map((x) => `${k}: ${x}`).join('\r\n') : `${k}: ${v}`))
       .join('\r\n');

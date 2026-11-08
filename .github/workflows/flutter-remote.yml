@@ -162,7 +162,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.npm/_npx
-          key: flutter-remote-serve-sim-${{ runner.os }}-latest
+          key: flutter-remote-serve-sim-${{ runner.os }}-0.1.49
           restore-keys: flutter-remote-serve-sim-${{ runner.os }}-
 
       - name: Fingerprint Flutter build inputs
@@ -221,8 +221,11 @@ jobs:
       - name: Start serve-sim
         id: serve_sim
         timeout-minutes: 10
+        env:
+          SERVE_SIM_AUTH_TOKEN: ${{ inputs.gate_token }}
         run: |
           set -euo pipefail
+          echo "::add-mask::$SERVE_SIM_AUTH_TOKEN"
 
           CODEC='${{ inputs.codec }}'
           if [ "$CODEC" = "auto" ]; then
@@ -239,7 +242,7 @@ jobs:
           )
 
           echo "Starting serve-sim with codec=$CODEC args: ${ARGS[*]}"
-          SERVE_SIM_OUT=$(npx --yes serve-sim "${ARGS[@]}" "${{ steps.sim.outputs.udid }}" || true)
+          SERVE_SIM_OUT=$(npx --yes serve-sim@0.1.49 "${ARGS[@]}" "${{ steps.sim.outputs.udid }}" || true)
           echo "serve-sim raw output: $SERVE_SIM_OUT"
 
           for i in {1..30}; do

@@ -188,6 +188,88 @@ jobs:
           path: build/flutter-remote-app
           key: flutter-remote-app-${{ runner.os }}-${{ steps.fp.outputs.hash }}
 
+      - name: Build Flutter iOS simulator application
+        timeout-minutes: 60
+        if: inputs.mode == 'build' && steps.appcache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          echo "Preparing Flutter dependencies..."
+          flutter pub get
+
+          # No --no-codesign: Xcode signs Simulator builds locally ("Sign to Run Locally", no team or
+          # certificate needed) and embeds the Simulator entitlements. An unsigned build has no
+          # application-identifier, so every Keychain call fails with -34018 (flutter_secure_storage,
+          # firebase_auth, sign-in plugins...) and apps that keep their session there cannot log in.
+          BUILD_ARGS=(
+            ios
+            --simulator
+          )
+
+          if [ '${{ inputs.build_mode }}' = 'profile' ] || [ '${{ inputs.build_mode }}' = 'release' ]; then
+            echo "::warning::Flutter does not support '${{ inputs.build_mode }}' mode on iOS Simulator (physical devices only). Using --debug mode."
+            BUILD_ARGS+=(--debug)
+          else
+            BUILD_ARGS+=(--debug)
+          fi
+
+          if [ -n '${{ inputs.flavor }}' ]; then
+            BUILD_ARGS+=(--flavor '${{ inputs.flavor }}')
+          fi
+
+          if [ -n '${{ inputs.target }}' ]; then
+            BUILD_ARGS+=(-t '${{ inputs.target }}')
+          fi
+
+          if [ -n '${{ inputs.dart_defines }}' ]; then
+            IFS=',' read -ra DEFINES <<< '${{ inputs.dart_defines }}'
+            for def in "${DEFINES[@]}"; do
+              if [ -n "$def" ]; then
+                BUILD_ARGS+=(--dart-define "$def")
+              fi
+            done
+          fi
+
+          echo "Building iOS Simulator app: flutter build ${BUILD_ARGS[*]}"
+          START_TIME=$(date +%s)
+          if ! flutter build "${BUILD_ARGS[@]}"; then
+            echo "::error::Flutter Simulator build failed. Check the workflow logs above for Xcode/Flutter errors."
+            exit 1
+          fi
+          END_TIME=$(date +%s)
+          echo "Flutter iOS Simulator build completed in $((END_TIME - START_TIME))s"
+
+          APP_PATH=$(find build/ios/iphonesimulator -maxdepth 2 -name '*.app' -type d | head -1)
+          [ -n "$APP_PATH" ] || { echo "::error::No .app found in build/ios/iphonesimulator"; exit 1; }
+          echo "Discovered generated .app bundle: $APP_PATH"
+
+          mkdir -p build/flutter-remote-app
+          cp -R "$APP_PATH" build/flutter-remote-app/
+
+      - name: Save app build to cache
+        if: inputs.mode == 'build' && inputs.cache == 'true' && steps.appcache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: build/flutter-remote-app
+          key: flutter-remote-app-${{ runner.os }}-${{ steps.fp.outputs.hash }}
+
+      - name: Export app archive
+        if: inputs.mode == 'build' && inputs.export_app == 'true'
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find build/flutter-remote-app -maxdepth 2 -name '*.app' -type d | head -1)
+          [ -n "$APP_PATH" ] || { echo "::error::No .app found to export"; exit 1; }
+          APP_NAME=$(basename "$APP_PATH")
+          tar -czf "build/${APP_NAME}.tar.gz" -C build/flutter-remote-app "$APP_NAME"
+
+      - name: Upload app artifact
+        if: inputs.mode == 'build' && inputs.export_app == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flutter-remote-app-${{ inputs.session }}
+          path: build/*.app.tar.gz
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Boot iOS Simulator
         id: sim
         timeout-minutes: 10
@@ -218,6 +300,79 @@ jobs:
           echo "udid=$UDID" >> "$GITHUB_OUTPUT"
           echo "iOS Simulator is booted and ready."
 
+      - name: Install and launch Flutter app
+        timeout-minutes: 15
+        if: inputs.mode == 'build'
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find build/flutter-remote-app -maxdepth 2 -name '*.app' -type d | head -1)
+          [ -n "$APP_PATH" ] || { echo "::error::No .app found in build/flutter-remote-app"; exit 1; }
+
+          echo "Installing $APP_PATH onto simulator $UDID..."
+          xcrun simctl install "$UDID" "$APP_PATH"
+
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist" 2>/dev/null || true)
+          if [ -z "$BUNDLE_ID" ]; then
+            BUNDLE_ID=$(defaults read "$APP_PATH/Info" CFBundleIdentifier 2>/dev/null || true)
+          fi
+          [ -n "$BUNDLE_ID" ] || { echo "::error::Could not determine CFBundleIdentifier from $APP_PATH/Info.plist"; exit 1; }
+          echo "Detected Bundle Identifier: $BUNDLE_ID"
+
+          echo "Launching Flutter application ($BUNDLE_ID)..."
+          if ! xcrun simctl launch "$UDID" "$BUNDLE_ID"; then
+            echo "::error::Flutter application was built successfully, but failed to launch inside the iOS Simulator."
+            exit 1
+          fi
+          echo "Flutter application launched successfully inside iOS Simulator."
+
+      - name: Install prebuilt app
+        timeout-minutes: 15
+        if: inputs.mode == 'app'
+        env:
+          UDID: ${{ steps.sim.outputs.udid }}
+          APP_URL: ${{ inputs.app_url }}
+          APP_RELEASE_ASSET: ${{ inputs.app_release_asset }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/flutter-remote-prebuilt
+          cd /tmp/flutter-remote-prebuilt
+
+          if [ -n "$APP_RELEASE_ASSET" ]; then
+            echo "Downloading prebuilt app from GitHub Release: $APP_RELEASE_ASSET"
+            gh release download flutter-remote-build -p "$APP_RELEASE_ASSET"
+            ARCHIVE="$APP_RELEASE_ASSET"
+          elif [ -n "$APP_URL" ]; then
+            echo "Downloading prebuilt app from URL: $APP_URL"
+            curl -fsSL "$APP_URL" -o app-archive
+            ARCHIVE="app-archive"
+          else
+            echo "::error::Neither app_url nor app_release_asset provided for mode=app"
+            exit 1
+          fi
+
+          if file "$ARCHIVE" | grep -qiE 'gzip|tar'; then
+            tar -xzf "$ARCHIVE" || tar -xf "$ARCHIVE"
+          elif file "$ARCHIVE" | grep -qi 'zip'; then
+            unzip -q "$ARCHIVE"
+          fi
+
+          PREBUILT_APP=$(find . -maxdepth 3 -name '*.app' -type d | head -1)
+          [ -n "$PREBUILT_APP" ] || { echo "::error::No .app bundle discovered in downloaded archive"; exit 1; }
+
+          # Validate that it is a simulator app
+          PLATFORMS=$(/usr/libexec/PlistBuddy -c "Print :CFBundleSupportedPlatforms" "$PREBUILT_APP/Info.plist" 2>/dev/null || true)
+          if [ -n "$PLATFORMS" ] && ! echo "$PLATFORMS" | grep -qi 'iPhoneSimulator'; then
+            echo "::error::This is a device iOS build. flutter-remote requires an iOS Simulator build."
+            exit 1
+          fi
+
+          xcrun simctl install "$UDID" "$PREBUILT_APP"
+          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PREBUILT_APP/Info.plist" 2>/dev/null || defaults read "$PREBUILT_APP/Info" CFBundleIdentifier)
+          xcrun simctl launch "$UDID" "$BUNDLE_ID"
+          echo "Prebuilt app launched."
+
       - name: Start serve-sim
         id: serve_sim
         timeout-minutes: 10
@@ -242,7 +397,7 @@ jobs:
           )
 
           echo "Starting serve-sim with codec=$CODEC args: ${ARGS[*]}"
-          SERVE_SIM_OUT=$(npx --yes serve-sim@0.1.49 "${ARGS[@]}" "${{ steps.sim.outputs.udid }}" || true)
+          SERVE_SIM_OUT=$(npx --yes serve-sim@0.1.49 "${ARGS[@]}" "${{ steps.sim.outputs.udid }}")
           echo "serve-sim raw output: $SERVE_SIM_OUT"
 
           for i in {1..30}; do
@@ -410,162 +565,49 @@ jobs:
             -f state=pending \
             -f "context=$STATUS_CONTEXT" \
             -f "target_url=$TUNNEL_URL" \
-            -f "description=Building Flutter iOS application..."
+            -f "description=Starting simulator preview..."
 
-      - name: Build Flutter iOS simulator application
-        timeout-minutes: 60
-        if: inputs.mode == 'build' && steps.appcache.outputs.cache-hit != 'true'
+      - name: Verify simulator preview
+        timeout-minutes: 2
+        env:
+          SERVE_SIM_AUTH_TOKEN: ${{ inputs.gate_token }}
+          SIMULATOR_UDID: ${{ steps.sim.outputs.udid }}
         run: |
           set -euo pipefail
-          echo "Preparing Flutter dependencies..."
-          flutter pub get
+          python3 - <<'PY'
+          import os
+          import time
+          import urllib.request
 
-          # No --no-codesign: Xcode signs Simulator builds locally ("Sign to Run Locally", no team or
-          # certificate needed) and embeds the Simulator entitlements. An unsigned build has no
-          # application-identifier, so every Keychain call fails with -34018 (flutter_secure_storage,
-          # firebase_auth, sign-in plugins...) and apps that keep their session there cannot log in.
-          BUILD_ARGS=(
-            ios
-            --simulator
+          token = os.environ["SERVE_SIM_AUTH_TOKEN"]
+          udid = os.environ["SIMULATOR_UDID"]
+          headers = {"Authorization": f"Bearer {token}"}
+          preview = urllib.request.Request("http://127.0.0.1:3199/", headers=headers)
+          with urllib.request.urlopen(preview, timeout=15) as response:
+              if response.status != 200:
+                  raise SystemExit("Simulator preview is not reachable")
+          stream = urllib.request.Request(
+              f"http://127.0.0.1:3200/helper/{udid}/stream.mjpeg?raw=1",
+              headers=headers,
           )
-
-          if [ '${{ inputs.build_mode }}' = 'profile' ] || [ '${{ inputs.build_mode }}' = 'release' ]; then
-            echo "::warning::Flutter does not support '${{ inputs.build_mode }}' mode on iOS Simulator (physical devices only). Using --debug mode."
-            BUILD_ARGS+=(--debug)
-          else
-            BUILD_ARGS+=(--debug)
-          fi
-
-          if [ -n '${{ inputs.flavor }}' ]; then
-            BUILD_ARGS+=(--flavor '${{ inputs.flavor }}')
-          fi
-
-          if [ -n '${{ inputs.target }}' ]; then
-            BUILD_ARGS+=(-t '${{ inputs.target }}')
-          fi
-
-          if [ -n '${{ inputs.dart_defines }}' ]; then
-            IFS=',' read -ra DEFINES <<< '${{ inputs.dart_defines }}'
-            for def in "${DEFINES[@]}"; do
-              if [ -n "$def" ]; then
-                BUILD_ARGS+=(--dart-define "$def")
-              fi
-            done
-          fi
-
-          echo "Building iOS Simulator app: flutter build ${BUILD_ARGS[*]}"
-          START_TIME=$(date +%s)
-          if ! flutter build "${BUILD_ARGS[@]}"; then
-            echo "::error::Flutter Simulator build failed. Check the workflow logs above for Xcode/Flutter errors."
-            exit 1
-          fi
-          END_TIME=$(date +%s)
-          echo "Flutter iOS Simulator build completed in $((END_TIME - START_TIME))s"
-
-          APP_PATH=$(find build/ios/iphonesimulator -maxdepth 2 -name '*.app' -type d | head -1)
-          [ -n "$APP_PATH" ] || { echo "::error::No .app found in build/ios/iphonesimulator"; exit 1; }
-          echo "Discovered generated .app bundle: $APP_PATH"
-
-          mkdir -p build/flutter-remote-app
-          cp -R "$APP_PATH" build/flutter-remote-app/
-
-      - name: Save app build to cache
-        if: inputs.mode == 'build' && inputs.cache == 'true' && steps.appcache.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: build/flutter-remote-app
-          key: flutter-remote-app-${{ runner.os }}-${{ steps.fp.outputs.hash }}
-
-      - name: Export app archive
-        if: inputs.mode == 'build' && inputs.export_app == 'true'
-        run: |
-          set -euo pipefail
-          APP_PATH=$(find build/flutter-remote-app -maxdepth 2 -name '*.app' -type d | head -1)
-          [ -n "$APP_PATH" ] || { echo "::error::No .app found to export"; exit 1; }
-          APP_NAME=$(basename "$APP_PATH")
-          tar -czf "build/${APP_NAME}.tar.gz" -C build/flutter-remote-app "$APP_NAME"
-
-      - name: Upload app artifact
-        if: inputs.mode == 'build' && inputs.export_app == 'true'
-        uses: actions/upload-artifact@v4
-        with:
-          name: flutter-remote-app-${{ inputs.session }}
-          path: build/*.app.tar.gz
-          if-no-files-found: error
-          retention-days: 1
-
-      - name: Install and launch Flutter app
-        timeout-minutes: 15
-        if: inputs.mode == 'build'
-        env:
-          UDID: ${{ steps.sim.outputs.udid }}
-        run: |
-          set -euo pipefail
-          APP_PATH=$(find build/flutter-remote-app -maxdepth 2 -name '*.app' -type d | head -1)
-          [ -n "$APP_PATH" ] || { echo "::error::No .app found in build/flutter-remote-app"; exit 1; }
-
-          echo "Installing $APP_PATH onto simulator $UDID..."
-          xcrun simctl install "$UDID" "$APP_PATH"
-
-          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$APP_PATH/Info.plist" 2>/dev/null || true)
-          if [ -z "$BUNDLE_ID" ]; then
-            BUNDLE_ID=$(defaults read "$APP_PATH/Info" CFBundleIdentifier 2>/dev/null || true)
-          fi
-          [ -n "$BUNDLE_ID" ] || { echo "::error::Could not determine CFBundleIdentifier from $APP_PATH/Info.plist"; exit 1; }
-          echo "Detected Bundle Identifier: $BUNDLE_ID"
-
-          echo "Launching Flutter application ($BUNDLE_ID)..."
-          if ! xcrun simctl launch "$UDID" "$BUNDLE_ID"; then
-            echo "::error::Flutter application was built successfully, but failed to launch inside the iOS Simulator."
-            exit 1
-          fi
-          echo "Flutter application launched successfully inside iOS Simulator."
-
-      - name: Install prebuilt app
-        timeout-minutes: 15
-        if: inputs.mode == 'app'
-        env:
-          UDID: ${{ steps.sim.outputs.udid }}
-          APP_URL: ${{ inputs.app_url }}
-          APP_RELEASE_ASSET: ${{ inputs.app_release_asset }}
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/flutter-remote-prebuilt
-          cd /tmp/flutter-remote-prebuilt
-
-          if [ -n "$APP_RELEASE_ASSET" ]; then
-            echo "Downloading prebuilt app from GitHub Release: $APP_RELEASE_ASSET"
-            gh release download flutter-remote-build -p "$APP_RELEASE_ASSET"
-            ARCHIVE="$APP_RELEASE_ASSET"
-          elif [ -n "$APP_URL" ]; then
-            echo "Downloading prebuilt app from URL: $APP_URL"
-            curl -fsSL "$APP_URL" -o app-archive
-            ARCHIVE="app-archive"
-          else
-            echo "::error::Neither app_url nor app_release_asset provided for mode=app"
-            exit 1
-          fi
-
-          if file "$ARCHIVE" | grep -qiE 'gzip|tar'; then
-            tar -xzf "$ARCHIVE" || tar -xf "$ARCHIVE"
-          elif file "$ARCHIVE" | grep -qi 'zip'; then
-            unzip -q "$ARCHIVE"
-          fi
-
-          PREBUILT_APP=$(find . -maxdepth 3 -name '*.app' -type d | head -1)
-          [ -n "$PREBUILT_APP" ] || { echo "::error::No .app bundle discovered in downloaded archive"; exit 1; }
-
-          # Validate that it is a simulator app
-          PLATFORMS=$(/usr/libexec/PlistBuddy -c "Print :CFBundleSupportedPlatforms" "$PREBUILT_APP/Info.plist" 2>/dev/null || true)
-          if [ -n "$PLATFORMS" ] && ! echo "$PLATFORMS" | grep -qi 'iPhoneSimulator'; then
-            echo "::error::This is a device iOS build. flutter-remote requires an iOS Simulator build."
-            exit 1
-          fi
-
-          xcrun simctl install "$UDID" "$PREBUILT_APP"
-          BUNDLE_ID=$(/usr/libexec/PlistBuddy -c "Print :CFBundleIdentifier" "$PREBUILT_APP/Info.plist" 2>/dev/null || defaults read "$PREBUILT_APP/Info" CFBundleIdentifier)
-          xcrun simctl launch "$UDID" "$BUNDLE_ID"
-          echo "Prebuilt app launched."
+          deadline = time.monotonic() + 60
+          received = b""
+          start = -1
+          with urllib.request.urlopen(stream, timeout=15) as response:
+              while time.monotonic() < deadline:
+                  chunk = response.read1(65536)
+                  if not chunk:
+                      break
+                  received = (received + chunk)[-4194304:]
+                  start = received.find(b"\xff\xd8")
+                  if start >= 0 and received.find(b"\xff\xd9", start + 2) >= 0:
+                      print("Simulator preview is reachable and a complete JPEG frame was received.")
+                      break
+              else:
+                  raise SystemExit("Simulator did not produce a frame before the deadline")
+          if start < 0 or received.find(b"\xff\xd9", start + 2) < 0:
+              raise SystemExit("Simulator stream ended without a complete frame")
+          PY
 
       - name: Report simulator live
         run: |

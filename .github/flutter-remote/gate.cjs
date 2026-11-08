@@ -287,6 +287,23 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // Keep the interactive player independent of serve-sim's device grid and
+  // tools, which otherwise keep polling while WebRTC is showing the video.
+  if (pathnameOf(req) === '/player') {
+    res.writeHead(200, {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+    });
+    res.end(`<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Yalla Market - iOS</title>
+<style>html,body,#flutter-remote-container{margin:0;width:100%;height:100%;overflow:hidden;background:#000}</style>
+<script defer src="/__flutter-remote/client.js"></script></head>
+<body><div id="flutter-remote-container"></div></body></html>`);
+    return;
+  }
+
   // serve-sim's MJPEG stream (its viewer fetches <helper>/stream.mjpeg?raw=1).
   if (relay && !agent && req.method === 'GET' && isMjpegStreamPath(pathnameOf(req))) {
     const u = new URL(req.url, 'http://localhost');

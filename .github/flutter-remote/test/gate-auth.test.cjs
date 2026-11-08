@@ -10,7 +10,7 @@ const TOKEN = 'local-gate-regression-test';
 
 function request(port, headers = {}, requestPath = '/') {
   return new Promise((resolve, reject) => {
-    http.get({ host: '127.0.0.1', port, path: requestPath, headers }, (response) => {
+    http.get({ host: '127.0.0.1', port, path: requestPath, headers, agent: false }, (response) => {
       let body = '';
       response.setEncoding('utf8');
       response.on('data', (chunk) => { body += chunk; });
@@ -20,7 +20,9 @@ function request(port, headers = {}, requestPath = '/') {
 }
 
 test('gate authenticates proxied HTTP and WebSocket requests to serve-sim', { timeout: 10000 }, async (t) => {
+  let upstreamRequests = 0;
   const upstream = http.createServer((req, res) => {
+    upstreamRequests++;
     res.writeHead(req.headers.authorization === `Bearer ${TOKEN}` ? 200 : 403, { 'Content-Type': 'text/plain' });
     res.end('simulator');
   });
@@ -75,6 +77,18 @@ test('gate authenticates proxied HTTP and WebSocket requests to serve-sim', { ti
   const preview = await request(gatePort, { cookie, authorization: 'Bearer wrong-upstream-token' });
   assert.equal(preview.status, 200, 'gate supplies the configured upstream token');
   assert.equal(preview.body, 'simulator');
+
+  assert.equal((await request(gatePort, {}, '/player')).status, 403);
+  const playerLogin = await request(gatePort, {}, `/player?k=${TOKEN}`);
+  assert.equal(playerLogin.status, 302);
+  assert.equal(playerLogin.headers.location, '/player');
+  const countBeforePlayer = upstreamRequests;
+  const player = await request(gatePort, { cookie }, '/player');
+  assert.equal(player.status, 200);
+  assert.match(player.body, /id="flutter-remote-container"/);
+  assert.match(player.body, /src="\/__flutter-remote\/client\.js"/);
+  assert.equal(player.body.includes(TOKEN), false);
+  assert.equal(upstreamRequests, countBeforePlayer, 'standalone player must not load serve-sim UI');
 
   await new Promise((resolve, reject) => {
     const req = http.request({

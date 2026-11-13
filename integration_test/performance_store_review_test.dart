@@ -97,9 +97,7 @@ void main() {
     );
     for (var repeat = 1; repeat <= 2; repeat++) {
       await measure('stores_1000_scroll_$repeat', () async {
-        observations['stores_motion_$repeat'] = await scrollProbe(
-          tester,
-        );
+        observations['stores_motion_$repeat'] = await scrollProbe(tester);
       });
     }
     memory('stores_1000');

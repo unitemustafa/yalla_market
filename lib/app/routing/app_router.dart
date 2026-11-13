@@ -44,6 +44,7 @@ import '../../features/search/presentation/views/search_view.dart';
 import 'app_route_arguments.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
+import 'double_back_to_exit.dart';
 
 /// Generates routes from [RouteSettings] for the entire app.
 ///
@@ -98,7 +99,11 @@ class AppRouter {
         return _buildRoute(_loginWithMedia(), settings);
 
       case AppRoutes.accountDisabled:
-        return _buildRoute(const AccountDisabledView(), settings);
+        return _buildRoute(
+          const AccountDisabledView(),
+          settings,
+          confirmExit: false,
+        );
 
       case AppRoutes.signup:
         return _buildRoute(const SignupView(), settings);
@@ -116,7 +121,11 @@ class AppRouter {
 
       case AppRoutes.verifyEmail:
         final email = settings.arguments as String? ?? '';
-        return _buildRoute(VerifyEmailView(email: email), settings);
+        return _buildRoute(
+          VerifyEmailView(email: email),
+          settings,
+          confirmExit: false,
+        );
 
       case AppRoutes.successAccount:
         return _buildRoute(const SuccessAccountView(), settings);
@@ -298,16 +307,19 @@ class AppRouter {
     Widget page,
     RouteSettings settings, {
     bool refreshCatalog = true,
+    bool confirmExit = true,
   }) {
+    // These pages manage back navigation themselves when confirmExit is false.
+    final child = confirmExit ? DoubleBackToExit(child: page) : page;
     return MaterialPageRoute(
       builder: (context) =>
           refreshCatalog && AppCatalogRefreshCoordinator.handles(settings.name)
           ? RefreshOnReturn(
               onRefresh: () =>
                   AppCatalogRefreshCoordinator.refreshRoute(context, settings),
-              child: page,
+              child: child,
             )
-          : page,
+          : child,
       settings: settings,
     );
   }

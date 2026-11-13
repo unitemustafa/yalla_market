@@ -12,6 +12,7 @@ abstract final class BrandTexts {
 
 /// الأزرار والرسائل العامة.
 abstract final class CommonTexts {
+  static const pressBackAgainToExit = 'اضغط رجوع مرة تانية للخروج';
   static const loadMore = 'تحميل المزيد';
   // ─── الأزرار العامة ───
   static const skip = 'تخطي';

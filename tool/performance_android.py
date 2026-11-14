@@ -9,7 +9,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-PACKAGE = "com.yallamarket.app.performance"
+PACKAGE = "com.yallamarket.app.com.performance"
 
 
 def prepare_fresh_install(executable, serial, apk, aapt, output):
@@ -111,7 +111,7 @@ def inventory(executable, serial):
         "animator_scale": shell("settings", "get", "global", "animator_duration_scale"),
         "production_version": [
             line.strip()
-            for line in shell("dumpsys", "package", "com.yallamarket.app").splitlines()
+            for line in shell("dumpsys", "package", "com.yallamarket.app.com").splitlines()
             if "versionName=" in line or "versionCode=" in line
         ],
         "settings_changed": False,
@@ -275,7 +275,7 @@ def main():
         # first Flutter frame or usable content without application markers.
         samples = []
         seen_events = set()
-        activity = PACKAGE + "/com.yallamarket.app.MainActivity"
+        activity = PACKAGE + "/com.yallamarket.app.com.MainActivity"
         modes = (["first_install"] if args.first_install else []) + [
             "process_stopped_disk_cache_preserved",
             "background_return",
@@ -390,7 +390,7 @@ def main():
             "start",
             "-W",
             "-n",
-            PACKAGE + "/com.yallamarket.app.MainActivity",
+            PACKAGE + "/com.yallamarket.app.com.MainActivity",
         )
         events, seen = [], set()
         deadline = time.monotonic() + 120

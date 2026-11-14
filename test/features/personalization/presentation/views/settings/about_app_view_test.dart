@@ -15,7 +15,7 @@ void main() {
         .setMockMethodCallHandler(packageInfoChannel, (_) async {
           return <String, dynamic>{
             'appName': 'Yalla Market',
-            'packageName': 'com.yallamarket.app',
+            'packageName': 'com.yallamarket.app.com',
             'version': '1.0.16',
             'buildNumber': '4030',
             'buildSignature': '',

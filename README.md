@@ -201,6 +201,25 @@ unless they are explicitly built as a portfolio demo.
 
 ### Android
 
+The Android application ID is `com.yallamarket.app.com`.
+The Android app is registered in Firebase project **yalla-market-bf2f6** with
+the debug and upload signing fingerprints. The checked-in configuration includes
+the corresponding Google Sign-In clients.
+
+The debug APK build and Firebase initialization have been verified on an Android
+emulator. An actual Google sign-in still needs to be tested before release.
+The app has not been uploaded to Google Play yet; the Play signing certificate
+steps below apply when preparing that distribution.
+
+1. Add the Google Play app signing SHA-1 and SHA-256 certificates to the
+   Android app in Firebase before distributing through Google Play. Download
+   the refreshed configuration to `android/app/google-services.json`.
+2. Update the Android package and activity in the Facebook app settings to
+   `com.yallamarket.app.com` and `com.yallamarket.app.com.MainActivity`.
+3. Deploy the backend app-link configuration for the new package, configure
+   `ANDROID_APP_LINK_FINGERPRINTS` with the Google Play app signing SHA-256
+   certificate, and update `ANDROID_APP_STORE_URL` to the new Play listing.
+
 Copy `android/key.properties.example` to `android/key.properties` and configure
 the upload keystore. Then run the preflight check and build the app bundle:
 

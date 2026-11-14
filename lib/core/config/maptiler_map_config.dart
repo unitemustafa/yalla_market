@@ -1,6 +1,6 @@
 abstract final class MapTilerMapConfig {
   static const apiKey = String.fromEnvironment('MAPTILER_API_KEY');
-  static const userAgentPackageName = 'com.yallamarket.app';
+  static const userAgentPackageName = 'com.yallamarket.app.com';
   static const maxZoom = 20.0;
 
   static bool get isConfigured => apiKey.trim().isNotEmpty;

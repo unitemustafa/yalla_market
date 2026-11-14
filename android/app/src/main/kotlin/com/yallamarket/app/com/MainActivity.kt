@@ -1,4 +1,4 @@
-package com.yallamarket.app
+package com.yallamarket.app.com
 
 import android.Manifest
 import android.app.NotificationChannel

@@ -95,7 +95,7 @@ if (hasReleaseKeystore) {
 }
 
 android {
-    namespace = "com.yallamarket.app"
+    namespace = "com.yallamarket.app.com"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -110,7 +110,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.yallamarket.app"
+        applicationId = "com.yallamarket.app.com"
         manifestPlaceholders["sharedLinkHost"] = sharedLinkHost
         if (performanceBuild) {
             applicationIdSuffix = ".performance"

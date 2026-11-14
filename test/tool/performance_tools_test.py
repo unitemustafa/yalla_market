@@ -119,7 +119,7 @@ class FreshInstallTests(unittest.TestCase):
                 return value, evidence, adb.call_args_list
 
     def test_production_apk_is_rejected_before_any_device_action(self):
-        value, evidence, calls = self.prepare([], "com.yallamarket.app")
+        value, evidence, calls = self.prepare([], "com.yallamarket.app.com")
         self.assertIsNone(value)
         self.assertIsNone(evidence)
         self.assertEqual(calls, [])

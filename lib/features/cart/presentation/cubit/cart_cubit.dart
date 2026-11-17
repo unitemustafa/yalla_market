@@ -31,13 +31,15 @@ class CartCubit extends Cubit<List<CartItemData>> {
     _emitResult(result, normalizedUserKey, generation);
   }
 
-  Future<void> addItem(CartItemData newItem, int quantityToAdd) async {
+  Future<bool> addItem(CartItemData newItem, int quantityToAdd) async {
     final userKey = _currentUserKey;
-    if (userKey == null || userKey.isEmpty) return;
+    if (userKey == null || userKey.isEmpty || isClosed) return false;
 
     final generation = _generation;
     final result = await _cartUseCases.addItem(userKey, newItem, quantityToAdd);
+    if (!_isCurrent(userKey, generation)) return false;
     _emitResult(result, userKey, generation);
+    return result is ApiSuccess<List<CartItemData>>;
   }
 
   Future<void> incrementQuantity(String id) async {

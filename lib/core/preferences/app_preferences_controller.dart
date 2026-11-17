@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../storage/startup_preferences.dart';
+
 class AppPreferences {
   const AppPreferences({
     this.mobileNotificationsEnabled = true,
-    this.themeMode = ThemeMode.system,
+    this.themeMode = ThemeMode.light,
   });
 
   final bool mobileNotificationsEnabled;
@@ -47,13 +49,24 @@ class AppPreferencesController extends ValueNotifier<AppPreferences> {
   bool get mobileNotificationsEnabled => value.mobileNotificationsEnabled;
 
   Future<void> loadSavedPreferences() async {
-    final preferences = await SharedPreferences.getInstance();
-    value = AppPreferences(
-      mobileNotificationsEnabled:
-          preferences.getBool(mobileNotificationsStorageKey) ??
-          preferences.getBool(_legacyPushNotificationsKey) ??
-          true,
-      themeMode: _themeModeFromStorage(preferences.getString(_themeModeKey)),
+    final result = await StartupPreferences.load();
+    result.when(
+      success: (preferences) {
+        final notifications = preferences.get(mobileNotificationsStorageKey);
+        final legacyNotifications = preferences.get(
+          _legacyPushNotificationsKey,
+        );
+        final theme = preferences.get(_themeModeKey);
+        value = AppPreferences(
+          mobileNotificationsEnabled: notifications is bool
+              ? notifications
+              : legacyNotifications is bool
+              ? legacyNotifications
+              : true,
+          themeMode: _themeModeFromStorage(theme is String ? theme : null),
+        );
+      },
+      failure: (_) {},
     );
   }
 
@@ -90,7 +103,7 @@ class AppPreferencesController extends ValueNotifier<AppPreferences> {
     return switch (value) {
       'light' => ThemeMode.light,
       'dark' => ThemeMode.dark,
-      _ => ThemeMode.system,
+      _ => ThemeMode.light,
     };
   }
 }

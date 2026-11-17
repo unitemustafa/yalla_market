@@ -1,5 +1,6 @@
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/constants/app_colors.dart';
@@ -92,24 +93,27 @@ class _DeliveryQuoteApprovalCardState extends State<DeliveryQuoteApprovalCard> {
           const SizedBox(height: 12),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _submitting ? null : _approve,
-              icon: _submitting
-                  ? const SizedBox.square(
-                      dimension: 18,
-                      child: AppLoadingPlaceholder(),
-                    )
-                  : const Icon(AppIcons.tick_circle, color: Colors.white),
-              label: Text(
-                context.tr('Approve delivery price'),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
+            child: AppButtonFeedback(
+              builder: (_, pressStates) => ElevatedButton.icon(
+                statesController: pressStates,
+                onPressed: _submitting ? null : _approve,
+                icon: _submitting
+                    ? const SizedBox.square(
+                        dimension: 18,
+                        child: AppLoadingPlaceholder(),
+                      )
+                    : const Icon(AppIcons.tick_circle, color: Colors.white),
+                label: Text(
+                  context.tr('Approve delivery price'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: const EdgeInsets.symmetric(vertical: 13),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                ),
               ),
             ),
           ),

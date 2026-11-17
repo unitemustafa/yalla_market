@@ -32,8 +32,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
     return ValueListenableBuilder<AppPreferences>(
       valueListenable: AppPreferencesController.instance,
       builder: (context, preferences, _) {
-        final themeLabel = _themeModeLabel(preferences.themeMode);
-
         return Scaffold(
           backgroundColor: backgroundColor,
           body: SafeArea(
@@ -54,22 +52,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
                           const PageTopBar(
                             title: 'App Preferences',
                             subtitle: 'Tune shopping, alerts and data usage',
-                          ),
-                          const SizedBox(height: 18),
-                          _PreferencesSection(
-                            title: 'Appearance',
-                            isDark: isDark,
-                            children: [
-                              _PreferenceInfoTile(
-                                icon: _themeModeIcon(preferences.themeMode),
-                                title: 'Theme',
-                                subtitle: themeLabel,
-                                accentColor: _themeModeAccentColor(
-                                  preferences.themeMode,
-                                ),
-                                onTap: () => _showThemeSheet(context),
-                              ),
-                            ],
                           ),
                           const SizedBox(height: 18),
                           _PreferencesSection(
@@ -140,45 +122,6 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
     );
   }
 
-  void _showThemeSheet(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final currentThemeMode = AppPreferencesController.instance.value.themeMode;
-    const themeModes = [ThemeMode.system, ThemeMode.light, ThemeMode.dark];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: isDark ? AppColors.darkCardColor : Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (sheetContext) {
-        return _PreferenceSelectionSheet(
-          title: 'Theme',
-          children: [
-            for (final themeMode in themeModes) ...[
-              _PreferenceOptionTile(
-                title: _themeModeLabel(themeMode),
-                subtitle: _themeModeSubtitle(themeMode),
-                icon: _themeModeIcon(themeMode),
-                accentColor: _themeModeAccentColor(themeMode),
-                isSelected: currentThemeMode == themeMode,
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  AppPreferencesController.instance.setThemeMode(themeMode);
-                  CustomSnackBar.showSuccess(
-                    context: context,
-                    title: 'Theme updated',
-                  );
-                },
-              ),
-              if (themeMode != themeModes.last) const SizedBox(height: 10),
-            ],
-          ],
-        );
-      },
-    );
-  }
-
   void _showLanguageSheet(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentLanguage = AppLanguageController.instance.value;
@@ -228,37 +171,5 @@ class _AppPreferencesViewState extends State<AppPreferencesView> {
         );
       },
     );
-  }
-
-  String _themeModeLabel(ThemeMode themeMode) {
-    return switch (themeMode) {
-      ThemeMode.system => 'System default',
-      ThemeMode.light => 'Light',
-      ThemeMode.dark => 'Dark',
-    };
-  }
-
-  String _themeModeSubtitle(ThemeMode themeMode) {
-    return switch (themeMode) {
-      ThemeMode.system => 'Use your device theme setting.',
-      ThemeMode.light => 'Always use the light theme.',
-      ThemeMode.dark => 'Always use the dark theme.',
-    };
-  }
-
-  IconData _themeModeIcon(ThemeMode themeMode) {
-    return switch (themeMode) {
-      ThemeMode.system => AppIcons.mobile,
-      ThemeMode.light => AppIcons.sun_1,
-      ThemeMode.dark => AppIcons.moon,
-    };
-  }
-
-  Color _themeModeAccentColor(ThemeMode themeMode) {
-    return switch (themeMode) {
-      ThemeMode.system => AppColors.info,
-      ThemeMode.light => AppColors.warning,
-      ThemeMode.dark => const Color(0xFF8B5CF6),
-    };
   }
 }

@@ -1,5 +1,6 @@
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../app/di/service_locator.dart';
@@ -318,31 +319,34 @@ class _PartnerApplicationViewState extends State<PartnerApplicationView> {
                 const SizedBox(height: 18),
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _isSubmitting ? null : _submit,
-                    icon: _isSubmitting
-                        ? const SizedBox.square(
-                            dimension: 18,
-                            child: AppLoadingPlaceholder(),
-                          )
-                        : const Icon(AppIcons.send_1, size: 19),
-                    label: Text(
-                      context.tr(
-                        _isSubmitting
-                            ? 'Submitting application...'
-                            : 'Submit application',
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton.icon(
+                      statesController: pressStates,
+                      onPressed: _isSubmitting ? null : _submit,
+                      icon: _isSubmitting
+                          ? const SizedBox.square(
+                              dimension: 18,
+                              child: AppLoadingPlaceholder(),
+                            )
+                          : const Icon(AppIcons.send_1, size: 19),
+                      label: Text(
+                        context.tr(
+                          _isSubmitting
+                              ? 'Submitting application...'
+                              : 'Submit application',
+                        ),
                       ),
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: AppColors.primary.withValues(
-                        alpha: 0.55,
-                      ),
-                      disabledForegroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.primary.withValues(
+                          alpha: 0.55,
+                        ),
+                        disabledForegroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                       ),
                     ),
                   ),
@@ -461,12 +465,15 @@ class _PartnerApplicationViewState extends State<PartnerApplicationView> {
           ),
           actionsAlignment: MainAxisAlignment.center,
           actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-                Navigator.pop(context);
-              },
-              child: Text(context.tr('Done')),
+            AppButtonFeedback(
+              builder: (_, pressStates) => ElevatedButton(
+                statesController: pressStates,
+                onPressed: () {
+                  Navigator.pop(dialogContext);
+                  Navigator.pop(context);
+                },
+                child: Text(context.tr('Done')),
+              ),
             ),
           ],
         );

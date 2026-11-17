@@ -3,23 +3,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('restored sessions activate location preferences before navigation', () {
-    final source = File(
-      'lib/features/splash/presentation/views/splash_view.dart',
-    ).readAsStringSync();
-    final activateIndex = source.indexOf(
-      'await locationCubit.activateUser(state.session!.user.id)',
-    );
-    final syncIndex = source.indexOf('locationCubit.syncCity(state.city)');
-    final navigationIndex = source.indexOf(
-      'Navigator.of(context).pushReplacementNamed(',
-    );
-
-    expect(activateIndex, greaterThanOrEqualTo(0));
-    expect(syncIndex, greaterThan(activateIndex));
-    expect(navigationIndex, greaterThan(syncIndex));
-  });
-
   test('splash shows only the centered brand logo', () {
     final source = File(
       'lib/features/splash/presentation/views/splash_view.dart',

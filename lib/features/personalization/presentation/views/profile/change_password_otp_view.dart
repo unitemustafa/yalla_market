@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -155,15 +156,18 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
           actions: [
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                key: const ValueKey('password_changed_sign_in_button'),
-                onPressed: () => Navigator.pop(dialogContext),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                ),
-                child: Text(
-                  dialogContext.tr('Confirm'),
-                  style: const TextStyle(color: Colors.white),
+              child: AppButtonFeedback(
+                builder: (_, pressStates) => ElevatedButton(
+                  statesController: pressStates,
+                  key: const ValueKey('password_changed_sign_in_button'),
+                  onPressed: () => Navigator.pop(dialogContext),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                  ),
+                  child: Text(
+                    dialogContext.tr('Confirm'),
+                    style: const TextStyle(color: Colors.white),
+                  ),
                 ),
               ),
             ),

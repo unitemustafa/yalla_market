@@ -40,12 +40,59 @@ void main() {
       final cubit = CartCubit(_cartUseCases(repository));
       await cubit.loadCartForUser('user-a');
 
-      await cubit.addItem(sampleCartItem, 2);
+      expect(await cubit.addItem(sampleCartItem, 2), isTrue);
 
       expect(cubit.state.single.quantity, 2);
       expect(cubit.lastErrorMessage, isNull);
       await cubit.close();
     });
+
+    test(
+      'addItem reports failure without publishing a successful cart',
+      () async {
+        final repository = _FakeCartRepository();
+        final cubit = CartCubit(_cartUseCases(repository));
+        await cubit.loadCartForUser('user-a');
+        repository.nextFailure = const ServerFailure('Could not save cart.');
+
+        expect(await cubit.addItem(sampleCartItem, 2), isFalse);
+        expect(cubit.state, isEmpty);
+        expect(cubit.lastErrorMessage, 'Could not save cart.');
+        await cubit.close();
+      },
+    );
+
+    test('addItem without a session reports failure', () async {
+      final cubit = CartCubit(_cartUseCases(_FakeCartRepository()));
+      expect(await cubit.addItem(sampleCartItem, 1), isFalse);
+      expect(cubit.state, isEmpty);
+      await cubit.close();
+      expect(await cubit.addItem(sampleCartItem, 1), isFalse);
+    });
+
+    for (final change in ['clear', 'switch', 'close']) {
+      test('addItem reports no success after session $change', () async {
+        final delay = Completer<void>();
+        final cubit = CartCubit(
+          _cartUseCases(_FakeCartRepository(addDelay: delay)),
+        );
+        await cubit.loadCartForUser('old-user');
+        final adding = cubit.addItem(sampleCartItem, 1);
+        switch (change) {
+          case 'clear':
+            cubit.clearSession();
+          case 'switch':
+            await cubit.loadCartForUser('new-user');
+          case 'close':
+            await cubit.close();
+        }
+        delay.complete();
+
+        expect(await adding, isFalse);
+        expect(cubit.state, isEmpty);
+        if (!cubit.isClosed) await cubit.close();
+      });
+    }
 
     test(
       'keeps current cart state and records the last error on failure',
@@ -146,11 +193,15 @@ CartUseCases _cartUseCases(CartRepository repository) {
 }
 
 class _FakeCartRepository implements CartRepository {
-  _FakeCartRepository({List<CartItemData> items = const [], this.loadDelay})
-    : _items = List.of(items);
+  _FakeCartRepository({
+    List<CartItemData> items = const [],
+    this.loadDelay,
+    this.addDelay,
+  }) : _items = List.of(items);
 
   final List<CartItemData> _items;
   final Completer<void>? loadDelay;
+  final Completer<void>? addDelay;
   Failure? nextFailure;
 
   Future<ApiResult<List<CartItemData>>> _result() async {
@@ -174,6 +225,7 @@ class _FakeCartRepository implements CartRepository {
     CartItemData item,
     int quantityToAdd,
   ) async {
+    await addDelay?.future;
     final existingIndex = _items.indexWhere(
       (cartItem) => cartItem.id == item.id,
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../core/localization/app_translations.dart';
 
@@ -91,16 +92,19 @@ class AuthNoticeDialog extends StatelessWidget {
                     flex: showCloseButton ? 2 : 1,
                     child: SizedBox(
                       height: 46,
-                      child: FilledButton(
-                        onPressed: onAction,
-                        style: FilledButton.styleFrom(
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      child: AppButtonFeedback(
+                        builder: (_, pressStates) => FilledButton(
+                          statesController: pressStates,
+                          onPressed: onAction,
+                          style: FilledButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
-                        ),
-                        child: Text(
-                          actionLabel,
-                          style: const TextStyle(fontWeight: FontWeight.w800),
+                          child: Text(
+                            actionLabel,
+                            style: const TextStyle(fontWeight: FontWeight.w800),
+                          ),
                         ),
                       ),
                     ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -6,6 +7,7 @@ import 'package:yalla_market/core/icons/app_icons.dart';
 
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/app_list_entrance.dart';
 import '../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../core/presentation/widgets/dialogs/app_confirm_dialog.dart';
@@ -30,10 +32,20 @@ class NotificationsView extends StatefulWidget {
   State<NotificationsView> createState() => _NotificationsViewState();
 }
 
-class _NotificationsViewState extends State<NotificationsView> {
+class _NotificationsViewState extends State<NotificationsView>
+    with SingleTickerProviderStateMixin {
+  late final AppListEntranceController _listEntrance;
+
+  @override
+  void dispose() {
+    _listEntrance.dispose();
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    _listEntrance = AppListEntranceController(vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       context.read<NotificationCubit>().loadNotifications(forceRefresh: true);
@@ -209,6 +221,10 @@ class _NotificationsViewState extends State<NotificationsView> {
             );
           },
           builder: (context, state) {
+            _listEntrance.prepare(
+              state.notifications.map((notification) => notification.id),
+              disableAnimations: MediaQuery.disableAnimationsOf(context),
+            );
             return LayoutBuilder(
               builder: (context, constraints) {
                 final maxContentWidth = constraints.maxWidth >= 760
@@ -293,16 +309,18 @@ class _NotificationsViewState extends State<NotificationsView> {
                                   ),
                                 ),
                                 if (state.notifications.isNotEmpty)
-                                  SliverContentReveal(
-                                    child: SliverList.builder(
-                                      itemCount: state.notifications.length,
-                                      itemBuilder: (context, index) {
-                                        final notification =
-                                            state.notifications[index];
-                                        return Padding(
-                                          key: ValueKey(
-                                            'notification_reveal_${notification.id}',
-                                          ),
+                                  SliverList.builder(
+                                    itemCount: state.notifications.length,
+                                    itemBuilder: (context, index) {
+                                      final notification =
+                                          state.notifications[index];
+                                      return AppListEntranceItem(
+                                        key: ValueKey(
+                                          'notification_reveal_${notification.id}',
+                                        ),
+                                        controller: _listEntrance,
+                                        itemId: notification.id,
+                                        child: Padding(
                                           padding: const EdgeInsets.only(
                                             bottom: 10,
                                           ),
@@ -320,9 +338,9 @@ class _NotificationsViewState extends State<NotificationsView> {
                                                   notification.id,
                                                 ),
                                           ),
-                                        );
-                                      },
-                                    ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                 if (state.hasMore || state.moreError != null)
                                   SliverToBoxAdapter(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
@@ -149,17 +150,20 @@ class _CustomDateRangeSheetState extends State<CustomDateRangeSheet> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: FilledButton(
-                      onPressed: _applySelection,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(_actionHeight),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(_controlRadius),
+                    child: AppButtonFeedback(
+                      builder: (_, pressStates) => FilledButton(
+                        statesController: pressStates,
+                        onPressed: _applySelection,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          minimumSize: const Size.fromHeight(_actionHeight),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(_controlRadius),
+                          ),
                         ),
+                        child: Text(context.tr('Apply')),
                       ),
-                      child: Text(context.tr('Apply')),
                     ),
                   ),
                 ],

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../../core/constants/app_media_specs.dart';
 import '../../../../core/constants/app_assets.dart';
@@ -98,33 +99,36 @@ class _HomeCampaignSheet extends StatelessWidget {
                         minimum: const EdgeInsets.fromLTRB(18, 4, 18, 14),
                         child: SizedBox(
                           width: double.infinity,
-                          child: FilledButton(
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(48),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 10,
+                          child: AppButtonFeedback(
+                            builder: (_, pressStates) => FilledButton(
+                              statesController: pressStates,
+                              style: FilledButton.styleFrom(
+                                minimumSize: const Size.fromHeight(48),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 10,
+                                ),
+                                backgroundColor: Color(
+                                  sheet.buttonBackgroundColorValue,
+                                ),
+                                foregroundColor: Color(
+                                  sheet.buttonTextColorValue,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
                               ),
-                              backgroundColor: Color(
-                                sheet.buttonBackgroundColorValue,
+                              onPressed: () => Navigator.pop(
+                                context,
+                                HomeCampaignSheetResult.acted,
                               ),
-                              foregroundColor: Color(
-                                sheet.buttonTextColorValue,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            onPressed: () => Navigator.pop(
-                              context,
-                              HomeCampaignSheetResult.acted,
-                            ),
-                            child: Text(
-                              campaign.action.label,
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w900,
+                              child: Text(
+                                campaign.action.label,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w900,
+                                ),
                               ),
                             ),
                           ),

@@ -1,3 +1,4 @@
+import 'package:yalla_market/app/routing/catalog_route_container.dart';
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -81,8 +82,6 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
                       onChanged: _search,
                     ),
                   ),
-                  const SizedBox(width: 10),
-                  _BackButton(onTap: Navigator.of(context).pop),
                 ],
               ),
             ),
@@ -166,10 +165,31 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
                                     );
                                   }
                                   final product = products[index ~/ 2];
-                                  return _ProductSearchRow(
+                                  return CatalogRouteContainer(
                                     key: ValueKey(product.id),
-                                    product: product,
-                                    onTap: () => _openProduct(product),
+                                    closedColor: Colors.transparent,
+                                    settings: RouteSettings(
+                                      name: AppRoutes.productDetail,
+                                      arguments: ProductDetailRouteArgs(
+                                        image: product.image,
+                                        title: product.title,
+                                        brand: product.brand,
+                                        price: product.price,
+                                        productId: product.id,
+                                        productSlug: product.slug,
+                                        oldPrice: product.oldPrice,
+                                        discount: product.discount,
+                                        initialVariantId:
+                                            product.defaultVariantId,
+                                      ),
+                                    ),
+                                    beforeOpen: _focusNode.unfocus,
+                                    closedBuilder: (context, open) =>
+                                        _ProductSearchRow(
+                                          key: ValueKey(product.id),
+                                          product: product,
+                                          onTap: open,
+                                        ),
                                   );
                                 },
                                 childCount: products.length * 2 - 1,
@@ -203,53 +223,6 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
       if (_scrollController.hasClients) _scrollController.jumpTo(0);
       setState(() => _query = query);
     });
-  }
-
-  void _openProduct(ProductData product) {
-    _focusNode.unfocus();
-    Navigator.pushNamed(
-      context,
-      AppRoutes.productDetail,
-      arguments: ProductDetailRouteArgs(
-        image: product.image,
-        title: product.title,
-        brand: product.brand,
-        price: product.price,
-        productId: product.id,
-        productSlug: product.slug,
-        oldPrice: product.oldPrice,
-        discount: product.discount,
-        initialVariantId: product.defaultVariantId,
-      ),
-    );
-  }
-}
-
-class _BackButton extends StatelessWidget {
-  const _BackButton({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final isRtl = Directionality.of(context) == TextDirection.rtl;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Material(
-      color: isDark ? AppColors.darkCardColor : Colors.white,
-      shape: const CircleBorder(),
-      child: InkWell(
-        onTap: onTap,
-        customBorder: const CircleBorder(),
-        child: SizedBox(
-          width: 48,
-          height: 48,
-          child: Icon(
-            isRtl ? AppIcons.arrow_right_3 : AppIcons.arrow_left_2,
-            size: 21,
-          ),
-        ),
-      ),
-    );
   }
 }
 

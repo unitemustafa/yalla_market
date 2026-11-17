@@ -4,7 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
-import '../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
+import '../../../../core/presentation/widgets/app_list_entrance.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../domain/entities/cart_item.dart';
@@ -19,7 +19,22 @@ class CartView extends StatefulWidget {
   State<CartView> createState() => _CartViewState();
 }
 
-class _CartViewState extends State<CartView> {
+class _CartViewState extends State<CartView>
+    with SingleTickerProviderStateMixin {
+  late final AppListEntranceController _listEntrance;
+
+  @override
+  void initState() {
+    super.initState();
+    _listEntrance = AppListEntranceController(vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _listEntrance.dispose();
+    super.dispose();
+  }
+
   double _subtotal(List<CartItemData> cartItems) {
     return cartItems.fold(0, (sum, item) => sum + (item.price * item.quantity));
   }
@@ -49,6 +64,10 @@ class _CartViewState extends State<CartView> {
       backgroundColor: backgroundColor,
       body: BlocBuilder<CartCubit, List<CartItemData>>(
         builder: (context, cartItems) {
+          _listEntrance.prepare(
+            cartItems.map((item) => item.id),
+            disableAnimations: MediaQuery.disableAnimationsOf(context),
+          );
           final topBar = _buildCartTopBar(
             isDark: isDark,
             itemCount: _itemCount(cartItems),
@@ -71,35 +90,40 @@ class _CartViewState extends State<CartView> {
                               const SizedBox(height: 12),
                           itemBuilder: (context, index) {
                             final item = cartItems[index];
-                            return Dismissible(
-                              key: Key(item.id),
-                              direction: DismissDirection.endToStart,
-                              background: Container(
-                                padding: const EdgeInsetsDirectional.only(
-                                  end: 22,
+                            return AppListEntranceItem(
+                              key: ValueKey(item.id),
+                              controller: _listEntrance,
+                              itemId: item.id,
+                              child: Dismissible(
+                                key: Key(item.id),
+                                direction: DismissDirection.endToStart,
+                                background: Container(
+                                  padding: const EdgeInsetsDirectional.only(
+                                    end: 22,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.error,
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  alignment: AlignmentDirectional.centerEnd,
+                                  child: const Icon(
+                                    AppIcons.trash,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.error,
-                                  borderRadius: BorderRadius.circular(8),
+                                onDismissed: (direction) {
+                                  context.read<CartCubit>().removeItem(item.id);
+                                  CustomSnackBar.showRemoved(
+                                    context: context,
+                                    title: 'Item removed from cart',
+                                  );
+                                },
+                                child: _buildCartItem(
+                                  context,
+                                  item: item,
+                                  isDark: isDark,
                                 ),
-                                alignment: AlignmentDirectional.centerEnd,
-                                child: const Icon(
-                                  AppIcons.trash,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              onDismissed: (direction) {
-                                context.read<CartCubit>().removeItem(item.id);
-                                CustomSnackBar.showRemoved(
-                                  context: context,
-                                  title: 'Item removed from cart',
-                                );
-                              },
-                              child: _buildCartItem(
-                                context,
-                                item: item,
-                                isDark: isDark,
                               ),
                             );
                           },
@@ -132,11 +156,6 @@ class _CartViewState extends State<CartView> {
   Widget _buildCartTopBar({required bool isDark, required int itemCount}) {
     return Row(
       children: [
-        AppNavigationIconButton.back(
-          onPressed: () => Navigator.pop(context),
-          color: isDark ? Colors.white : Colors.black,
-        ),
-        const SizedBox(width: 12),
         Expanded(
           child: Text(
             context.tr('Cart'),

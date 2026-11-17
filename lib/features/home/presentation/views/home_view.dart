@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -741,9 +742,12 @@ class _RegionHintCard extends StatelessWidget {
                         child: Text(context.tr('Cancel')),
                       ),
                       const SizedBox(width: 4),
-                      FilledButton(
-                        onPressed: onDismiss,
-                        child: Text(context.tr('I understand')),
+                      AppButtonFeedback(
+                        builder: (_, pressStates) => FilledButton(
+                          statesController: pressStates,
+                          onPressed: onDismiss,
+                          child: Text(context.tr('I understand')),
+                        ),
                       ),
                     ],
                   ),

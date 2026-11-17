@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -177,14 +178,17 @@ class _AddressesViewState extends State<AddressesView>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context, true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.error,
-                    ),
-                    child: Text(
-                      context.tr('Delete'),
-                      style: TextStyle(color: Colors.white),
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton(
+                      statesController: pressStates,
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.error,
+                      ),
+                      child: Text(
+                        context.tr('Delete'),
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ),

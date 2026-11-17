@@ -2,11 +2,13 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/localization/app_translations.dart';
 import '../../../auth/presentation/cubit/auth_cubit.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
 import '../cubit/splash_cubit.dart';
@@ -65,16 +67,29 @@ class _SplashViewState extends State<SplashView>
   }
 
   Future<void> _prepareEntrance() async {
-    // Begin the visible animation after the bundled logo has been decoded.
-    await precacheImage(const AssetImage(AppAssets.splashBrandLogo), context);
+    // Asset decoding is a visual optimization, never a navigation prerequisite.
+    unawaited(
+      precacheImage(
+        const AssetImage(AppAssets.splashBrandLogo),
+        context,
+        onError: (_, _) {},
+      ),
+    );
     if (!mounted) return;
     try {
       if (!_reduceMotion) {
-        await _entranceController.forward().orCancel;
+        await _entranceController.forward().orCancel.timeout(
+          const Duration(seconds: 3),
+          onTimeout: () {
+            _entranceController.stop(canceled: false);
+            _entranceController.value = 1;
+          },
+        );
       }
-      if (!_entranceCompleted.isCompleted) _entranceCompleted.complete();
     } on TickerCanceled {
       // Leaving the splash also cancels its animation.
+    } finally {
+      if (!_entranceCompleted.isCompleted) _entranceCompleted.complete();
     }
   }
 
@@ -85,10 +100,11 @@ class _SplashViewState extends State<SplashView>
     final locationCubit = context.read<LocationCubit>();
     if (state.session != null) {
       authCubit.hydrate(state.session!);
-      await locationCubit.activateUser(state.session!.user.id);
-      if (!context.mounted) return;
-    }
-    if (state.city != null) {
+      locationCubit.hydrateStartupUser(
+        state.session!.user.id,
+        city: state.city,
+      );
+    } else if (state.city != null) {
       locationCubit.syncCity(state.city);
     }
     if (state.pendingVerificationEmail case final email?) {
@@ -105,7 +121,13 @@ class _SplashViewState extends State<SplashView>
     try {
       if (!_reduceMotion) {
         _isExiting = true;
-        await _entranceController.reverse().orCancel;
+        await _entranceController.reverse().orCancel.timeout(
+          const Duration(milliseconds: 500),
+          onTimeout: () {
+            _entranceController.stop(canceled: false);
+            _entranceController.value = 0;
+          },
+        );
       }
     } on TickerCanceled {
       return;
@@ -130,11 +152,11 @@ class _SplashViewState extends State<SplashView>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<SplashCubit, SplashState>(
+    return BlocConsumer<SplashCubit, SplashState>(
       listener: (context, state) {
         if (state is SplashNavigateTo) unawaited(_navigate(context, state));
       },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
+      builder: (context, state) => AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -145,17 +167,85 @@ class _SplashViewState extends State<SplashView>
         ),
         child: Scaffold(
           backgroundColor: AppColors.splashBackground,
-          body: FadeTransition(
-            opacity: _logoOpacity,
-            child: Stack(
-              fit: StackFit.expand,
+          body: state is SplashFailure
+              ? _SplashRecovery(
+                  message: state.failure.message,
+                  onRetry: () => unawaited(
+                    context.read<SplashCubit>().determineStartupRoute(),
+                  ),
+                )
+              : FadeTransition(
+                  opacity: _logoOpacity,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      const _SplashBrandLogo(),
+                      Positioned(
+                        left: 0,
+                        right: 0,
+                        bottom: MediaQuery.paddingOf(context).bottom + 28,
+                        child: const _SplashLoadingDots(),
+                      ),
+                    ],
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SplashRecovery extends StatelessWidget {
+  const _SplashRecovery({required this.message, required this.onRetry});
+
+  final String message;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                const _SplashBrandLogo(),
-                Positioned(
-                  left: 0,
-                  right: 0,
-                  bottom: MediaQuery.paddingOf(context).bottom + 28,
-                  child: const _SplashLoadingDots(),
+                const Icon(
+                  Icons.refresh_rounded,
+                  color: Colors.white,
+                  size: 48,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  context.tr('Could not start the app'),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  context.tr(message),
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white, fontSize: 16),
+                ),
+                const SizedBox(height: 24),
+                AppButtonFeedback(
+                  builder: (_, pressStates) => FilledButton.icon(
+                    statesController: pressStates,
+                    key: const ValueKey('startup_retry'),
+                    onPressed: onRetry,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: AppColors.splashBackground,
+                    ),
+                    icon: const Icon(Icons.refresh),
+                    label: Text(context.tr('Retry')),
+                  ),
                 ),
               ],
             ),

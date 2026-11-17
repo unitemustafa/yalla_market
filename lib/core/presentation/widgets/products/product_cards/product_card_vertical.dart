@@ -9,6 +9,7 @@ import '../../../../formatters/product_pricing.dart';
 import '../../../../localization/app_translations.dart';
 import 'package:yalla_market/app/routing/app_route_arguments.dart';
 import 'package:yalla_market/app/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/catalog_route_container.dart';
 import '../../../../../features/cart/domain/entities/cart_item.dart';
 import '../../../../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../../../../features/wishlist/domain/entities/wishlist_item.dart';
@@ -67,22 +68,19 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
     return AppCurrency.formatPriceText(price);
   }
 
-  void _openProductDetails(BuildContext context) {
-    Navigator.pushNamed(
-      context,
-      AppRoutes.productDetail,
-      arguments: ProductDetailRouteArgs(
-        image: widget.image,
-        title: widget.title,
-        brand: widget.brand,
-        price: widget.price,
-        productId: widget.productId,
-        productSlug: widget.productSlug,
-        oldPrice: widget.oldPrice,
-        discount: widget.discount,
-      ),
-    );
-  }
+  RouteSettings get _detailRoute => RouteSettings(
+    name: AppRoutes.productDetail,
+    arguments: ProductDetailRouteArgs(
+      image: widget.image,
+      title: widget.title,
+      brand: widget.brand,
+      price: widget.price,
+      productId: widget.productId,
+      productSlug: widget.productSlug,
+      oldPrice: widget.oldPrice,
+      discount: widget.discount,
+    ),
+  );
 
   void _toggleWishlist(BuildContext context, bool wasFavorite) {
     final displayedPrice = ProductPricing.formattedPrice(
@@ -141,7 +139,15 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => CatalogRouteContainer(
+    settings: _detailRoute,
+    closedColor: Theme.of(context).brightness == Brightness.dark
+        ? AppColors.darkCardColor
+        : Colors.white,
+    closedBuilder: _buildCard,
+  );
+
+  Widget _buildCard(BuildContext context, VoidCallback open) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final panelColor = isDark ? AppColors.darkCardColor : Colors.white;
     final imagePanelColor = isDark
@@ -164,7 +170,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _openProductDetails(context),
+        onTap: open,
         borderRadius: BorderRadius.circular(8),
         child: Ink(
           decoration: BoxDecoration(

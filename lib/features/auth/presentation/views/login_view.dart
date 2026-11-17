@@ -2,6 +2,7 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -756,12 +757,15 @@ class _LoginViewState extends State<LoginView> {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(context.tr('Cancel')),
             ),
-            FilledButton(
-              onPressed: () {
-                if (!(formKey.currentState?.validate() ?? false)) return;
-                Navigator.pop(dialogContext, true);
-              },
-              child: Text(context.tr('Continue')),
+            AppButtonFeedback(
+              builder: (_, pressStates) => FilledButton(
+                statesController: pressStates,
+                onPressed: () {
+                  if (!(formKey.currentState?.validate() ?? false)) return;
+                  Navigator.pop(dialogContext, true);
+                },
+                child: Text(context.tr('Continue')),
+              ),
             ),
           ],
         ),
@@ -810,10 +814,13 @@ class _LoginViewState extends State<LoginView> {
               onPressed: () => Navigator.pop(dialogContext, false),
               child: Text(context.tr('Cancel')),
             ),
-            FilledButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, password.text.isNotEmpty),
-              child: Text(context.tr('Link account')),
+            AppButtonFeedback(
+              builder: (_, pressStates) => FilledButton(
+                statesController: pressStates,
+                onPressed: () =>
+                    Navigator.pop(dialogContext, password.text.isNotEmpty),
+                child: Text(context.tr('Link account')),
+              ),
             ),
           ],
         ),

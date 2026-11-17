@@ -1,3 +1,4 @@
+import 'package:yalla_market/app/routing/catalog_route_container.dart';
 import 'package:flutter/material.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -63,20 +64,6 @@ class _StoresSection extends StatelessWidget {
   final int previewLimit;
   final String viewAllRoute;
 
-  void _openStore(BuildContext context, StoreMarketData market) {
-    Navigator.pushNamed(
-      context,
-      AppRoutes.brandProducts,
-      arguments: BrandProductsRouteArgs(
-        brand: market.name,
-        logo: market.image,
-        productCount: market.productCountLabel,
-        classificationId: market.classificationId,
-        marketId: market.id,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final visibleMarkets = markets.take(previewLimit).toList(growable: false);
@@ -114,10 +101,23 @@ class _StoresSection extends StatelessWidget {
                   return SizedBox(
                     key: ValueKey('${prefix}_store_${market.id}'),
                     width: cardWidth,
-                    child: StoreMarketCard(
-                      market: market,
-                      keyPrefix: '${prefix}_store',
-                      onTap: () => _openStore(context, market),
+                    child: CatalogRouteContainer(
+                      settings: RouteSettings(
+                        name: AppRoutes.brandProducts,
+                        arguments: BrandProductsRouteArgs(
+                          brand: market.name,
+                          logo: market.image,
+                          productCount: market.productCountLabel,
+                          classificationId: market.classificationId,
+                          marketId: market.id,
+                        ),
+                      ),
+                      closedColor: Colors.transparent,
+                      closedBuilder: (context, open) => StoreMarketCard(
+                        market: market,
+                        keyPrefix: '${prefix}_store',
+                        onTap: open,
+                      ),
                     ),
                   );
                 },

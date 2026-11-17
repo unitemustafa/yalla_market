@@ -93,7 +93,11 @@ class AppRouter {
         if (!AppEnvironment.enableOnboarding) {
           return _buildRoute(_loginWithMedia(), settings);
         }
-        return _buildRoute(const OnboardingView(), settings);
+        return _buildRoute(
+          const OnboardingView(),
+          settings,
+          confirmExit: false,
+        );
 
       case AppRoutes.login:
         return _buildRoute(_loginWithMedia(), settings);
@@ -182,24 +186,7 @@ class AppRouter {
         );
 
       case AppRoutes.productDetail:
-        final args = settings.arguments as ProductDetailRouteArgs?;
-        if (args == null || args.productId.trim().isEmpty) {
-          return _buildMissingArgumentsRoute(settings);
-        }
-        return _buildRoute(
-          ProductDetailView(
-            image: args.image,
-            title: args.title,
-            brand: args.brand,
-            price: args.price,
-            productId: args.productId,
-            initialVariantId: args.initialVariantId,
-            productSlug: args.productSlug,
-            oldPrice: args.oldPrice,
-            discount: args.discount,
-          ),
-          settings,
-        );
+        return _buildRoute(_catalogPage(settings), settings);
 
       case AppRoutes.productCategoryCampaign:
         final args = settings.arguments as ProductCategoryCampaignRouteArgs?;
@@ -228,21 +215,7 @@ class AppRouter {
         );
 
       case AppRoutes.brandProducts:
-        final args = settings.arguments as BrandProductsRouteArgs?;
-        if (args == null) {
-          return _buildMissingArgumentsRoute(settings);
-        }
-        return _buildRoute(
-          BrandProductsView(
-            brand: args.brand,
-            logo: args.logo,
-            productCount: args.productCount,
-            shopId: args.shopId,
-            classificationId: args.classificationId,
-            marketId: args.marketId,
-          ),
-          settings,
-        );
+        return _buildRoute(_catalogPage(settings), settings);
 
       case AppRoutes.storeSearch:
         final args = settings.arguments as StoreSearchRouteArgs?;
@@ -309,19 +282,87 @@ class AppRouter {
     bool refreshCatalog = true,
     bool confirmExit = true,
   }) {
-    // These pages manage back navigation themselves when confirmExit is false.
-    final child = confirmExit ? DoubleBackToExit(child: page) : page;
     return MaterialPageRoute(
-      builder: (context) =>
-          refreshCatalog && AppCatalogRefreshCoordinator.handles(settings.name)
-          ? RefreshOnReturn(
-              onRefresh: () =>
-                  AppCatalogRefreshCoordinator.refreshRoute(context, settings),
-              child: child,
-            )
-          : child,
+      builder: (context) => _wrapPage(
+        context,
+        page,
+        settings,
+        refreshCatalog: refreshCatalog,
+        confirmExit: confirmExit,
+      ),
       settings: settings,
     );
+  }
+
+  /// Builds a catalog destination inside OpenContainer's own page route.
+  /// Authentication is checked when opened, rather than when a card is built.
+  static Widget buildContainerPage(
+    BuildContext context,
+    RouteSettings settings,
+  ) {
+    if (!AuthGuard.isAuthenticated) {
+      return _wrapPage(
+        context,
+        _loginWithMedia(),
+        settings,
+        refreshCatalog: false,
+      );
+    }
+    return _wrapPage(context, _catalogPage(settings), settings);
+  }
+
+  static Widget _catalogPage(RouteSettings settings) {
+    switch (settings.name) {
+      case AppRoutes.productDetail:
+        final args = settings.arguments;
+        if (args is! ProductDetailRouteArgs || args.productId.trim().isEmpty) {
+          return _missingArgumentsPage(settings);
+        }
+        return ProductDetailView(
+          image: args.image,
+          title: args.title,
+          brand: args.brand,
+          price: args.price,
+          productId: args.productId,
+          initialVariantId: args.initialVariantId,
+          productSlug: args.productSlug,
+          oldPrice: args.oldPrice,
+          discount: args.discount,
+        );
+      case AppRoutes.brandProducts:
+        final args = settings.arguments;
+        if (args is! BrandProductsRouteArgs) {
+          return _missingArgumentsPage(settings);
+        }
+        return BrandProductsView(
+          brand: args.brand,
+          logo: args.logo,
+          productCount: args.productCount,
+          shopId: args.shopId,
+          classificationId: args.classificationId,
+          marketId: args.marketId,
+        );
+      default:
+        throw ArgumentError.value(settings.name, 'settings.name');
+    }
+  }
+
+  static Widget _wrapPage(
+    BuildContext context,
+    Widget page,
+    RouteSettings settings, {
+    bool refreshCatalog = true,
+    bool confirmExit = true,
+  }) {
+    // These pages manage back navigation themselves when confirmExit is false.
+    final child = confirmExit ? DoubleBackToExit(child: page) : page;
+    return refreshCatalog && AppCatalogRefreshCoordinator.handles(settings.name)
+        ? RefreshOnReturn(
+            onRefresh: () =>
+                AppCatalogRefreshCoordinator.refreshRoute(context, settings),
+            child: child,
+          )
+        : child;
   }
 
   static Widget _loginWithMedia() => BlocProvider<AppMediaCubit>(
@@ -330,19 +371,18 @@ class AppRouter {
   );
 
   static Route<dynamic> _buildMissingArgumentsRoute(RouteSettings settings) {
-    return _buildRoute(
-      Scaffold(
-        body: Builder(
-          builder: (context) {
-            return Center(
-              child: Text(
-                context.tr('Missing route arguments for ${settings.name}'),
-              ),
-            );
-          },
-        ),
-      ),
-      settings,
-    );
+    return _buildRoute(_missingArgumentsPage(settings), settings);
   }
+
+  static Widget _missingArgumentsPage(RouteSettings settings) => Scaffold(
+    body: Builder(
+      builder: (context) {
+        return Center(
+          child: Text(
+            context.tr('Missing route arguments for ${settings.name}'),
+          ),
+        );
+      },
+    ),
+  );
 }

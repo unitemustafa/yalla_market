@@ -53,6 +53,37 @@ void main() {
   );
 
   testWidgets(
+    'disabling exit confirmation resets a previous back press',
+    (tester) async {
+      final enabled = ValueNotifier(true);
+      addTearDown(enabled.dispose);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ValueListenableBuilder<bool>(
+            valueListenable: enabled,
+            builder: (_, value, _) => DoubleBackToExit(
+              enabled: value,
+              child: const Scaffold(body: Text('Home')),
+            ),
+          ),
+        ),
+      );
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      enabled.value = false;
+      await tester.pump();
+      enabled.value = true;
+      await tester.pump();
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(exitCalls(), isEmpty);
+      expect(find.text('Press back again to exit'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.android),
+  );
+
+  testWidgets(
     'back after the confirmation window prompts again',
     (tester) async {
       await pumpApp(tester);

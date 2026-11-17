@@ -1,3 +1,4 @@
+import 'package:yalla_market/app/routing/catalog_route_container.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -226,13 +227,10 @@ class _MarketListingSliverState extends State<MarketListingSliver> {
                   final market = state.items[index];
                   return Padding(
                     padding: const EdgeInsets.only(bottom: 12),
-                    child: StoreMarketCard(
-                      key: ValueKey('${prefix}_${market.id}'),
-                      market: market,
-                      keyPrefix: prefix,
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        AppRoutes.brandProducts,
+                    child: CatalogRouteContainer(
+                      key: ValueKey(market.id),
+                      settings: RouteSettings(
+                        name: AppRoutes.brandProducts,
                         arguments: BrandProductsRouteArgs(
                           brand: market.name,
                           logo: market.image,
@@ -240,6 +238,13 @@ class _MarketListingSliverState extends State<MarketListingSliver> {
                           classificationId: market.classificationId,
                           marketId: market.id,
                         ),
+                      ),
+                      closedColor: Colors.transparent,
+                      closedBuilder: (context, open) => StoreMarketCard(
+                        key: ValueKey('${prefix}_${market.id}'),
+                        market: market,
+                        keyPrefix: prefix,
+                        onTap: open,
                       ),
                     ),
                   );

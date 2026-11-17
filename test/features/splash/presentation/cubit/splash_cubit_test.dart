@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/otp/pending_verification_store.dart';
@@ -166,6 +168,156 @@ void main() {
         await cubit.close();
       },
     );
+
+    test(
+      'activation failure exposes recovery instead of using a saved city',
+      () async {
+        const city = CityData(name: 'Cairo', slug: 'cairo', serviceCityId: 1);
+        final cubit = _cubit(
+          onboardingRepository: const _FakeOnboardingRepository(seen: true),
+          authRepository: _FakeAuthRepository(session: sampleSession),
+          locationRepository: _FakeLocationRepository(
+            city: city,
+            activationFailure: const NetworkFailure('Location unavailable'),
+          ),
+        );
+
+        await cubit.determineStartupRoute();
+
+        expect(cubit.state, isA<SplashFailure>());
+        expect(
+          (cubit.state as SplashFailure).failure.message,
+          'Location unavailable',
+        );
+        await cubit.close();
+      },
+    );
+
+    test('timeout remains recoverable and a late result cannot navigate', () {
+      fakeAsync((async) {
+        final restore = Completer<ApiResult<AuthSession?>>();
+        final cubit = _cubit(
+          onboardingRepository: const _FakeOnboardingRepository(seen: true),
+          authRepository: _FakeAuthRepository(restoreCompleter: restore),
+          enableOnboarding: false,
+          startupTimeout: const Duration(seconds: 3),
+        );
+
+        cubit.determineStartupRoute();
+        async.flushMicrotasks();
+        async.elapse(const Duration(seconds: 3));
+        async.flushMicrotasks();
+        expect(cubit.state, isA<SplashFailure>());
+
+        restore.complete(const ApiResult.success(null));
+        async.flushMicrotasks();
+        expect(cubit.state, isA<SplashFailure>());
+      });
+    });
+
+    test(
+      'retry shares a timed-out operation and navigates only after it settles',
+      () {
+        fakeAsync((async) {
+          final restore = Completer<ApiResult<AuthSession?>>();
+          final auth = _FakeAuthRepository(restoreCompleter: restore);
+          final cubit = _cubit(
+            onboardingRepository: const _FakeOnboardingRepository(seen: true),
+            authRepository: auth,
+            enableOnboarding: false,
+            startupTimeout: const Duration(seconds: 3),
+          );
+
+          cubit.determineStartupRoute();
+          async.flushMicrotasks();
+          async.elapse(const Duration(seconds: 3));
+          async.flushMicrotasks();
+          expect(cubit.state, isA<SplashFailure>());
+
+          cubit.determineStartupRoute();
+          async.flushMicrotasks();
+          expect(auth.restoreSavedSessionCalls, 1);
+
+          restore.complete(const ApiResult.success(null));
+          async.flushMicrotasks();
+          expect(cubit.state, isA<SplashNavigateTo>());
+          expect((cubit.state as SplashNavigateTo).route, AppRoutes.login);
+        });
+      },
+    );
+
+    test(
+      'duplicate calls while loading start only one restore operation',
+      () async {
+        final restore = Completer<ApiResult<AuthSession?>>();
+        final auth = _FakeAuthRepository(restoreCompleter: restore);
+        final cubit = _cubit(
+          onboardingRepository: const _FakeOnboardingRepository(seen: true),
+          authRepository: auth,
+          enableOnboarding: false,
+        );
+
+        final first = cubit.determineStartupRoute();
+        final second = cubit.determineStartupRoute();
+        await Future<void>.delayed(Duration.zero);
+        expect(auth.restoreSavedSessionCalls, 1);
+
+        restore.complete(const ApiResult.success(null));
+        await Future.wait([first, second]);
+        expect(cubit.state, isA<SplashNavigateTo>());
+        await cubit.close();
+      },
+    );
+
+    test(
+      'unexpected restore exception shows recovery and a retry starts fresh',
+      () async {
+        final auth = _FakeAuthRepository(
+          restoreErrors: [StateError('preferences corrupted')],
+        );
+        final cubit = _cubit(
+          onboardingRepository: const _FakeOnboardingRepository(seen: true),
+          authRepository: auth,
+          enableOnboarding: false,
+        );
+
+        await cubit.determineStartupRoute();
+        expect(cubit.state, isA<SplashFailure>());
+
+        await cubit.determineStartupRoute();
+        expect(auth.restoreSavedSessionCalls, 2);
+        expect((cubit.state as SplashNavigateTo).route, AppRoutes.login);
+        await cubit.close();
+      },
+    );
+
+    test('closing while a restore is pending ignores its late completion', () {
+      fakeAsync((clock) {
+        final restore = Completer<ApiResult<AuthSession?>>();
+        final cubit = _cubit(
+          onboardingRepository: const _FakeOnboardingRepository(seen: true),
+          authRepository: _FakeAuthRepository(restoreCompleter: restore),
+          enableOnboarding: false,
+        );
+
+        var determinationCompleted = false;
+        unawaited(
+          cubit.determineStartupRoute().then((_) {
+            determinationCompleted = true;
+          }),
+        );
+        clock.flushMicrotasks();
+        expect(clock.nonPeriodicTimerCount, 1);
+        unawaited(cubit.close());
+        clock.flushMicrotasks();
+        expect(clock.nonPeriodicTimerCount, 0);
+        expect(determinationCompleted, isTrue);
+        restore.complete(const ApiResult.success(null));
+        clock.flushMicrotasks();
+
+        expect(cubit.isClosed, isTrue);
+      });
+    });
   });
 }
 
@@ -174,6 +326,7 @@ SplashCubit _cubit({
   AuthRepository? authRepository,
   LocationRepository? locationRepository,
   bool? enableOnboarding,
+  Duration startupTimeout = const Duration(seconds: 15),
 }) {
   final effectiveLocationRepository =
       locationRepository ?? _FakeLocationRepository();
@@ -182,6 +335,7 @@ SplashCubit _cubit({
     _authUseCases(authRepository ?? _FakeAuthRepository()),
     _locationUseCases(effectiveLocationRepository),
     enableOnboarding: enableOnboarding,
+    startupTimeout: startupTimeout,
   );
 }
 
@@ -249,15 +403,24 @@ class _FakeOnboardingRepository implements OnboardingRepository {
 }
 
 class _FakeAuthRepository extends AuthRepository {
-  _FakeAuthRepository({this.session, this.restoreFailure});
+  _FakeAuthRepository({
+    this.session,
+    this.restoreFailure,
+    this.restoreCompleter,
+    this.restoreErrors = const [],
+  });
 
   final AuthSession? session;
   final Failure? restoreFailure;
+  final Completer<ApiResult<AuthSession?>>? restoreCompleter;
+  final List<Object> restoreErrors;
   int restoreSavedSessionCalls = 0;
 
   @override
   Future<ApiResult<AuthSession?>> restoreSavedSession() async {
     restoreSavedSessionCalls += 1;
+    if (restoreErrors.isNotEmpty) throw restoreErrors.removeAt(0);
+    if (restoreCompleter case final completer?) return completer.future;
     if (restoreFailure case final failure?) {
       return ApiResult.failure(failure);
     }
@@ -379,15 +542,22 @@ class _FakeAuthRepository extends AuthRepository {
 }
 
 class _FakeLocationRepository implements LocationRepository, LocationUserScope {
-  _FakeLocationRepository({this.city, List<String>? events})
-    : events = events ?? <String>[];
+  _FakeLocationRepository({
+    this.city,
+    this.activationFailure,
+    List<String>? events,
+  }) : events = events ?? <String>[];
 
   final CityData? city;
+  final Failure? activationFailure;
   final List<String> events;
 
   @override
   Future<ApiResult<void>> activateUser(String userId) async {
     events.add('activateUser:$userId');
+    if (activationFailure case final failure?) {
+      return ApiResult.failure(failure);
+    }
     return const ApiResult.success(null);
   }
 

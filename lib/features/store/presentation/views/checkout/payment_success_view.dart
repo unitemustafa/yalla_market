@@ -6,6 +6,7 @@ import 'package:yalla_market/core/constants/app_constants.dart';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -167,25 +168,28 @@ class _PaymentSuccessViewState extends State<PaymentSuccessView>
                       animation: _contentAnimation,
                       child: SizedBox(
                         width: double.infinity,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                        child: AppButtonFeedback(
+                          builder: (_, pressStates) => ElevatedButton(
+                            statesController: pressStates,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.primary,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
-                          ),
-                          onPressed: () {
-                            Navigator.of(
-                              context,
-                            ).popUntil((route) => route.isFirst);
-                          },
-                          child: Text(
-                            context.tr('Continue Shopping'),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: AppFontSizes.bodyLarge,
-                              fontWeight: FontWeight.w700,
+                            onPressed: () {
+                              Navigator.of(
+                                context,
+                              ).popUntil((route) => route.isFirst);
+                            },
+                            child: Text(
+                              context.tr('Continue Shopping'),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: AppFontSizes.bodyLarge,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ),
                         ),

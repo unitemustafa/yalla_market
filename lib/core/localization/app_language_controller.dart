@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../storage/startup_preferences.dart';
+
 enum AppLanguage {
   english('en', Locale('en'), 'English'),
   arabic('ar', Locale('ar'), 'العربية');
@@ -29,8 +31,14 @@ class AppLanguageController extends ValueNotifier<AppLanguage> {
   static const String _storageKey = 'app.language_code';
 
   Future<void> loadSavedLanguage() async {
-    final preferences = await SharedPreferences.getInstance();
-    value = AppLanguage.fromCode(preferences.getString(_storageKey));
+    final result = await StartupPreferences.load();
+    result.when(
+      success: (preferences) {
+        final saved = preferences.get(_storageKey);
+        value = AppLanguage.fromCode(saved is String ? saved : null);
+      },
+      failure: (_) {},
+    );
   }
 
   Future<void> setLanguage(AppLanguage language) async {

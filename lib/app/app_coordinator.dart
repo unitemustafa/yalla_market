@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:animated_theme_switcher/animated_theme_switcher.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -46,8 +47,9 @@ class _AppCoordinatorState extends State<AppCoordinator>
   StreamSubscription<Uri>? _deepLinkSubscription;
   late bool _mobileNotificationsEnabled;
   final AppLifecycleCoordinator _lifecycle = AppLifecycleCoordinator();
-  final _pageRefreshObserver = RouteObserver<PageRoute<dynamic>>();
+  final _pageRefreshObserver = PageRefreshObserver();
   final _catalogChanges = ValueNotifier<int>(0);
+  final _themeContentKey = GlobalKey();
   final AppSessionCoordinator _session = AppSessionCoordinator();
   late final AppDeepLinkCoordinator _deepLinks = AppDeepLinkCoordinator(
     canOpen: () =>
@@ -179,9 +181,14 @@ class _AppCoordinatorState extends State<AppCoordinator>
       child: ValueListenableBuilder<AppLanguage>(
         valueListenable: AppLanguageController.instance,
         builder: (context, language, _) {
-          return ValueListenableBuilder<AppPreferences>(
-            valueListenable: AppPreferencesController.instance,
-            builder: (context, preferences, _) {
+          return ThemeProvider(
+            initTheme:
+                AppPreferencesController.instance.value.themeMode ==
+                    ThemeMode.dark
+                ? AppTheme.darkTheme
+                : AppTheme.lightTheme,
+            duration: const Duration(milliseconds: 450),
+            builder: (context, theme) {
               return MaterialApp(
                 navigatorKey: AppNavigator.key,
                 scaffoldMessengerKey: AppNavigator.scaffoldMessengerKey,
@@ -193,27 +200,33 @@ class _AppCoordinatorState extends State<AppCoordinator>
                 title: AppConstants.appName,
                 onGenerateTitle: (context) =>
                     AppTranslations.of(context).appName,
-                theme: AppTheme.lightTheme,
-                darkTheme: AppTheme.darkTheme,
-                themeMode: preferences.themeMode,
+                theme: theme,
+                themeAnimationDuration: Duration.zero,
                 locale: language.locale,
                 supportedLocales: AppTranslations.supportedLocales,
-                builder: (context, child) => AndroidTabletViewport(
-                  child: MediaRouteObserverScope(
-                    observer: _deepLinks.routeObserver,
-                    child: Directionality(
-                      textDirection: language.isArabic
-                          ? TextDirection.rtl
-                          : TextDirection.ltr,
-                      child: PageRefreshScope(
-                        observer: _pageRefreshObserver,
-                        catalogChanges: _catalogChanges,
-                        child: OfflineConnectionBanner(
-                          message: context.tr(
-                            'You are offline. Showing saved content; checkout and updates need internet.',
+                builder: (context, child) => ThemeSwitchingArea(
+                  child: KeyedSubtree(
+                    // The package moves its live child while revealing it.
+                    // Preserve the navigator, scroll positions and page state.
+                    key: _themeContentKey,
+                    child: AndroidTabletViewport(
+                      child: MediaRouteObserverScope(
+                        observer: _deepLinks.routeObserver,
+                        child: Directionality(
+                          textDirection: language.isArabic
+                              ? TextDirection.rtl
+                              : TextDirection.ltr,
+                          child: PageRefreshScope(
+                            observer: _pageRefreshObserver,
+                            catalogChanges: _catalogChanges,
+                            child: OfflineConnectionBanner(
+                              message: context.tr(
+                                'You are offline. Showing saved content; checkout and updates need internet.',
+                              ),
+                              onBecameOnline: _handleBecameOnline,
+                              child: child ?? const SizedBox.shrink(),
+                            ),
                           ),
-                          onBecameOnline: _handleBecameOnline,
-                          child: child ?? const SizedBox.shrink(),
                         ),
                       ),
                     ),

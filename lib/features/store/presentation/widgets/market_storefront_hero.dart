@@ -14,13 +14,11 @@ class MarketStorefrontHero extends StatelessWidget {
   const MarketStorefrontHero({
     super.key,
     required this.market,
-    required this.onBack,
     required this.onSearch,
     required this.onShare,
   });
 
   final StoreMarketData market;
-  final VoidCallback onBack;
   final VoidCallback onSearch;
   final VoidCallback onShare;
 
@@ -81,13 +79,6 @@ class MarketStorefrontHero extends StatelessWidget {
             end: 16,
             child: Row(
               children: [
-                _HeroCircleButton(
-                  key: const ValueKey('storefront_back_button'),
-                  icon: Directionality.of(context) == TextDirection.rtl
-                      ? AppIcons.arrow_right_3
-                      : AppIcons.arrow_left_2,
-                  onTap: onBack,
-                ),
                 const Spacer(),
                 _HeroCircleButton(
                   key: const ValueKey('storefront_search_button'),

@@ -17,11 +17,18 @@ import 'firebase_options.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await _initializeFirebase();
-  await configureAndroidDisplayMode();
+  _configureCrashlytics();
+  try {
+    await configureAndroidDisplayMode().timeout(const Duration(seconds: 1));
+  } catch (_) {
+    // The Flutter viewport also handles devices ignoring portrait requests.
+  }
   AppEnvironment.validate();
   initServiceLocator();
-  await AppLanguageController.instance.loadSavedLanguage();
-  await AppPreferencesController.instance.loadSavedPreferences();
+  await Future.wait([
+    AppLanguageController.instance.loadSavedLanguage(),
+    AppPreferencesController.instance.loadSavedPreferences(),
+  ]);
   runApp(const YallaMarketApp());
   WidgetsBinding.instance.addPostFrameCallback((_) {
     unawaited(_initializeBackgroundServices());
@@ -40,27 +47,49 @@ Future<void> _initializeFirebase() async {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
-      );
+      ).timeout(const Duration(seconds: 4));
     }
-  } catch (error, stackTrace) {
-    debugPrint('Firebase initialization failed: $error\n$stackTrace');
+  } catch (_) {
+    debugPrint('Firebase initialization unavailable during startup.');
   }
 }
 
 Future<void> _initializeBackgroundServices() async {
   if (const bool.fromEnvironment('PERFORMANCE_TEST_BUILD')) return;
-  await sl<PushNotificationService>().initialize();
-  if (Firebase.apps.isNotEmpty) {
-    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(
-      kReleaseMode,
+  try {
+    await sl<PushNotificationService>().initialize().timeout(
+      const Duration(seconds: 5),
     );
-    if (kReleaseMode) {
-      FlutterError.onError =
-          FirebaseCrashlytics.instance.recordFlutterFatalError;
-      PlatformDispatcher.instance.onError = (error, stack) {
-        FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-        return true;
-      };
-    }
+  } catch (_) {
+    debugPrint('Push notification initialization unavailable during startup.');
+  } finally {
+    // Firebase may have finished after its startup deadline.
+    _configureCrashlytics();
+  }
+}
+
+void _configureCrashlytics() {
+  if (const bool.fromEnvironment('PERFORMANCE_TEST_BUILD')) return;
+  if (Firebase.apps.isEmpty) return;
+  final crashlytics = FirebaseCrashlytics.instance;
+  unawaited(_setCrashlyticsCollection(crashlytics, kReleaseMode));
+  if (!kReleaseMode) return;
+  FlutterError.onError = crashlytics.recordFlutterFatalError;
+  PlatformDispatcher.instance.onError = (error, stack) {
+    unawaited(crashlytics.recordError(error, stack, fatal: true));
+    return true;
+  };
+}
+
+Future<void> _setCrashlyticsCollection(
+  FirebaseCrashlytics crashlytics,
+  bool enabled,
+) async {
+  try {
+    await crashlytics
+        .setCrashlyticsCollectionEnabled(enabled)
+        .timeout(const Duration(seconds: 2));
+  } catch (_) {
+    debugPrint('Crash reporting initialization unavailable during startup.');
   }
 }

@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -276,13 +277,16 @@ class _SelectCityViewState extends State<SelectCityView>
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.pop(context, true),
-                    icon: const Icon(AppIcons.tick_circle, size: 17),
-                    label: Text(context.tr('Yes, continue')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton.icon(
+                      statesController: pressStates,
+                      onPressed: () => Navigator.pop(context, true),
+                      icon: const Icon(AppIcons.tick_circle, size: 17),
+                      label: Text(context.tr('Yes, continue')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                      ),
                     ),
                   ),
                 ),

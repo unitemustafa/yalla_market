@@ -20,6 +20,8 @@ import 'package:yalla_market/features/store/presentation/widgets/store_highlight
 import 'package:yalla_market/features/store/presentation/widgets/store_market_card.dart';
 
 import '../../../../helpers/cubit_factories.dart';
+import '../../../../helpers/catalog_navigation_harness.dart';
+import 'package:yalla_market/features/store/presentation/views/brand/brand_products_view.dart';
 
 void main() {
   testWidgets('1000 categories stay lazy and the final category is reachable', (
@@ -144,16 +146,20 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     BrandProductsRouteArgs? openedStore;
+    final storeData = _storeData();
+    final navigation = CatalogNavigationHarness(
+      markets: storeData.marketsByClassificationId.values
+          .expand((m) => m)
+          .toList(),
+      onOpened: (args) => openedStore = args,
+    );
+    addTearDown(navigation.dispose);
     await tester.pumpWidget(
-      MaterialApp(
-        onGenerateRoute: (settings) {
-          expect(settings.name, AppRoutes.brandProducts);
-          openedStore = settings.arguments! as BrandProductsRouteArgs;
-          return MaterialPageRoute<void>(
-            builder: (_) => const Scaffold(body: Text('Opened store')),
-          );
-        },
-        home: Scaffold(body: StoreHighlightsSections(store: _storeData())),
+      navigation.wrap(
+        MaterialApp(
+          navigatorObservers: [navigation.observer],
+          home: Scaffold(body: StoreHighlightsSections(store: storeData)),
+        ),
       ),
     );
     await tester.pumpAndSettle();
@@ -182,6 +188,11 @@ void main() {
 
     expect(openedStore?.marketId, 'market-category-2');
     expect(openedStore?.classificationId, 'category-2');
+    expect(find.byType(BrandProductsView), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(BrandProductsView), findsNothing);
+    expect(secondStore.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -316,20 +327,16 @@ void main() {
         ),
       );
       addTearDown(() => sl.unregister<MarketListingCubit>());
-      final cubit = StoreCubit(GetStoreUseCase(_StoreRepository(store)));
-      addTearDown(cubit.close);
       BrandProductsRouteArgs? openedStore;
+      final navigation = CatalogNavigationHarness(
+        markets: store.popularMarkets,
+        onOpened: (args) => openedStore = args,
+      );
+      addTearDown(navigation.dispose);
       await tester.pumpWidget(
-        BlocProvider<StoreCubit>.value(
-          value: cubit,
-          child: MaterialApp(
-            onGenerateRoute: (settings) {
-              expect(settings.name, AppRoutes.brandProducts);
-              openedStore = settings.arguments! as BrandProductsRouteArgs;
-              return MaterialPageRoute<void>(
-                builder: (_) => const Scaffold(body: Text('Opened store')),
-              );
-            },
+        navigation.wrap(
+          MaterialApp(
+            navigatorObservers: [navigation.observer],
             home: const LatestStoresView(showPopularStores: true),
           ),
         ),

@@ -1,5 +1,6 @@
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -176,24 +177,27 @@ class SettingsView extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () async {
-                      Navigator.pop(context);
-                      await parentContext.read<AuthCubit>().logout();
-                      UserProfileController.instance.reset();
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton(
+                      statesController: pressStates,
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await parentContext.read<AuthCubit>().logout();
+                        UserProfileController.instance.reset();
 
-                      if (!parentContext.mounted) return;
-                      Navigator.of(parentContext).pushNamedAndRemoveUntil(
-                        AppRoutes.login,
-                        (route) => false,
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                    child: Text(
-                      context.tr('Confirm'),
-                      style: TextStyle(color: Colors.white),
+                        if (!parentContext.mounted) return;
+                        Navigator.of(parentContext).pushNamedAndRemoveUntil(
+                          AppRoutes.login,
+                          (route) => false,
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                      ),
+                      child: Text(
+                        context.tr('Confirm'),
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ),
@@ -320,28 +324,31 @@ class SettingsView extends StatelessWidget {
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: ElevatedButton(
-                          onPressed: isDeleting
-                              ? null
-                              : () => _confirmAccountDeletion(
-                                  parentContext: parentContext,
-                                  dialogContext: dialogContext,
-                                  passwordController: passwordController,
-                                  setDialogState: setDialogState,
-                                  setDeleting: (value) => isDeleting = value,
-                                  setError: (value) => errorMessage = value,
-                                  requiresPassword: hasPassword,
-                                ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.error,
-                            foregroundColor: Colors.white,
+                        child: AppButtonFeedback(
+                          builder: (_, pressStates) => ElevatedButton(
+                            statesController: pressStates,
+                            onPressed: isDeleting
+                                ? null
+                                : () => _confirmAccountDeletion(
+                                    parentContext: parentContext,
+                                    dialogContext: dialogContext,
+                                    passwordController: passwordController,
+                                    setDialogState: setDialogState,
+                                    setDeleting: (value) => isDeleting = value,
+                                    setError: (value) => errorMessage = value,
+                                    requiresPassword: hasPassword,
+                                  ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.error,
+                              foregroundColor: Colors.white,
+                            ),
+                            child: isDeleting
+                                ? const SizedBox.square(
+                                    dimension: 20,
+                                    child: AppLoadingPlaceholder(),
+                                  )
+                                : Text(context.tr('Delete')),
                           ),
-                          child: isDeleting
-                              ? const SizedBox.square(
-                                  dimension: 20,
-                                  child: AppLoadingPlaceholder(),
-                                )
-                              : Text(context.tr('Delete')),
                         ),
                       ),
                     ],

@@ -1,3 +1,4 @@
+import '../../../../core/errors/failure.dart';
 import '../../../auth/domain/entities/auth_session.dart';
 import '../../../location/domain/entities/city_data.dart';
 
@@ -7,6 +8,12 @@ sealed class SplashState {
 
 final class SplashLoading extends SplashState {
   const SplashLoading();
+}
+
+final class SplashFailure extends SplashState {
+  const SplashFailure(this.failure);
+
+  final Failure failure;
 }
 
 final class SplashNavigateTo extends SplashState {

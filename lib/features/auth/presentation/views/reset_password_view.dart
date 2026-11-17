@@ -15,7 +15,6 @@ import '../../../../app/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
-import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/fixed_auth_page_layout.dart';
 import '../widgets/password_strength_meter.dart';
@@ -238,8 +237,6 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const AuthTopBar(showBack: true),
-                  const SizedBox(height: 24),
                   _buildHeader(theme, isDarkMode),
                   const SizedBox(height: 16),
                   CustomTextField(

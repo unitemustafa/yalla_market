@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/core/presentation/widgets/app_list_entrance.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -23,6 +24,46 @@ import 'package:yalla_market/features/store/presentation/cubit/order_history_sta
 import 'package:yalla_market/features/store/presentation/views/orders/orders_view.dart';
 
 void main() {
+  testWidgets(
+    'order entrance does not replay after date filtering or refresh',
+    (tester) async {
+      final repository = _OrderRepositoryWithData([
+        _orderPlacedAt(DateTime.now().subtract(const Duration(days: 1))),
+      ]);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+      addTearDown(cubit.close);
+      await tester.pumpWidget(
+        BlocProvider<OrderHistoryCubit>.value(
+          value: cubit,
+          child: const MaterialApp(home: OrdersView()),
+        ),
+      );
+      await tester.pump();
+      double opacity() => tester
+          .widget<Opacity>(
+            find
+                .descendant(
+                  of: find.byType(AppListEntranceItem),
+                  matching: find.byType(Opacity),
+                )
+                .first,
+          )
+          .opacity;
+      expect(opacity(), 0);
+      await tester.pumpAndSettle();
+      expect(opacity(), 1);
+      await tester.tap(find.text('Today'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AppListEntranceItem), findsNothing);
+      await tester.tap(find.text('This week'));
+      await tester.pump();
+      expect(opacity(), 1);
+      await cubit.loadOrders(force: true);
+      await tester.pump();
+      expect(opacity(), 1);
+    },
+  );
+
   testWidgets(
     'opens an older focused order without downloading the remaining history',
     (tester) async {

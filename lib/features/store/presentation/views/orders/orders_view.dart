@@ -7,6 +7,7 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/formatters/app_currency.dart';
 import '../../../../../core/presentation/widgets/appbar/page_top_bar.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
+import '../../../../../core/presentation/widgets/app_list_entrance.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
 import '../../../domain/entities/order.dart';
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
@@ -28,13 +29,22 @@ class OrdersView extends StatefulWidget {
   State<OrdersView> createState() => _OrdersViewState();
 }
 
-class _OrdersViewState extends State<OrdersView> {
+class _OrdersViewState extends State<OrdersView>
+    with SingleTickerProviderStateMixin {
+  late final AppListEntranceController _listEntrance;
   OrdersDateFilter? _dateFilter;
   DateTimeRange? _customDateRange;
 
   @override
+  void dispose() {
+    _listEntrance.dispose();
+    super.dispose();
+  }
+
+  @override
   void initState() {
     super.initState();
+    _listEntrance = AppListEntranceController(vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _loadAndFocusOrder();
     });
@@ -107,6 +117,10 @@ class _OrdersViewState extends State<OrdersView> {
             : const <OrderPresentationData>[];
         final orders = loadedOrders;
         final filteredOrders = _filterOrders(orders);
+        _listEntrance.prepare(
+          filteredOrders.map((order) => order.apiId),
+          disableAnimations: MediaQuery.disableAnimationsOf(context),
+        );
 
         return Scaffold(
           backgroundColor: backgroundColor,
@@ -148,89 +162,90 @@ class _OrdersViewState extends State<OrdersView> {
                         ),
                       ],
                     )
-                  : AppContentReveal(
-                      child: ListView.separated(
-                        physics: AppRefreshIndicator.scrollPhysics,
-                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
-                        itemCount:
-                            (filteredOrders.isEmpty
-                                ? 4
-                                : filteredOrders.length + 3) +
-                            (state is OrderHistoryReady && state.hasMore
-                                ? 1
-                                : 0),
-                        separatorBuilder: (context, index) =>
-                            const SizedBox(height: 12),
-                        itemBuilder: (context, index) {
-                          if (state is OrderHistoryReady &&
-                              state.hasMore &&
-                              index ==
-                                  (filteredOrders.isEmpty
-                                      ? 4
-                                      : filteredOrders.length + 3)) {
-                            return Column(
-                              children: [
-                                if (state.moreError != null)
-                                  Text(context.tr(state.moreError!)),
-                                TextButton(
-                                  onPressed: state.loadingMore
-                                      ? null
-                                      : context
-                                            .read<OrderHistoryCubit>()
-                                            .loadMore,
-                                  child: state.loadingMore
-                                      ? const CircularProgressIndicator()
-                                      : Text(
-                                          context.tr(
-                                            state.moreError == null
-                                                ? 'Load more'
-                                                : 'Try again',
-                                          ),
+                  : ListView.separated(
+                      physics: AppRefreshIndicator.scrollPhysics,
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
+                      itemCount:
+                          (filteredOrders.isEmpty
+                              ? 4
+                              : filteredOrders.length + 3) +
+                          (state is OrderHistoryReady && state.hasMore ? 1 : 0),
+                      separatorBuilder: (context, index) =>
+                          const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        if (state is OrderHistoryReady &&
+                            state.hasMore &&
+                            index ==
+                                (filteredOrders.isEmpty
+                                    ? 4
+                                    : filteredOrders.length + 3)) {
+                          return Column(
+                            children: [
+                              if (state.moreError != null)
+                                Text(context.tr(state.moreError!)),
+                              TextButton(
+                                onPressed: state.loadingMore
+                                    ? null
+                                    : context
+                                          .read<OrderHistoryCubit>()
+                                          .loadMore,
+                                child: state.loadingMore
+                                    ? const CircularProgressIndicator()
+                                    : Text(
+                                        context.tr(
+                                          state.moreError == null
+                                              ? 'Load more'
+                                              : 'Try again',
                                         ),
-                                ),
-                              ],
-                            );
-                          }
-                          if (index == 0) {
-                            return const Column(
-                              children: [
-                                PageTopBar(
-                                  title: 'My Orders',
-                                  subtitle:
-                                      'Track current and previous purchases',
-                                ),
-                                AppRefreshAnchor(),
-                              ],
-                            );
-                          }
+                                      ),
+                              ),
+                            ],
+                          );
+                        }
+                        if (index == 0) {
+                          return const Column(
+                            children: [
+                              PageTopBar(
+                                title: 'My Orders',
+                                subtitle:
+                                    'Track current and previous purchases',
+                              ),
+                              AppRefreshAnchor(),
+                            ],
+                          );
+                        }
 
-                          if (index == 1) {
-                            return OrdersDateFilterBar(
-                              selected: _dateFilter,
-                              customRange: _customDateRange,
-                              onChanged: (filter) =>
-                                  _selectDateFilter(context, filter),
-                            );
-                          }
+                        if (index == 1) {
+                          return OrdersDateFilterBar(
+                            selected: _dateFilter,
+                            customRange: _customDateRange,
+                            onChanged: (filter) =>
+                                _selectDateFilter(context, filter),
+                          );
+                        }
 
-                          if (index == 2) {
-                            return OrdersSummaryCard(
-                              isDark: isDark,
-                              orders: filteredOrders,
-                              totalCount: state.totalCount,
-                              deliveredCount: state.deliveredCount,
-                            );
-                          }
+                        if (index == 2) {
+                          return OrdersSummaryCard(
+                            isDark: isDark,
+                            orders: filteredOrders,
+                            totalCount: state.totalCount,
+                            deliveredCount: state.deliveredCount,
+                          );
+                        }
 
-                          if (filteredOrders.isEmpty) {
-                            return orders.isEmpty
-                                ? const OrdersEmptyState()
-                                : OrdersEmptyFilterState(isDark: isDark);
-                          }
+                        if (filteredOrders.isEmpty) {
+                          return orders.isEmpty
+                              ? const OrdersEmptyState()
+                              : OrdersEmptyFilterState(isDark: isDark);
+                        }
 
-                          final order = filteredOrders[index - 3];
+                        final order = filteredOrders[index - 3];
 
-                          return OrderListItem(
+                        return AppListEntranceItem(
+                          key: ValueKey(order.apiId),
+                          controller: _listEntrance,
+                          itemId: order.apiId,
+                          child: OrderListItem(
                             status: order.status,
                             date: order.date,
                             orderId: order.orderId,
@@ -251,9 +266,9 @@ class _OrdersViewState extends State<OrdersView> {
                             marketCount: order.marketCount,
                             marketSummary: order.marketSummary,
                             onTap: () => _showOrderDetails(context, order),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
             ),
           ),

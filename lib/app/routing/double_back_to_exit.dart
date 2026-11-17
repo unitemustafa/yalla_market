@@ -8,9 +8,10 @@ import '../../core/localization/app_translations.dart';
 
 /// Confirms Android app exit while preserving navigation between pages.
 class DoubleBackToExit extends StatefulWidget {
-  const DoubleBackToExit({required this.child, super.key});
+  const DoubleBackToExit({required this.child, this.enabled = true, super.key});
 
   final Widget child;
+  final bool enabled;
 
   @override
   State<DoubleBackToExit> createState() => _DoubleBackToExitState();
@@ -36,6 +37,12 @@ class _DoubleBackToExitState extends State<DoubleBackToExit>
   }
 
   @override
+  void didUpdateWidget(covariant DoubleBackToExit oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.enabled) _confirmationTimer?.cancel();
+  }
+
+  @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
       _confirmationTimer?.cancel();
@@ -52,6 +59,7 @@ class _DoubleBackToExitState extends State<DoubleBackToExit>
   @override
   Widget build(BuildContext context) {
     final shouldConfirmExit =
+        widget.enabled &&
         !kIsWeb &&
         defaultTargetPlatform == TargetPlatform.android &&
         ModalRoute.isFirstOf(context) == true;

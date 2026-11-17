@@ -1,3 +1,4 @@
+import 'package:yalla_market/app/routing/catalog_route_container.dart';
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 import 'package:yalla_market/core/constants/app_constants.dart';
@@ -260,13 +261,29 @@ class _SearchViewState extends State<SearchView> {
                                               padding: const EdgeInsets.only(
                                                 bottom: 10,
                                               ),
-                                              child: StoreMarketCard(
-                                                market: market,
-                                                keyPrefix: 'search',
-                                                onTap: () => _openMarket(
-                                                  context,
-                                                  market,
+                                              child: CatalogRouteContainer(
+                                                key: ValueKey(market.id),
+                                                settings: RouteSettings(
+                                                  name: AppRoutes.brandProducts,
+                                                  arguments:
+                                                      BrandProductsRouteArgs(
+                                                        brand: market.name,
+                                                        logo: market.image,
+                                                        productCount: market
+                                                            .productCountLabel,
+                                                        classificationId: market
+                                                            .classificationId,
+                                                        marketId: market.id,
+                                                      ),
                                                 ),
+                                                closedColor: Colors.transparent,
+                                                closedBuilder:
+                                                    (context, open) =>
+                                                        StoreMarketCard(
+                                                          market: market,
+                                                          keyPrefix: 'search',
+                                                          onTap: open,
+                                                        ),
                                               ),
                                             );
                                           },
@@ -393,20 +410,6 @@ class _SearchViewState extends State<SearchView> {
     }
 
     return 'Search failed';
-  }
-
-  void _openMarket(BuildContext context, StoreMarketData market) {
-    Navigator.pushNamed(
-      context,
-      AppRoutes.brandProducts,
-      arguments: BrandProductsRouteArgs(
-        brand: market.name,
-        logo: market.image,
-        productCount: market.productCountLabel,
-        marketId: market.id,
-        classificationId: market.classificationId,
-      ),
-    );
   }
 
   void _openCategory(BuildContext context, CategoryData category) {

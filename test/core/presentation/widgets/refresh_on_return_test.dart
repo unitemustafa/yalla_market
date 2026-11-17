@@ -6,7 +6,7 @@ import 'package:yalla_market/core/presentation/widgets/refresh_on_return.dart';
 
 void main() {
   testWidgets('refreshes after a real page is popped', (tester) async {
-    final observer = RouteObserver<PageRoute<dynamic>>();
+    final observer = PageRefreshObserver();
     final changes = ChangeNotifier();
     var refreshes = 0;
     await tester.pumpWidget(
@@ -28,7 +28,7 @@ void main() {
   testWidgets('does not refresh when a popup dialog is dismissed', (
     tester,
   ) async {
-    final observer = RouteObserver<PageRoute<dynamic>>();
+    final observer = PageRefreshObserver();
     final changes = ChangeNotifier();
     var refreshes = 0;
     await tester.pumpWidget(
@@ -50,7 +50,7 @@ void main() {
   testWidgets('runs invalidation after returning to a covered page', (
     tester,
   ) async {
-    final observer = RouteObserver<PageRoute<dynamic>>();
+    final observer = PageRefreshObserver();
     final changes = ChangeNotifier();
     var invalidations = 0;
     await tester.pumpWidget(
@@ -71,7 +71,7 @@ void main() {
   });
 
   testWidgets('removes the catalog listener when unmounted', (tester) async {
-    final observer = RouteObserver<PageRoute<dynamic>>();
+    final observer = PageRefreshObserver();
     final changes = ChangeNotifier();
     var refreshes = 0;
     await tester.pumpWidget(
@@ -91,7 +91,7 @@ void main() {
   testWidgets('runs another refresh when invalidated while one is running', (
     tester,
   ) async {
-    final observer = RouteObserver<PageRoute<dynamic>>();
+    final observer = PageRefreshObserver();
     final changes = ChangeNotifier();
     final firstRefresh = Completer<void>();
     var refreshes = 0;
@@ -119,7 +119,7 @@ void main() {
 }
 
 Widget _app({
-  required RouteObserver<PageRoute<dynamic>> observer,
+  required RouteObserver<ModalRoute<dynamic>> observer,
   required ChangeNotifier changes,
   required Future<void> Function() onRefresh,
   Future<void> Function()? onInvalidated,

@@ -1,5 +1,6 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../../app/routing/app_routes.dart';
 import '../../../../core/session/account_restored_notifier.dart';
@@ -40,13 +41,16 @@ class AccountDisabledView extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      FilledButton(
-                        onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          AppRoutes.login,
-                          (route) => false,
+                      AppButtonFeedback(
+                        builder: (_, pressStates) => FilledButton(
+                          statesController: pressStates,
+                          onPressed: () => Navigator.pushNamedAndRemoveUntil(
+                            context,
+                            AppRoutes.login,
+                            (route) => false,
+                          ),
+                          child: const Text('تسجيل الدخول'),
                         ),
-                        child: const Text('تسجيل الدخول'),
                       ),
                     ],
                   );

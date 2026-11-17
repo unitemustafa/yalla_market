@@ -251,26 +251,29 @@ extension _ProfileCompletionSheet on ProfileCompletionFloatingButton {
                     // Bottom action button: Complete Now
                     SizedBox(
                       height: 48,
-                      child: FilledButton(
-                        style: FilledButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      child: AppButtonFeedback(
+                        builder: (_, pressStates) => FilledButton(
+                          statesController: pressStates,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(sheetContext);
-                          if (onContinue != null) {
-                            onContinue?.call();
-                          } else {
-                            Navigator.pushNamed(context, AppRoutes.profile);
-                          }
-                        },
-                        child: Text(
-                          isArabic ? 'كمّل الآن' : 'Complete now',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
+                          onPressed: () {
+                            Navigator.pop(sheetContext);
+                            if (onContinue != null) {
+                              onContinue?.call();
+                            } else {
+                              Navigator.pushNamed(context, AppRoutes.profile);
+                            }
+                          },
+                          child: Text(
+                            isArabic ? 'كمّل الآن' : 'Complete now',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),

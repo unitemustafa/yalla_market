@@ -1,5 +1,6 @@
 import '../states/app_skeleton.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../localization/app_translations.dart';
@@ -71,57 +72,72 @@ class AppActionButton extends StatelessWidget {
     );
 
     final button = switch (variant) {
-      AppActionButtonVariant.filled => ElevatedButton(
-        onPressed: _enabled ? onPressed : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.38),
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.78),
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
+      AppActionButtonVariant.filled => AppButtonFeedback(
+        builder: (_, pressStates) => ElevatedButton(
+          statesController: pressStates,
+          onPressed: _enabled ? onPressed : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.38),
+            disabledForegroundColor: Colors.white.withValues(alpha: 0.78),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            elevation: 0,
           ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-          elevation: 0,
+          child: child,
         ),
-        child: child,
       ),
-      AppActionButtonVariant.outlined => OutlinedButton(
-        onPressed: _enabled ? onPressed : null,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primary,
-          disabledForegroundColor: AppColors.primary.withValues(alpha: 0.38),
-          side: BorderSide(
-            color: _enabled
-                ? AppColors.primary.withValues(alpha: 0.45)
-                : AppColors.primary.withValues(alpha: 0.18),
+      AppActionButtonVariant.outlined => AppButtonFeedback(
+        builder: (_, pressStates) => OutlinedButton(
+          statesController: pressStates,
+          onPressed: _enabled ? onPressed : null,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.primary,
+            disabledForegroundColor: AppColors.primary.withValues(alpha: 0.38),
+            side: BorderSide(
+              color: _enabled
+                  ? AppColors.primary.withValues(alpha: 0.45)
+                  : AppColors.primary.withValues(alpha: 0.18),
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: child,
         ),
-        child: child,
       ),
-      AppActionButtonVariant.danger => OutlinedButton(
-        onPressed: _enabled ? onPressed : null,
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.error,
-          disabledForegroundColor: AppColors.error.withValues(alpha: 0.36),
-          side: BorderSide(
-            color: _enabled
-                ? AppColors.error.withValues(alpha: 0.38)
-                : AppColors.error.withValues(alpha: 0.16),
+      AppActionButtonVariant.danger => AppButtonFeedback(
+        builder: (_, pressStates) => OutlinedButton(
+          statesController: pressStates,
+          onPressed: _enabled ? onPressed : null,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.error,
+            disabledForegroundColor: AppColors.error.withValues(alpha: 0.36),
+            side: BorderSide(
+              color: _enabled
+                  ? AppColors.error.withValues(alpha: 0.38)
+                  : AppColors.error.withValues(alpha: 0.16),
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: horizontalPadding,
+              vertical: verticalPadding,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
           ),
-          padding: EdgeInsets.symmetric(
-            horizontal: horizontalPadding,
-            vertical: verticalPadding,
-          ),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: child,
         ),
-        child: child,
       ),
     };
 

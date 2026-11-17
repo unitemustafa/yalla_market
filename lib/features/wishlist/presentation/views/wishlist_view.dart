@@ -1,3 +1,4 @@
+import 'package:yalla_market/app/routing/catalog_route_container.dart';
 import 'package:flutter/material.dart';
 import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -14,7 +15,6 @@ import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
-import '../../../store/domain/entities/store_data.dart';
 import '../../../store/presentation/widgets/store_market_card.dart';
 import '../../domain/entities/wishlist_item.dart';
 import '../cubit/wishlist_cubit.dart';
@@ -245,18 +245,46 @@ class WishlistView extends StatelessWidget {
                                                               return SizedBox(
                                                                 width:
                                                                     cardWidth,
-                                                                child: StoreMarketCard(
+                                                                child: CatalogRouteContainer(
                                                                   key: ValueKey(
-                                                                    'wishlist_store_${market.id}',
+                                                                    market.id,
                                                                   ),
-                                                                  market:
-                                                                      market,
-                                                                  keyPrefix:
-                                                                      'wishlist_store',
-                                                                  onTap: () =>
-                                                                      _openMarket(
+                                                                  settings: RouteSettings(
+                                                                    name: AppRoutes
+                                                                        .brandProducts,
+                                                                    arguments: BrandProductsRouteArgs(
+                                                                      brand: market
+                                                                          .name,
+                                                                      logo: market
+                                                                          .image,
+                                                                      productCount:
+                                                                          market
+                                                                              .productCountLabel,
+                                                                      classificationId:
+                                                                          market
+                                                                              .classificationId,
+                                                                      marketId:
+                                                                          market
+                                                                              .id,
+                                                                    ),
+                                                                  ),
+                                                                  closedColor:
+                                                                      Colors
+                                                                          .transparent,
+                                                                  closedBuilder:
+                                                                      (
                                                                         context,
-                                                                        market,
+                                                                        open,
+                                                                      ) => StoreMarketCard(
+                                                                        key: ValueKey(
+                                                                          'wishlist_store_${market.id}',
+                                                                        ),
+                                                                        market:
+                                                                            market,
+                                                                        keyPrefix:
+                                                                            'wishlist_store',
+                                                                        onTap:
+                                                                            open,
                                                                       ),
                                                                 ),
                                                               );
@@ -304,20 +332,6 @@ class WishlistView extends StatelessWidget {
             },
           );
         },
-      ),
-    );
-  }
-
-  static void _openMarket(BuildContext context, StoreMarketData market) {
-    Navigator.pushNamed(
-      context,
-      AppRoutes.brandProducts,
-      arguments: BrandProductsRouteArgs(
-        brand: market.name,
-        logo: market.image,
-        productCount: market.productCountLabel,
-        classificationId: market.classificationId,
-        marketId: market.id,
       ),
     );
   }

@@ -18,6 +18,14 @@ void main() {
   });
 
   group('AppLanguageController', () {
+    test('invalid stored language type keeps the default', () async {
+      SharedPreferences.setMockInitialValues({'app.language_code': 1});
+
+      await AppLanguageController.instance.loadSavedLanguage();
+
+      expect(AppLanguageController.instance.value, AppLanguage.arabic);
+    });
+
     test('loads saved language from preferences', () async {
       SharedPreferences.setMockInitialValues({'app.language_code': 'en'});
 

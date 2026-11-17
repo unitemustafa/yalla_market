@@ -322,35 +322,42 @@ extension _ProductDetailDialogs on _ProductDetailViewState {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          final fileName = _imageFileName(imagePath);
-                          final didDownload = await downloadAssetImage(
-                            imagePath,
-                            fileName,
-                          );
-
-                          if (!pageContext.mounted || !dialogContext.mounted) {
-                            return;
-                          }
-                          Navigator.pop(dialogContext);
-
-                          if (didDownload) {
-                            CustomSnackBar.showSuccess(
-                              context: pageContext,
-                              title: 'Image saved successfully',
-                              message: fileName,
+                      child: AppButtonFeedback(
+                        builder: (_, pressStates) => ElevatedButton.icon(
+                          statesController: pressStates,
+                          onPressed: () async {
+                            final fileName = _imageFileName(imagePath);
+                            final didDownload = await downloadAssetImage(
+                              imagePath,
+                              fileName,
                             );
-                          } else {
-                            CustomSnackBar.showInfo(
-                              context: pageContext,
-                              title: 'Download unavailable here',
-                              message: 'Try it from the web preview.',
-                            );
-                          }
-                        },
-                        icon: const Icon(AppIcons.document_download, size: 18),
-                        label: Text(pageContext.tr('Download')),
+
+                            if (!pageContext.mounted ||
+                                !dialogContext.mounted) {
+                              return;
+                            }
+                            Navigator.pop(dialogContext);
+
+                            if (didDownload) {
+                              CustomSnackBar.showSuccess(
+                                context: pageContext,
+                                title: 'Image saved successfully',
+                                message: fileName,
+                              );
+                            } else {
+                              CustomSnackBar.showInfo(
+                                context: pageContext,
+                                title: 'Download unavailable here',
+                                message: 'Try it from the web preview.',
+                              );
+                            }
+                          },
+                          icon: const Icon(
+                            AppIcons.document_download,
+                            size: 18,
+                          ),
+                          label: Text(pageContext.tr('Download')),
+                        ),
                       ),
                     ),
                   ],

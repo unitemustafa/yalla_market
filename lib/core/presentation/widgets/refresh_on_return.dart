@@ -2,6 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/widgets.dart';
 
+/// Observes full-page ModalRoutes (including OpenContainer) while ignoring
+/// dialogs and sheets, which must not trigger catalog refreshes.
+class PageRefreshObserver extends RouteObserver<ModalRoute<dynamic>> {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is! PopupRoute<dynamic>) super.didPush(route, previousRoute);
+  }
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (route is! PopupRoute<dynamic>) super.didPop(route, previousRoute);
+  }
+}
+
 class PageRefreshScope extends InheritedWidget {
   const PageRefreshScope({
     super.key,
@@ -10,7 +24,7 @@ class PageRefreshScope extends InheritedWidget {
     required super.child,
   });
 
-  final RouteObserver<PageRoute<dynamic>> observer;
+  final RouteObserver<ModalRoute<dynamic>> observer;
   final Listenable catalogChanges;
 
   static PageRefreshScope? maybeOf(BuildContext context) =>
@@ -45,7 +59,7 @@ class RefreshOnReturn extends StatefulWidget {
 class _RefreshOnReturnState extends State<RefreshOnReturn>
     with RouteAware, WidgetsBindingObserver {
   PageRefreshScope? _scope;
-  PageRoute<dynamic>? _route;
+  ModalRoute<dynamic>? _route;
   bool _running = false;
   bool _scheduled = false;
   bool _pendingInvalidation = false;
@@ -62,7 +76,7 @@ class _RefreshOnReturnState extends State<RefreshOnReturn>
     super.didChangeDependencies();
     final scope = PageRefreshScope.maybeOf(context);
     final route = ModalRoute.of(context);
-    final pageRoute = route is PageRoute<dynamic> ? route : null;
+    final pageRoute = route is PopupRoute<dynamic> ? null : route;
     if (scope == _scope && pageRoute == _route) return;
     _scope?.observer.unsubscribe(this);
     _scope?.catalogChanges.removeListener(_invalidate);

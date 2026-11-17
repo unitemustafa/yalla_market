@@ -1,6 +1,7 @@
 import '../../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -362,17 +363,20 @@ class _ProfileViewState extends State<ProfileView> {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(dialogContext);
-                      _openEditor(context, EditableProfileField.username);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                    ),
-                    child: Text(
-                      context.tr('Continue'),
-                      style: TextStyle(color: Colors.white),
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton(
+                      statesController: pressStates,
+                      onPressed: () {
+                        Navigator.pop(dialogContext);
+                        _openEditor(context, EditableProfileField.username);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                      ),
+                      child: Text(
+                        context.tr('Continue'),
+                        style: TextStyle(color: Colors.white),
+                      ),
                     ),
                   ),
                 ),

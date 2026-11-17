@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../domain/entities/city_data.dart';
@@ -17,11 +19,15 @@ class LocationCubit extends Cubit<LocationState> {
   bool _gpsSuggestionCheckedThisSession = false;
   final Set<String> _dismissedSuggestionKeys = {};
   String? _activeUserKey;
+  int _userScopeGeneration = 0;
 
   Future<bool> activateUser(String userId) async {
+    final generation = ++_userScopeGeneration;
     final result = await _useCases.activateUser(userId);
     final activated = result.when(success: (_) => true, failure: (_) => false);
-    if (!activated) return false;
+    if (!activated || isClosed || generation != _userScopeGeneration) {
+      return false;
+    }
 
     _activeUserKey = userId.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
     _dismissedSuggestionKeys.clear();
@@ -29,11 +35,31 @@ class LocationCubit extends Cubit<LocationState> {
     return true;
   }
 
+  /// Splash has already activated the domain preferences and resolved the city.
+  /// Optional suggestion history must not block the first usable screen.
+  void hydrateStartupUser(String userId, {CityData? city}) {
+    if (isClosed) return;
+    _userScopeGeneration++;
+    _activeUserKey = userId.trim().replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_');
+    _dismissedSuggestionKeys.clear();
+    syncCity(city);
+    unawaited(_restoreStartupSuggestion());
+  }
+
+  Future<void> _restoreStartupSuggestion() async {
+    try {
+      await _restoreDismissedSuggestion();
+    } catch (_) {
+      // This optional cache must not prevent startup or surface an async error.
+    }
+  }
+
   /// Hydrates city state from an already-resolved city (e.g. from SplashCubit).
   void syncCity(CityData? city) =>
       emit(LocationReady(city, state.availableCities));
 
   void clearSession() {
+    _userScopeGeneration++;
     _gpsSuggestionCheckedThisSession = false;
     _dismissedSuggestionKeys.clear();
     _activeUserKey = null;
@@ -74,6 +100,7 @@ class LocationCubit extends Cubit<LocationState> {
   }
 
   Future<void> _restoreDismissedSuggestion() async {
+    final generation = _userScopeGeneration;
     final activeUserKey = _activeUserKey;
     final regionSuggestions = _regionSuggestions;
     if (activeUserKey == null ||
@@ -82,6 +109,7 @@ class LocationCubit extends Cubit<LocationState> {
       return;
     }
     final result = await regionSuggestions.getDismissed(activeUserKey);
+    if (isClosed || generation != _userScopeGeneration) return;
     final suggestion = result.when(
       success: (value) => value,
       failure: (_) => null,

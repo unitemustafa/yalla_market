@@ -17,11 +17,14 @@ import 'package:yalla_market/features/wishlist/domain/entities/wishlist_item.dar
 import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit.dart';
 
 import 'search_fixtures.dart';
+import '../../helpers/catalog_navigation_harness.dart';
+import 'package:yalla_market/features/store/presentation/views/brand/brand_products_view.dart';
 
 void main() {
   late TestCatalogSearchRepository repository;
   late CatalogSearchCubit cubit;
   late List<BrandProductsRouteArgs> opened;
+  late CatalogNavigationHarness navigation;
   setUp(() {
     repository = TestCatalogSearchRepository();
     cubit = CatalogSearchCubit(
@@ -29,6 +32,11 @@ void main() {
       GetSelectedCityUseCase(SearchLocationRepository()),
     );
     opened = [];
+    navigation = CatalogNavigationHarness(
+      markets: [searchMarket],
+      onOpened: opened.add,
+    );
+    addTearDown(navigation.dispose);
     addTearDown(cubit.close);
   });
 
@@ -36,23 +44,26 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(360, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await tester.pumpWidget(
-      MultiBlocProvider(
-        providers: [
-          BlocProvider.value(value: cubit),
-          BlocProvider<CartCubit>(create: (_) => _CartCubit()),
-          BlocProvider<WishlistCubit>(create: (_) => _WishlistCubit()),
-        ],
-        child: MaterialApp(
-          locale: const Locale('ar'),
-          supportedLocales: const [Locale('ar'), Locale('en')],
-          localizationsDelegates: GlobalMaterialLocalizations.delegates,
-          home: const SearchView(),
-          onGenerateRoute: (settings) {
-            opened.add(settings.arguments! as BrandProductsRouteArgs);
-            return MaterialPageRoute<void>(
-              builder: (_) => const Scaffold(body: Text('Destination')),
-            );
-          },
+      navigation.wrap(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider.value(value: cubit),
+            BlocProvider<CartCubit>(create: (_) => _CartCubit()),
+            BlocProvider<WishlistCubit>(create: (_) => _WishlistCubit()),
+          ],
+          child: MaterialApp(
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar'), Locale('en')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            home: const SearchView(),
+            navigatorObservers: [navigation.observer],
+            onGenerateRoute: (settings) {
+              opened.add(settings.arguments! as BrandProductsRouteArgs);
+              return MaterialPageRoute<void>(
+                builder: (_) => const Scaffold(body: Text('Destination')),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -127,6 +138,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(opened.last.marketId, '7');
       expect(opened.last.classificationId, '3');
+      expect(find.byType(BrandProductsView), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

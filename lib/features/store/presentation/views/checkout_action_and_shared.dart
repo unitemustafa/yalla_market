@@ -69,38 +69,41 @@ class _CheckoutActionBar extends StatelessWidget {
                 SizedBox(width: gap),
                 ConstrainedBox(
                   constraints: BoxConstraints.tightFor(width: buttonWidth),
-                  child: ElevatedButton.icon(
-                    onPressed: isLoading ? null : onCheckout,
-                    icon: const Icon(AppIcons.clipboard_tick, size: 18),
-                    label: isLoading
-                        ? const SizedBox(
-                            width: 18,
-                            height: 18,
-                            child: AppLoadingPlaceholder(),
-                          )
-                        : Text(
-                            context.tr('Confirm Order'),
-                            maxLines: 1,
-                            softWrap: false,
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: AppFontSizes.body,
-                              fontWeight: FontWeight.w800,
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton.icon(
+                      statesController: pressStates,
+                      onPressed: isLoading ? null : onCheckout,
+                      icon: const Icon(AppIcons.clipboard_tick, size: 18),
+                      label: isLoading
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: AppLoadingPlaceholder(),
+                            )
+                          : Text(
+                              context.tr('Confirm Order'),
+                              maxLines: 1,
+                              softWrap: false,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: AppFontSizes.body,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
-                          ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: EdgeInsets.symmetric(
-                        horizontal: buttonHorizontalPadding,
-                        vertical: 15,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: buttonHorizontalPadding,
+                          vertical: 15,
+                        ),
+                        minimumSize: const Size(0, 48),
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
                       ),
-                      minimumSize: const Size(0, 48),
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
                     ),
                   ),
                 ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/app_list_entrance.dart';
 import 'package:yalla_market/core/presentation/widgets/app_refresh_indicator.dart';
 import 'package:yalla_market/core/presentation/widgets/states/app_skeleton.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,6 +16,61 @@ import '../../helpers/notification_test_helpers.dart';
 
 void main() {
   group('NotificationsView', () {
+    testWidgets(
+      'cards stagger after loading and stay visible on read, refresh and pagination',
+      (tester) async {
+        final cubit = SpyNotificationCubit()
+          ..seed(const NotificationState(isInitialLoading: true));
+        addTearDown(cubit.close);
+        await _pumpNotificationsView(tester, cubit, completeEntrance: false);
+        cubit.seed(
+          NotificationState(
+            notifications: [testNotification(id: 1), testNotification(id: 2)],
+            hasLoaded: true,
+          ),
+        );
+        await tester.pump();
+        double opacity(int id) => tester
+            .widget<Opacity>(
+              find
+                  .descendant(
+                    of: find.byKey(ValueKey('notification_reveal_$id')),
+                    matching: find.byType(Opacity),
+                  )
+                  .first,
+            )
+            .opacity;
+
+        expect(find.byType(AppListEntranceItem), findsNWidgets(2));
+        expect(opacity(1), 0);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 75));
+        expect(opacity(1), greaterThan(opacity(2)));
+        await tester.pumpAndSettle();
+        cubit.seed(
+          NotificationState(
+            notifications: [
+              testNotification(id: 1, isRead: true),
+              testNotification(id: 2),
+            ],
+            hasLoaded: true,
+            isRefreshing: true,
+          ),
+        );
+        await tester.pump();
+        expect(opacity(1), 1);
+        cubit.seed(
+          NotificationState(
+            notifications: [testNotification(id: 2), testNotification(id: 3)],
+            hasLoaded: true,
+          ),
+        );
+        await tester.pump();
+        expect(opacity(2), 1);
+        expect(opacity(3), 1);
+      },
+    );
+
     testWidgets('shows initial loading without demo notifications', (
       tester,
     ) async {
@@ -543,6 +599,7 @@ Future<void> _pumpNotificationsView(
   WidgetTester tester,
   NotificationCubit cubit, {
   RouteFactory? onGenerateRoute,
+  bool completeEntrance = true,
 }) async {
   await tester.pumpWidget(
     BlocProvider<NotificationCubit>.value(
@@ -554,4 +611,7 @@ Future<void> _pumpNotificationsView(
     ),
   );
   await tester.pump();
+  if (completeEntrance) {
+    await tester.pump(const Duration(milliseconds: 550));
+  }
 }

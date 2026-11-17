@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,7 +13,10 @@ import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/presentation/widgets/images/app_image.dart';
+import 'package:yalla_market/core/presentation/widgets/products/cart_counter_icon.dart';
 import 'package:yalla_market/core/theme/app_theme.dart';
+import 'package:yalla_market/features/cart/data/repositories/cart_repository_impl.dart';
+import 'package:yalla_market/features/cart/domain/entities/cart_item.dart';
 import 'package:yalla_market/features/cart/presentation/cubit/cart_cubit.dart';
 import 'package:yalla_market/features/store/domain/entities/brand_data.dart';
 import 'package:yalla_market/features/store/domain/entities/category_data.dart';
@@ -24,6 +29,560 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  for (final viewport in [
+    (
+      size: const Size(375, 812),
+      insets: const EdgeInsets.only(top: 44, bottom: 34),
+    ),
+    (
+      size: const Size(812, 375),
+      insets: const EdgeInsets.fromLTRB(44, 0, 44, 21),
+    ),
+  ]) {
+    for (final direction in TextDirection.values) {
+      testWidgets(
+        'iPhone product controls respect safe areas (${viewport.size}, $direction)',
+        (tester) async {
+          await tester.binding.setSurfaceSize(viewport.size);
+          addTearDown(() => tester.binding.setSurfaceSize(null));
+          await _pumpProduct(
+            tester,
+            textDirection: direction,
+            safeInsets: viewport.insets,
+            textScale: 1.5,
+            product: _productWith(
+              title: 'A long product title for the iPhone safe area',
+              variants: const [
+                {'id': 'base', 'price': '10'},
+              ],
+            ),
+          );
+          await tester.drag(
+            find.byKey(const ValueKey('product_detail_scroll')),
+            const Offset(0, -700),
+          );
+          await tester.pumpAndSettle();
+
+          final safeBounds = viewport.insets.deflateRect(
+            Offset.zero & viewport.size,
+          );
+          final cart = tester.getRect(find.byType(CartCounterIcon));
+          final title = tester.getRect(
+            find.byKey(const ValueKey('product_detail_title')),
+          );
+          final share = tester.getRect(find.byIcon(AppIcons.send_1));
+          for (final rect in [cart, title, share]) {
+            expect(rect.left, greaterThanOrEqualTo(safeBounds.left));
+            expect(rect.right, lessThanOrEqualTo(safeBounds.right));
+            expect(rect.top, greaterThanOrEqualTo(safeBounds.top));
+          }
+          final addButton = tester.getRect(find.byType(ElevatedButton));
+          expect(addButton.bottom, lessThanOrEqualTo(safeBounds.bottom));
+          expect(title.overlaps(cart), isFalse);
+          expect(title.overlaps(share), isFalse);
+          expect(tester.takeException(), isNull);
+        },
+        variant: TargetPlatformVariant.only(TargetPlatform.iOS),
+      );
+    }
+  }
+
+  testWidgets('shrinks gallery and moves title into a pinned toolbar', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10'},
+        ],
+        description: List.filled(40, 'Long description.').join('\n'),
+      ),
+    );
+    final scroll = find.byKey(const ValueKey('product_detail_scroll'));
+    final image = find.byKey(const ValueKey('product_detail_main_image'));
+    final title = find.byKey(const ValueKey('product_detail_title'));
+    final imageSize = tester.getSize(image);
+    final expandedTitle = tester.getRect(title);
+    final cartRect = tester.getRect(find.byType(CartCounterIcon));
+    final gesture = await tester.startGesture(tester.getCenter(scroll));
+    await gesture.moveBy(const Offset(0, -100));
+    await tester.pump();
+    expect(tester.getSize(image).height, lessThan(imageSize.height));
+    expect(tester.getSize(image).width, lessThan(imageSize.width));
+    expect(tester.getRect(title).top, lessThan(expandedTitle.top));
+    await gesture.moveBy(const Offset(0, -500));
+    await gesture.up();
+    await tester.pumpAndSettle();
+    final pinnedTitle = tester.getRect(title);
+    expect(pinnedTitle.center.dy, closeTo(cartRect.center.dy, 1));
+    expect(tester.widget<Text>(title).maxLines, 1);
+    expect(tester.getRect(find.byType(CartCounterIcon)), cartRect);
+    await tester.drag(scroll, const Offset(0, -200));
+    await tester.pumpAndSettle();
+    expect(tester.getRect(title), pinnedTitle);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('stretches image during pull and restores it on release', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10'},
+        ],
+      ),
+    );
+    final scroll = find.byKey(const ValueKey('product_detail_scroll'));
+    final image = find.byKey(const ValueKey('product_detail_main_image'));
+    final originalSize = tester.getSize(image);
+    final gesture = await tester.startGesture(tester.getCenter(scroll));
+    await gesture.moveBy(const Offset(0, 180));
+    await tester.pump();
+    await gesture.moveBy(const Offset(0, 60));
+    await tester.pump();
+    expect(tester.getSize(image).height, greaterThan(originalSize.height));
+    expect(tester.getSize(image).width, greaterThan(originalSize.width));
+    expect(tester.widget<AppImage>(image).fit, BoxFit.contain);
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(tester.getSize(image), originalSize);
+    expect(tester.takeException(), isNull);
+  });
+
+  for (final direction in TextDirection.values) {
+    testWidgets('collapses short page with long large title ($direction)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await _pumpProduct(
+        tester,
+        textDirection: direction,
+        textScale: 2,
+        isDark: direction == TextDirection.rtl,
+        product: _productWith(
+          title: direction == TextDirection.rtl
+              ? 'اسم منتج طويل جدًا لاختبار العنوان أثناء الحركة والطي'
+              : 'A very long product name to check the moving collapsed title',
+          variants: const [
+            {'id': 'base', 'price': '10'},
+          ],
+        ),
+      );
+      final title = find.byKey(const ValueKey('product_detail_title'));
+      expect(tester.widget<Text>(title).maxLines, 2);
+      await tester.drag(
+        find.byKey(const ValueKey('product_detail_scroll')),
+        const Offset(0, -700),
+      );
+      await tester.pumpAndSettle();
+      final titleRect = tester.getRect(title);
+      final cartRect = tester.getRect(find.byType(CartCounterIcon));
+      final shareRect = tester.getRect(find.byIcon(AppIcons.send_1));
+      expect(tester.widget<Text>(title).maxLines, 1);
+      expect(titleRect.center.dy, closeTo(cartRect.center.dy, 1));
+      expect(titleRect.overlaps(cartRect), isFalse);
+      expect(titleRect.overlaps(shareRect), isFalse);
+      expect(find.byIcon(AppIcons.send_1).hitTestable(), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final direction in TextDirection.values) {
+    testWidgets('pins cart in place of back button ($direction)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(360, 800));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      RouteSettings? openedRoute;
+      await _pumpProduct(
+        tester,
+        textDirection: direction,
+        isDark: direction == TextDirection.rtl,
+        textScale: 2,
+        product: _productWith(
+          variants: const [
+            {'id': 'base', 'price': '10'},
+          ],
+          description: List.filled(30, 'Product description.').join('\n'),
+        ),
+        onGenerateRoute: (settings) {
+          openedRoute = settings;
+          return MaterialPageRoute<void>(
+            builder: (_) => const Scaffold(body: Text('Cart page')),
+          );
+        },
+      );
+      expect(find.byType(BackButton), findsNothing);
+      expect(find.byIcon(Icons.arrow_back), findsNothing);
+      expect(find.byIcon(AppIcons.arrow_left_2), findsNothing);
+      expect(find.byIcon(AppIcons.arrow_right_3), findsNothing);
+      final cart = find.byType(CartCounterIcon);
+      final cartRect = tester.getRect(cart);
+      final share = tester.getCenter(find.byIcon(AppIcons.send_1));
+      expect(
+        cartRect.center.dx,
+        direction == TextDirection.rtl
+            ? greaterThan(share.dx)
+            : lessThan(share.dx),
+      );
+
+      await tester.drag(
+        find.byKey(const ValueKey('product_detail_scroll')),
+        const Offset(0, -500),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.getRect(cart), cartRect);
+      expect(find.byIcon(AppIcons.send_1).hitTestable(), findsOneWidget);
+      await tester.tap(cart);
+      await tester.pumpAndSettle();
+      expect(openedRoute?.name, AppRoutes.cart);
+      expect(find.text('Cart page'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('flies selected image on a curved path then pulses the cart', (
+    tester,
+  ) async {
+    final cart = makeCartCubit();
+    await _pumpProduct(
+      tester,
+      cartCubit: cart,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10'},
+        ],
+        images: const [AppAssets.defaultProduct, AppAssets.defaultAddon],
+      ),
+    );
+    await tester.tap(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is AppImage && widget.source == AppAssets.defaultAddon,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final start = tester.getCenter(
+      find.byKey(const ValueKey('product_detail_main_image')),
+    );
+    final end = tester.getCenter(find.byType(CartCounterIcon));
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
+    await tester.tap(find.byType(ElevatedButton).last);
+    await tester.pump();
+    await tester.pump();
+
+    final flying = find.byKey(const ValueKey('product_detail_flying_image'));
+    expect(flying, findsOneWidget);
+    expect((tester.getCenter(flying) - start).distance, lessThan(1));
+    expect(
+      tester
+          .widget<AppImage>(
+            find.descendant(of: flying, matching: find.byType(AppImage)),
+          )
+          .source,
+      AppAssets.defaultAddon,
+    );
+    expect(cart.state.single.quantity, 2);
+    expect(
+      find.descendant(
+        of: find.byType(CartCounterIcon),
+        matching: find.text('2'),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.pump(const Duration(milliseconds: 350));
+    final middle = tester.getRect(flying);
+    expect(
+      (middle.center - Offset.lerp(start, end, 0.5)!).distance,
+      greaterThan(10),
+    );
+    expect(middle.width, lessThan(56));
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton).last).onPressed,
+      isNull,
+    );
+    await tester.pump(const Duration(milliseconds: 300));
+    expect((tester.getCenter(flying) - end).distance, lessThan(5));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(flying, findsNothing);
+    final pulse = tester.widget<Transform>(
+      find.byKey(const ValueKey('product_detail_cart_scale')),
+    );
+    expect(pulse.transform.getMaxScaleOnAxis(), greaterThan(1));
+    await tester.pumpAndSettle();
+    expect(find.text('Add to Bag'), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('flies from add button when product image is scrolled away', (
+    tester,
+  ) async {
+    await _pumpProduct(
+      tester,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10'},
+        ],
+        description: List.filled(40, 'Long description.').join('\n'),
+      ),
+    );
+    await tester.drag(
+      find.byKey(const ValueKey('product_detail_scroll')),
+      const Offset(0, -600),
+    );
+    await tester.pumpAndSettle();
+    final scroll = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position;
+    final scrollOffset = scroll.pixels;
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pumpAndSettle();
+    final buttonCenter = tester.getCenter(find.byType(ElevatedButton).last);
+    await tester.tap(find.byType(ElevatedButton).last);
+    await tester.pump();
+    await tester.pump();
+    final flying = find.byKey(const ValueKey('product_detail_flying_image'));
+    expect(flying, findsOneWidget);
+    expect((tester.getCenter(flying) - buttonCenter).distance, lessThan(1));
+    expect(scroll.pixels, scrollOffset);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('waits for save and prevents duplicate adds and quantity edits', (
+    tester,
+  ) async {
+    final gate = Completer<void>();
+    final repository = _ControlledCartRepository(addGate: gate);
+    final cart = makeCartCubit(repository: repository);
+    await _pumpProduct(
+      tester,
+      cartCubit: cart,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10'},
+        ],
+      ),
+    );
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
+    final button = tester.widget<ElevatedButton>(
+      find.byType(ElevatedButton).last,
+    );
+    button.onPressed!();
+    button.onPressed!();
+    await tester.pump();
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
+    expect(repository.addCalls, 1);
+    expect(cart.state, isEmpty);
+    expect(find.text('1'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+    expect(
+      find.byKey(const ValueKey('product_detail_flying_image')),
+      findsNothing,
+    );
+    expect(
+      tester.widget<ElevatedButton>(find.byType(ElevatedButton).last).onPressed,
+      isNull,
+    );
+
+    gate.complete();
+    await tester.pump();
+    await tester.pump();
+    expect(cart.state.single.quantity, 1);
+    expect(
+      find.byKey(const ValueKey('product_detail_flying_image')),
+      findsOneWidget,
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  for (final invalidateSession in [false, true]) {
+    testWidgets(
+      'keeps quantity without flight on failed add (session: $invalidateSession)',
+      (tester) async {
+        final gate = Completer<void>();
+        final repository = _ControlledCartRepository(
+          addGate: gate,
+          failure: invalidateSession
+              ? null
+              : const ServerFailure('Cart save failed'),
+        );
+        final cart = makeCartCubit(repository: repository);
+        await _pumpProduct(
+          tester,
+          cartCubit: cart,
+          product: _productWith(
+            variants: const [
+              {'id': 'base', 'price': '10'},
+            ],
+          ),
+        );
+        await tester.tap(find.byIcon(AppIcons.add).last);
+        await tester.pump();
+        await tester.tap(find.byType(ElevatedButton).last);
+        await tester.pump();
+        if (invalidateSession) cart.clearSession();
+        gate.complete();
+        await tester.pump();
+        await tester.pump();
+        expect(
+          find.byKey(const ValueKey('product_detail_flying_image')),
+          findsNothing,
+        );
+        expect(cart.state, isEmpty);
+        expect(find.text('1'), findsOneWidget);
+        expect(find.byType(SnackBar), findsOneWidget);
+        expect(
+          tester
+              .widget<ElevatedButton>(find.byType(ElevatedButton).last)
+              .onPressed,
+          isNotNull,
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final cancel in [
+    'open cart',
+    'open another route',
+    'dispose',
+    'reduce motion',
+  ]) {
+    testWidgets('cleans up flying image on $cancel', (tester) async {
+      await _pumpProduct(
+        tester,
+        product: _productWith(
+          variants: const [
+            {'id': 'base', 'price': '10'},
+          ],
+        ),
+        onGenerateRoute: (_) => MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Cart page')),
+        ),
+      );
+      await tester.tap(find.byIcon(AppIcons.add).last);
+      await tester.pump();
+      await tester.tap(find.byType(ElevatedButton).last);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      final flying = find.byKey(const ValueKey('product_detail_flying_image'));
+      expect(flying, findsOneWidget);
+      switch (cancel) {
+        case 'open cart':
+          await tester.tap(find.byType(CartCounterIcon));
+        case 'open another route':
+          Navigator.of(tester.element(find.byType(ProductDetailView))).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const Scaffold(body: Text('Another page')),
+            ),
+          );
+        case 'dispose':
+          await tester.pumpWidget(const SizedBox.shrink());
+        case 'reduce motion':
+          tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+              FakeAccessibilityFeatures(disableAnimations: true);
+          addTearDown(
+            tester
+                .binding
+                .platformDispatcher
+                .clearAccessibilityFeaturesTestValue,
+          );
+      }
+      await tester.pumpAndSettle();
+      expect(flying, findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final leave in ['open cart', 'dispose']) {
+    testWidgets('does not start feedback after leaving during save ($leave)', (
+      tester,
+    ) async {
+      final gate = Completer<void>();
+      final cart = makeCartCubit(
+        repository: _ControlledCartRepository(addGate: gate),
+      );
+      await _pumpProduct(
+        tester,
+        cartCubit: cart,
+        product: _productWith(
+          variants: const [
+            {'id': 'base', 'price': '10'},
+          ],
+        ),
+        onGenerateRoute: (_) => MaterialPageRoute<void>(
+          builder: (_) => const Scaffold(body: Text('Cart page')),
+        ),
+      );
+      await tester.tap(find.byIcon(AppIcons.add).last);
+      await tester.pump();
+      await tester.tap(find.byType(ElevatedButton).last);
+      await tester.pump();
+      if (leave == 'open cart') {
+        await tester.tap(find.byType(CartCounterIcon));
+        await tester.pumpAndSettle();
+      } else {
+        await tester.pumpWidget(const SizedBox.shrink());
+      }
+      gate.complete();
+      await tester.pumpAndSettle();
+      expect(cart.state.single.quantity, 1);
+      expect(
+        find.byKey(const ValueKey('product_detail_flying_image')),
+        findsNothing,
+      );
+      expect(find.byType(SnackBar), findsNothing);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  testWidgets('updates cart without flight when reduced motion is enabled', (
+    tester,
+  ) async {
+    tester.binding.platformDispatcher.accessibilityFeaturesTestValue =
+        FakeAccessibilityFeatures(disableAnimations: true);
+    addTearDown(
+      tester.binding.platformDispatcher.clearAccessibilityFeaturesTestValue,
+    );
+    final cart = makeCartCubit();
+    await _pumpProduct(
+      tester,
+      cartCubit: cart,
+      product: _productWith(
+        variants: const [
+          {'id': 'base', 'price': '10'},
+        ],
+      ),
+    );
+    await tester.tap(find.byIcon(AppIcons.add).last);
+    await tester.pump();
+    await tester.tap(find.byType(ElevatedButton).last);
+    await tester.pump();
+    await tester.pump();
+    expect(cart.state.single.quantity, 1);
+    expect(
+      find.byKey(const ValueKey('product_detail_flying_image')),
+      findsNothing,
+    );
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+  });
+
   for (final isDark in [false, true]) {
     for (final textScale in [1.0, 2.0]) {
       testWidgets(
@@ -95,6 +654,7 @@ void main() {
       );
 
       await tester.ensureVisible(find.text('Store name'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Store name'));
       await tester.pumpAndSettle();
 
@@ -241,6 +801,7 @@ void main() {
     expect(find.text('Add to Bag'), findsOneWidget);
 
     await tester.ensureVisible(find.text('عائلية'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('عائلية'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Choose additions'));
@@ -527,6 +1088,7 @@ void main() {
     );
 
     await tester.ensureVisible(find.text('أسود'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('أسود'));
     await tester.pump();
     await tester.tap(find.byIcon(AppIcons.add).last);
@@ -677,9 +1239,12 @@ void main() {
       ),
     );
 
-    await tester.ensureVisible(find.text('أسود'));
+    await tester.ensureVisible(find.text('صغير'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('صغير'));
     await tester.pump();
+    await tester.ensureVisible(find.text('أسود'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('أسود'));
     await tester.pump();
 
@@ -698,6 +1263,10 @@ Future<void> _pumpProduct(
   CartCubit? cartCubit,
   RouteFactory? onGenerateRoute,
   String? initialVariantId,
+  TextDirection textDirection = TextDirection.ltr,
+  bool isDark = false,
+  double textScale = 1,
+  EdgeInsets safeInsets = EdgeInsets.zero,
 }) async {
   SharedPreferences.setMockInitialValues({});
   final cart = cartCubit ?? makeCartCubit();
@@ -725,6 +1294,15 @@ Future<void> _pumpProduct(
       ],
       child: MaterialApp(
         onGenerateRoute: onGenerateRoute,
+        theme: isDark ? AppTheme.darkTheme : AppTheme.lightTheme,
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(textScale),
+            padding: safeInsets,
+            viewPadding: safeInsets,
+          ),
+          child: Directionality(textDirection: textDirection, child: child!),
+        ),
         home: ProductDetailView(
           productId: 'variant-product',
           image: AppAssets.defaultProduct,
@@ -743,14 +1321,39 @@ ProductData _productWith({
   required List<Map<String, Object?>> variants,
   List<Map<String, Object?>> attributes = const [],
   String discount = '0.00',
+  String description = '',
+  List<String> images = const [],
+  String title = 'Variant product',
 }) => ProductData.fromJson({
   'id': 'variant-product',
-  'name': 'Variant product',
+  'name': title,
   'image': AppAssets.defaultProduct,
   'variants': variants,
   'attributes': attributes,
   'discount': discount,
+  'description': description,
+  'images': images,
 });
+
+class _ControlledCartRepository extends CartRepositoryImpl {
+  _ControlledCartRepository({this.addGate, this.failure});
+
+  final Completer<void>? addGate;
+  final Failure? failure;
+  int addCalls = 0;
+
+  @override
+  Future<ApiResult<List<CartItemData>>> addItem(
+    String userKey,
+    CartItemData item,
+    int quantityToAdd,
+  ) async {
+    addCalls++;
+    await addGate?.future;
+    if (failure case final failure?) return ApiResult.failure(failure);
+    return super.addItem(userKey, item, quantityToAdd);
+  }
+}
 
 List<Map<String, Object?>> _attributeValues({
   String? color,

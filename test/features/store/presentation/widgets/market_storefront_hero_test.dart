@@ -17,7 +17,6 @@ void main() {
           child: Scaffold(
             body: MarketStorefrontHero(
               market: _market,
-              onBack: () {},
               onSearch: () {},
               onShare: () {},
             ),
@@ -27,6 +26,7 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('storefront_cover')), findsOneWidget);
+    expect(find.byKey(const ValueKey('storefront_back_button')), findsNothing);
     expect(find.byKey(const ValueKey('storefront_logo')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('storefront_search_button')),
@@ -62,7 +62,6 @@ void main() {
                 body: SingleChildScrollView(
                   child: MarketStorefrontHero(
                     market: _market,
-                    onBack: () {},
                     onSearch: () {},
                     onShare: () {},
                   ),
@@ -83,7 +82,7 @@ void main() {
       );
       expect(details.top, lessThan(cover.bottom));
       expect(details.bottom, lessThanOrEqualTo(342));
-      for (final action in ['back', 'search', 'share', 'favorite']) {
+      for (final action in ['search', 'share', 'favorite']) {
         final button = tester.getRect(
           find.byKey(ValueKey('storefront_${action}_button')),
         );
@@ -94,7 +93,7 @@ void main() {
     });
   }
 
-  testWidgets('toolbar still invokes navigation, search and sharing', (
+  testWidgets('toolbar omits back and still invokes search and sharing', (
     tester,
   ) async {
     final tapped = <String>[];
@@ -104,7 +103,6 @@ void main() {
           body: SingleChildScrollView(
             child: MarketStorefrontHero(
               market: _market,
-              onBack: () => tapped.add('back'),
               onSearch: () => tapped.add('search'),
               onShare: () => tapped.add('share'),
             ),
@@ -112,10 +110,10 @@ void main() {
         ),
       ),
     );
-    for (final action in ['back', 'search', 'share']) {
+    for (final action in ['search', 'share']) {
       await tester.tap(find.byKey(ValueKey('storefront_${action}_button')));
     }
-    expect(tapped, ['back', 'search', 'share']);
+    expect(tapped, ['search', 'share']);
   });
 
   test('market data accepts normalized cover focal points', () {

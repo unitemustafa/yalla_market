@@ -86,10 +86,11 @@ extension _ProductDetailActions on _ProductDetailViewState {
     }
   }
 
-  void _addSelectedProductToCart({
+  Future<void> _addSelectedProductToCart({
     required BuildContext context,
     required bool isOutOfStock,
-  }) {
+  }) async {
+    if (_isAddingToCart) return;
     if (isOutOfStock) {
       CustomSnackBar.showWarning(
         context: context,
@@ -134,36 +135,57 @@ extension _ProductDetailActions on _ProductDetailViewState {
         .toList(growable: false);
     final cartAttributes = [...variantAttributes, ...additionAttributes];
 
-    context.read<CartCubit>().addItem(
-      CartItemData(
-        id: _resolvedCartItemId,
-        productId: _resolvedProductId,
-        variantId: selectedVariantId,
-        additionIds: selectedAdditionIds.toList(growable: false)..sort(),
-        marketId: _marketId,
-        marketName: _productBrand,
-        image: currentImage,
-        brand: _productBrand,
-        title: _productTitle,
-        price:
-            ProductPricing.firstPrice(
-              selectedPrice,
-              discount: _productDiscount,
-            ) +
-            _selectedAdditionsTotal,
-        quantity: quantity,
-        attributes: cartAttributes.toList(growable: false),
-      ),
-      quantity,
+    final cartCubit = context.read<CartCubit>();
+    final quantityToAdd = quantity;
+    final imageToAnimate = currentImage;
+    final feedbackGeneration = _cartFeedbackGeneration;
+    final item = CartItemData(
+      id: _resolvedCartItemId,
+      productId: _resolvedProductId,
+      variantId: selectedVariantId,
+      additionIds: selectedAdditionIds.toList(growable: false)..sort(),
+      marketId: _marketId,
+      marketName: _productBrand,
+      image: currentImage,
+      brand: _productBrand,
+      title: _productTitle,
+      price:
+          ProductPricing.firstPrice(selectedPrice, discount: _productDiscount) +
+          _selectedAdditionsTotal,
+      quantity: quantity,
+      attributes: cartAttributes.toList(growable: false),
     );
 
-    CustomSnackBar.showAdded(
-      context: context,
-      title: context.isArabicLanguage
-          ? 'تمت إضافة ${context.productCount(quantity)} للسلة'
-          : '${context.productCount(quantity)} added to cart',
-    );
-    _updateState(() => quantity = 0);
+    _updateState(() => _isAddingToCart = true);
+    try {
+      final added = await cartCubit.addItem(item, quantityToAdd);
+      if (!mounted || !context.mounted) return;
+      if (added) _updateState(() => quantity = 0);
+      if (feedbackGeneration != _cartFeedbackGeneration ||
+          ModalRoute.of(context)?.isCurrent == false) {
+        return;
+      }
+      if (!added) {
+        CustomSnackBar.showError(
+          context: context,
+          title:
+              cartCubit.lastErrorMessage ??
+              (context.isArabicLanguage
+                  ? 'تعذرت إضافة المنتج للسلة. حاول مرة أخرى.'
+                  : 'Could not add the product to cart. Please try again.'),
+        );
+        return;
+      }
+      CustomSnackBar.showAdded(
+        context: context,
+        title: context.isArabicLanguage
+            ? 'تمت إضافة ${context.productCount(quantityToAdd)} للسلة'
+            : '${context.productCount(quantityToAdd)} added to cart',
+      );
+      await _flyProductToCart(imageToAnimate);
+    } finally {
+      if (mounted) _updateState(() => _isAddingToCart = false);
+    }
   }
 
   Widget _buildVariantSelectors({required bool isDark}) {

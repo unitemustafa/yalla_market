@@ -16,7 +16,19 @@ void main() {
       AppPreferencesController.instance.value.mobileNotificationsEnabled,
       isTrue,
     );
-    expect(AppPreferencesController.instance.value.themeMode, ThemeMode.system);
+    expect(AppPreferencesController.instance.value.themeMode, ThemeMode.light);
+  });
+
+  test('invalid stored types do not block app startup', () async {
+    SharedPreferences.setMockInitialValues({
+      AppPreferencesController.mobileNotificationsStorageKey: 'invalid',
+      'app.preferences.push_notifications': 12,
+      'app.preferences.theme_mode': false,
+    });
+
+    await AppPreferencesController.instance.loadSavedPreferences();
+
+    expect(AppPreferencesController.instance.value, const AppPreferences());
   });
 
   test('persists mobile notifications under the dedicated local key', () async {
@@ -41,6 +53,26 @@ void main() {
     );
   });
 
+  for (final stored in ['system', 'invalid']) {
+    test('loads light mode for legacy or unknown theme: $stored', () async {
+      SharedPreferences.setMockInitialValues({
+        'app.preferences.theme_mode': stored,
+      });
+      await AppPreferencesController.instance.loadSavedPreferences();
+      expect(
+        AppPreferencesController.instance.value.themeMode,
+        ThemeMode.light,
+      );
+    });
+  }
+
+  test('persists and restores an explicit dark theme', () async {
+    await AppPreferencesController.instance.setThemeMode(ThemeMode.dark);
+    AppPreferencesController.instance.value = const AppPreferences();
+    await AppPreferencesController.instance.loadSavedPreferences();
+    expect(AppPreferencesController.instance.value.themeMode, ThemeMode.dark);
+  });
+
   test(
     'ignores legacy safe-mode preferences without changing other values',
     () async {
@@ -58,7 +90,7 @@ void main() {
       );
       expect(
         AppPreferencesController.instance.value.themeMode,
-        ThemeMode.system,
+        ThemeMode.light,
       );
     },
   );

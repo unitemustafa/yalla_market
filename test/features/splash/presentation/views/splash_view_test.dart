@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -7,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/app/routing/auth_guard.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/constants/app_colors.dart';
+import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_cubit.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_state.dart';
@@ -149,31 +148,43 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets(
-    'restored session waits for user activation before syncing city',
-    (tester) async {
-      final activation = Completer<ApiResult<void>>();
-      final repository = _DelayedLocationRepository(activation);
-      final harness = await _pumpSplash(
-        tester,
-        reduceMotion: true,
-        locationRepository: repository,
-      );
-      const city = CityData(name: 'Cairo', slug: 'cairo', serviceCityId: 1);
-      harness.splash.finish(
-        SplashNavigateTo('/destination', session: sampleSession, city: city),
-      );
-      await tester.pump();
-      expect(harness.auth.state, isA<AuthAuthenticated>());
-      expect(repository.activatedUserId, sampleSession.user.id);
-      expect(harness.location.state.selectedCity, isNull);
-      expect(harness.observer.replacements, isEmpty);
-      activation.complete(const ApiResult.success(null));
-      await tester.pump();
-      expect(harness.location.state.selectedCity, city);
-      expect(harness.observer.replacements, hasLength(1));
-    },
-  );
+  testWidgets('restored session hydrates city without a second activation', (
+    tester,
+  ) async {
+    final repository = _TrackingLocationRepository();
+    final harness = await _pumpSplash(
+      tester,
+      reduceMotion: true,
+      locationRepository: repository,
+    );
+    const city = CityData(name: 'Cairo', slug: 'cairo', serviceCityId: 1);
+
+    harness.splash.finish(
+      SplashNavigateTo('/destination', session: sampleSession, city: city),
+    );
+    await tester.pump();
+
+    expect(harness.auth.state, isA<AuthAuthenticated>());
+    expect(repository.activateUserCalls, 0);
+    expect(harness.location.state.selectedCity, city);
+    expect(harness.observer.replacements, hasLength(1));
+  });
+
+  testWidgets('startup failure exposes a retry control that reruns startup', (
+    tester,
+  ) async {
+    final harness = await _pumpSplash(
+      tester,
+      startupState: const SplashFailure(NetworkFailure('No connection')),
+      reduceMotion: true,
+    );
+
+    expect(find.byKey(const ValueKey('startup_retry')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('startup_retry')));
+    await tester.pump();
+
+    expect(harness.splash.startupCalls, 2);
+  });
 }
 
 typedef _Harness = ({
@@ -188,7 +199,7 @@ Future<_Harness> _pumpSplash(
   WidgetTester tester, {
   Size size = const Size(360, 800),
   bool reduceMotion = false,
-  SplashNavigateTo? startupState,
+  SplashState? startupState,
   FakeLocationRepository? locationRepository,
 }) async {
   await tester.binding.setSurfaceSize(size);
@@ -264,7 +275,7 @@ class _ControlledSplashCubit extends SplashCubit {
         locationUseCases(FakeLocationRepository()),
       );
 
-  final SplashNavigateTo? _startupState;
+  final SplashState? _startupState;
   int startupCalls = 0;
 
   @override
@@ -273,7 +284,7 @@ class _ControlledSplashCubit extends SplashCubit {
     if (_startupState case final state?) emit(state);
   }
 
-  void finish(SplashNavigateTo state) => emit(state);
+  void finish(SplashState state) => emit(state);
 }
 
 class _UnusedOnboarding implements OnboardingRepository {
@@ -290,15 +301,12 @@ class _NavigationObserver extends NavigatorObserver {
   }
 }
 
-class _DelayedLocationRepository extends FakeLocationRepository {
-  _DelayedLocationRepository(this.activation);
-
-  final Completer<ApiResult<void>> activation;
-  String? activatedUserId;
+class _TrackingLocationRepository extends FakeLocationRepository {
+  int activateUserCalls = 0;
 
   @override
-  Future<ApiResult<void>> activateUser(String userId) {
-    activatedUserId = userId;
-    return activation.future;
+  Future<ApiResult<void>> activateUser(String userId) async {
+    activateUserCalls += 1;
+    return const ApiResult.success(null);
   }
 }

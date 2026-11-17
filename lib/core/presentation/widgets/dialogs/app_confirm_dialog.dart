@@ -1,5 +1,6 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
 import '../../../constants/app_colors.dart';
 
@@ -110,17 +111,20 @@ class AppConfirmDialog extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: FilledButton(
-                      key: confirmKey,
-                      onPressed: onConfirm,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accent,
-                        minimumSize: const Size.fromHeight(46),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    child: AppButtonFeedback(
+                      builder: (_, pressStates) => FilledButton(
+                        statesController: pressStates,
+                        key: confirmKey,
+                        onPressed: onConfirm,
+                        style: FilledButton.styleFrom(
+                          backgroundColor: accent,
+                          minimumSize: const Size.fromHeight(46),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
+                        child: Text(confirmLabel),
                       ),
-                      child: Text(confirmLabel),
                     ),
                   ),
                 ],

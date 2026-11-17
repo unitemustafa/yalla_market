@@ -77,7 +77,7 @@ void main() {
     });
   }
 
-  testWidgets('next, back and start traverse all three posters', (
+  testWidgets('next, system back and start traverse all three posters', (
     tester,
   ) async {
     AppLanguageController.instance.value = AppLanguage.english;
@@ -87,12 +87,15 @@ void main() {
         tester.widget<AppImage>(find.byType(AppImage).hitTestable()).source!;
 
     expect(visibleAsset(), AppAssets.onboardingProducts);
+    expect(find.text('Press back again to exit'), findsNothing);
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
     expect(visibleAsset(), AppAssets.onboardingFastDelivery);
-    await tester.tap(find.byType(IconButton));
+    expect(find.byType(IconButton), findsNothing);
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(visibleAsset(), AppAssets.onboardingProducts);
+    expect(find.text('Press back again to exit'), findsNothing);
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
     await tester.tap(find.byType(ElevatedButton));
@@ -185,7 +188,8 @@ void main() {
       AppAssets.onboardingFastDelivery,
     );
 
-    await tester.tap(find.byType(IconButton));
+    expect(find.byType(IconButton), findsNothing);
+    await tester.binding.handlePopRoute();
     await tester.pump();
     expect(controller.page, 0);
     expect(tester.takeException(), isNull);

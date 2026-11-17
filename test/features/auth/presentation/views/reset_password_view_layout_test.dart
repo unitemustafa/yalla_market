@@ -38,9 +38,8 @@ void main() {
             ? isA<ClampingScrollPhysics>()
             : isA<NeverScrollableScrollPhysics>(),
       );
-      final topBar = tester.widget<AuthTopBar>(find.byType(AuthTopBar));
-      expect(topBar.showBack, isTrue);
-      expect(topBar.showClose, isFalse);
+      expect(find.byType(AuthTopBar), findsNothing);
+      expect(find.byType(BackButton), findsNothing);
       final artwork = tester.widget<Container>(
         find.byKey(const ValueKey('auth_lock_artwork')),
       );
@@ -93,7 +92,7 @@ void main() {
       ScrollViewKeyboardDismissBehavior.manual,
     );
     final gesture = await tester.startGesture(
-      tester.getCenter(find.byType(AuthTopBar)),
+      tester.getCenter(find.byKey(const ValueKey('auth_lock_artwork'))),
       kind: PointerDeviceKind.unknown,
     );
     await gesture.moveBy(const Offset(0, -100));

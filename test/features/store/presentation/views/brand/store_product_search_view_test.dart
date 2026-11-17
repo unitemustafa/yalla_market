@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/app/di/service_locator.dart';
-import 'package:yalla_market/app/routing/app_routes.dart';
+import 'package:yalla_market/app/routing/auth_guard.dart';
+import 'package:yalla_market/features/store/presentation/views/product_detail_view.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/network/api_result.dart';
@@ -19,13 +20,17 @@ void main() {
   late _SearchProductsRepository repository;
 
   setUp(() async {
+    AuthGuard.setAuthenticated();
     repository = _SearchProductsRepository();
     await sl.reset();
     sl.registerFactory<StoreProductsCubit>(
       () => StoreProductsCubit(GetStoreProductsUseCase(repository)),
     );
   });
-  tearDown(() => sl.reset());
+  tearDown(() async {
+    AuthGuard.clearAuthentication();
+    await sl.reset();
+  });
 
   testWidgets('loads the market page and queries after its debounce', (
     tester,
@@ -125,8 +130,8 @@ void main() {
 
     await tester.tap(find.textContaining('Item ').hitTestable().first);
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('test_product_page')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('test_product_back')));
+    expect(find.byType(ProductDetailView), findsOneWidget);
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     expect(scroll.offset, offset);
@@ -144,21 +149,6 @@ Future<void> _pumpSearch(
   addTearDown(() => tester.binding.setSurfaceSize(null));
   await tester.pumpWidget(
     MaterialApp(
-      onGenerateRoute: (settings) => settings.name == AppRoutes.productDetail
-          ? MaterialPageRoute<void>(
-              settings: settings,
-              builder: (context) => Scaffold(
-                key: const ValueKey('test_product_page'),
-                body: Center(
-                  child: TextButton(
-                    key: const ValueKey('test_product_back'),
-                    onPressed: () => Navigator.of(context).pop(),
-                    child: const Text('Back'),
-                  ),
-                ),
-              ),
-            )
-          : null,
       locale: locale,
       theme: theme,
       supportedLocales: AppTranslations.supportedLocales,

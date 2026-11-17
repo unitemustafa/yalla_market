@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/app/routing/app_route_arguments.dart';
-import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/core/constants/app_assets.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/core/presentation/widgets/products/product_cards/product_card_vertical.dart';
@@ -18,6 +17,8 @@ import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit
 import 'package:yalla_market/features/wishlist/presentation/views/wishlist_view.dart';
 
 import '../../../../helpers/cubit_factories.dart';
+import '../../../../helpers/catalog_navigation_harness.dart';
+import 'package:yalla_market/features/store/presentation/views/brand/brand_products_view.dart';
 
 void main() {
   testWidgets('favorite products use three compact columns', (tester) async {
@@ -72,94 +73,150 @@ void main() {
   });
 
   for (final direction in TextDirection.values) {
-    testWidgets('favorite stores scroll horizontally and open in $direction', (
-      tester,
-    ) async {
-      await tester.binding.setSurfaceSize(const Size(320, 568));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-      final repository = _WishlistRepository(empty: true);
-      final wishlist = WishlistCubit(
-        WishlistUseCases(
-          getItems: GetWishlistItemsUseCase(repository),
-          toggleItem: ToggleWishlistItemUseCase(repository),
-        ),
-      );
-      final markets = List.generate(
-        3,
-        (index) => StoreMarketData(
-          id: 'market-$index',
-          name: 'Store $index',
-          branch: '',
-          status: 'active',
-          classificationId: 'category',
-          products: const [],
-          image: AppAssets.defaultStore,
-          coverImage: AppAssets.defaultOffer,
-          deliveryTimeMinMinutes: 10,
-          deliveryTimeMaxMinutes: 30,
-          accentColorValue: 0xFF013C7E,
-        ),
-      );
-      final marketWishlist = MarketWishlistCubit(
-        MarketWishlistUseCases(_MarketWishlistRepository(markets)),
-      );
-      final cart = makeCartCubit();
-      addTearDown(wishlist.close);
-      addTearDown(marketWishlist.close);
-      addTearDown(cart.close);
-      await wishlist.loadWishlistForUser('user');
-      await marketWishlist.loadForUser('user');
-      BrandProductsRouteArgs? openedStore;
-      await tester.pumpWidget(
-        MultiBlocProvider(
-          providers: [
-            BlocProvider.value(value: wishlist),
-            BlocProvider.value(value: marketWishlist),
-            BlocProvider.value(value: cart),
-          ],
-          child: MaterialApp(
-            onGenerateRoute: (settings) {
-              expect(settings.name, AppRoutes.brandProducts);
-              openedStore = settings.arguments! as BrandProductsRouteArgs;
-              return MaterialPageRoute<void>(
-                builder: (_) => const Scaffold(body: Text('Opened store')),
-              );
-            },
-            home: Directionality(
-              textDirection: direction,
-              child: const WishlistView(),
+    testWidgets(
+      'favorite stores scroll, open and handle removal in $direction',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(320, 568));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final repository = _WishlistRepository(empty: true);
+        final wishlist = WishlistCubit(
+          WishlistUseCases(
+            getItems: GetWishlistItemsUseCase(repository),
+            toggleItem: ToggleWishlistItemUseCase(repository),
+          ),
+        );
+        final markets = List.generate(
+          3,
+          (index) => StoreMarketData(
+            id: 'market-$index',
+            name: 'Store $index',
+            branch: '',
+            status: 'active',
+            classificationId: 'category',
+            products: const [],
+            image: AppAssets.defaultStore,
+            coverImage: AppAssets.defaultOffer,
+            deliveryTimeMinMinutes: 10,
+            deliveryTimeMaxMinutes: 30,
+            accentColorValue: 0xFF013C7E,
+          ),
+        );
+        final marketWishlist = MarketWishlistCubit(
+          MarketWishlistUseCases(_MarketWishlistRepository(markets)),
+        );
+        final cart = makeCartCubit();
+        addTearDown(wishlist.close);
+        addTearDown(marketWishlist.close);
+        addTearDown(cart.close);
+        await wishlist.loadWishlistForUser('user');
+        await marketWishlist.loadForUser('user');
+        BrandProductsRouteArgs? openedStore;
+        final navigation = CatalogNavigationHarness(
+          markets: markets,
+          onOpened: (args) => openedStore = args,
+        );
+        addTearDown(navigation.dispose);
+        await tester.pumpWidget(
+          MultiBlocProvider(
+            providers: [
+              BlocProvider.value(value: wishlist),
+              BlocProvider.value(value: marketWishlist),
+              BlocProvider.value(value: cart),
+            ],
+            child: navigation.wrap(
+              MaterialApp(
+                navigatorObservers: [navigation.observer],
+                home: Directionality(
+                  textDirection: direction,
+                  child: const WishlistView(),
+                ),
+              ),
             ),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
+        );
+        await tester.pumpAndSettle();
 
-      final slider = find.byKey(
-        const ValueKey('wishlist_stores_horizontal_slider'),
-      );
-      expect(tester.widget<ListView>(slider).scrollDirection, Axis.horizontal);
-      final first = tester.getRect(
-        find.byKey(const ValueKey('wishlist_store_market-0')),
-      );
-      final second = tester.getRect(
-        find.byKey(const ValueKey('wishlist_store_market-1')),
-      );
-      expect(first.height, StoreMarketCard.height);
-      expect(first.center.dy, second.center.dy);
-      expect(first.width, lessThan(tester.getSize(slider).width));
+        final slider = find.byKey(
+          const ValueKey('wishlist_stores_horizontal_slider'),
+        );
+        expect(
+          tester.widget<ListView>(slider).scrollDirection,
+          Axis.horizontal,
+        );
+        final first = tester.getRect(
+          find.byKey(const ValueKey('wishlist_store_market-0')),
+        );
+        final second = tester.getRect(
+          find.byKey(const ValueKey('wishlist_store_market-1')),
+        );
+        expect(first.height, StoreMarketCard.height);
+        expect(first.center.dy, second.center.dy);
+        expect(first.width, lessThan(tester.getSize(slider).width));
 
-      await tester.drag(
-        slider,
-        Offset(direction == TextDirection.rtl ? 500 : -500, 0),
-      );
-      await tester.pumpAndSettle();
-      final last = find.byKey(const ValueKey('wishlist_store_market-2'));
-      expect(last.hitTestable(), findsOneWidget);
-      await tester.tap(last);
-      await tester.pumpAndSettle();
-      expect(openedStore?.marketId, 'market-2');
-      expect(tester.takeException(), isNull);
-    });
+        await tester.drag(
+          slider,
+          Offset(direction == TextDirection.rtl ? 500 : -500, 0),
+        );
+        await tester.pumpAndSettle();
+        final last = find.byKey(const ValueKey('wishlist_store_market-2'));
+        expect(last.hitTestable(), findsOneWidget);
+        await tester.tap(last);
+        await tester.pumpAndSettle();
+        expect(openedStore?.marketId, 'market-2');
+        expect(find.byType(BrandProductsView), findsOneWidget);
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(last.hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        // Remove the first card while its destination is open. The remaining
+        // cards move into its old list slot without retargeting the active page.
+        await tester.drag(
+          slider,
+          Offset(direction == TextDirection.rtl ? -1000 : 1000, 0),
+        );
+        await tester.pumpAndSettle();
+        final firstStore = find.byKey(
+          const ValueKey('wishlist_store_market-0'),
+        );
+        expect(firstStore.hitTestable(), findsOneWidget);
+        await tester.tap(firstStore);
+        await tester.pumpAndSettle();
+        expect(openedStore?.marketId, 'market-0');
+
+        expect(await marketWishlist.toggle(markets[0]), isFalse);
+        await tester.pumpAndSettle();
+        expect(
+          tester
+              .widget<BrandProductsView>(find.byType(BrandProductsView))
+              .marketId,
+          'market-0',
+        );
+        expect(tester.takeException(), isNull);
+
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(firstStore, findsNothing);
+        final remainingStore = find.byKey(
+          const ValueKey('wishlist_store_market-1'),
+        );
+        expect(remainingStore.hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(remainingStore);
+        await tester.pumpAndSettle();
+        expect(openedStore?.marketId, 'market-1');
+        expect(
+          tester
+              .widget<BrandProductsView>(find.byType(BrandProductsView))
+              .marketId,
+          'market-1',
+        );
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 }
 

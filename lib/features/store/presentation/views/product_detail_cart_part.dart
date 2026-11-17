@@ -6,6 +6,8 @@ class _BottomAddToCartBar extends StatelessWidget {
     required this.quantity,
     required this.price,
     required this.isOutOfStock,
+    required this.isBusy,
+    required this.addButtonKey,
     required this.onDecrease,
     required this.onIncrease,
     required this.onAddToCart,
@@ -15,6 +17,8 @@ class _BottomAddToCartBar extends StatelessWidget {
   final int quantity;
   final double price;
   final bool isOutOfStock;
+  final bool isBusy;
+  final Key addButtonKey;
   final VoidCallback onDecrease;
   final VoidCallback onIncrease;
   final VoidCallback onAddToCart;
@@ -22,7 +26,7 @@ class _BottomAddToCartBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final total = price * quantity;
-    final canAdd = quantity > 0 && !isOutOfStock;
+    final canAdd = quantity > 0 && !isOutOfStock && !isBusy;
 
     return SafeArea(
       top: false,
@@ -51,45 +55,56 @@ class _BottomAddToCartBar extends StatelessWidget {
             _QuantityStepper(
               quantity: quantity,
               isDark: isDark,
-              onDecrease: onDecrease,
-              onIncrease: onIncrease,
+              onDecrease: isBusy ? null : onDecrease,
+              onIncrease: isBusy ? null : onIncrease,
             ),
             const SizedBox(width: 14),
             Expanded(
-              child: ElevatedButton(
-                onPressed: canAdd ? onAddToCart : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: canAdd
-                      ? AppColors.primary
-                      : (isDark
-                            ? Colors.white.withValues(alpha: 0.10)
-                            : Colors.black.withValues(alpha: 0.08)),
-                  foregroundColor: canAdd
-                      ? Colors.white
-                      : (isDark ? Colors.white54 : Colors.black45),
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(AppIcons.bag_2, size: 19),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: AppCurrencyText(
-                        text: quantity > 0
-                            ? '${context.tr('Add')} ${AppCurrency.format(total)}'
-                            : context.tr('Add to Bag'),
-                        currencyColor: AppColors.currency,
-                        style: const TextStyle(fontWeight: FontWeight.w900),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+              child: AppButtonFeedback(
+                builder: (_, pressStates) => ElevatedButton(
+                  key: addButtonKey,
+                  statesController: pressStates,
+                  onPressed: canAdd ? onAddToCart : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: canAdd
+                        ? AppColors.primary
+                        : (isDark
+                              ? Colors.white.withValues(alpha: 0.10)
+                              : Colors.black.withValues(alpha: 0.08)),
+                    foregroundColor: canAdd
+                        ? Colors.white
+                        : (isDark ? Colors.white54 : Colors.black45),
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ],
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (isBusy)
+                        const SizedBox(
+                          width: 19,
+                          height: 19,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      else
+                        const Icon(AppIcons.bag_2, size: 19),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: AppCurrencyText(
+                          text: quantity > 0
+                              ? '${context.tr('Add')} ${AppCurrency.format(total)}'
+                              : context.tr('Add to Bag'),
+                          currencyColor: AppColors.currency,
+                          style: const TextStyle(fontWeight: FontWeight.w900),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -110,8 +125,8 @@ class _QuantityStepper extends StatelessWidget {
 
   final int quantity;
   final bool isDark;
-  final VoidCallback onDecrease;
-  final VoidCallback onIncrease;
+  final VoidCallback? onDecrease;
+  final VoidCallback? onIncrease;
 
   @override
   Widget build(BuildContext context) {
@@ -162,7 +177,7 @@ class _QtyButton extends StatelessWidget {
   });
 
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
   final bool isDark;
   final bool isPrimary;
 

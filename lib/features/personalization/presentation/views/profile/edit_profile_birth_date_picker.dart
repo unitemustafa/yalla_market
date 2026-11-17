@@ -351,21 +351,25 @@ class _BirthDatePickerSheetState extends State<_BirthDatePickerSheet> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () => Navigator.pop(context, _selectedDate),
-                        icon: const Icon(AppIcons.tick_circle, size: 18),
-                        label: Text(
-                          context.tr('Save'),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(vertical: 13),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                      child: AppButtonFeedback(
+                        builder: (_, pressStates) => ElevatedButton.icon(
+                          statesController: pressStates,
+                          onPressed: () =>
+                              Navigator.pop(context, _selectedDate),
+                          icon: const Icon(AppIcons.tick_circle, size: 18),
+                          label: Text(
+                            context.tr('Save'),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(vertical: 13),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
                           ),
                         ),
                       ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -6,6 +8,7 @@ import '../../../../core/constants/app_assets.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../app/routing/app_routes.dart';
+import '../../../../app/routing/double_back_to_exit.dart';
 import '../../domain/entities/onboarding_model.dart';
 import '../cubit/onboarding_cubit.dart';
 import '../widgets/onboarding_page_item.dart';
@@ -174,245 +177,241 @@ class _OnboardingViewState extends State<OnboardingView> {
     final isLastPage = _currentIndex == pages.length - 1;
     final reduceMotion = MediaQuery.disableAnimationsOf(context);
 
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: _currentIndex == 0
-            ? Brightness.light
-            : Brightness.dark,
-        statusBarBrightness: _currentIndex == 0
-            ? Brightness.dark
-            : Brightness.light,
-        systemNavigationBarColor: _navy,
-        systemNavigationBarIconBrightness: Brightness.light,
-      ),
-      child: Scaffold(
-        backgroundColor: _topColors[_currentIndex],
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            AnimatedBuilder(
-              animation: _pageController,
-              builder: (context, child) => DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      _backgroundColor(_topColors),
-                      _backgroundColor(_bottomColors),
-                    ],
-                    stops: const [0.4, 0.6],
-                  ),
-                ),
-              ),
-            ),
-            PageView.builder(
-              controller: _pageController,
-              itemCount: pages.length,
-              onPageChanged: (index) {
-                setState(() => _currentIndex = index);
-              },
-              itemBuilder: (context, index) => AnimatedBuilder(
-                animation: _pageController,
-                child: RepaintBoundary(
-                  child: OnboardingPageItem(
-                    model: pages[index],
-                    accentColor: _topColors[index],
-                    bottomColor: _bottomColors[index],
-                    showBackground: false,
-                    pageNumber: index + 1,
-                    totalPages: pages.length,
-                  ),
-                ),
-                builder: (context, child) {
-                  final distance = reduceMotion
-                      ? 0.0
-                      : (_pagePosition - index).abs().clamp(0.0, 1.0);
-                  final progress = Curves.easeInOut.transform(distance);
-                  return Opacity(
-                    opacity: 1 - progress * 0.35,
-                    child: Transform.scale(
-                      scale: 1 - progress * 0.035,
-                      child: child,
-                    ),
-                  );
-                },
-              ),
-            ),
-            PositionedDirectional(
-              top: 0,
-              end: 0,
-              child: SafeArea(
-                minimum: const EdgeInsets.all(16),
-                child: AnimatedOpacity(
-                  opacity: isLastPage ? 0 : 1,
-                  duration: reduceMotion
-                      ? Duration.zero
-                      : const Duration(milliseconds: 160),
-                  child: IgnorePointer(
-                    ignoring: isLastPage,
-                    child: TextButton(
-                      onPressed: _isFinishing ? null : _finishOnboarding,
-                      style: TextButton.styleFrom(
-                        foregroundColor:
-                            _topColors[_currentIndex].computeLuminance() > 0.5
-                            ? _navy
-                            : _gold,
-                        backgroundColor: Colors.transparent,
-                        minimumSize: const Size(64, 44),
-                        textStyle: Theme.of(context).textTheme.labelLarge
-                            ?.copyWith(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                            ),
+    return DoubleBackToExit(
+      enabled: _currentIndex == 0,
+      child: PopScope<Object?>(
+        canPop: _currentIndex == 0,
+        onPopInvokedWithResult: (didPop, result) {
+          if (!didPop && _currentIndex > 0) _onPrevious();
+        },
+        child: AnnotatedRegion<SystemUiOverlayStyle>(
+          value: SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: _currentIndex == 0
+                ? Brightness.light
+                : Brightness.dark,
+            statusBarBrightness: _currentIndex == 0
+                ? Brightness.dark
+                : Brightness.light,
+            systemNavigationBarColor: _navy,
+            systemNavigationBarIconBrightness: Brightness.light,
+          ),
+          child: Scaffold(
+            backgroundColor: _topColors[_currentIndex],
+            body: Stack(
+              fit: StackFit.expand,
+              children: [
+                AnimatedBuilder(
+                  animation: _pageController,
+                  builder: (context, child) => DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          _backgroundColor(_topColors),
+                          _backgroundColor(_bottomColors),
+                        ],
+                        stops: const [0.4, 0.6],
                       ),
-                      child: Text(strings.skip),
                     ),
                   ),
                 ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      _navy.withValues(alpha: 0),
-                      _navy.withValues(alpha: 0.85),
-                    ],
+                PageView.builder(
+                  controller: _pageController,
+                  itemCount: pages.length,
+                  onPageChanged: (index) {
+                    setState(() => _currentIndex = index);
+                  },
+                  itemBuilder: (context, index) => AnimatedBuilder(
+                    animation: _pageController,
+                    child: RepaintBoundary(
+                      child: OnboardingPageItem(
+                        model: pages[index],
+                        accentColor: _topColors[index],
+                        bottomColor: _bottomColors[index],
+                        showBackground: false,
+                        pageNumber: index + 1,
+                        totalPages: pages.length,
+                      ),
+                    ),
+                    builder: (context, child) {
+                      final distance = reduceMotion
+                          ? 0.0
+                          : (_pagePosition - index).abs().clamp(0.0, 1.0);
+                      final progress = Curves.easeInOut.transform(distance);
+                      return Opacity(
+                        opacity: 1 - progress * 0.35,
+                        child: Transform.scale(
+                          scale: 1 - progress * 0.035,
+                          child: child,
+                        ),
+                      );
+                    },
                   ),
                 ),
-                child: SafeArea(
-                  top: false,
-                  minimum: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 480),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedBuilder(
-                            animation: _pageController,
-                            builder: (context, child) => Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: List.generate(pages.length, (index) {
-                                final selected =
-                                    1 -
-                                    (_pagePosition - index).abs().clamp(
-                                      0.0,
-                                      1.0,
-                                    );
-                                return Container(
-                                  width: 8 + 20 * selected,
-                                  height: 8,
-                                  margin: const EdgeInsets.symmetric(
-                                    horizontal: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Color.lerp(
-                                      Colors.white.withValues(alpha: 0.65),
-                                      _gold,
-                                      selected,
-                                    ),
-                                    borderRadius: BorderRadius.circular(8),
-                                  ),
-                                );
-                              }),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-                          Row(
-                            children: [
-                              if (_currentIndex > 0) ...[
-                                SizedBox(
-                                  width: 52,
-                                  height: 52,
-                                  child: IconButton(
-                                    onPressed: _isFinishing
-                                        ? null
-                                        : _onPrevious,
-                                    tooltip: MaterialLocalizations.of(
-                                      context,
-                                    ).backButtonTooltip,
-                                    style: IconButton.styleFrom(
-                                      foregroundColor: Colors.white,
-                                      backgroundColor: _navy,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    icon: Icon(
-                                      context.isArabicLanguage
-                                          ? AppIcons.arrow_right_3
-                                          : AppIcons.arrow_left_2,
-                                      size: 20,
-                                    ),
-                                  ),
+                PositionedDirectional(
+                  top: 0,
+                  end: 0,
+                  child: SafeArea(
+                    minimum: const EdgeInsets.all(16),
+                    child: AnimatedOpacity(
+                      opacity: isLastPage ? 0 : 1,
+                      duration: reduceMotion
+                          ? Duration.zero
+                          : const Duration(milliseconds: 160),
+                      child: IgnorePointer(
+                        ignoring: isLastPage,
+                        child: TextButton(
+                          onPressed: _isFinishing ? null : _finishOnboarding,
+                          style: TextButton.styleFrom(
+                            foregroundColor:
+                                _topColors[_currentIndex].computeLuminance() >
+                                    0.5
+                                ? _navy
+                                : _gold,
+                            backgroundColor: Colors.transparent,
+                            minimumSize: const Size(64, 44),
+                            textStyle: Theme.of(context).textTheme.labelLarge
+                                ?.copyWith(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                const SizedBox(width: 12),
-                              ],
-                              Expanded(
-                                child: SizedBox(
-                                  height: 52,
-                                  child: ElevatedButton(
-                                    onPressed: _isFinishing ? null : _onNext,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: _gold,
-                                      foregroundColor: _navy,
-                                      disabledBackgroundColor: _gold,
-                                      disabledForegroundColor: _navy,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                    ),
-                                    child: _isFinishing
-                                        ? const SizedBox(
-                                            width: 22,
-                                            height: 22,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: _navy,
-                                            ),
-                                          )
-                                        : FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                Text(
-                                                  isLastPage
-                                                      ? strings.startShopping
-                                                      : strings.continueText,
-                                                ),
-                                                const SizedBox(width: 10),
-                                                Icon(
-                                                  context.isArabicLanguage
-                                                      ? AppIcons.arrow_left_2
-                                                      : AppIcons.arrow_right_3,
-                                                  size: 18,
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                  ),
-                                ),
-                              ),
-                            ],
                           ),
+                          child: Text(strings.skip),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          _navy.withValues(alpha: 0),
+                          _navy.withValues(alpha: 0.85),
                         ],
                       ),
                     ),
+                    child: SafeArea(
+                      top: false,
+                      minimum: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 480),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              AnimatedBuilder(
+                                animation: _pageController,
+                                builder: (context, child) => Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: List.generate(pages.length, (
+                                    index,
+                                  ) {
+                                    final selected =
+                                        1 -
+                                        (_pagePosition - index).abs().clamp(
+                                          0.0,
+                                          1.0,
+                                        );
+                                    return Container(
+                                      width: 8 + 20 * selected,
+                                      height: 8,
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Color.lerp(
+                                          Colors.white.withValues(alpha: 0.65),
+                                          _gold,
+                                          selected,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                    );
+                                  }),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 52,
+                                      child: AppButtonFeedback(
+                                        builder: (_, pressStates) => ElevatedButton(
+                                          statesController: pressStates,
+                                          onPressed: _isFinishing
+                                              ? null
+                                              : _onNext,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: _gold,
+                                            foregroundColor: _navy,
+                                            disabledBackgroundColor: _gold,
+                                            disabledForegroundColor: _navy,
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(14),
+                                            ),
+                                          ),
+                                          child: _isFinishing
+                                              ? const SizedBox(
+                                                  width: 22,
+                                                  height: 22,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: _navy,
+                                                      ),
+                                                )
+                                              : FittedBox(
+                                                  fit: BoxFit.scaleDown,
+                                                  child: Row(
+                                                    mainAxisSize:
+                                                        MainAxisSize.min,
+                                                    children: [
+                                                      Text(
+                                                        isLastPage
+                                                            ? strings
+                                                                  .startShopping
+                                                            : strings
+                                                                  .continueText,
+                                                      ),
+                                                      const SizedBox(width: 10),
+                                                      Icon(
+                                                        context.isArabicLanguage
+                                                            ? AppIcons
+                                                                  .arrow_left_2
+                                                            : AppIcons
+                                                                  .arrow_right_3,
+                                                        size: 18,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -14,6 +14,10 @@ abstract final class BrandTexts {
 abstract final class CommonTexts {
   static const pressBackAgainToExit = 'Press back again to exit';
   static const loadMore = 'Load more';
+  static const startupFailureTitle = 'Could not start the app';
+  static const startupTimeout =
+      'Starting the app took too long. Please check your connection and try again.';
+  static const startupFailure = 'We could not start the app. Please try again.';
   // ─── الأزرار العامة ───
   static const skip = 'Skip';
   static const continueText = 'Continue';

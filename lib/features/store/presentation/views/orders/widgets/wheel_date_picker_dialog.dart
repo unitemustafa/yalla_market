@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 
 import '../../../../../../../core/constants/app_colors.dart';
@@ -293,17 +294,20 @@ class _WheelDatePickerDialogState extends State<WheelDatePickerDialog> {
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: FilledButton(
-                    onPressed: () => Navigator.pop(context, _selectedDate),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      minimumSize: const Size.fromHeight(_actionHeight),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(_controlRadius),
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => FilledButton(
+                      statesController: pressStates,
+                      onPressed: () => Navigator.pop(context, _selectedDate),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(_actionHeight),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(_controlRadius),
+                        ),
                       ),
+                      child: Text(context.tr('Confirm')),
                     ),
-                    child: Text(context.tr('Confirm')),
                   ),
                 ),
               ],

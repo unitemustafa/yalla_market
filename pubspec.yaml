@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.36+12069
+version: 1.0.38+12071
 
 environment:
   sdk: ^3.11.4
@@ -32,6 +32,9 @@ dependencies:
     sdk: flutter
   flutter_localizations:
     sdk: flutter
+
+  # Material container transforms, compatible with Flutter 3.41.
+  animations: ^2.2.0
 
   # Facebook Limited Login requires a SHA-256 nonce for Firebase on iOS.
   crypto: ^3.0.7
@@ -68,6 +71,7 @@ dependencies:
   web: ^1.1.1
   font_awesome_flutter: ^11.0.0
   package_info_plus: ^10.2.1
+  animated_theme_switcher: ^2.0.10
 
 dev_dependencies:
   # Host-only heap snapshots for the opt-in performance diagnostic.

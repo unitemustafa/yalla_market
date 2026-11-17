@@ -6,6 +6,7 @@ import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
 import '../../../../../core/presentation/widgets/images/app_avatar.dart';
+import '../../../../../core/theme/app_theme_toggle.dart';
 import '../controllers/user_profile_controller.dart';
 import 'profile_completion_floating_button.dart';
 
@@ -48,6 +49,8 @@ class SettingsProfileTopBar extends StatelessWidget {
             ],
           ),
         ),
+        const AppThemeToggle(),
+        const SizedBox(width: 8),
         Tooltip(
           message: context.tr('App preferences'),
           child: Material(

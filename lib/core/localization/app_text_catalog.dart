@@ -2916,6 +2916,16 @@ abstract final class AppTextCatalog {
     'Search': (ar: ar.CommonTexts.search, en: en.CommonTexts.search),
     'Submit': (ar: ar.CommonTexts.submit, en: en.CommonTexts.submit),
     'Retry': (ar: ar.CommonTexts.retry, en: en.CommonTexts.retry),
+    'Could not start the app': (
+      ar: ar.CommonTexts.startupFailureTitle,
+      en: en.CommonTexts.startupFailureTitle,
+    ),
+    'Starting the app took too long. Please check your connection and try again.':
+        (ar: ar.CommonTexts.startupTimeout, en: en.CommonTexts.startupTimeout),
+    'We could not start the app. Please try again.': (
+      ar: ar.CommonTexts.startupFailure,
+      en: en.CommonTexts.startupFailure,
+    ),
     'Refresh': (ar: ar.CommonTexts.refresh, en: en.CommonTexts.refresh),
     'Try again': (ar: ar.CommonTexts.tryAgain, en: en.CommonTexts.tryAgain),
     'Yes': (ar: ar.CommonTexts.yes, en: en.CommonTexts.yes),

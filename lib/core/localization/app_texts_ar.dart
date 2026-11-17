@@ -12,6 +12,10 @@ abstract final class BrandTexts {
 
 /// الأزرار والرسائل العامة.
 abstract final class CommonTexts {
+  static const startupFailureTitle = 'تعذر بدء التطبيق';
+  static const startupTimeout =
+      'بدء التطبيق استغرق وقتًا أطول من المتوقع. تأكد من الاتصال وحاول مرة أخرى.';
+  static const startupFailure = 'تعذر بدء التطبيق. حاول مرة أخرى.';
   static const pressBackAgainToExit = 'اضغط رجوع مرة تانية للخروج';
   static const loadMore = 'تحميل المزيد';
   // ─── الأزرار العامة ───

@@ -271,6 +271,8 @@ void main() {
     await tester.pumpWidget(const MaterialApp(home: AppPreferencesView()));
 
     expect(find.text('Currency'), findsOneWidget);
+    expect(find.text('Theme'), findsNothing);
+    expect(find.text('Appearance'), findsNothing);
     expect(find.text('EGP'), findsOneWidget);
     expect(find.text('Egyptian Pound'), findsNothing);
   });

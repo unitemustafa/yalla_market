@@ -25,9 +25,7 @@ void main() {
     AppLanguageController.instance.value = AppLanguage.english;
   });
 
-  testWidgets('uses a fixed layout and the same back button as signup', (
-    tester,
-  ) async {
+  testWidgets('uses a fixed layout without a back button', (tester) async {
     for (final size in const [Size(320, 480), Size(360, 600), Size(600, 900)]) {
       await _pumpForgetPassword(
         tester,
@@ -40,9 +38,8 @@ void main() {
         find.byKey(const ValueKey('fixed_auth_page_scroll')),
       );
       expect(fixedScroll.physics, isA<NeverScrollableScrollPhysics>());
-      final topBar = tester.widget<AuthTopBar>(find.byType(AuthTopBar));
-      expect(topBar.showBack, isTrue);
-      expect(topBar.showClose, isFalse);
+      expect(find.byType(AuthTopBar), findsNothing);
+      expect(find.byType(BackButton), findsNothing);
       final artwork = tester.widget<Container>(
         find.byKey(const ValueKey('auth_lock_artwork')),
       );

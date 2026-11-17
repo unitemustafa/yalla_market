@@ -18,7 +18,7 @@ are supported and release-tested only on mobile.
 - Authentication, email verification, password recovery, and secure sessions
 - Delivery-city selection, saved addresses, geolocation, and MapTiler maps
 - Arabic and English localization with right-to-left layout support
-- System, light, and dark appearance modes
+- Light and dark appearance with an animated theme toggle
 - Deep links, Firebase push notifications, and Crashlytics reporting
 - Offline-aware networking with local demo repositories for development
 

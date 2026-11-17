@@ -174,10 +174,8 @@ class PickerHeader extends StatelessWidget {
           _PickerHeaderButton(
             key: const ValueKey('map-picker-close'),
             onPressed: onClose,
-            icon: Directionality.of(context) == TextDirection.rtl
-                ? AppIcons.arrow_right_3
-                : AppIcons.arrow_left_2,
-            tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+            icon: Icons.close_rounded,
+            tooltip: MaterialLocalizations.of(context).closeButtonTooltip,
           ),
           Expanded(
             child: Padding(

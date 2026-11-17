@@ -1,10 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
 import 'package:yalla_market/core/network/api_result.dart';
 import 'package:yalla_market/features/location/data/repositories/region_suggestion_preferences_repository.dart';
 import 'package:yalla_market/features/location/domain/entities/city_data.dart';
+import 'package:yalla_market/features/location/domain/entities/dismissed_region_suggestion.dart';
 import 'package:yalla_market/features/location/domain/repositories/location_repository.dart';
+import 'package:yalla_market/features/location/domain/repositories/region_suggestion_repository.dart';
 import 'package:yalla_market/features/location/domain/usecases/location_usecases.dart';
 import 'package:yalla_market/features/location/domain/usecases/region_suggestion_usecases.dart';
 import 'package:yalla_market/features/location/presentation/cubit/location_cubit.dart';
@@ -124,15 +128,62 @@ void main() {
       expect(city, isNull);
       expect(cubit.state.selectedCity, isNull);
     });
+
+    test(
+      'startup hydration sets the city without activating preferences twice',
+      () {
+        final repository = _FakeLocationRepository();
+        final cubit = _locationCubit(repository);
+        const city = CityData(name: 'Cairo', slug: 'cairo', serviceCityId: 1);
+
+        cubit.hydrateStartupUser('customer-1', city: city);
+
+        expect(repository.activateUserCalls, 0);
+        expect(cubit.state.selectedCity, city);
+      },
+    );
+
+    test(
+      'late startup suggestion restore cannot leak into a new user scope',
+      () async {
+        final pendingRestore =
+            Completer<ApiResult<DismissedRegionSuggestion?>>();
+        final suggestions = _ControlledSuggestionRepository(pendingRestore);
+        final cubit = _locationCubit(
+          _FakeLocationRepository(),
+          suggestions: RegionSuggestionUseCases(suggestions),
+        );
+        const current = CityData(name: 'Cairo', slug: '1', serviceCityId: 1);
+        const detected = CityData(name: 'Giza', slug: '2', serviceCityId: 2);
+
+        cubit.hydrateStartupUser('customer-1', city: current);
+        cubit.clearSession();
+        pendingRestore.complete(
+          ApiResult.success(
+            DismissedRegionSuggestion(
+              suggestionKey: '1:1->2:2',
+              dismissedAt: DateTime.now().toUtc(),
+            ),
+          ),
+        );
+        await Future<void>.microtask(() {});
+
+        expect(cubit.wasSuggestionDismissed(current, detected), isFalse);
+        await cubit.close();
+      },
+    );
   });
 }
 
-LocationCubit _locationCubit(_FakeLocationRepository repository) {
+LocationCubit _locationCubit(
+  _FakeLocationRepository repository, {
+  RegionSuggestionUseCases? suggestions,
+}) {
   return LocationCubit(
     _useCases(repository),
-    regionSuggestions: RegionSuggestionUseCases(
-      RegionSuggestionPreferencesRepository(),
-    ),
+    regionSuggestions:
+        suggestions ??
+        RegionSuggestionUseCases(RegionSuggestionPreferencesRepository()),
   );
 }
 
@@ -154,7 +205,7 @@ LocationUseCases _useCases(_FakeLocationRepository repository) {
 }
 
 class _FakeLocationRepository implements LocationRepository, LocationUserScope {
-  const _FakeLocationRepository({
+  _FakeLocationRepository({
     this.detection,
     this.failDetection = false,
     this.failSelectedCity = false,
@@ -163,9 +214,11 @@ class _FakeLocationRepository implements LocationRepository, LocationUserScope {
   final GpsRegionDetection? detection;
   final bool failDetection;
   final bool failSelectedCity;
+  int activateUserCalls = 0;
 
   @override
   Future<ApiResult<void>> activateUser(String userId) async {
+    activateUserCalls += 1;
     return const ApiResult.success(null);
   }
 
@@ -250,4 +303,24 @@ class _FakeLocationRepository implements LocationRepository, LocationUserScope {
       CityData(name: 'Cairo', slug: '1', serviceCityId: 1),
     );
   }
+}
+
+class _ControlledSuggestionRepository implements RegionSuggestionRepository {
+  _ControlledSuggestionRepository(this.pendingRestore);
+
+  final Completer<ApiResult<DismissedRegionSuggestion?>> pendingRestore;
+
+  @override
+  Future<ApiResult<void>> clearDismissed(String userKey) async =>
+      const ApiResult.success(null);
+
+  @override
+  Future<ApiResult<DismissedRegionSuggestion?>> getDismissed(String userKey) =>
+      pendingRestore.future;
+
+  @override
+  Future<ApiResult<void>> saveDismissed(
+    String userKey,
+    DismissedRegionSuggestion suggestion,
+  ) async => const ApiResult.success(null);
 }

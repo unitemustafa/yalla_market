@@ -1,3 +1,5 @@
+import 'package:yalla_market/app/routing/auth_guard.dart';
+import 'package:yalla_market/features/store/presentation/views/product_detail_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -25,7 +27,9 @@ void main() {
     await cartCubit.loadCartForUser('product-card-user');
     addTearDown(cartCubit.close);
     addTearDown(wishlistCubit.close);
-    ProductDetailRouteArgs? capturedArgs;
+    AuthGuard.setAuthenticated();
+    addTearDown(AuthGuard.clearAuthentication);
+    final observer = _ProductRouteObserver();
 
     await tester.pumpWidget(
       MultiBlocProvider(
@@ -34,16 +38,7 @@ void main() {
           BlocProvider<WishlistCubit>.value(value: wishlistCubit),
         ],
         child: MaterialApp(
-          onGenerateRoute: (settings) {
-            if (settings.name == AppRoutes.productDetail) {
-              capturedArgs = settings.arguments as ProductDetailRouteArgs;
-              return MaterialPageRoute<void>(
-                builder: (_) => const Scaffold(body: Text('Details route')),
-                settings: settings,
-              );
-            }
-            return null;
-          },
+          navigatorObservers: [observer],
           home: const Scaffold(
             body: SizedBox(
               width: 220,
@@ -119,8 +114,9 @@ void main() {
     await tester.tap(find.text('Backend product'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Details route'), findsOneWidget);
-    expect(capturedArgs?.productId, 'backend-product-42');
+    expect(find.byType(ProductDetailView), findsOneWidget);
+    expect(observer.arguments?.productId, 'backend-product-42');
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('shows discounted variant range and Arabic discount label', (
@@ -235,4 +231,16 @@ void main() {
     expect(cardRect.bottom - addButtonRect.bottom, lessThanOrEqualTo(8));
     expect(tester.takeException(), isNull);
   });
+}
+
+class _ProductRouteObserver extends NavigatorObserver {
+  ProductDetailRouteArgs? arguments;
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    if (route.settings.name == AppRoutes.productDetail) {
+      arguments = route.settings.arguments as ProductDetailRouteArgs;
+    }
+  }
 }

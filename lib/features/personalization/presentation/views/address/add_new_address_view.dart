@@ -439,7 +439,6 @@ class _AddNewAddressViewState extends State<AddNewAddressView> {
                       children: [
                         AddressPageHeader(
                           title: _isEditing ? 'Edit Address' : 'New address',
-                          onBack: () => Navigator.maybePop(context),
                         ),
                         const SizedBox(height: 10),
                         AddressMapPreview(

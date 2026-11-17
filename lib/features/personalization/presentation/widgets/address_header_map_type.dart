@@ -12,14 +12,9 @@ import '../../../location/domain/services/device_location_service.dart';
 import '../views/address/address_location_picker_view.dart';
 
 class AddressPageHeader extends StatelessWidget {
-  const AddressPageHeader({
-    super.key,
-    required this.title,
-    required this.onBack,
-  });
+  const AddressPageHeader({super.key, required this.title});
 
   final String title;
-  final VoidCallback onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -34,32 +29,6 @@ class AddressPageHeader extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurface,
               fontSize: AppFontSizes.bodyLarge,
               fontWeight: FontWeight.w900,
-            ),
-          ),
-          PositionedDirectional(
-            start: 0,
-            child: SizedBox.square(
-              dimension: 42,
-              child: Material(
-                color: Colors.transparent,
-                shape: CircleBorder(
-                  side: BorderSide(
-                    color: Theme.of(
-                      context,
-                    ).dividerColor.withValues(alpha: 0.5),
-                  ),
-                ),
-                child: IconButton(
-                  padding: EdgeInsets.zero,
-                  onPressed: onBack,
-                  iconSize: 22,
-                  icon: Icon(
-                    Directionality.of(context) == TextDirection.rtl
-                        ? Icons.arrow_forward_rounded
-                        : Icons.arrow_back_rounded,
-                  ),
-                ),
-              ),
             ),
           ),
         ],

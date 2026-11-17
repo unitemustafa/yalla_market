@@ -26,6 +26,7 @@ class ProductCategoryCampaignView extends StatelessWidget {
           ? AppColors.darkBackground
           : const Color(0xFFF7F8FB),
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text(categoryName.isEmpty ? 'منتجات التصنيف' : categoryName),
         centerTitle: true,
       ),

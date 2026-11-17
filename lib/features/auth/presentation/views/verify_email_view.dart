@@ -40,6 +40,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   int _remainingSeconds = 0;
   bool _isConfirming = false;
   bool _isResending = false;
+  bool _isLeaving = false;
 
   bool get _isCoolingDown => _remainingSeconds > 0;
   bool get _hasCompleteCode => _codeController.text.length == _codeLength;
@@ -67,7 +68,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   }
 
   Future<void> _onResend() async {
-    if (_isCoolingDown || _isResending) return;
+    if (_isCoolingDown || _isResending || _isLeaving) return;
 
     final authCubit = context.read<AuthCubit>();
 
@@ -119,7 +120,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   }
 
   Future<void> _onConfirm() async {
-    if (!_hasCompleteCode || _isConfirming) return;
+    if (!_hasCompleteCode || _isConfirming || _isLeaving) return;
 
     final authCubit = context.read<AuthCubit>();
 
@@ -241,7 +242,14 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   }
 
   Future<void> _leaveVerification() async {
-    await context.read<AuthCubit>().abandonPendingVerification();
+    if (_isLeaving || _isConfirming) return;
+    setState(() => _isLeaving = true);
+    try {
+      await context.read<AuthCubit>().abandonPendingVerification();
+    } catch (_) {
+      if (mounted) setState(() => _isLeaving = false);
+      rethrow;
+    }
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -277,6 +285,9 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
 
     return PopScope(
       canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) unawaited(_leaveVerification());
+      },
       child: Scaffold(
         body: DecoratedBox(
           decoration: _buildBackgroundDecoration(isDarkMode),
@@ -290,8 +301,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   AuthTopBar(
-                    showBack: true,
-                    onBack: () {
+                    showClose: true,
+                    onClose: () {
                       unawaited(_leaveVerification());
                     },
                   ),

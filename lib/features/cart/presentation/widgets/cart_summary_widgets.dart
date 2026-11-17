@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/constants/app_colors.dart';
@@ -238,18 +239,21 @@ class CheckoutSummary extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: onCheckout,
-                    icon: const Icon(AppIcons.card_tick, size: 19),
-                    label: Text(context.tr('Checkout')),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
+                  child: AppButtonFeedback(
+                    builder: (_, pressStates) => ElevatedButton.icon(
+                      statesController: pressStates,
+                      onPressed: onCheckout,
+                      icon: const Icon(AppIcons.card_tick, size: 19),
+                      label: Text(context.tr('Checkout')),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
                       ),
-                      elevation: 0,
                     ),
                   ),
                 ),

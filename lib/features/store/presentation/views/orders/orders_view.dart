@@ -34,6 +34,30 @@ class _OrdersViewState extends State<OrdersView>
   late final AppListEntranceController _listEntrance;
   OrdersDateFilter? _dateFilter;
   DateTimeRange? _customDateRange;
+  Expando<OrderPresentationData> _presentation = Expando();
+  bool? _arabic;
+  (List<OrderData>, ({DateTime start, DateTime end})?)? _filterInputs;
+  List<OrderData> _filtered = const [];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final arabic = context.isArabicLanguage;
+    if (arabic != _arabic) {
+      _arabic = arabic;
+      _presentation = Expando();
+    }
+  }
+
+  static List<OrderData> _ordersOf(OrderHistoryState state) => switch (state) {
+    OrderHistoryReady(:final orders) => orders,
+    OrderHistoryFailure(:final orders) => orders,
+    OrderHistoryLoading(:final orders) => orders,
+    OrderHistoryInitial() => const [],
+  };
+
+  static bool _hasMore(OrderHistoryState state) =>
+      state is OrderHistoryReady && state.hasMore;
 
   @override
   void dispose() {
@@ -54,12 +78,7 @@ class _OrdersViewState extends State<OrdersView>
     await context.read<OrderHistoryCubit>().loadOrders(force: true);
     if (!mounted || widget.focusOrderId == null) return;
     final state = context.read<OrderHistoryCubit>().state;
-    final orders = switch (state) {
-      OrderHistoryReady(:final orders) => orders,
-      OrderHistoryFailure(:final orders) => orders,
-      OrderHistoryLoading(:final orders) => orders,
-      _ => const <OrderData>[],
-    };
+    final orders = _ordersOf(state);
     var match = orders
         .where((order) => int.tryParse(order.id) == widget.focusOrderId)
         .firstOrNull;
@@ -97,6 +116,16 @@ class _OrdersViewState extends State<OrdersView>
         ? AppColors.darkBackground
         : const Color(0xFFF7F8FB);
     return BlocConsumer<OrderHistoryCubit, OrderHistoryState>(
+      buildWhen: (previous, current) =>
+          previous.runtimeType != current.runtimeType ||
+          previous.hasLoaded != current.hasLoaded ||
+          previous.totalCount != current.totalCount ||
+          previous.deliveredCount != current.deliveredCount ||
+          _hasMore(previous) != _hasMore(current) ||
+          !identical(_ordersOf(previous), _ordersOf(current)) ||
+          (previous is OrderHistoryFailure &&
+              current is OrderHistoryFailure &&
+              previous.message != current.message),
       listener: (context, state) {
         if (state is OrderHistoryFailure &&
             (state.hasLoaded || state.orders.isNotEmpty)) {
@@ -108,17 +137,10 @@ class _OrdersViewState extends State<OrdersView>
         }
       },
       builder: (context, state) {
-        final loadedOrders = state is OrderHistoryReady
-            ? state.orders.map(_mapStoredOrder).toList(growable: false)
-            : state is OrderHistoryFailure
-            ? state.orders.map(_mapStoredOrder).toList(growable: false)
-            : state is OrderHistoryLoading
-            ? state.orders.map(_mapStoredOrder).toList(growable: false)
-            : const <OrderPresentationData>[];
-        final orders = loadedOrders;
+        final orders = _ordersOf(state);
         final filteredOrders = _filterOrders(orders);
         _listEntrance.prepare(
-          filteredOrders.map((order) => order.apiId),
+          filteredOrders.map((order) => order.id),
           disableAnimations: MediaQuery.disableAnimationsOf(context),
         );
 
@@ -131,7 +153,7 @@ class _OrdersViewState extends State<OrdersView>
               child:
                   (state is OrderHistoryInitial ||
                           state is OrderHistoryLoading && !state.hasLoaded) &&
-                      loadedOrders.isEmpty
+                      orders.isEmpty
                   ? ListView(
                       physics: AppRefreshIndicator.scrollPhysics,
                       padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
@@ -147,7 +169,7 @@ class _OrdersViewState extends State<OrdersView>
                     )
                   : state is OrderHistoryFailure &&
                         !state.hasLoaded &&
-                        loadedOrders.isEmpty
+                        orders.isEmpty
                   ? ListView(
                       physics: AppRefreshIndicator.scrollPhysics,
                       padding: const EdgeInsets.all(16),
@@ -173,34 +195,12 @@ class _OrdersViewState extends State<OrdersView>
                       separatorBuilder: (context, index) =>
                           const SizedBox(height: 12),
                       itemBuilder: (context, index) {
-                        if (state is OrderHistoryReady &&
-                            state.hasMore &&
+                        if (_hasMore(state) &&
                             index ==
                                 (filteredOrders.isEmpty
                                     ? 4
                                     : filteredOrders.length + 3)) {
-                          return Column(
-                            children: [
-                              if (state.moreError != null)
-                                Text(context.tr(state.moreError!)),
-                              TextButton(
-                                onPressed: state.loadingMore
-                                    ? null
-                                    : context
-                                          .read<OrderHistoryCubit>()
-                                          .loadMore,
-                                child: state.loadingMore
-                                    ? const CircularProgressIndicator()
-                                    : Text(
-                                        context.tr(
-                                          state.moreError == null
-                                              ? 'Load more'
-                                              : 'Try again',
-                                        ),
-                                      ),
-                              ),
-                            ],
-                          );
+                          return const _OrdersPaginationFooter();
                         }
                         if (index == 0) {
                           return const Column(
@@ -227,9 +227,16 @@ class _OrdersViewState extends State<OrdersView>
                         if (index == 2) {
                           return OrdersSummaryCard(
                             isDark: isDark,
-                            orders: filteredOrders,
-                            totalCount: state.totalCount,
-                            deliveredCount: state.deliveredCount,
+                            totalCount:
+                                state.totalCount ?? filteredOrders.length,
+                            deliveredCount:
+                                state.deliveredCount ??
+                                filteredOrders
+                                    .where(
+                                      (order) =>
+                                          order.statusLabel == 'Delivered',
+                                    )
+                                    .length,
                           );
                         }
 
@@ -239,7 +246,9 @@ class _OrdersViewState extends State<OrdersView>
                               : OrdersEmptyFilterState(isDark: isDark);
                         }
 
-                        final order = filteredOrders[index - 3];
+                        final order = _mapStoredOrder(
+                          filteredOrders[index - 3],
+                        );
 
                         return AppListEntranceItem(
                           key: ValueKey(order.apiId),
@@ -278,7 +287,7 @@ class _OrdersViewState extends State<OrdersView>
   }
 
   OrderPresentationData _mapStoredOrder(OrderData order) {
-    return OrderPresentationData(
+    return _presentation[order] ??= OrderPresentationData(
       apiId: order.id,
       status: order.statusLabel,
       placedAt: order.placedAt,
@@ -329,18 +338,20 @@ class _OrdersViewState extends State<OrdersView>
         '${_monthName(value.month)} ${value.year}';
   }
 
-  List<OrderPresentationData> _filterOrders(
-    List<OrderPresentationData> orders,
-  ) {
+  List<OrderData> _filterOrders(List<OrderData> orders) {
     final range = _selectedDateRange;
     if (range == null) return orders;
-
-    return orders
-        .where((order) {
-          final date = _dateOnly(order.placedAt);
-          return !date.isBefore(range.start) && !date.isAfter(range.end);
-        })
-        .toList(growable: false);
+    final inputs = (orders, range);
+    if (_filterInputs != inputs) {
+      _filterInputs = inputs;
+      _filtered = orders
+          .where((order) {
+            final date = _dateOnly(order.placedAt);
+            return !date.isBefore(range.start) && !date.isAfter(range.end);
+          })
+          .toList(growable: false);
+    }
+    return _filtered;
   }
 
   ({DateTime start, DateTime end})? get _selectedDateRange {
@@ -455,4 +466,34 @@ class _OrdersViewState extends State<OrdersView>
   void _showOrderDetails(BuildContext context, OrderPresentationData order) {
     showOrderDetailsDialog(context, order, mapStoredOrder: _mapStoredOrder);
   }
+}
+
+class _OrdersPaginationFooter extends StatelessWidget {
+  const _OrdersPaginationFooter();
+
+  @override
+  Widget build(BuildContext context) =>
+      BlocSelector<OrderHistoryCubit, OrderHistoryState, (bool, String?)>(
+        selector: (state) => state is OrderHistoryReady
+            ? (state.loadingMore, state.moreError)
+            : (false, null),
+        builder: (context, pagination) {
+          final (loading, error) = pagination;
+          return Column(
+            children: [
+              if (error != null) Text(context.tr(error)),
+              TextButton(
+                onPressed: loading
+                    ? null
+                    : context.read<OrderHistoryCubit>().loadMore,
+                child: loading
+                    ? const CircularProgressIndicator()
+                    : Text(
+                        context.tr(error == null ? 'Load more' : 'Try again'),
+                      ),
+              ),
+            ],
+          );
+        },
+      );
 }

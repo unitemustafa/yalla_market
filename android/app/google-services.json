@@ -82,6 +82,14 @@
           }
         },
         {
+          "client_id": "249021956753-mon1sca8nrmmrrhnmnbprqp77qc8vv3h.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yallamarket.app.com",
+            "certificate_hash": "c230c828c787be262415fefcc85ac2d2a77f1746"
+          }
+        },
+        {
           "client_id": "249021956753-f3tq7421jsen4r6jpc9nrbalgml338j1.apps.googleusercontent.com",
           "client_type": 3
         }

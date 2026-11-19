@@ -142,9 +142,16 @@ void main() {
       expect(find.text('Shipping company required'), findsOneWidget);
       expect(orderRepository.createCalls, 0);
 
+      final reviewRow = find.byWidgetPredicate(
+        (widget) => widget.runtimeType.toString() == '_CheckoutItemCard',
+        skipOffstage: false,
+      );
+      final originalRow = tester.widget(reviewRow);
       await tester.ensureVisible(find.text('Fast Ship'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Fast Ship'));
+      await tester.pump();
+      expect(tester.widget(reviewRow), same(originalRow));
       await tester.tap(find.text('Confirm Order'));
       await tester.pumpAndSettle();
       expect(orderRepository.lastShippingCompanyId, 41);

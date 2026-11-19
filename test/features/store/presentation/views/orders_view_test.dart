@@ -25,6 +25,43 @@ import 'package:yalla_market/features/store/presentation/views/orders/orders_vie
 
 void main() {
   testWidgets(
+    'pagination activity updates the footer without rebuilding existing rows',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final order = _orderPlacedAt(DateTime(2026, 7, 14));
+      final repository = _FocusedOrders(initial: [order]);
+      final cubit = OrderHistoryCubit(GetMyOrdersUseCase(repository));
+      addTearDown(cubit.close);
+      await tester.pumpWidget(
+        BlocProvider.value(
+          value: cubit,
+          child: const MaterialApp(home: OrdersView()),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final row = find.byType(AppListEntranceItem);
+      final originalRow = tester.widget(row);
+      final pendingPage = repository.nextPage =
+          Completer<ApiResult<OrderHistoryPage>>();
+      expect(find.text('Load more'), findsOneWidget);
+      final request = cubit.loadMore();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 16));
+
+      expect((cubit.state as OrderHistoryReady).loadingMore, isTrue);
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(tester.widget(row), same(originalRow));
+
+      pendingPage.complete(const ApiResult.failure(ServerFailure('Offline')));
+      await request;
+      await tester.pumpAndSettle();
+      expect(find.text('Offline'), findsOneWidget);
+      expect(tester.widget(row), same(originalRow));
+    },
+  );
+
+  testWidgets(
     'order entrance does not replay after date filtering or refresh',
     (tester) async {
       final repository = _OrderRepositoryWithData([
@@ -605,6 +642,10 @@ class _OrderRepositoryWithData extends _EmptyOrderRepository {
 
 class _FocusedOrders extends _EmptyOrderRepository
     implements PagedOrderHistoryRepository, FocusedOrderRepository {
+  _FocusedOrders({this.initial = const []});
+
+  final List<OrderData> initial;
+  Completer<ApiResult<OrderHistoryPage>>? nextPage;
   final focusedIds = <String>[];
   final pages = <int>[];
   @override
@@ -614,9 +655,10 @@ class _FocusedOrders extends _EmptyOrderRepository
     DateTime? end,
   }) async {
     pages.add(page);
-    return const ApiResult.success(
+    if (page > 1 && nextPage != null) return nextPage!.future;
+    return ApiResult.success(
       OrderHistoryPage(
-        items: [],
+        items: initial,
         count: 300,
         deliveredCount: 200,
         hasMore: true,

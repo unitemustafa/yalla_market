@@ -55,11 +55,15 @@ class StoreProductsSliver extends StatelessWidget {
               child: AppEmptyState(title: emptyTitle, message: emptyMessage),
             );
           }
-          return ProductCardsSliver<ProductData>(
-            products: content.$1,
-            idOf: productCardId,
-            cardOf: productCardTileData,
-            categoryKey: content.$4 ?? categoryKey,
+          // Animate the new grid once and release the old cards immediately.
+          // Pagination keeps the displayed selection key and the same grid.
+          return SliverContentReveal(
+            key: ValueKey(content.$4 ?? categoryKey),
+            child: ProductCardsSliver<ProductData>(
+              products: content.$1,
+              idOf: productCardId,
+              cardOf: productCardTileData,
+            ),
           );
         },
       ),

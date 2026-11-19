@@ -23,6 +23,7 @@ import '../../../cart/domain/entities/cart_item.dart';
 import '../../../cart/presentation/cubit/cart_cubit.dart';
 import '../../../location/domain/entities/city_data.dart';
 import '../../../location/presentation/cubit/location_cubit.dart';
+import '../../../location/presentation/cubit/location_state.dart';
 import '../../../personalization/domain/entities/address.dart';
 import '../../../personalization/presentation/cubit/address_cubit.dart';
 import '../../../personalization/presentation/cubit/address_state.dart';
@@ -59,6 +60,12 @@ class CheckoutView extends StatefulWidget {
 
 class _CheckoutViewState extends State<CheckoutView> {
   String? _lastPreviewKey;
+  List<CartItemData>? _previewCart;
+  String _cartFingerprint = '';
+  List<CartItemData>? _subtotalCart;
+  double _localSubtotal = 0;
+  (List<CartItemData>, OrderPreviewData?, bool)? _reviewInputs;
+  _ReviewItemsSection? _reviewSection;
   bool _isSelectingRegion = false;
   String? _shippingCompaniesAddressKey;
   List<ShippingCompanyData> _shippingCompanies = const [];
@@ -73,7 +80,9 @@ class _CheckoutViewState extends State<CheckoutView> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) context.read<AddressCubit>().loadAddresses();
+      if (!mounted) return;
+      _syncCheckoutInputs();
+      unawaited(context.read<AddressCubit>().loadAddresses());
     });
   }
 
@@ -81,7 +90,50 @@ class _CheckoutViewState extends State<CheckoutView> {
       widget.useDemoRepositories ?? AppEnvironment.useDemoRepositories;
 
   double _subtotal(List<CartItemData> items) {
-    return items.fold(0, (sum, item) => sum + item.price * item.quantity);
+    if (!identical(_subtotalCart, items)) {
+      _subtotalCart = items;
+      _localSubtotal = items.fold(
+        0,
+        (sum, item) => sum + item.price * item.quantity,
+      );
+    }
+    return _localSubtotal;
+  }
+
+  _ReviewItemsSection _reviewItems(
+    List<CartItemData> cart,
+    OrderPreviewData? preview,
+    bool isDark,
+  ) {
+    final inputs = (cart, preview, isDark);
+    if (_reviewInputs != inputs) {
+      final items = preview == null
+          ? cart
+          : _reviewItemsFromPreview(cart, preview);
+      _reviewInputs = inputs;
+      _reviewSection = _ReviewItemsSection(
+        items: items,
+        itemCount: _itemCount(items),
+        isDark: isDark,
+      );
+    }
+    return _reviewSection!;
+  }
+
+  void _syncCheckoutInputs({bool forcePreview = false}) {
+    final cart = context.read<CartCubit>().state;
+    final addressState = context.read<AddressCubit>().state;
+    final city = context.read<LocationCubit>().state.selectedCity;
+    final address = selectedAvailableAddressForCity(
+      addresses: addressState.addresses,
+      selectedAddressId: addressState.selectedAddressId,
+      selectedCity: city,
+    );
+    _syncShippingCompanies(address);
+    if (!_isSelectingRegion) {
+      if (forcePreview) _lastPreviewKey = null;
+      _loadPreviewIfNeeded(context, cart, address, city);
+    }
   }
 
   void _syncShippingCompanies(AddressData? address) {
@@ -89,56 +141,58 @@ class _CheckoutViewState extends State<CheckoutView> {
     final key = cityId == null ? null : '${address!.id}:$cityId';
     if (_shippingCompaniesAddressKey == key) return;
 
-    _shippingCompaniesAddressKey = key;
-    _shippingCompanies = const [];
-    _selectedShippingCompanyId = null;
-    _shippingCompaniesError = null;
-    _isShippingCompaniesLoading = key != null && !_useDemoRepositories;
+    setState(() {
+      _shippingCompaniesAddressKey = key;
+      _shippingCompanies = const [];
+      _selectedShippingCompanyId = null;
+      _shippingCompaniesError = null;
+      _isShippingCompaniesLoading = key != null && !_useDemoRepositories;
+    });
     final generation = ++_shippingCompaniesGeneration;
     if (key == null || _useDemoRepositories) return;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final useCase =
-          widget.getShippingCompanies ??
-          (sl.isRegistered<GetShippingCompaniesUseCase>()
-              ? sl<GetShippingCompaniesUseCase>()
-              : null);
-      if (useCase == null) {
-        if (!mounted || generation != _shippingCompaniesGeneration) return;
+    unawaited(_loadShippingCompanies(cityId!, generation));
+  }
+
+  Future<void> _loadShippingCompanies(int cityId, int generation) async {
+    final useCase =
+        widget.getShippingCompanies ??
+        (sl.isRegistered<GetShippingCompaniesUseCase>()
+            ? sl<GetShippingCompaniesUseCase>()
+            : null);
+    if (useCase == null) {
+      if (!mounted || generation != _shippingCompaniesGeneration) return;
+      setState(() {
+        _shippingCompanies = const [];
+        _isShippingCompaniesLoading = false;
+        _shippingCompaniesError = 'Could not load shipping companies.';
+      });
+      return;
+    }
+    final result = await useCase(cityId);
+    if (!mounted || generation != _shippingCompaniesGeneration) return;
+    result.when(
+      success: (companies) {
+        setState(() {
+          _shippingCompanies = companies;
+          _isShippingCompaniesLoading = false;
+          _shippingCompaniesError = null;
+        });
+      },
+      failure: (failure) {
         setState(() {
           _shippingCompanies = const [];
           _isShippingCompaniesLoading = false;
-          _shippingCompaniesError = 'Could not load shipping companies.';
+          _shippingCompaniesError = failure.message;
         });
-        return;
-      }
-      final result = await useCase(cityId!);
-      if (!mounted || generation != _shippingCompaniesGeneration) return;
-      result.when(
-        success: (companies) {
-          setState(() {
-            _shippingCompanies = companies;
-            _isShippingCompaniesLoading = false;
-            _shippingCompaniesError = null;
-          });
-        },
-        failure: (failure) {
-          setState(() {
-            _shippingCompanies = const [];
-            _isShippingCompaniesLoading = false;
-            _shippingCompaniesError = failure.message;
-          });
-        },
-      );
-    });
+      },
+    );
   }
 
   void _retryShippingCompanies() {
-    final key = _shippingCompaniesAddressKey;
-    if (key == null) return;
-    setState(() {
-      _shippingCompaniesAddressKey = null;
-    });
+    if (_shippingCompaniesAddressKey == null) return;
+    _shippingCompaniesAddressKey = null;
+    _syncCheckoutInputs();
   }
 
   int _itemCount(List<CartItemData> items) {
@@ -165,14 +219,17 @@ class _CheckoutViewState extends State<CheckoutView> {
       return;
     }
 
-    final cartFingerprint = cartItems
-        .map(
-          (item) =>
-              '${item.id}:${item.variantId}:${item.productId}:${item.quantity}:${item.price}:${item.itemType}',
-        )
-        .join('|');
+    if (!identical(_previewCart, cartItems)) {
+      _previewCart = cartItems;
+      _cartFingerprint = cartItems
+          .map(
+            (item) =>
+                '${item.id}:${item.variantId}:${item.productId}:${item.quantity}:${item.price}:${item.itemType}:${item.additionIds.join(",")}',
+          )
+          .join('|');
+    }
     final previewKey = [
-      cartFingerprint,
+      _cartFingerprint,
       selectedAddress.id,
       selectedAddress.serviceCityId,
       selectedAddress.deliveryAreaId,
@@ -186,8 +243,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     if (previewKey == _lastPreviewKey) return;
     _lastPreviewKey = previewKey;
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
+    unawaited(
       context.read<CheckoutCubit>().loadPreview(
         cartItems: cartItems,
         useRemotePreview: true,
@@ -195,8 +251,8 @@ class _CheckoutViewState extends State<CheckoutView> {
         paymentMethod: _checkoutPaymentMethod,
         description: '',
         deliveryNote: '',
-      );
-    });
+      ),
+    );
   }
 
   void _clearPreviewIfNeeded(BuildContext context) {
@@ -208,14 +264,33 @@ class _CheckoutViewState extends State<CheckoutView> {
       return;
     }
     _lastPreviewKey = null;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      context.read<CheckoutCubit>().clearPreview();
-    });
+    context.read<CheckoutCubit>().clearPreview();
   }
 
   @override
   Widget build(BuildContext context) {
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<CartCubit, List<CartItemData>>(
+          listener: (_, _) => _syncCheckoutInputs(),
+        ),
+        BlocListener<AddressCubit, AddressState>(
+          listenWhen: (previous, current) =>
+              !identical(previous.addresses, current.addresses) ||
+              previous.selectedAddressId != current.selectedAddressId,
+          listener: (_, _) => _syncCheckoutInputs(),
+        ),
+        BlocListener<LocationCubit, LocationState>(
+          listenWhen: (previous, current) =>
+              previous.selectedCity != current.selectedCity,
+          listener: (_, _) => _syncCheckoutInputs(),
+        ),
+      ],
+      child: _buildCheckout(),
+    );
+  }
+
+  Widget _buildCheckout() {
     return BlocConsumer<CheckoutCubit, CheckoutState>(
       listenWhen: (previous, current) =>
           previous.runtimeType != current.runtimeType ||
@@ -260,23 +335,15 @@ class _CheckoutViewState extends State<CheckoutView> {
           builder: (context, cartItems) {
             return BlocBuilder<AddressCubit, AddressState>(
               builder: (context, addressState) {
-                final selectedCity = context
-                    .watch<LocationCubit>()
-                    .state
-                    .selectedCity;
+                final selectedCity = context.select(
+                  (LocationCubit cubit) => cubit.state.selectedCity,
+                );
                 final selectedAddress = selectedAvailableAddressForCity(
                   addresses: addressState.addresses,
                   selectedAddressId: addressState.selectedAddressId,
                   selectedCity: selectedCity,
                 );
-                _loadPreviewIfNeeded(
-                  context,
-                  cartItems,
-                  selectedAddress,
-                  selectedCity,
-                );
                 final hasSavedAddress = selectedAddress != null;
-                _syncShippingCompanies(selectedAddress);
                 final isDark = Theme.of(context).brightness == Brightness.dark;
                 final backgroundColor = isDark
                     ? AppColors.darkBackground
@@ -319,9 +386,11 @@ class _CheckoutViewState extends State<CheckoutView> {
                           : _notSpecifiedLabel(context))
                     : '';
                 final deliveryTypeLabel = _deliveryTypeLabel(context, preview);
-                final reviewItems = hasPreviewTotals && preview != null
-                    ? _reviewItemsFromPreview(cartItems, preview)
-                    : cartItems;
+                final reviewSection = _reviewItems(
+                  cartItems,
+                  hasPreviewTotals ? preview : null,
+                  isDark,
+                );
                 final discountLabel = _discountSummaryLabel(context, preview);
                 final hasUnavailableDelivery =
                     preview?.hasUnavailableDelivery ?? false;
@@ -372,11 +441,7 @@ class _CheckoutViewState extends State<CheckoutView> {
                                         ],
                                       ),
                                     ),
-                                    _ReviewItemsSection(
-                                      items: reviewItems,
-                                      itemCount: _itemCount(reviewItems),
-                                      isDark: isDark,
-                                    ),
+                                    reviewSection,
                                     SliverToBoxAdapter(
                                       child: Column(
                                         crossAxisAlignment:
@@ -553,14 +618,9 @@ class _CheckoutViewState extends State<CheckoutView> {
                                     ? 'Order totals are still loading.'
                                     : 'Could not refresh order totals. Try again.',
                               );
-                              context.read<CheckoutCubit>().loadPreview(
-                                cartItems: cartItems,
-                                useRemotePreview: !_useDemoRepositories,
-                                addressId: selectedAddress.id,
-                                paymentMethod: _checkoutPaymentMethod,
-                                description: '',
-                                deliveryNote: '',
-                              );
+                              if (!checkoutState.isPreviewLoading) {
+                                _syncCheckoutInputs(forcePreview: true);
+                              }
                               return;
                             }
 
@@ -633,27 +693,7 @@ class _CheckoutViewState extends State<CheckoutView> {
     if (!context.mounted) return;
     _isSelectingRegion = false;
 
-    if (result != true) return;
-
-    _lastPreviewKey = null;
-    final cartItems = context.read<CartCubit>().state;
-    final selectedCity = context.read<LocationCubit>().state.selectedCity;
-    final addressState = context.read<AddressCubit>().state;
-    final selectedAddress = selectedAvailableAddressForCity(
-      addresses: addressState.addresses,
-      selectedAddressId: addressState.selectedAddressId,
-      selectedCity: selectedCity,
-    );
-    if (selectedAddress == null || cartItems.isEmpty) return;
-
-    context.read<CheckoutCubit>().loadPreview(
-      cartItems: cartItems,
-      useRemotePreview: !_useDemoRepositories,
-      addressId: selectedAddress.id,
-      paymentMethod: _checkoutPaymentMethod,
-      description: '',
-      deliveryNote: '',
-    );
+    _syncCheckoutInputs(forcePreview: result == true);
   }
 
   PaymentSuccessRouteArgs _paymentSuccessArgs(OrderData order) {

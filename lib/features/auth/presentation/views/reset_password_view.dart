@@ -1,7 +1,8 @@
-import 'dart:async';
 import 'package:yalla_market/core/constants/app_constants.dart';
 
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/otp_countdown.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
@@ -38,14 +39,13 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   final TextInputFormatter _noWhitespaceInputFormatter =
       FilteringTextInputFormatter.deny(RegExp(r'\s'));
 
-  Timer? _resendTimer;
-  int _remainingSeconds = 0;
+  final _countdown = OtpCountdown();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _isSubmitting = false;
   bool _isResending = false;
 
-  bool get _isCoolingDown => _remainingSeconds > 0;
+  bool get _isCoolingDown => _countdown.value > 0;
 
   @override
   void initState() {
@@ -58,7 +58,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
 
   @override
   void dispose() {
-    _resendTimer?.cancel();
+    _countdown.dispose();
     _codeController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -105,7 +105,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
         en: 'Use your new password to sign in.',
       ),
     );
-    _resendTimer?.cancel();
+    _countdown.stop();
     await _cooldownStore.clear(
       purpose: OtpPurpose.passwordReset,
       identifier: widget.email,
@@ -164,8 +164,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
       identifier: widget.email,
     );
     if (!mounted || snapshot == null) return;
-    setState(() => _remainingSeconds = snapshot.remainingSeconds);
-    _startCooldown(snapshot.remainingSeconds);
+    _countdown.start(snapshot.remainingSeconds);
   }
 
   Future<void> _saveAndStartCooldown(int seconds) async {
@@ -175,25 +174,7 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
       seconds: seconds,
     );
     if (!mounted) return;
-    setState(() => _remainingSeconds = snapshot.remainingSeconds);
-    _startCooldown(snapshot.remainingSeconds);
-  }
-
-  void _startCooldown(int seconds) {
-    _resendTimer?.cancel();
-    _remainingSeconds = seconds;
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-        return;
-      }
-      setState(() => _remainingSeconds--);
-    });
+    _countdown.start(snapshot.remainingSeconds);
   }
 
   String? _validateCode(String? value) {
@@ -302,7 +283,10 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
                     onPressed: _isSubmitting ? null : _onSubmit,
                   ),
                   const SizedBox(height: 4),
-                  _buildResendButton(theme, isDarkMode),
+                  ValueListenableBuilder<int>(
+                    valueListenable: _countdown,
+                    builder: (_, _, _) => _buildResendButton(theme, isDarkMode),
+                  ),
                 ],
               ),
             ),
@@ -434,8 +418,8 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   Widget _buildResendButton(ThemeData theme, bool isDarkMode) {
     final label = _isCoolingDown
         ? _copy(
-            ar: 'إعادة الإرسال خلال ${_formatCooldown(_remainingSeconds)}',
-            en: 'Resend in ${_formatCooldown(_remainingSeconds)}',
+            ar: 'إعادة الإرسال خلال ${_formatCooldown(_countdown.value)}',
+            en: 'Resend in ${_formatCooldown(_countdown.value)}',
           )
         : _copy(ar: 'ابعت الكود تاني', en: 'Resend code');
     final enabledColor = isDarkMode

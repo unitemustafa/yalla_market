@@ -11,23 +11,17 @@ class OrdersSummaryCard extends StatelessWidget {
   const OrdersSummaryCard({
     super.key,
     required this.isDark,
-    required this.orders,
-    this.totalCount,
-    this.deliveredCount,
+    required this.totalCount,
+    required this.deliveredCount,
   });
 
   final bool isDark;
-  final List<OrderPresentationData> orders;
-  final int? totalCount;
-  final int? deliveredCount;
+  final int totalCount;
+  final int deliveredCount;
 
   @override
   Widget build(BuildContext context) {
-    final delivered =
-        deliveredCount ??
-        orders.where((order) => order.status == 'Delivered').length;
-    final total = totalCount ?? orders.length;
-    final activeCount = total - delivered;
+    final activeCount = totalCount - deliveredCount;
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -40,7 +34,7 @@ class OrdersSummaryCard extends StatelessWidget {
         children: [
           _SummaryPill(
             icon: AppIcons.receipt_text,
-            value: '$total',
+            value: '$totalCount',
             label: 'Total',
             color: AppColors.primary,
           ),
@@ -54,7 +48,7 @@ class OrdersSummaryCard extends StatelessWidget {
           const SizedBox(width: 10),
           _SummaryPill(
             icon: AppIcons.tick_circle,
-            value: '$delivered',
+            value: '$deliveredCount',
             label: 'Delivered',
             color: AppColors.success,
           ),

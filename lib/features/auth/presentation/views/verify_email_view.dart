@@ -2,6 +2,8 @@ import '../../../../core/presentation/widgets/states/app_skeleton.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/otp_countdown.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/constants/app_constants.dart';
@@ -36,35 +38,26 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
   final TextEditingController _codeController = TextEditingController();
   final FocusNode _codeFocusNode = FocusNode();
 
-  Timer? _resendTimer;
-  int _remainingSeconds = 0;
+  final _countdown = OtpCountdown();
   bool _isConfirming = false;
   bool _isResending = false;
   bool _isLeaving = false;
 
-  bool get _isCoolingDown => _remainingSeconds > 0;
+  bool get _isCoolingDown => _countdown.value > 0;
   bool get _hasCompleteCode => _codeController.text.length == _codeLength;
 
   @override
   void initState() {
     super.initState();
-    _codeController.addListener(_refreshCodeState);
-    _codeFocusNode.addListener(_refreshCodeState);
     _restoreSavedCooldown();
   }
 
   @override
   void dispose() {
-    _resendTimer?.cancel();
-    _codeController.removeListener(_refreshCodeState);
-    _codeFocusNode.removeListener(_refreshCodeState);
+    _countdown.dispose();
     _codeController.dispose();
     _codeFocusNode.dispose();
     super.dispose();
-  }
-
-  void _refreshCodeState() {
-    if (mounted) setState(() {});
   }
 
   Future<void> _onResend() async {
@@ -187,7 +180,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
         en: 'Welcome to Yalla Market. Choose your delivery city to get started.',
       ),
     );
-    _resendTimer?.cancel();
+    _countdown.stop();
     await _cooldownStore.clear(
       purpose: OtpPurpose.registration,
       identifier: widget.email,
@@ -207,8 +200,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       identifier: widget.email,
     );
     if (!mounted || snapshot == null) return;
-    setState(() => _remainingSeconds = snapshot.remainingSeconds);
-    _startResendTimer(snapshot.remainingSeconds);
+    _countdown.start(snapshot.remainingSeconds);
   }
 
   Future<void> _saveAndStartCooldown(int seconds) async {
@@ -218,27 +210,7 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
       seconds: seconds,
     );
     if (!mounted) return;
-    setState(() => _remainingSeconds = snapshot.remainingSeconds);
-    _startResendTimer(snapshot.remainingSeconds);
-  }
-
-  void _startResendTimer(int seconds) {
-    _resendTimer?.cancel();
-    _remainingSeconds = seconds;
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-        return;
-      }
-
-      setState(() => _remainingSeconds--);
-    });
+    _countdown.start(snapshot.remainingSeconds);
   }
 
   Future<void> _leaveVerification() async {
@@ -314,11 +286,23 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                   const SizedBox(height: 28),
                   _buildMessage(context, theme, isDarkMode),
                   const SizedBox(height: 26),
-                  _buildCodeInput(theme, isDarkMode),
+                  ListenableBuilder(
+                    listenable: Listenable.merge([
+                      _codeController,
+                      _codeFocusNode,
+                    ]),
+                    builder: (_, _) => _buildCodeInput(theme, isDarkMode),
+                  ),
                   const SizedBox(height: 24),
-                  _buildConfirmButton(context),
+                  ListenableBuilder(
+                    listenable: _codeController,
+                    builder: (context, _) => _buildConfirmButton(context),
+                  ),
                   const SizedBox(height: 12),
-                  _buildResendButton(theme, isDarkMode),
+                  ValueListenableBuilder<int>(
+                    valueListenable: _countdown,
+                    builder: (_, _, _) => _buildResendButton(theme, isDarkMode),
+                  ),
                 ],
               ),
             ),
@@ -556,8 +540,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
     final label = _isCoolingDown
         ? _copy(
             context,
-            ar: 'إعادة الإرسال خلال ${_formatCooldown(_remainingSeconds)}',
-            en: 'Resend in ${_formatCooldown(_remainingSeconds)}',
+            ar: 'إعادة الإرسال خلال ${_formatCooldown(_countdown.value)}',
+            en: 'Resend in ${_formatCooldown(_countdown.value)}',
           )
         : context.translations.resendEmail;
     final enabledColor = isDarkMode

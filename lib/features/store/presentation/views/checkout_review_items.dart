@@ -261,6 +261,7 @@ class _CheckoutItemCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             ),
             child: AppImage(
+              animatePlaceholder: false,
               source: item.image,
               fallbackType: AppImagePlaceholderType.product,
               fit: BoxFit.contain,

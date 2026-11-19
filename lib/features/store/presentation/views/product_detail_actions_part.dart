@@ -1,11 +1,13 @@
 part of 'product_detail_view.dart';
 
 extension _ProductDetailActions on _ProductDetailViewState {
-  Map<String, List<String>> _variantOptionsByAttribute() {
+  Map<String, List<String>> _buildVariantOptions(
+    List<ProductVariantData> variants,
+  ) {
     final optionsByAttribute = <String, List<String>>{};
     final seenOptions = <String, Set<String>>{};
 
-    for (final variant in _variants) {
+    for (final variant in variants) {
       for (final entry in variant.attributeValues.entries) {
         final attribute = entry.key.trim();
         final option = entry.value.trim();
@@ -20,19 +22,20 @@ extension _ProductDetailActions on _ProductDetailViewState {
     return optionsByAttribute;
   }
 
-  bool _hasVariantAttributes() {
-    return _variants.any((variant) => variant.attributeValues.isNotEmpty);
-  }
-
   void _selectVariantOption(String attribute, String option) {
-    _updateState(() {
-      _selectedAttributeValues[attribute] = option;
-      selectedVariantId = _matchingVariantId(_selectedAttributeValues);
+    if (_selectedAttributeValues[attribute] == option) return;
+    final attributes = Map<String, String>.unmodifiable({
+      ..._selectedAttributeValues,
+      attribute: option,
     });
+    _variant.value = (
+      id: _matchingVariantId(attributes),
+      attributes: attributes,
+    );
   }
 
   String? _matchingVariantId(Map<String, String> selections) {
-    final attributeNames = _variantOptionsByAttribute().keys;
+    final attributeNames = _variantOptions.keys;
     for (final variant in _variants) {
       final isExactMatch = attributeNames.every(
         (name) => variant.attributeValues[name] == selections[name],
@@ -90,7 +93,7 @@ extension _ProductDetailActions on _ProductDetailViewState {
     required BuildContext context,
     required bool isOutOfStock,
   }) async {
-    if (_isAddingToCart) return;
+    if (_purchase.value.isBusy) return;
     if (isOutOfStock) {
       CustomSnackBar.showWarning(
         context: context,
@@ -99,7 +102,8 @@ extension _ProductDetailActions on _ProductDetailViewState {
       return;
     }
 
-    if (quantity == 0) {
+    final quantityToAdd = _purchase.value.quantity;
+    if (quantityToAdd == 0) {
       CustomSnackBar.showWarning(
         context: context,
         title: 'Select quantity first',
@@ -136,7 +140,6 @@ extension _ProductDetailActions on _ProductDetailViewState {
     final cartAttributes = [...variantAttributes, ...additionAttributes];
 
     final cartCubit = context.read<CartCubit>();
-    final quantityToAdd = quantity;
     final imageToAnimate = currentImage;
     final feedbackGeneration = _cartFeedbackGeneration;
     final item = CartItemData(
@@ -152,15 +155,15 @@ extension _ProductDetailActions on _ProductDetailViewState {
       price:
           ProductPricing.firstPrice(selectedPrice, discount: _productDiscount) +
           _selectedAdditionsTotal,
-      quantity: quantity,
+      quantity: quantityToAdd,
       attributes: cartAttributes.toList(growable: false),
     );
 
-    _updateState(() => _isAddingToCart = true);
+    _setPurchaseBusy(true);
     try {
       final added = await cartCubit.addItem(item, quantityToAdd);
       if (!mounted || !context.mounted) return;
-      if (added) _updateState(() => quantity = 0);
+      if (added) _setQuantity(0);
       if (feedbackGeneration != _cartFeedbackGeneration ||
           ModalRoute.of(context)?.isCurrent == false) {
         return;
@@ -184,7 +187,7 @@ extension _ProductDetailActions on _ProductDetailViewState {
       );
       await _flyProductToCart(imageToAnimate);
     } finally {
-      if (mounted) _updateState(() => _isAddingToCart = false);
+      if (mounted) _setPurchaseBusy(false);
     }
   }
 
@@ -214,7 +217,7 @@ extension _ProductDetailActions on _ProductDetailViewState {
       );
     }
 
-    if (!_hasVariantAttributes()) {
+    if (!_hasVariantAttributes) {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -228,8 +231,9 @@ extension _ProductDetailActions on _ProductDetailViewState {
                 _buildChoiceOption(
                   label: _variantFallbackLabel(_variants[index], index),
                   isSelected: selectedVariantId == _variants[index].id,
-                  onTap: () => _updateState(
-                    () => selectedVariantId = _variants[index].id,
+                  onTap: () => _variant.value = (
+                    id: _variants[index].id,
+                    attributes: const {},
                   ),
                 ),
             ],
@@ -238,7 +242,7 @@ extension _ProductDetailActions on _ProductDetailViewState {
       );
     }
 
-    final optionsByAttribute = _variantOptionsByAttribute();
+    final optionsByAttribute = _variantOptions;
     if (optionsByAttribute.isEmpty) return const SizedBox.shrink();
 
     return Column(

@@ -106,7 +106,14 @@ class SkeletonBox extends StatelessWidget {
 
 /// Reserves the complete image slot until the first decoded frame arrives.
 class AppImageSkeleton extends StatelessWidget {
-  const AppImageSkeleton({super.key, this.width, this.height});
+  const AppImageSkeleton({
+    super.key,
+    this.width,
+    this.height,
+    this.animate = true,
+  });
+
+  final bool animate;
 
   final double? width;
   final double? height;
@@ -127,9 +134,18 @@ class AppImageSkeleton extends StatelessWidget {
       return SizedBox(
         width: slotWidth,
         height: slotHeight,
-        child: const AppSkeleton(
-          child: SizedBox.expand(child: ColoredBox(color: Colors.white)),
-        ),
+        child: animate
+            ? const AppSkeleton(
+                child: SizedBox.expand(child: ColoredBox(color: Colors.white)),
+              )
+            : Semantics(
+                label: context.tr('Loading...'),
+                child: ColoredBox(
+                  color: Theme.of(context).brightness == Brightness.dark
+                      ? const Color(0xFF293342)
+                      : const Color(0xFFE8ECF1),
+                ),
+              ),
       );
     },
   );

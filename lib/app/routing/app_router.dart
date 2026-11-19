@@ -45,6 +45,7 @@ import 'app_route_arguments.dart';
 import 'app_routes.dart';
 import 'auth_guard.dart';
 import 'double_back_to_exit.dart';
+import 'product_detail_page_route.dart';
 
 /// Generates routes from [RouteSettings] for the entire app.
 ///
@@ -282,19 +283,23 @@ class AppRouter {
     bool refreshCatalog = true,
     bool confirmExit = true,
   }) {
-    return MaterialPageRoute(
-      builder: (context) => _wrapPage(
-        context,
-        page,
-        settings,
-        refreshCatalog: refreshCatalog,
-        confirmExit: confirmExit,
-      ),
-      settings: settings,
+    Widget buildPage(BuildContext context) => _wrapPage(
+      context,
+      page,
+      settings,
+      refreshCatalog: refreshCatalog,
+      confirmExit: confirmExit,
     );
+    if (page is ProductDetailView) {
+      return ProductDetailPageRoute<dynamic>(
+        builder: buildPage,
+        settings: settings,
+      );
+    }
+    return MaterialPageRoute(builder: buildPage, settings: settings);
   }
 
-  /// Builds a catalog destination inside OpenContainer's own page route.
+  /// Builds a catalog destination inside the card's own page route.
   /// Authentication is checked when opened, rather than when a card is built.
   static Widget buildContainerPage(
     BuildContext context,

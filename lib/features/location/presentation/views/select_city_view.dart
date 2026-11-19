@@ -24,7 +24,7 @@ class SelectCityView extends StatefulWidget {
 }
 
 class _SelectCityViewState extends State<SelectCityView>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _radarController;
   LocationChoiceMode _choiceMode = LocationChoiceMode.manual;
   bool _unsupportedDetected = false;
@@ -37,9 +37,10 @@ class _SelectCityViewState extends State<SelectCityView>
     _radarController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2600),
-    )..repeat();
+    );
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initializeLocationGate();
+      if (mounted) _initializeLocationGate();
     });
   }
 
@@ -48,7 +49,40 @@ class _SelectCityViewState extends State<SelectCityView>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _syncRadar();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) => _syncRadar();
+
+  void _updateLocationUi(VoidCallback update) {
+    setState(update);
+    _syncRadar();
+  }
+
+  void _syncRadar() {
+    final lifecycle = WidgetsBinding.instance.lifecycleState;
+    final isCurrent = ModalRoute.isCurrentOf(context) != false;
+    final tickerEnabled = TickerMode.valuesOf(context).enabled;
+    final reduceMotion = MediaQuery.disableAnimationsOf(context);
+    final active =
+        _showRadar &&
+        isCurrent &&
+        tickerEnabled &&
+        !reduceMotion &&
+        (lifecycle == null || lifecycle == AppLifecycleState.resumed);
+    if (active && !_radarController.isAnimating) {
+      _radarController.repeat();
+    } else if (!active && _radarController.isAnimating) {
+      _radarController.stop();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _radarController.dispose();
     super.dispose();
   }
@@ -152,7 +186,7 @@ class _SelectCityViewState extends State<SelectCityView>
   }
 
   void _setChoiceMode(LocationChoiceMode mode) {
-    setState(() {
+    _updateLocationUi(() {
       _choiceMode = mode;
       _showRadar = false;
       _unsupportedDetected = false;
@@ -164,7 +198,7 @@ class _SelectCityViewState extends State<SelectCityView>
 
   Future<void> _detectCurrentLocation(BuildContext context) async {
     final requestId = ++_activeLocationRequestId;
-    setState(() {
+    _updateLocationUi(() {
       _choiceMode = LocationChoiceMode.automatic;
       _showRadar = true;
       _unsupportedDetected = false;
@@ -175,7 +209,7 @@ class _SelectCityViewState extends State<SelectCityView>
         .detectCurrentLocation();
     if (!context.mounted || requestId != _activeLocationRequestId) return;
     if (detectedCity == null) {
-      setState(() {
+      _updateLocationUi(() {
         _choiceMode = LocationChoiceMode.automatic;
         _unsupportedDetected = false;
         _showRadar = false;
@@ -193,7 +227,7 @@ class _SelectCityViewState extends State<SelectCityView>
 
     final hasNamedGeneral = detectedCity.isNamedGeneral;
     if (detectedCity.isGeneral && !hasNamedGeneral) {
-      setState(() {
+      _updateLocationUi(() {
         _unsupportedDetected = true;
         _showRadar = false;
         _choiceMode = LocationChoiceMode.manual;
@@ -201,6 +235,7 @@ class _SelectCityViewState extends State<SelectCityView>
       return;
     }
 
+    _updateLocationUi(() => _showRadar = false);
     final confirmed = await _showDetectedRegionDialog(context, detectedCity);
     if (!context.mounted || requestId != _activeLocationRequestId) return;
     if (confirmed == true) {
@@ -212,7 +247,7 @@ class _SelectCityViewState extends State<SelectCityView>
       return;
     }
 
-    setState(() {
+    _updateLocationUi(() {
       _unsupportedDetected = false;
       _choiceMode = LocationChoiceMode.manual;
       _showRadar = false;
@@ -370,44 +405,42 @@ class _RadarGraphic extends StatelessWidget {
     return SizedBox(
       width: 220,
       height: 220,
-      child: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          return CustomPaint(
-            painter: _RadarPainter(progress: controller.value, isDark: isDark),
-            child: Center(
-              child: Container(
-                width: 68,
-                height: 68,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.35),
-                      blurRadius: 28,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  AppIcons.location,
-                  color: Colors.white,
-                  size: 34,
-                ),
+      child: RepaintBoundary(
+        child: CustomPaint(
+          painter: _RadarPainter(progress: controller, isDark: isDark),
+          child: Center(
+            child: Container(
+              width: 68,
+              height: 68,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.35),
+                    blurRadius: 28,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                AppIcons.location,
+                color: Colors.white,
+                size: 34,
               ),
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
 }
 
 class _RadarPainter extends CustomPainter {
-  _RadarPainter({required this.progress, required this.isDark});
+  _RadarPainter({required this.progress, required this.isDark})
+    : super(repaint: progress);
 
-  final double progress;
+  final Animation<double> progress;
   final bool isDark;
 
   @override
@@ -433,7 +466,7 @@ class _RadarPainter extends CustomPainter {
           primary.withValues(alpha: 0.42),
         ],
         stops: const [0.0, 0.72, 1.0],
-        transform: GradientRotation(progress * math.pi * 2),
+        transform: GradientRotation(progress.value * math.pi * 2),
       ).createShader(Rect.fromCircle(center: center, radius: 110));
 
     canvas.drawCircle(center, 110, sweepPaint);

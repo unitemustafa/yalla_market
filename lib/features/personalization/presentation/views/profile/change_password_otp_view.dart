@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../../../core/presentation/widgets/otp_countdown.dart';
 import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -41,11 +43,10 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
   bool _isChangingPassword = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  Timer? _resendTimer;
-  int _remainingSeconds = 0;
+  final _countdown = OtpCountdown();
 
   String get _email => UserProfileController.instance.email.trim();
-  bool get _isCoolingDown => _remainingSeconds > 0;
+  bool get _isCoolingDown => _countdown.value > 0;
 
   @override
   void initState() {
@@ -58,7 +59,7 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
 
   @override
   void dispose() {
-    _cancelResendTimer(updateState: false);
+    _countdown.dispose();
     _codeController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
@@ -129,7 +130,7 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
       return;
     }
 
-    _cancelResendTimer();
+    _countdown.start(0);
     await _cooldownStore.clear(
       purpose: OtpPurpose.passwordReset,
       identifier: _email,
@@ -207,9 +208,8 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
     if (!mounted || snapshot == null) return;
     setState(() {
       _codeSent = true;
-      _remainingSeconds = snapshot.remainingSeconds;
     });
-    _startResendTimer(snapshot.remainingSeconds);
+    _countdown.start(snapshot.remainingSeconds);
   }
 
   Future<void> _saveAndStartCooldown(int seconds) async {
@@ -219,43 +219,13 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
       seconds: seconds,
     );
     if (!mounted) return;
-    setState(() => _remainingSeconds = snapshot.remainingSeconds);
-    _startResendTimer(snapshot.remainingSeconds);
-  }
-
-  void _startResendTimer(int seconds) {
-    _cancelResendTimer(updateState: false);
-    _remainingSeconds = seconds;
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-        return;
-      }
-
-      setState(() => _remainingSeconds--);
-    });
-  }
-
-  void _cancelResendTimer({bool updateState = true}) {
-    _resendTimer?.cancel();
-    _resendTimer = null;
-    if (updateState && mounted && _remainingSeconds != 0) {
-      setState(() => _remainingSeconds = 0);
-    } else {
-      _remainingSeconds = 0;
-    }
+    _countdown.start(snapshot.remainingSeconds);
   }
 
   String _sendCodeLabel(BuildContext context) {
     if (_isSendingCode) return 'Sending code...';
     if (_isCoolingDown) {
-      return '${context.tr('Resend in')} ${_formatCountdown(_remainingSeconds)}';
+      return '${context.tr('Resend in')} ${_formatCountdown(_countdown.value)}';
     }
     return _codeSent ? 'Resend code' : 'Send code';
   }
@@ -315,13 +285,16 @@ class _ChangePasswordOtpViewState extends State<ChangePasswordOtpView> {
                             ),
                           ),
                           const SizedBox(height: 14),
-                          AppActionButton(
-                            label: _sendCodeLabel(context),
-                            icon: AppIcons.sms_tracking,
-                            isLoading: _isSendingCode,
-                            onPressed: _isSendingCode || _isCoolingDown
-                                ? null
-                                : _sendCode,
+                          ValueListenableBuilder<int>(
+                            valueListenable: _countdown,
+                            builder: (context, _, _) => AppActionButton(
+                              label: _sendCodeLabel(context),
+                              icon: AppIcons.sms_tracking,
+                              isLoading: _isSendingCode,
+                              onPressed: _isSendingCode || _isCoolingDown
+                                  ? null
+                                  : _sendCode,
+                            ),
                           ),
                         ],
                       ),

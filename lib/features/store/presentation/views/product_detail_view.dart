@@ -41,6 +41,7 @@ import '../../domain/services/market_shop_catalog.dart';
 import '../../domain/usecases/get_product_usecase.dart';
 import '../../../wishlist/domain/entities/wishlist_item.dart';
 import '../../../wishlist/presentation/cubit/wishlist_cubit.dart';
+import '../../../wishlist/presentation/cubit/wishlist_state.dart';
 
 part 'product_detail_gallery_part.dart';
 part 'product_detail_info_part.dart';
@@ -94,12 +95,21 @@ class ProductDetailView extends StatefulWidget {
 
 class _ProductDetailViewState extends State<ProductDetailView>
     with SingleTickerProviderStateMixin {
-  int quantity = 0;
-  String? selectedVariantId;
-  final Map<String, String> _selectedAttributeValues = <String, String>{};
+  final _purchase = ValueNotifier((quantity: 0, isBusy: false));
+  final _variant =
+      ValueNotifier<({String? id, Map<String, String> attributes})>((
+        id: null,
+        attributes: const {},
+      ));
+  late final _purchaseChanges = Listenable.merge([_purchase, _variant]);
+  String? get selectedVariantId => _variant.value.id;
+  Map<String, String> get _selectedAttributeValues => _variant.value.attributes;
   final Set<String> selectedAdditionIds = <String>{};
   late String currentImage;
   ProductData? _loadedProduct;
+  Map<String, List<String>> _variantOptions = const {};
+  bool _hasVariantAttributes = false;
+  List<String> _thumbnailImages = const [];
   bool _isLoadingProductDetails = true;
   Failure? _productLoadFailure;
   final _productFreshness = DataFreshness();
@@ -109,7 +119,6 @@ class _ProductDetailViewState extends State<ProductDetailView>
   final _addButtonKey = GlobalKey();
   late final AnimationController _cartAnimation;
   OverlayEntry? _flyingProduct;
-  bool _isAddingToCart = false;
   int _cartFeedbackGeneration = 0;
 
   @override
@@ -120,7 +129,7 @@ class _ProductDetailViewState extends State<ProductDetailView>
       duration: const Duration(milliseconds: 880),
     );
     currentImage = widget.image;
-    selectedVariantId = widget.initialVariantId;
+    _variant.value = (id: widget.initialVariantId, attributes: const {});
     _loadProductDetails();
   }
 
@@ -142,6 +151,8 @@ class _ProductDetailViewState extends State<ProductDetailView>
   void dispose() {
     _removeFlyingProduct();
     _cartAnimation.dispose();
+    _purchase.dispose();
+    _variant.dispose();
     super.dispose();
   }
 
@@ -297,6 +308,11 @@ class _ProductDetailViewState extends State<ProductDetailView>
       success: (product) {
         setState(() {
           _loadedProduct = product;
+          _variantOptions = _buildVariantOptions(product.variants);
+          _hasVariantAttributes = product.variants.any(
+            (variant) => variant.attributeValues.isNotEmpty,
+          );
+          _thumbnailImages = _uniqueImageSources(product.images);
           _syncSelectedVariant(product);
           currentImage = product.images.first;
           _isLoadingProductDetails = false;
@@ -325,23 +341,20 @@ class _ProductDetailViewState extends State<ProductDetailView>
       (id) => !product.additions.any((addition) => addition.id == id),
     );
     final variants = product.variants;
-    if (variants.isEmpty) {
-      selectedVariantId = null;
-      _selectedAttributeValues.clear();
-      return;
-    }
-
     final selectedId = selectedVariantId?.trim();
-    final selectedStillExists =
-        selectedId != null &&
-        selectedId.isNotEmpty &&
-        variants.any((variant) => variant.id == selectedId);
-    if (!selectedStillExists) {
-      selectedVariantId = variants.length == 1 ? variants.first.id : null;
+    ProductVariantData? selected = variants.length == 1 ? variants.first : null;
+    if (selectedId != null && selectedId.isNotEmpty) {
+      for (final variant in variants) {
+        if (variant.id == selectedId) {
+          selected = variant;
+          break;
+        }
+      }
     }
-    _selectedAttributeValues
-      ..clear()
-      ..addAll(_selectedVariant?.attributeValues ?? const {});
+    _variant.value = (
+      id: selected?.id,
+      attributes: selected?.attributeValues ?? const {},
+    );
   }
 
   String _formatPrice(String? price) {
@@ -369,6 +382,12 @@ class _ProductDetailViewState extends State<ProductDetailView>
   );
 
   void _updateState(VoidCallback update) => setState(update);
+
+  void _setQuantity(int quantity) =>
+      _purchase.value = (quantity: quantity, isBusy: _purchase.value.isBusy);
+
+  void _setPurchaseBusy(bool isBusy) =>
+      _purchase.value = (quantity: _purchase.value.quantity, isBusy: isBusy);
 
   @override
   Widget build(BuildContext context) => RefreshOnReturn(
@@ -430,11 +449,61 @@ class _ProductDetailViewState extends State<ProductDetailView>
         ),
       );
     }
-    final selectedPrice = _selectedPrice;
-    final selectedUnitPrice =
-        ProductPricing.firstPrice(selectedPrice, discount: _productDiscount) +
-        _selectedAdditionsTotal;
-    final variantAttributeNames = _variantOptionsByAttribute().keys;
+    return Scaffold(
+      backgroundColor: isDark
+          ? AppColors.darkBackground
+          : const Color(0xFFF7F8FB),
+      // The route already animates the viewport. A second full-page fade
+      // adds an opacity layer while both routes are being drawn.
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final toolbarHeight = _productToolbarHeight(context);
+          return CustomScrollView(
+            key: const ValueKey('product_detail_scroll'),
+            physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics(),
+            ),
+            slivers: [
+              _buildProductHeader(
+                isDark: isDark,
+                thumbnailImages: _thumbnailImages,
+                width: constraints.maxWidth,
+                toolbarHeight: toolbarHeight,
+              ),
+              SliverToBoxAdapter(
+                child: ConstrainedBox(
+                  // Keep enough scroll extent to collapse even a short page.
+                  constraints: BoxConstraints(
+                    minHeight: math.max(
+                      0,
+                      constraints.maxHeight -
+                          MediaQuery.paddingOf(context).top -
+                          toolbarHeight,
+                    ),
+                  ),
+                  child: ListenableBuilder(
+                    listenable: _variant,
+                    builder: (context, _) =>
+                        _buildProductInformation(context, isDark: isDark),
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
+      bottomNavigationBar: ListenableBuilder(
+        listenable: _purchaseChanges,
+        builder: (context, _) => _buildPurchaseBar(context, isDark: isDark),
+      ),
+    );
+  }
+
+  Widget _buildProductInformation(
+    BuildContext context, {
+    required bool isDark,
+  }) {
+    final variantAttributeNames = _variantOptions.keys;
     final hasCompleteSelection =
         variantAttributeNames.isNotEmpty &&
         variantAttributeNames.every(
@@ -442,172 +511,124 @@ class _ProductDetailViewState extends State<ProductDetailView>
         );
     final hasUnavailableCombination =
         _variants.length > 1 &&
-        _hasVariantAttributes() &&
+        _hasVariantAttributes &&
         hasCompleteSelection &&
         selectedVariantId == null;
+    final productIsAvailable = _isProductAvailable && _variants.isNotEmpty;
+    final stock = productIsAvailable ? 'Available' : 'Out of Stock';
+    final stockColor = productIsAvailable ? AppColors.success : AppColors.error;
+    final mutedColor = isDark
+        ? AppColors.darkTextSecondary
+        : AppColors.lightTextSecondary;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _PriceHeader(
+            discount: _discountBadgeLabel(context, _productDiscount),
+            price: _selectedDisplayPrice,
+            oldPrice: _selectedOriginalPrice.isNotEmpty
+                ? _selectedOriginalPrice
+                : _formatPrice(_productOldPrice),
+            isDark: isDark,
+          ),
+          if (_isLoadingProductDetails) ...[
+            const SizedBox(height: 8),
+            const AppLoadingPlaceholder(width: 80),
+          ],
+          if (_variants.isEmpty) ...[
+            const SizedBox(height: 12),
+            Text(
+              'هذا المنتج غير متاح للطلب حاليًا.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _StatusPill(label: stock, color: stockColor, isDark: isDark),
+              const SizedBox(width: 10),
+              _BrandPill(
+                brand: _productBrand,
+                isDark: isDark,
+                marketId: _marketId,
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          _buildVariantSelectors(isDark: isDark),
+          if (hasUnavailableCombination) ...[
+            const SizedBox(height: 4),
+            Text(
+              'هذا الاختيار غير متاح حاليًا.',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: AppColors.error,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+          if (_productAdditions.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            _buildAdditionsButton(isDark: isDark, mutedColor: mutedColor),
+          ],
+          const SizedBox(height: 20),
+          _InfoCard(
+            isDark: isDark,
+            title: 'Description',
+            child: Text(
+              _productDescription,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: mutedColor,
+                height: 1.45,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPurchaseBar(BuildContext context, {required bool isDark}) {
+    final (:quantity, :isBusy) = _purchase.value;
     final isOutOfStock =
         !_isProductAvailable ||
         _variants.isEmpty ||
         (_variants.length > 1 && selectedVariantId == null);
-    final productIsAvailable = _isProductAvailable && _variants.isNotEmpty;
-    final stock = productIsAvailable ? 'Available' : 'Out of Stock';
-    final stockColor = productIsAvailable ? AppColors.success : AppColors.error;
-    final backgroundColor = isDark
-        ? AppColors.darkBackground
-        : const Color(0xFFF7F8FB);
-    final mutedColor = isDark
-        ? AppColors.darkTextSecondary
-        : AppColors.lightTextSecondary;
-    final isFavorite = context.watch<WishlistCubit>().isFavorite(
-      _resolvedProductId,
-    );
-    final thumbnailImages = _uniqueImageSources(_loadedProduct!.images);
-
-    return Scaffold(
-      backgroundColor: backgroundColor,
-      body: AppContentReveal(
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final toolbarHeight = _productToolbarHeight(context);
-            return CustomScrollView(
-              key: const ValueKey('product_detail_scroll'),
-              physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics(),
-              ),
-              slivers: [
-                _buildProductHeader(
-                  isDark: isDark,
-                  isFavorite: isFavorite,
-                  thumbnailImages: thumbnailImages,
-                  width: constraints.maxWidth,
-                  toolbarHeight: toolbarHeight,
-                ),
-                SliverToBoxAdapter(
-                  child: ConstrainedBox(
-                    // Keep enough scroll extent to collapse even a short page.
-                    constraints: BoxConstraints(
-                      minHeight: math.max(
-                        0,
-                        constraints.maxHeight -
-                            MediaQuery.paddingOf(context).top -
-                            toolbarHeight,
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _PriceHeader(
-                            discount: _discountBadgeLabel(
-                              context,
-                              _productDiscount,
-                            ),
-                            price: _selectedDisplayPrice,
-                            oldPrice: _selectedOriginalPrice.isNotEmpty
-                                ? _selectedOriginalPrice
-                                : _formatPrice(_productOldPrice),
-                            isDark: isDark,
-                          ),
-                          if (_isLoadingProductDetails) ...[
-                            const SizedBox(height: 8),
-                            const AppLoadingPlaceholder(width: 80),
-                          ],
-                          if (_variants.isEmpty) ...[
-                            const SizedBox(height: 12),
-                            Text(
-                              'هذا المنتج غير متاح للطلب حاليًا.',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.error,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              _StatusPill(
-                                label: stock,
-                                color: stockColor,
-                                isDark: isDark,
-                              ),
-                              const SizedBox(width: 10),
-                              _BrandPill(
-                                brand: _productBrand,
-                                isDark: isDark,
-                                marketId: _marketId,
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          _buildVariantSelectors(isDark: isDark),
-                          if (hasUnavailableCombination) ...[
-                            const SizedBox(height: 4),
-                            Text(
-                              'هذا الاختيار غير متاح حاليًا.',
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: AppColors.error,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                            ),
-                          ],
-                          if (_productAdditions.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            _buildAdditionsButton(
-                              isDark: isDark,
-                              mutedColor: mutedColor,
-                            ),
-                          ],
-                          const SizedBox(height: 20),
-                          _InfoCard(
-                            isDark: isDark,
-                            title: 'Description',
-                            child: Text(
-                              _productDescription,
-                              style: Theme.of(context).textTheme.bodyMedium
-                                  ?.copyWith(
-                                    color: mutedColor,
-                                    height: 1.45,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            );
-          },
-        ),
-      ),
-      bottomNavigationBar: _BottomAddToCartBar(
-        isDark: isDark,
-        quantity: quantity,
-        price: selectedUnitPrice,
+    return _BottomAddToCartBar(
+      isDark: isDark,
+      quantity: quantity,
+      price:
+          ProductPricing.firstPrice(
+            _selectedPrice,
+            discount: _productDiscount,
+          ) +
+          _selectedAdditionsTotal,
+      isOutOfStock: isOutOfStock,
+      isBusy: isBusy,
+      addButtonKey: _addButtonKey,
+      onDecrease: () {
+        final current = _purchase.value.quantity;
+        if (current > 0) _setQuantity(current - 1);
+      },
+      onIncrease: () {
+        if (isOutOfStock) {
+          CustomSnackBar.showWarning(
+            context: context,
+            title: 'Product is out of stock',
+          );
+          return;
+        }
+        _setQuantity(_purchase.value.quantity + 1);
+      },
+      onAddToCart: () => _addSelectedProductToCart(
+        context: context,
         isOutOfStock: isOutOfStock,
-        isBusy: _isAddingToCart,
-        addButtonKey: _addButtonKey,
-        onDecrease: () {
-          if (quantity > 0) setState(() => quantity--);
-        },
-        onIncrease: () {
-          if (isOutOfStock) {
-            CustomSnackBar.showWarning(
-              context: context,
-              title: 'Product is out of stock',
-            );
-            return;
-          }
-          setState(() => quantity++);
-        },
-        onAddToCart: () => _addSelectedProductToCart(
-          context: context,
-          isOutOfStock: isOutOfStock,
-        ),
       ),
     );
   }

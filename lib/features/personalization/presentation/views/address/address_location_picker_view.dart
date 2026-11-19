@@ -63,7 +63,10 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
   bool _searchMode = false;
   bool _hasUserInteracted = false;
   DeviceCoordinates? _lastRenderedTarget;
-
+  (CityData?, double, double)? _coverageInputs;
+  bool _insideCoverage = true;
+  late Widget _mapSurface = _createMapSurface();
+  late Widget _mapPage = _createMapPage();
   String get _language =>
       Localizations.localeOf(context).languageCode == 'en' ? 'en' : 'ar';
 
@@ -79,6 +82,15 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
       isWithinCoverage: _isWithinSelectedCity,
     )..addListener(_onSelectionChanged);
     unawaited(_initializeLocation());
+  }
+
+  @override
+  void didUpdateWidget(covariant AddressLocationPickerView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.tileUrlTemplateOverride != widget.tileUrlTemplateOverride) {
+      _mapSurface = _createMapSurface();
+    }
+    _mapPage = _createMapPage();
   }
 
   @override
@@ -121,7 +133,6 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
       _moveMap(target, zoom: 16);
       _scheduleReverse(target);
     }
-    setState(() {});
   }
 
   Future<void> _moveToCurrentLocation() async {
@@ -183,6 +194,19 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
   }
 
   bool _isWithinSelectedCity(DeviceCoordinates coordinates) {
+    final inputs = (
+      widget.selectedCity,
+      coordinates.latitude,
+      coordinates.longitude,
+    );
+    if (_coverageInputs != inputs) {
+      _coverageInputs = inputs;
+      _insideCoverage = _checkSelectedCityCoverage(coordinates);
+    }
+    return _insideCoverage;
+  }
+
+  bool _checkSelectedCityCoverage(DeviceCoordinates coordinates) {
     final city = widget.selectedCity;
     if (city == null) return true;
 
@@ -406,7 +430,7 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
           : SafeArea(
               child: Stack(
                 children: [
-                  Positioned.fill(child: _buildMapPage()),
+                  Positioned.fill(child: _mapPage),
                   if (_searchMode)
                     Positioned.fill(
                       child: TweenAnimationBuilder<double>(
@@ -424,7 +448,26 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
     );
   }
 
-  Widget _buildMapPage() {
+  Widget _createMapPage() => ListenableBuilder(
+    listenable: _selectionController,
+    builder: (context, _) => _buildMapPage(context),
+  );
+
+  Widget _createMapSurface() => AddressLocationMapSurface(
+    mapController: _mapController,
+    tileProvider: _tileProvider,
+    initialTarget: _selectionController.target,
+    tileUrlTemplate:
+        widget.tileUrlTemplateOverride ?? MapTilerMapConfig.tileUrl(),
+    onMapReady: () {
+      _mapReady = true;
+      _moveMap(_selectionController.target, zoom: 16);
+    },
+    onMapEvent: _onMapEvent,
+    onOpenUrl: _openUrl,
+  );
+
+  Widget _buildMapPage(BuildContext context) {
     final target = _selectionController.target;
     final isInsideCity = _isWithinSelectedCity(target);
     final formattedAddress = _selectionController.formattedAddress?.trim();
@@ -435,11 +478,7 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
           );
 
     return AddressLocationMapPage(
-      mapController: _mapController,
-      tileProvider: _tileProvider,
-      target: target,
-      tileUrlTemplate:
-          widget.tileUrlTemplateOverride ?? MapTilerMapConfig.tileUrl(),
+      map: _mapSurface,
       locationLabel: locationLabel,
       title: context.tr('Delivery address'),
       deliveryMessage: context.tr(
@@ -451,18 +490,11 @@ class _AddressLocationPickerViewState extends State<AddressLocationPickerView>
       isLocating: _selectionController.isLoading,
       onClose: () => Navigator.maybePop(context),
       onSearch: _openSearch,
-      onMapReady: () {
-        _mapReady = true;
-        _moveMap(_selectionController.target, zoom: 16);
-      },
-      onMapEvent: _onMapEvent,
       onConfirm: isInsideCity ? _confirm : null,
       onCurrentLocation: _moveToCurrentLocation,
-      onOpenUrl: _openUrl,
     );
   }
 
-  Future<void> _openUrl(String url) async {
-    await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-  }
+  Future<void> _openUrl(String url) =>
+      launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 }

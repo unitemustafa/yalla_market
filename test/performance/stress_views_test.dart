@@ -9,6 +9,7 @@ import 'package:yalla_market/core/presentation/widgets/products/product_cards/pr
 import 'package:yalla_market/core/presentation/widgets/products/product_cards_sliver.dart';
 import 'package:yalla_market/features/home/presentation/views/notifications_view.dart';
 import 'package:yalla_market/features/navigation/presentation/views/navigation_menu_view.dart';
+import 'package:yalla_market/features/location/presentation/views/select_city_view.dart';
 import 'package:yalla_market/features/search/presentation/cubit/catalog_search_cubit.dart';
 import 'package:yalla_market/features/search/presentation/views/search_view.dart';
 import 'package:yalla_market/features/store/presentation/views/brand/brand_products_view.dart';
@@ -35,6 +36,22 @@ void main() {
     await tester.pumpWidget(StressApp(home: home));
     await tester.pumpAndSettle();
   }
+
+  testWidgets('manual city selection has no hidden radar frame callbacks', (
+    tester,
+  ) async {
+    await configureStressApp(StressFixtures(productCount: 1, listCount: 1));
+    addTearDown(() async {
+      AuthGuard.clearAuthentication();
+      await sl.reset();
+    });
+    await tester.pumpWidget(const StressApp(home: SelectCityView()));
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(find.byKey(const ValueKey('location-radar')), findsNothing);
+    expect(tester.binding.transientCallbackCount, 0);
+  });
 
   testWidgets(
     '10000-product storefront builds only visible cards and changes category',
@@ -68,12 +85,16 @@ void main() {
       final scroll = tester
           .state<ScrollableState>(find.byType(Scrollable).first)
           .position;
-      scroll.jumpTo(scroll.maxScrollExtent);
-      await tester.pumpAndSettle();
       final cubit = tester
           .element(find.byType(ProductCardsSliver<ProductData>).first)
           .read<StoreProductsCubit>();
-      expect(cubit.state.products.length, greaterThanOrEqualTo(60));
+      final loaded = cubit.state.products.length;
+      expect(loaded, inInclusiveRange(30, 60));
+      final beforeMaxScroll = scroll.maxScrollExtent;
+      scroll.jumpTo(beforeMaxScroll);
+      await tester.pumpAndSettle();
+      expect(cubit.state.products.length, greaterThan(loaded));
+      expect(scroll.maxScrollExtent, greaterThan(beforeMaxScroll));
       expect(tester.takeException(), isNull);
     },
   );

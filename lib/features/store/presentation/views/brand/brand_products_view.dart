@@ -128,7 +128,7 @@ class BrandProductsView extends StatefulWidget {
 }
 
 class _BrandProductsViewState extends State<BrandProductsView> {
-  String? _selectedSubcategoryId;
+  final _selectedSubcategory = ValueNotifier<String?>(null);
   StoreCubit? _storeOwner;
   MarketListingCubit? _listingCubit;
   final ScrollController _marketScrollController = ScrollController();
@@ -146,15 +146,19 @@ class _BrandProductsViewState extends State<BrandProductsView> {
       if (!mounted) return;
       final storeCubit = context.read<StoreCubit>();
       final offerCubit = context.read<OfferCatalogCubit>();
-      await storeCubit.loadStore();
-      if (!mounted) return;
       final marketId = widget.marketId?.trim() ?? '';
-      if (marketId.isNotEmpty) {
-        await storeCubit.ensureMarket(marketId);
-      }
+      final storeLoad = storeCubit.loadStore();
       if (marketId.isNotEmpty ||
           widget.classificationId?.trim().isNotEmpty != true) {
-        offerCubit.loadOffers();
+        unawaited(offerCubit.loadOffers());
+      }
+      // A stale summary refresh must not delay the selected storefront. The
+      // cubit only needs an initial summary before it can merge market details.
+      if (storeCubit.state.data == null) await storeLoad;
+      if (!mounted) return;
+      final currentMarketId = widget.marketId?.trim() ?? '';
+      if (currentMarketId.isNotEmpty) {
+        await storeCubit.ensureMarket(currentMarketId);
       }
     });
   }
@@ -165,7 +169,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
     if (oldWidget.marketId != widget.marketId) {
       _storeOwner?.releaseMarket(oldWidget.marketId ?? '');
       _storeOwner?.retainMarket(widget.marketId ?? '');
-      _selectedSubcategoryId = null;
+      _selectedSubcategory.value = null;
       final marketId = widget.marketId?.trim() ?? '';
       if (marketId.isNotEmpty) {
         context.read<StoreCubit>().ensureMarket(marketId);
@@ -176,6 +180,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   @override
   void dispose() {
     _storeOwner?.releaseMarket(widget.marketId ?? '');
+    _selectedSubcategory.dispose();
     _marketScrollController.dispose();
     super.dispose();
   }
@@ -609,83 +614,86 @@ class _BrandProductsViewState extends State<BrandProductsView> {
   ) {
     final languageCode = Localizations.localeOf(context).languageCode;
     final categories = market.subcategories;
-    final selectedId =
-        categories.any((category) => category.id == _selectedSubcategoryId)
-        ? _selectedSubcategoryId
-        : categories.firstOrNull?.id;
-    final selectedCategory = selectedId == null
-        ? null
-        : categories.firstWhere((category) => category.id == selectedId);
-    final categoryDescription = selectedCategory?.localizedDescription(
-      languageCode,
-    );
-    final controlsFooter = categories.isEmpty
-        ? null
-        : StoreSubcategoryRail(
-            categories: categories,
-            selectedId: selectedId,
-            languageCode: languageCode,
-            categoryDescription: categoryDescription,
-            onSelected: (categoryId) {
-              setState(() => _selectedSubcategoryId = categoryId);
-              _scrollToProducts();
-            },
-          );
-
-    return SliverContentReveal(
-      child: SliverMainAxisGroup(
-        slivers: [
-          SliverToBoxAdapter(
-            child: MarketStorefrontHero(
-              market: market,
-              onSearch: () => _openStoreSearch(market),
-              onShare: () => _shareMarket(market),
-            ),
+    return SliverMainAxisGroup(
+      slivers: [
+        SliverToBoxAdapter(
+          child: MarketStorefrontHero(
+            market: market,
+            onSearch: () => _openStoreSearch(market),
+            onShare: () => _shareMarket(market),
           ),
-          const SliverToBoxAdapter(child: AppRefreshAnchor()),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
-            sliver: StoreProductsScope(
-              marketId: market.id,
-              scrollController: _marketScrollController,
-              subcategoryId: selectedId,
-              sort: StoreProductSort.name,
-              builder: (context, cubit) {
-                _marketProductsCubit = cubit;
-                return SliverMainAxisGroup(
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: Column(
-                        key: _productsAnchor,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (offers.isNotEmpty) ...[
-                            StoreOfferSection(offers: offers),
-                            const SizedBox(height: 14),
+        ),
+        const SliverToBoxAdapter(child: AppRefreshAnchor()),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+          sliver: ValueListenableBuilder<String?>(
+            valueListenable: _selectedSubcategory,
+            child: offers.isEmpty
+                ? null
+                : Column(
+                    children: [
+                      StoreOfferSection(offers: offers),
+                      const SizedBox(height: 14),
+                    ],
+                  ),
+            builder: (context, requestedId, offerSection) {
+              final selectedCategory =
+                  categories
+                      .where((category) => category.id == requestedId)
+                      .firstOrNull ??
+                  categories.firstOrNull;
+              final selectedId = selectedCategory?.id;
+              return StoreProductsScope(
+                marketId: market.id,
+                scrollController: _marketScrollController,
+                subcategoryId: selectedId,
+                sort: StoreProductSort.name,
+                builder: (context, cubit) {
+                  _marketProductsCubit = cubit;
+                  return SliverMainAxisGroup(
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: Column(
+                          key: _productsAnchor,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            ?offerSection,
+                            if (selectedCategory != null) ...[
+                              StoreSubcategoryRail(
+                                categories: categories,
+                                selectedId: selectedId,
+                                languageCode: languageCode,
+                                categoryDescription: selectedCategory
+                                    .localizedDescription(languageCode),
+                                onSelected: (categoryId) {
+                                  if (categoryId != selectedId) {
+                                    _selectedSubcategory.value = categoryId;
+                                  }
+                                  _scrollToProducts();
+                                },
+                              ),
+                              const SizedBox(height: 14),
+                            ],
                           ],
-                          if (controlsFooter != null) ...[
-                            controlsFooter,
-                            const SizedBox(height: 14),
-                          ],
-                        ],
+                        ),
                       ),
-                    ),
-                    StoreProductsSliver(
-                      categoryKey: selectedId ?? 'all',
-                      emptyTitle: selectedCategory == null
-                          ? 'No products available'
-                          : 'No products in this section',
-                      emptyMessage: selectedCategory == null
-                          ? 'Products will appear here once this store is ready.'
-                          : 'Try another section or choose All.',
-                    ),
-                  ],
-                );
-              },
-            ),
+                      StoreProductsSliver(
+                        categoryKey: selectedId ?? 'all',
+                        emptyTitle: selectedCategory == null
+                            ? 'No products available'
+                            : 'No products in this section',
+                        emptyMessage: selectedCategory == null
+                            ? 'Products will appear here once this store is ready.'
+                            : 'Try another section or choose All.',
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

@@ -4,9 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 
-/// Adds press feedback to a Material button without changing its gestures.
+/// Adds press feedback to a Material button or InkWell without changing its
+/// gestures.
 ///
-/// The button returned by [builder] must use the supplied states controller.
+/// Pass the supplied states controller to the interactive widget in [builder].
 class AppButtonFeedback extends StatefulWidget {
   const AppButtonFeedback({super.key, required this.builder});
 

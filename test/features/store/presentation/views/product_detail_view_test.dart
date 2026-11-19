@@ -25,10 +25,43 @@ import 'package:yalla_market/features/store/domain/repositories/product_reposito
 import 'package:yalla_market/features/store/domain/usecases/get_product_usecase.dart';
 import 'package:yalla_market/features/store/presentation/views/product_detail_view.dart';
 import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_cubit.dart';
+import 'package:yalla_market/features/wishlist/presentation/cubit/wishlist_state.dart';
+import 'package:yalla_market/features/wishlist/domain/entities/wishlist_item.dart';
 
 import '../../../../helpers/cubit_factories.dart';
 
 void main() {
+  testWidgets(
+    'favorite updates leave the product detail scroll subtree untouched',
+    (tester) async {
+      final product = _productWith(variants: const []);
+      await _pumpProduct(tester, product: product);
+      final scroll = find.byKey(const ValueKey('product_detail_scroll'));
+      final originalScroll = tester.widget(scroll);
+      final wishlist = tester.element(scroll).read<WishlistCubit>();
+      const other = WishlistItem(
+        productId: 'another-product',
+        title: 'Another product',
+        image: '',
+        brand: '',
+        price: '10',
+      );
+      wishlist.emit(WishlistState(const [other]));
+      await tester.pump();
+      expect(tester.widget(scroll), same(originalScroll));
+
+      wishlist.emit(
+        WishlistState(
+          const [other],
+          favoriteIds: {other.productId, product.id},
+        ),
+      );
+      await tester.pump();
+      expect(find.byIcon(AppIcons.heart5), findsOneWidget);
+      expect(tester.widget(scroll), same(originalScroll));
+    },
+  );
+
   for (final viewport in [
     (
       size: const Size(375, 812),

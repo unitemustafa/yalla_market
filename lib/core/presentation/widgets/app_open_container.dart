@@ -1,8 +1,7 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
-/// A card-to-page transition that leaves nested card actions independent.
+/// Opens a card with a native page transition and independent nested actions.
 class AppOpenContainer extends StatefulWidget {
   const AppOpenContainer({
     super.key,
@@ -11,6 +10,7 @@ class AppOpenContainer extends StatefulWidget {
     required this.closedBuilder,
     this.closedColor,
     this.beforeOpen,
+    this.androidRouteBuilder,
   });
 
   final RouteSettings routeSettings;
@@ -18,6 +18,7 @@ class AppOpenContainer extends StatefulWidget {
   final Widget Function(BuildContext context, VoidCallback open) closedBuilder;
   final Color? closedColor;
   final VoidCallback? beforeOpen;
+  final Route<void> Function(WidgetBuilder builder)? androidRouteBuilder;
 
   @override
   State<AppOpenContainer> createState() => _AppOpenContainerState();
@@ -28,49 +29,50 @@ class _AppOpenContainerState extends State<AppOpenContainer> {
 
   @override
   Widget build(BuildContext context) {
-    // OpenContainer retains this callback for the lifetime of its route. Capture
-    // this build's destination so source refreshes cannot retarget an open page.
+    // Capture the destination so source refreshes cannot retarget an open page.
     final destinationBuilder = widget.openBuilder;
-    // OpenContainer routes do not provide the native iOS back gesture.
-    if (Theme.of(context).platform == TargetPlatform.iOS) {
-      return widget.closedBuilder(context, () async {
+    // Keep page construction lazy and independent of transition frames. Native
+    // routes can animate snapshots instead of scaling/clipping a live page.
+    final destination = RepaintBoundary(
+      child: Builder(builder: destinationBuilder),
+    );
+    final platform = Theme.of(context).platform;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    return Material(
+      color: widget.closedColor ?? Theme.of(context).colorScheme.surface,
+      borderRadius: const BorderRadius.all(Radius.circular(8)),
+      child: widget.closedBuilder(context, () async {
         if (_opening) return;
         _opening = true;
         try {
           widget.beforeOpen?.call();
-          await Navigator.of(context).push<void>(
-            CupertinoPageRoute<void>(
+          final Route<void> route;
+          if (disableAnimations) {
+            route = PageRouteBuilder<void>(
               settings: widget.routeSettings,
-              builder: destinationBuilder,
-            ),
-          );
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+              pageBuilder: (_, _, _) => destination,
+            );
+          } else if (platform == TargetPlatform.iOS) {
+            route = CupertinoPageRoute<void>(
+              settings: widget.routeSettings,
+              builder: (_) => destination,
+            );
+          } else if (platform == TargetPlatform.android &&
+              widget.androidRouteBuilder != null) {
+            route = widget.androidRouteBuilder!((_) => destination);
+          } else {
+            route = MaterialPageRoute<void>(
+              settings: widget.routeSettings,
+              builder: (_) => destination,
+            );
+          }
+          await Navigator.of(context).push<void>(route);
         } finally {
           _opening = false;
         }
-      });
-    }
-    return OpenContainer<void>(
-      tappable: false,
-      routeSettings: widget.routeSettings,
-      transitionType: ContainerTransitionType.fade,
-      transitionDuration: MediaQuery.disableAnimationsOf(context)
-          ? Duration.zero
-          : const Duration(milliseconds: 350),
-      closedElevation: 0,
-      openElevation: 0,
-      closedColor: widget.closedColor ?? Theme.of(context).colorScheme.surface,
-      openColor: Theme.of(context).scaffoldBackgroundColor,
-      closedShape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.all(Radius.circular(8)),
-      ),
-      openBuilder: (context, _) => destinationBuilder(context),
-      closedBuilder: (context, open) => widget.closedBuilder(context, () {
-        if (_opening) return;
-        _opening = true;
-        widget.beforeOpen?.call();
-        open();
       }),
-      onClosed: (_) => _opening = false,
     );
   }
 }

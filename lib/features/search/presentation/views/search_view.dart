@@ -15,7 +15,6 @@ import '../../../../core/presentation/widgets/products/product_cards_sliver.dart
 import '../../../../core/presentation/widgets/products/product_results_view.dart'
     show productCardId, productCardTileData;
 import '../../../../core/presentation/widgets/states/app_state_view.dart';
-import '../../../../core/preferences/app_preferences_controller.dart';
 import '../../../../app/routing/app_route_arguments.dart';
 import '../../../../app/routing/app_routes.dart';
 import '../../../store/domain/entities/category_data.dart';
@@ -41,7 +40,7 @@ class SearchView extends StatefulWidget {
 class _SearchViewState extends State<SearchView> {
   late SearchFilter _filter;
   final TextEditingController _queryController = TextEditingController();
-  final ValueNotifier<String> _queryText = ValueNotifier('');
+  final ValueNotifier<bool> _waitingForQuery = ValueNotifier(false);
   Timer? _searchDebounce;
   String _lastQuery = '';
 
@@ -57,23 +56,26 @@ class _SearchViewState extends State<SearchView> {
     _searchDebounce?.cancel();
     _queryController.removeListener(_onQueryChanged);
     _queryController.dispose();
-    _queryText.dispose();
+    _waitingForQuery.dispose();
     super.dispose();
   }
 
   void _onQueryChanged() {
-    _queryText.value = _queryController.text;
     final query = _queryController.text.trim();
     if (query == _lastQuery) return;
     _lastQuery = query;
     _searchDebounce?.cancel();
-    if (_queryController.text.trim().isEmpty) {
-      context.read<CatalogSearchCubit>().search('');
+    final cubit = context.read<CatalogSearchCubit>();
+    if (query.isEmpty) {
+      unawaited(cubit.search(''));
+      _waitingForQuery.value = false;
       return;
     }
+    _waitingForQuery.value = query != cubit.state.query;
     _searchDebounce = Timer(const Duration(milliseconds: 350), () {
       if (!mounted) return;
-      context.read<CatalogSearchCubit>().search(_queryController.text);
+      unawaited(cubit.search(query));
+      _waitingForQuery.value = false;
     });
   }
 
@@ -93,302 +95,297 @@ class _SearchViewState extends State<SearchView> {
                 ? 920.0
                 : constraints.maxWidth;
 
-            return ValueListenableBuilder<AppPreferences>(
-              valueListenable: AppPreferencesController.instance,
-              builder: (context, preferences, _) {
-                return BlocBuilder<CatalogSearchCubit, CatalogSearchState>(
-                  buildWhen: (previous, current) =>
-                      previous.runtimeType != current.runtimeType ||
-                      previous.query != current.query ||
-                      (previous is CatalogSearchFailure &&
-                          current is CatalogSearchFailure &&
-                          previous.message != current.message) ||
-                      !identical(previous.results, current.results) ||
-                      (previous is CatalogSearchReady &&
-                          current is CatalogSearchReady &&
-                          !identical(
-                            previous.visibleProducts,
-                            current.visibleProducts,
-                          )),
-                  builder: (context, discoveryState) => AnimatedBuilder(
-                    animation: _queryText,
-                    builder: (context, _) {
-                      final query = _queryController.text.trim();
-                      final results = discoveryState.results;
-                      final productResults = _shows(SearchFilter.products)
-                          ? (discoveryState is CatalogSearchReady
-                                ? discoveryState.visibleProducts
-                                : const <ProductData>[])
-                          : <ProductData>[];
-                      final categoryResults = _shows(SearchFilter.categories)
-                          ? results.categories
-                          : <CategoryData>[];
-                      final marketResults = _shows(SearchFilter.markets)
-                          ? results.markets
-                          : <StoreMarketData>[];
-                      final hasMoreProducts =
-                          _shows(SearchFilter.products) &&
-                          results.hasMoreProducts;
-                      final hasResults =
-                          productResults.isNotEmpty ||
-                          categoryResults.isNotEmpty ||
-                          marketResults.isNotEmpty ||
-                          hasMoreProducts;
-                      final isInitialLoading =
-                          query.isNotEmpty &&
-                          (discoveryState is CatalogSearchLoading ||
-                              discoveryState.query != query);
-                      final needsCity =
-                          discoveryState is CatalogSearchNeedsCity;
-                      final failure = discoveryState is CatalogSearchFailure
-                          ? discoveryState
-                          : null;
+            return Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      sliver: SliverToBoxAdapter(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const PageTopBar(
+                              title: 'Search',
+                              subtitle: 'Products, shops and categories',
+                            ),
+                            const SizedBox(height: 18),
+                            _SearchInput(
+                              controller: _queryController,
+                              isDark: isDark,
+                            ),
+                            const SizedBox(height: 12),
+                            _FilterBar(
+                              selected: _filter,
+                              onChanged: (filter) {
+                                if (_filter != filter) {
+                                  setState(() => _filter = filter);
+                                }
+                              },
+                            ),
+                            const SizedBox(height: 18),
+                          ],
+                        ),
+                      ),
+                    ),
+                    BlocBuilder<CatalogSearchCubit, CatalogSearchState>(
+                      buildWhen: (previous, current) =>
+                          previous.runtimeType != current.runtimeType ||
+                          previous.query != current.query ||
+                          (previous is CatalogSearchFailure &&
+                              current is CatalogSearchFailure &&
+                              previous.message != current.message) ||
+                          !identical(previous.results, current.results) ||
+                          (previous is CatalogSearchReady &&
+                              current is CatalogSearchReady &&
+                              !identical(
+                                previous.visibleProducts,
+                                current.visibleProducts,
+                              )),
+                      builder: (context, discoveryState) => AnimatedBuilder(
+                        animation: _waitingForQuery,
+                        builder: (context, _) {
+                          final query = _queryController.text.trim();
+                          final results = discoveryState.results;
+                          final productResults = _shows(SearchFilter.products)
+                              ? (discoveryState is CatalogSearchReady
+                                    ? discoveryState.visibleProducts
+                                    : const <ProductData>[])
+                              : <ProductData>[];
+                          final categoryResults =
+                              _shows(SearchFilter.categories)
+                              ? results.categories
+                              : <CategoryData>[];
+                          final marketResults = _shows(SearchFilter.markets)
+                              ? results.markets
+                              : <StoreMarketData>[];
+                          final hasMoreProducts =
+                              _shows(SearchFilter.products) &&
+                              results.hasMoreProducts;
+                          final hasResults =
+                              productResults.isNotEmpty ||
+                              categoryResults.isNotEmpty ||
+                              marketResults.isNotEmpty ||
+                              hasMoreProducts;
+                          final isInitialLoading =
+                              query.isNotEmpty &&
+                              (discoveryState is CatalogSearchLoading ||
+                                  discoveryState.query != query);
+                          final needsCity =
+                              discoveryState is CatalogSearchNeedsCity;
+                          final failure = discoveryState is CatalogSearchFailure
+                              ? discoveryState
+                              : null;
 
-                      return Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(maxWidth: maxWidth),
-                          child: CustomScrollView(
-                            slivers: [
-                              SliverPadding(
-                                padding: const EdgeInsets.fromLTRB(
-                                  16,
-                                  12,
-                                  16,
-                                  28,
+                          return SliverPadding(
+                            padding: const EdgeInsets.fromLTRB(16, 0, 16, 28),
+                            sliver: SliverMainAxisGroup(
+                              slivers: [
+                                SliverToBoxAdapter(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      if (isInitialLoading)
+                                        _filter == SearchFilter.categories
+                                            ? const AppCategorySkeletonGrid()
+                                            : const AppProductSkeletonGrid()
+                                      else if (needsCity)
+                                        _EmptySearchState(
+                                          query: '',
+                                          isDark: isDark,
+                                          title: 'Choose your city',
+                                          message:
+                                              'So we can show shops available in your area.',
+                                          onClear: () => Navigator.pop(context),
+                                        )
+                                      else if (failure != null)
+                                        AppStateView(
+                                          icon: AppIcons.warning_2,
+                                          title: _failureTitle(failure.message),
+                                          message: failure.message,
+                                          actionLabel: 'Retry',
+                                          color: AppColors.error,
+                                          onAction: () => context
+                                              .read<CatalogSearchCubit>()
+                                              .search(query),
+                                        )
+                                      else if (query.isEmpty)
+                                        _SearchStarter(
+                                          onQuerySelected: (value) =>
+                                              _queryController.text = value,
+                                        )
+                                      else if (!hasResults)
+                                        _EmptySearchState(
+                                          query: query,
+                                          isDark: isDark,
+                                          onClear: _queryController.clear,
+                                        )
+                                      else ...[
+                                        _SearchSummary(
+                                          query: query,
+                                          total:
+                                              productResults.length +
+                                              categoryResults.length +
+                                              marketResults.length,
+                                          isDark: isDark,
+                                        ),
+                                        const SizedBox(height: 18),
+                                      ],
+                                    ],
+                                  ),
                                 ),
-                                sliver: SliverMainAxisGroup(
-                                  slivers: [
+                                if (!isInitialLoading &&
+                                    !needsCity &&
+                                    failure == null &&
+                                    query.isNotEmpty &&
+                                    hasResults) ...[
+                                  if (marketResults.isNotEmpty) ...[
                                     SliverToBoxAdapter(
                                       child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          const PageTopBar(
-                                            title: 'Search',
-                                            subtitle:
-                                                'Products, shops and categories',
+                                          _SectionTitle(
+                                            title: 'Search shops',
+                                            count: marketResults.length,
                                           ),
-                                          const SizedBox(height: 18),
-                                          _SearchInput(
-                                            controller: _queryController,
-                                            isDark: isDark,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          _FilterBar(
-                                            selected: _filter,
-                                            onChanged: (filter) => setState(
-                                              () => _filter = filter,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 18),
-
-                                          if (isInitialLoading)
-                                            _filter == SearchFilter.categories
-                                                ? const AppCategorySkeletonGrid()
-                                                : const AppProductSkeletonGrid()
-                                          else if (needsCity)
-                                            _EmptySearchState(
-                                              query: '',
-                                              isDark: isDark,
-                                              title: 'Choose your city',
-                                              message:
-                                                  'So we can show shops available in your area.',
-                                              onClear: () =>
-                                                  Navigator.pop(context),
-                                            )
-                                          else if (failure != null)
-                                            AppStateView(
-                                              icon: AppIcons.warning_2,
-                                              title: _failureTitle(
-                                                failure.message,
-                                              ),
-                                              message: failure.message,
-                                              actionLabel: 'Retry',
-                                              color: AppColors.error,
-                                              onAction: () => context
-                                                  .read<CatalogSearchCubit>()
-                                                  .search(query),
-                                            )
-                                          else if (query.isEmpty)
-                                            _SearchStarter(
-                                              onQuerySelected: (value) =>
-                                                  _queryController.text = value,
-                                            )
-                                          else if (!hasResults)
-                                            _EmptySearchState(
-                                              query: query,
-                                              isDark: isDark,
-                                              onClear: _queryController.clear,
-                                            )
-                                          else ...[
-                                            _SearchSummary(
-                                              query: query,
-                                              total:
-                                                  productResults.length +
-                                                  categoryResults.length +
-                                                  marketResults.length,
-                                              isDark: isDark,
-                                            ),
-                                            const SizedBox(height: 18),
-                                          ],
+                                          const SizedBox(height: 10),
                                         ],
                                       ),
                                     ),
-                                    if (!isInitialLoading &&
-                                        !needsCity &&
-                                        failure == null &&
-                                        query.isNotEmpty &&
-                                        hasResults) ...[
-                                      if (marketResults.isNotEmpty) ...[
-                                        SliverToBoxAdapter(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _SectionTitle(
-                                                title: 'Search shops',
-                                                count: marketResults.length,
-                                              ),
-                                              const SizedBox(height: 10),
-                                            ],
+                                    SliverList.builder(
+                                      itemCount: marketResults.length,
+                                      itemBuilder: (context, index) {
+                                        final market = marketResults[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 10,
                                           ),
-                                        ),
-                                        SliverList.builder(
-                                          itemCount: marketResults.length,
-                                          itemBuilder: (context, index) {
-                                            final market = marketResults[index];
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 10,
-                                              ),
-                                              child: CatalogRouteContainer(
-                                                key: ValueKey(market.id),
-                                                settings: RouteSettings(
-                                                  name: AppRoutes.brandProducts,
-                                                  arguments:
-                                                      BrandProductsRouteArgs(
-                                                        brand: market.name,
-                                                        logo: market.image,
-                                                        productCount: market
-                                                            .productCountLabel,
-                                                        classificationId: market
-                                                            .classificationId,
-                                                        marketId: market.id,
-                                                      ),
-                                                ),
-                                                closedColor: Colors.transparent,
-                                                closedBuilder:
-                                                    (context, open) =>
-                                                        StoreMarketCard(
-                                                          market: market,
-                                                          keyPrefix: 'search',
-                                                          onTap: open,
-                                                        ),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                        const SliverToBoxAdapter(
-                                          child: SizedBox(height: 10),
-                                        ),
-                                      ],
-                                      if (_shows(SearchFilter.markets) &&
-                                          results.hasMoreMarkets)
-                                        const SliverToBoxAdapter(
-                                          child: _LoadMoreProducts(
-                                            section: CatalogSection.markets,
-                                          ),
-                                        ),
-                                      if (_shows(SearchFilter.categories) &&
-                                          categoryResults.isNotEmpty) ...[
-                                        SliverToBoxAdapter(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _SectionTitle(
-                                                title: 'Search categories',
-                                                count: categoryResults.length,
-                                              ),
-                                              const SizedBox(height: 10),
-                                            ],
-                                          ),
-                                        ),
-                                        SliverList.builder(
-                                          itemCount: categoryResults.length,
-                                          itemBuilder: (context, index) {
-                                            final category =
-                                                categoryResults[index];
-                                            return Padding(
-                                              padding: const EdgeInsets.only(
-                                                bottom: 10,
-                                              ),
-                                              child: BrandCard(
-                                                showBorder: true,
-                                                brand: category.name,
+                                          child: CatalogRouteContainer(
+                                            key: ValueKey(market.id),
+                                            settings: RouteSettings(
+                                              name: AppRoutes.brandProducts,
+                                              arguments: BrandProductsRouteArgs(
+                                                brand: market.name,
+                                                logo: market.image,
                                                 productCount:
-                                                    category.marketCountLabel,
-                                                logo: category.image,
-                                                accentColor: Color(
-                                                  category.accentColorValue,
-                                                ),
-                                                onTap: () => _openCategory(
-                                                  context,
-                                                  category,
-                                                ),
+                                                    market.productCountLabel,
+                                                classificationId:
+                                                    market.classificationId,
+                                                marketId: market.id,
                                               ),
-                                            );
-                                          },
-                                        ),
-                                        const SliverToBoxAdapter(
-                                          child: SizedBox(height: 10),
-                                        ),
-                                      ],
-                                      if (_shows(SearchFilter.categories) &&
-                                          results.hasMoreCategories)
-                                        const SliverToBoxAdapter(
-                                          child: _LoadMoreProducts(
-                                            section: CatalogSection.categories,
+                                            ),
+                                            closedColor: Colors.transparent,
+                                            closedBuilder: (context, open) =>
+                                                StoreMarketCard(
+                                                  market: market,
+                                                  keyPrefix: 'search',
+                                                  onTap: open,
+                                                ),
                                           ),
-                                        ),
-                                      if (_shows(SearchFilter.products) &&
-                                          productResults.isNotEmpty) ...[
-                                        SliverToBoxAdapter(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              _SectionTitle(
-                                                title: 'Products',
-                                                count: productResults.length,
-                                              ),
-                                              const SizedBox(height: 10),
-                                            ],
-                                          ),
-                                        ),
-                                        ProductCardsSliver(
-                                          products: productResults,
-                                          idOf: productCardId,
-                                          cardOf: productCardTileData,
-                                        ),
-                                      ],
-                                      if (hasMoreProducts &&
-                                          discoveryState is CatalogSearchReady)
-                                        const SliverToBoxAdapter(
-                                          child: _LoadMoreProducts(),
-                                        ),
-                                    ],
+                                        );
+                                      },
+                                    ),
+                                    const SliverToBoxAdapter(
+                                      child: SizedBox(height: 10),
+                                    ),
                                   ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
+                                  if (_shows(SearchFilter.markets) &&
+                                      results.hasMoreMarkets)
+                                    const SliverToBoxAdapter(
+                                      child: _LoadMoreProducts(
+                                        section: CatalogSection.markets,
+                                      ),
+                                    ),
+                                  if (_shows(SearchFilter.categories) &&
+                                      categoryResults.isNotEmpty) ...[
+                                    SliverToBoxAdapter(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _SectionTitle(
+                                            title: 'Search categories',
+                                            count: categoryResults.length,
+                                          ),
+                                          const SizedBox(height: 10),
+                                        ],
+                                      ),
+                                    ),
+                                    SliverList.builder(
+                                      itemCount: categoryResults.length,
+                                      itemBuilder: (context, index) {
+                                        final category = categoryResults[index];
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            bottom: 10,
+                                          ),
+                                          child: BrandCard(
+                                            showBorder: true,
+                                            brand: category.name,
+                                            productCount:
+                                                category.marketCountLabel,
+                                            logo: category.image,
+                                            accentColor: Color(
+                                              category.accentColorValue,
+                                            ),
+                                            onTap: () => _openCategory(
+                                              context,
+                                              category,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    const SliverToBoxAdapter(
+                                      child: SizedBox(height: 10),
+                                    ),
+                                  ],
+                                  if (_shows(SearchFilter.categories) &&
+                                      results.hasMoreCategories)
+                                    const SliverToBoxAdapter(
+                                      child: _LoadMoreProducts(
+                                        section: CatalogSection.categories,
+                                      ),
+                                    ),
+                                  if (_shows(SearchFilter.products) &&
+                                      productResults.isNotEmpty) ...[
+                                    SliverToBoxAdapter(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          _SectionTitle(
+                                            title: 'Products',
+                                            count: productResults.length,
+                                          ),
+                                          const SizedBox(height: 10),
+                                        ],
+                                      ),
+                                    ),
+                                    ProductCardsSliver(
+                                      products: productResults,
+                                      idOf: productCardId,
+                                      cardOf: productCardTileData,
+                                    ),
+                                  ],
+                                  if (hasMoreProducts &&
+                                      discoveryState is CatalogSearchReady)
+                                    const SliverToBoxAdapter(
+                                      child: _LoadMoreProducts(),
+                                    ),
+                                ],
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         ),

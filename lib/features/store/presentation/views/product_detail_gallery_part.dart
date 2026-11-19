@@ -8,7 +8,6 @@ extension _ProductDetailHeader on _ProductDetailViewState {
 
   SliverAppBar _buildProductHeader({
     required bool isDark,
-    required bool isFavorite,
     required List<String> thumbnailImages,
     required double width,
     required double toolbarHeight,
@@ -93,11 +92,16 @@ extension _ProductDetailHeader on _ProductDetailViewState {
           tooltip: 'Share product',
         ),
         const SizedBox(width: 8),
-        _CircleActionButton(
-          icon: isFavorite ? AppIcons.heart5 : AppIcons.heart,
-          color: isFavorite ? AppColors.error : null,
-          isDark: isDark,
-          onTap: () => _toggleWishlist(context, isFavorite),
+        BlocSelector<WishlistCubit, List<WishlistItem>, bool>(
+          selector: (items) => items is WishlistState
+              ? items.containsProduct(_resolvedProductId)
+              : items.any((item) => item.productId == _resolvedProductId),
+          builder: (context, isFavorite) => _CircleActionButton(
+            icon: isFavorite ? AppIcons.heart5 : AppIcons.heart,
+            color: isFavorite ? AppColors.error : null,
+            isDark: isDark,
+            onTap: () => _toggleWishlist(context, isFavorite),
+          ),
         ),
       ],
       flexibleSpace: _ProductFlexibleHeader(

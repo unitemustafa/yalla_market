@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 
@@ -199,6 +200,15 @@ class _HomeViewState extends State<HomeView> {
                         ),
                         const SizedBox(height: 12),
                         BlocConsumer<HomeCubit, HomeState>(
+                          buildWhen: (previous, current) =>
+                              !identical(previous.data, current.data) ||
+                              (current.data == null &&
+                                  (previous.runtimeType !=
+                                          current.runtimeType ||
+                                      (previous is HomeFailure &&
+                                          current is HomeFailure &&
+                                          previous.message !=
+                                              current.message))),
                           listener: (context, homeState) {
                             if (homeState is HomeFailure &&
                                 homeState.message == regionRequiredMessage) {
@@ -249,69 +259,22 @@ class _HomeViewState extends State<HomeView> {
                                         ),
                                 ),
                                 const SizedBox(height: 24),
-                                BlocBuilder<StoreCubit, StoreState>(
-                                  builder: (context, storeState) {
-                                    return BlocBuilder<
-                                      ProductCatalogCubit,
-                                      ProductCatalogState
-                                    >(
-                                      builder: (context, catalogState) {
-                                        final store = storeState.data;
-                                        final hasStoreHighlights =
-                                            store != null &&
-                                            (store.latestMarkets.isNotEmpty ||
-                                                store
-                                                    .popularMarkets
-                                                    .isNotEmpty);
-
-                                        return Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            HomeCatalogSections(
-                                              home: home,
-                                              homeLoading:
-                                                  homeState is HomeInitial ||
-                                                  homeState is HomeLoading,
-                                              catalogState: catalogState,
-                                            ),
-                                            if (store == null &&
-                                                !(homeState is HomeFailure &&
-                                                    home == null &&
-                                                    storeState
-                                                        is StoreInitial) &&
-                                                (storeState is StoreInitial ||
-                                                    storeState
-                                                        is StoreLoading)) ...[
-                                              const SizedBox(height: 22),
-                                              const AppSkeletonList(
-                                                rows: 2,
-                                                rowHeight: 150,
-                                              ),
-                                            ],
-                                            if (storeState is StoreFailure &&
-                                                store == null) ...[
-                                              const SizedBox(height: 22),
-                                              AppErrorState(
-                                                title: 'Stores could not load',
-                                                message: storeState.message,
-                                                onRetry: () => context
-                                                    .read<StoreCubit>()
-                                                    .loadStore(force: true),
-                                              ),
-                                            ],
-                                            if (store != null &&
-                                                hasStoreHighlights) ...[
-                                              const SizedBox(height: 22),
-                                              StoreHighlightsSections(
-                                                store: store,
-                                              ),
-                                            ],
-                                          ],
-                                        );
-                                      },
-                                    );
-                                  },
+                                BlocBuilder<
+                                  ProductCatalogCubit,
+                                  ProductCatalogState
+                                >(
+                                  builder: (context, catalogState) =>
+                                      HomeCatalogSections(
+                                        home: home,
+                                        homeLoading:
+                                            homeState is HomeInitial ||
+                                            homeState is HomeLoading,
+                                        catalogState: catalogState,
+                                      ),
+                                ),
+                                _HomeStoreHighlights(
+                                  hideInitialLoading:
+                                      homeState is HomeFailure && home == null,
                                 ),
                               ],
                             );
@@ -328,6 +291,51 @@ class _HomeViewState extends State<HomeView> {
       ),
     );
   }
+}
+
+class _HomeStoreHighlights extends StatelessWidget {
+  const _HomeStoreHighlights({required this.hideInitialLoading});
+
+  final bool hideInitialLoading;
+
+  @override
+  Widget build(BuildContext context) => BlocBuilder<StoreCubit, StoreState>(
+    buildWhen: (previous, current) {
+      final before = previous.data;
+      final after = current.data;
+      if (before == null || after == null) {
+        return !identical(before, after) ||
+            previous.runtimeType != current.runtimeType ||
+            (previous is StoreFailure &&
+                current is StoreFailure &&
+                previous.message != current.message);
+      }
+      return !listEquals(before.latestMarkets, after.latestMarkets) ||
+          !listEquals(before.popularMarkets, after.popularMarkets);
+    },
+    builder: (context, state) {
+      final store = state.data;
+      final Widget content;
+      if (store != null) {
+        if (store.latestMarkets.isEmpty && store.popularMarkets.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        content = StoreHighlightsSections(store: store);
+      } else if (state is StoreFailure) {
+        content = AppErrorState(
+          title: 'Stores could not load',
+          message: state.message,
+          onRetry: () => context.read<StoreCubit>().loadStore(force: true),
+        );
+      } else if (state is StoreLoading ||
+          state is StoreInitial && !hideInitialLoading) {
+        content = const AppSkeletonList(rows: 2, rowHeight: 150);
+      } else {
+        return const SizedBox.shrink();
+      }
+      return Padding(padding: const EdgeInsets.only(top: 22), child: content);
+    },
+  );
 }
 
 @visibleForTesting
@@ -519,11 +527,12 @@ class _HomeTopBar extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: BlocBuilder<LocationCubit, LocationState>(
-                builder: (context, state) {
+              child: BlocSelector<LocationCubit, LocationState, CityData?>(
+                selector: (state) => state.selectedCity,
+                builder: (context, city) {
                   return _HomeCustomerSummary(
                     customerName: profile.displayName,
-                    regionLabel: homeRegionLabel(context, state.selectedCity),
+                    regionLabel: homeRegionLabel(context, city),
                     onRegionTap: onRegionTap,
                   );
                 },
@@ -798,15 +807,16 @@ class _HomeSearchActionsRow extends StatelessWidget {
         onTap: () => Navigator.pushNamed(context, AppRoutes.search),
       ),
       actions: [
-        BlocBuilder<NotificationCubit, NotificationState>(
-          builder: (context, state) {
+        BlocSelector<NotificationCubit, NotificationState, int>(
+          selector: (state) => state.unreadCount,
+          builder: (context, unreadCount) {
             return AppSearchActionButton(
               key: const ValueKey('notification_bell_button'),
               badgeKey: const ValueKey('notification_unread_badge'),
               onTap: () {
                 Navigator.pushNamed(context, AppRoutes.notifications);
               },
-              badgeCount: state.unreadCount,
+              badgeCount: unreadCount,
               child: Icon(AppIcons.notification, color: mutedColor, size: 20),
             );
           },

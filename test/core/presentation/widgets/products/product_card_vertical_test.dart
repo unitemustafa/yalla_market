@@ -1,6 +1,8 @@
 import 'package:yalla_market/app/routing/auth_guard.dart';
 import 'package:yalla_market/features/store/presentation/views/product_detail_view.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,8 +62,32 @@ void main() {
       const ValueKey('product_add_to_cart_backend-product-42'),
     );
     final buttonRectBefore = tester.getRect(addButton);
-    await tester.tap(addButton);
+    final haptics = <Object?>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+      if (call.method == 'HapticFeedback.vibrate') haptics.add(call.arguments);
+      return null;
+    });
+    addTearDown(
+      () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    final transform = find
+        .descendant(of: addButton, matching: find.byType(Transform))
+        .first;
+    final gesture = await tester.startGesture(buttonRectBefore.center);
+    await tester.pump(kPressTimeout + const Duration(milliseconds: 1));
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(
+      tester.widget<Transform>(transform).transform.storage[0],
+      closeTo(0.96, 0.0001),
+    );
+    expect(haptics, ['HapticFeedbackType.lightImpact']);
+    expect(cartCubit.state, isEmpty);
+    await gesture.up();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(tester.widget<Transform>(transform).transform.storage[0], 1);
+    expect(haptics, hasLength(1));
     expect(tester.getRect(addButton), buttonRectBefore);
     expect(
       find.descendant(of: addButton, matching: find.text('Add to cart')),

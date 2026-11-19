@@ -49,10 +49,10 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
   bool _isSubmitting = false;
   bool _hasActiveCooldown = false;
   int _cooldownReadGeneration = 0;
-  int _remainingCooldownSeconds = 0;
+  final _remainingCooldownSeconds = ValueNotifier(0);
 
   bool get _isCoolingDown =>
-      _hasActiveCooldown && _remainingCooldownSeconds > 0;
+      _hasActiveCooldown && _remainingCooldownSeconds.value > 0;
 
   @override
   void initState() {
@@ -67,6 +67,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     _emailCheckDebounce?.cancel();
     _cancelCooldownTimer();
     _emailController.removeListener(_scheduleEmailCheck);
+    _remainingCooldownSeconds.dispose();
     _emailController.dispose();
     super.dispose();
   }
@@ -238,7 +239,11 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                     compact: true,
                   ),
                   const SizedBox(height: 8),
-                  _buildCooldownNotice(theme, isDarkMode),
+                  ValueListenableBuilder<int>(
+                    valueListenable: _remainingCooldownSeconds,
+                    builder: (_, _, _) =>
+                        _buildCooldownNotice(theme, isDarkMode),
+                  ),
                   _buildSubmitButton(),
                 ],
               ),
@@ -352,7 +357,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
       child: Text(
         '${context.tr('You can use the code already sent to your email.')}\n'
         '${context.tr('Resend available in')} '
-        '${widget.cooldownStore.formatCountdown(_remainingCooldownSeconds)}',
+        '${widget.cooldownStore.formatCountdown(_remainingCooldownSeconds.value)}',
         style: theme.textTheme.bodySmall?.copyWith(
           color: textColor,
           height: 1.45,
@@ -472,7 +477,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     if (!_hasActiveCooldown &&
         _cooldownEmail == null &&
         _cooldownDeadline == null &&
-        _remainingCooldownSeconds == 0) {
+        _remainingCooldownSeconds.value == 0) {
       return;
     }
 
@@ -480,7 +485,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
       _cooldownEmail = null;
       _cooldownDeadline = null;
       _hasActiveCooldown = false;
-      _remainingCooldownSeconds = 0;
+      _remainingCooldownSeconds.value = 0;
     });
   }
 
@@ -502,7 +507,7 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
         _cooldownEmail = null;
         _cooldownDeadline = null;
         _hasActiveCooldown = false;
-        _remainingCooldownSeconds = 0;
+        _remainingCooldownSeconds.value = 0;
       });
       unawaited(
         widget.cooldownStore.clear(
@@ -516,15 +521,14 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
     final seconds = (remainingMilliseconds / 1000).ceil();
     if (!_hasActiveCooldown ||
         _cooldownEmail != normalizedEmail ||
-        _cooldownDeadline != deadline ||
-        seconds != _remainingCooldownSeconds) {
+        _cooldownDeadline != deadline) {
       setState(() {
         _cooldownEmail = normalizedEmail;
         _cooldownDeadline = deadline;
         _hasActiveCooldown = true;
-        _remainingCooldownSeconds = seconds;
       });
     }
+    _remainingCooldownSeconds.value = seconds;
   }
 
   bool _isCooldownActiveFor(String email) {

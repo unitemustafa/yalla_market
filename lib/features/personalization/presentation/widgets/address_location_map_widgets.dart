@@ -14,10 +14,7 @@ import '../../../location/domain/services/device_location_service.dart';
 class AddressLocationMapPage extends StatelessWidget {
   const AddressLocationMapPage({
     super.key,
-    required this.mapController,
-    required this.tileProvider,
-    required this.target,
-    required this.tileUrlTemplate,
+    required this.map,
     required this.locationLabel,
     required this.title,
     required this.deliveryMessage,
@@ -25,17 +22,11 @@ class AddressLocationMapPage extends StatelessWidget {
     required this.isLocating,
     required this.onClose,
     required this.onSearch,
-    required this.onMapReady,
-    required this.onMapEvent,
     required this.onConfirm,
     required this.onCurrentLocation,
-    required this.onOpenUrl,
   });
 
-  final MapController mapController;
-  final NetworkTileProvider tileProvider;
-  final DeviceCoordinates target;
-  final String tileUrlTemplate;
+  final Widget map;
   final String? locationLabel;
   final String title;
   final String deliveryMessage;
@@ -43,11 +34,8 @@ class AddressLocationMapPage extends StatelessWidget {
   final bool isLocating;
   final VoidCallback onClose;
   final VoidCallback onSearch;
-  final VoidCallback onMapReady;
-  final void Function(MapEvent event) onMapEvent;
   final VoidCallback? onConfirm;
   final VoidCallback onCurrentLocation;
-  final ValueChanged<String> onOpenUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -58,45 +46,7 @@ class AddressLocationMapPage extends StatelessWidget {
         Expanded(
           child: Stack(
             children: [
-              Positioned.fill(
-                child: FlutterMap(
-                  mapController: mapController,
-                  options: MapOptions(
-                    initialCenter: LatLng(target.latitude, target.longitude),
-                    initialZoom: 16,
-                    minZoom: 4,
-                    maxZoom: MapTilerMapConfig.maxZoom,
-                    onMapReady: onMapReady,
-                    onMapEvent: onMapEvent,
-                  ),
-                  children: [
-                    TileLayer(
-                      urlTemplate: tileUrlTemplate,
-                      userAgentPackageName:
-                          MapTilerMapConfig.userAgentPackageName,
-                      tileProvider: tileProvider,
-                      maxNativeZoom: 20,
-                      maxZoom: MapTilerMapConfig.maxZoom,
-                      panBuffer: 1,
-                      keepBuffer: 2,
-                    ),
-                    RichAttributionWidget(
-                      attributions: [
-                        TextSourceAttribution(
-                          'MapTiler',
-                          onTap: () => onOpenUrl('https://www.maptiler.com/'),
-                        ),
-                        TextSourceAttribution(
-                          'OpenStreetMap contributors',
-                          onTap: () => onOpenUrl(
-                            'https://www.openstreetmap.org/copyright',
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              Positioned.fill(child: map),
               IgnorePointer(
                 child: Center(
                   child: Transform.translate(
@@ -466,4 +416,62 @@ class LocationConfirmationPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Retains the map and tile layer when the address overlay updates.
+class AddressLocationMapSurface extends StatelessWidget {
+  const AddressLocationMapSurface({
+    super.key,
+    required this.mapController,
+    required this.tileProvider,
+    required this.initialTarget,
+    required this.tileUrlTemplate,
+    required this.onMapReady,
+    required this.onMapEvent,
+    required this.onOpenUrl,
+  });
+
+  final MapController mapController;
+  final NetworkTileProvider tileProvider;
+  final DeviceCoordinates initialTarget;
+  final String tileUrlTemplate;
+  final VoidCallback onMapReady;
+  final ValueChanged<MapEvent> onMapEvent;
+  final ValueChanged<String> onOpenUrl;
+
+  @override
+  Widget build(BuildContext context) => FlutterMap(
+    mapController: mapController,
+    options: MapOptions(
+      initialCenter: LatLng(initialTarget.latitude, initialTarget.longitude),
+      initialZoom: 16,
+      minZoom: 4,
+      maxZoom: MapTilerMapConfig.maxZoom,
+      onMapReady: onMapReady,
+      onMapEvent: onMapEvent,
+    ),
+    children: [
+      TileLayer(
+        urlTemplate: tileUrlTemplate,
+        userAgentPackageName: MapTilerMapConfig.userAgentPackageName,
+        tileProvider: tileProvider,
+        maxNativeZoom: 20,
+        maxZoom: MapTilerMapConfig.maxZoom,
+        panBuffer: 1,
+        keepBuffer: 2,
+      ),
+      RichAttributionWidget(
+        attributions: [
+          TextSourceAttribution(
+            'MapTiler',
+            onTap: () => onOpenUrl('https://www.maptiler.com/'),
+          ),
+          TextSourceAttribution(
+            'OpenStreetMap contributors',
+            onTap: () => onOpenUrl('https://www.openstreetmap.org/copyright'),
+          ),
+        ],
+      ),
+    ],
+  );
 }

@@ -51,8 +51,8 @@ class CartCounterIcon extends StatelessWidget {
             ),
             if (count > 0)
               PositionedDirectional(
-                end: 2,
-                top: 2,
+                end: -6,
+                top: -6,
                 child: Container(
                   constraints: const BoxConstraints(
                     minWidth: 18,

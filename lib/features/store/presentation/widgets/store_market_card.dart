@@ -180,6 +180,7 @@ class _StoreCover extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           AppImage(
+            animatePlaceholder: false,
             key: ValueKey('${keyPrefix}_${market.id}_cover'),
             source: market.coverImage,
             fallbackType: AppImagePlaceholderType.store,
@@ -260,6 +261,7 @@ class _StoreLogo extends StatelessWidget {
         border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: AppImage(
+        animatePlaceholder: false,
         key: ValueKey('${keyPrefix}_${market.id}_logo'),
         source: market.image,
         fallbackType: AppImagePlaceholderType.store,

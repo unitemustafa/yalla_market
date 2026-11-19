@@ -41,6 +41,7 @@ class AppImage extends StatelessWidget {
     super.key,
     this.source,
     this.decodeToLayoutBounds = false,
+    this.animatePlaceholder = true,
     this.bytes,
     this.width,
     this.height,
@@ -59,6 +60,7 @@ class AppImage extends StatelessWidget {
   });
 
   final bool decodeToLayoutBounds;
+  final bool animatePlaceholder;
   final String? source;
   final Uint8List? bytes;
   final double? width;
@@ -172,8 +174,15 @@ class AppImage extends StatelessWidget {
         gaplessPlayback: true,
         frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
           if (wasSynchronouslyLoaded) return child;
-          if (frame != null) return AppContentReveal(child: child);
-          return placeholder ?? AppImageSkeleton(width: width, height: height);
+          if (frame != null) {
+            return animatePlaceholder ? AppContentReveal(child: child) : child;
+          }
+          return placeholder ??
+              AppImageSkeleton(
+                width: width,
+                height: height,
+                animate: animatePlaceholder,
+              );
         },
         errorBuilder: (_, _, _) => _buildFallback(context),
       );

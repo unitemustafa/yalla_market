@@ -1,7 +1,8 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
-import 'dart:async';
 
 import 'package:flutter/material.dart';
+
+import '../../../../core/presentation/widgets/otp_countdown.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
@@ -22,15 +23,14 @@ class PasswordResetSentView extends StatefulWidget {
 class _PasswordResetSentViewState extends State<PasswordResetSentView> {
   static const int _baseCooldownSeconds = 30;
 
-  Timer? _resendTimer;
   int _nextCooldownSeconds = _baseCooldownSeconds;
-  int _remainingSeconds = 0;
+  final _countdown = OtpCountdown();
 
-  bool get _isCoolingDown => _remainingSeconds > 0;
+  bool get _isCoolingDown => _countdown.value > 0;
 
   @override
   void dispose() {
-    _resendTimer?.cancel();
+    _countdown.dispose();
     super.dispose();
   }
 
@@ -40,26 +40,8 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
     // Keep resend cooldown local in the prototype.
     final cooldownSeconds = _nextCooldownSeconds;
 
-    setState(() {
-      _nextCooldownSeconds *= 2;
-      _remainingSeconds = cooldownSeconds;
-    });
-
-    _resendTimer?.cancel();
-    _resendTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
-        timer.cancel();
-        return;
-      }
-
-      if (_remainingSeconds <= 1) {
-        timer.cancel();
-        setState(() => _remainingSeconds = 0);
-        return;
-      }
-
-      setState(() => _remainingSeconds--);
-    });
+    _nextCooldownSeconds *= 2;
+    _countdown.start(cooldownSeconds);
   }
 
   @override
@@ -107,7 +89,11 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
                           const SizedBox(height: 32),
                           _buildDoneButton(context),
                           const SizedBox(height: 14),
-                          _buildResendButton(theme, isDarkMode),
+                          ValueListenableBuilder<int>(
+                            valueListenable: _countdown,
+                            builder: (_, _, _) =>
+                                _buildResendButton(theme, isDarkMode),
+                          ),
                         ],
                       ),
                     ),
@@ -245,8 +231,8 @@ class _PasswordResetSentViewState extends State<PasswordResetSentView> {
   Widget _buildResendButton(ThemeData theme, bool isDarkMode) {
     final label = _isCoolingDown
         ? context.isArabicLanguage
-              ? 'إعادة الإرسال خلال ${_formatCooldown(_remainingSeconds)}'
-              : 'Resend in ${_formatCooldown(_remainingSeconds)}'
+              ? 'إعادة الإرسال خلال ${_formatCooldown(_countdown.value)}'
+              : 'Resend in ${_formatCooldown(_countdown.value)}'
         : context.translations.resendEmail;
     final enabledColor = isDarkMode
         ? Colors.white.withValues(alpha: 0.78)

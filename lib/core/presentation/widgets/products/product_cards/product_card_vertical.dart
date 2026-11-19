@@ -15,6 +15,7 @@ import '../../../../../features/cart/presentation/cubit/cart_cubit.dart';
 import '../../../../../features/wishlist/domain/entities/wishlist_item.dart';
 import '../../../../../features/wishlist/presentation/cubit/wishlist_cubit.dart';
 import '../../../../../features/wishlist/presentation/cubit/wishlist_state.dart';
+import '../../buttons/app_button_feedback.dart';
 import '../../snackbars/custom_snackbar.dart';
 
 import '../../texts/app_currency_text.dart';
@@ -207,6 +208,7 @@ class _ProductCardVerticalState extends State<ProductCardVertical> {
                         Positioned.fill(
                           child: RepaintBoundary(
                             child: AppImage(
+                              animatePlaceholder: false,
                               source: widget.image,
                               fallbackType: AppImagePlaceholderType.product,
                               fit: BoxFit.contain,
@@ -472,50 +474,54 @@ class _AddToCartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.primary,
-      borderRadius: BorderRadius.circular(8),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: SizedBox(
-          width: double.infinity,
-          height: 34,
-          child: Center(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.tr('Add to cart'),
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white,
-                      fontSize: AppFontSizes.caption,
-                      fontWeight: FontWeight.w900,
+    final borderRadius = BorderRadius.circular(8);
+    return SizedBox(
+      width: double.infinity,
+      height: 34,
+      child: AppButtonFeedback(
+        builder: (_, pressStates) => Material(
+          color: AppColors.primary,
+          borderRadius: borderRadius,
+          child: InkWell(
+            statesController: pressStates,
+            onTap: onTap,
+            borderRadius: borderRadius,
+            child: Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      context.tr('Add to cart'),
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontSize: AppFontSizes.caption,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 1),
-                  SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: Center(
-                      child: quantity == 0
-                          ? Icon(AppIcons.add, color: Colors.white, size: 11)
-                          : Text(
-                              '$quantity',
-                              key: ValueKey('cart_quantity_$quantity'),
-                              style: Theme.of(context).textTheme.labelSmall
-                                  ?.copyWith(
-                                    color: Colors.white,
-                                    fontSize: AppFontSizes.caption,
-                                    height: 1,
-                                    fontWeight: FontWeight.w900,
-                                  ),
-                            ),
+                    const SizedBox(width: 1),
+                    SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: Center(
+                        child: quantity == 0
+                            ? Icon(AppIcons.add, color: Colors.white, size: 11)
+                            : Text(
+                                '$quantity',
+                                key: ValueKey('cart_quantity_$quantity'),
+                                style: Theme.of(context).textTheme.labelSmall
+                                    ?.copyWith(
+                                      color: Colors.white,
+                                      fontSize: AppFontSizes.caption,
+                                      height: 1,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                              ),
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),

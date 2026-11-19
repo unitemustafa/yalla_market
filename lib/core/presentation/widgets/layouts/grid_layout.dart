@@ -82,6 +82,7 @@ class SliverGridLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SliverGrid(
     gridDelegate: _ResponsiveGridDelegate(
+      itemCount: itemCount,
       minimumCardWidth: minimumCardWidth,
       minCrossAxisCount: minCrossAxisCount,
       maxCrossAxisCount: maxCrossAxisCount,
@@ -101,6 +102,7 @@ class SliverGridLayout extends StatelessWidget {
 // columns belong to render layout, which leaves existing elements untouched.
 class _ResponsiveGridDelegate extends SliverGridDelegate {
   const _ResponsiveGridDelegate({
+    required this.itemCount,
     required this.minimumCardWidth,
     required this.minCrossAxisCount,
     required this.maxCrossAxisCount,
@@ -108,6 +110,7 @@ class _ResponsiveGridDelegate extends SliverGridDelegate {
     required this.mainAxisExtent,
   });
 
+  final int itemCount;
   final double minimumCardWidth;
   final int minCrossAxisCount;
   final int maxCrossAxisCount;
@@ -133,6 +136,9 @@ class _ResponsiveGridDelegate extends SliverGridDelegate {
 
   @override
   bool shouldRelayout(_ResponsiveGridDelegate oldDelegate) =>
+      // Appending an offscreen page must update the viewport's scroll extent
+      // even when the widgets in the visible rows keep the same size.
+      itemCount != oldDelegate.itemCount ||
       minimumCardWidth != oldDelegate.minimumCardWidth ||
       minCrossAxisCount != oldDelegate.minCrossAxisCount ||
       maxCrossAxisCount != oldDelegate.maxCrossAxisCount ||

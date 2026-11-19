@@ -1,10 +1,34 @@
-import 'package:animations/animations.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/presentation/widgets/app_open_container.dart';
 import 'package:yalla_market/core/presentation/widgets/refresh_on_return.dart';
 
 void main() {
+  testWidgets('does not rebuild destination on each transition frame', (
+    tester,
+  ) async {
+    var builds = 0;
+    await _pumpContainer(
+      tester,
+      openBuilder: (context) {
+        builds++;
+        return const Scaffold(body: Text('Destination'));
+      },
+    );
+
+    await tester.tap(find.byKey(const ValueKey('open-card')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 40));
+    final initialBuilds = builds;
+    for (var frame = 0; frame < 10; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+
+    expect(initialBuilds, greaterThan(0));
+    expect(builds, initialBuilds);
+    await tester.pumpAndSettle();
+  });
+
   testWidgets(
     'builds destination only after the card opens and preserves settings',
     (tester) async {
@@ -157,17 +181,14 @@ void main() {
   testWidgets('uses no transition duration when animations are disabled', (
     tester,
   ) async {
-    await _pumpContainer(tester, disableAnimations: true);
-
-    expect(
-      tester
-          .widget<OpenContainer<void>>(find.byType(OpenContainer<void>))
-          .transitionDuration,
-      Duration.zero,
-    );
+    final observer = _RouteObserver();
+    await _pumpContainer(tester, observer: observer, disableAnimations: true);
 
     await tester.tap(find.byKey(const ValueKey('open-card')));
     await tester.pump();
+    final route = observer.pushed.single as PageRoute<void>;
+    expect(route.transitionDuration, Duration.zero);
+    expect(route.reverseTransitionDuration, Duration.zero);
     expect(find.text('Destination'), findsOneWidget);
   });
 

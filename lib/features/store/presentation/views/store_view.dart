@@ -49,6 +49,18 @@ class _StoreViewState extends State<StoreView> {
         : const Color(0xFFF7F8FB);
 
     return BlocConsumer<StoreCubit, StoreState>(
+      buildWhen: (previous, current) {
+        final before = previous.data;
+        final after = current.data;
+        if (before != null && after != null) {
+          return !identical(before.classifications, after.classifications);
+        }
+        return !identical(before, after) ||
+            previous.runtimeType != current.runtimeType ||
+            (previous is StoreFailure &&
+                current is StoreFailure &&
+                previous.message != current.message);
+      },
       listener: (context, state) {
         if (state is StoreFailure && state.data != null) {
           CustomSnackBar.showError(

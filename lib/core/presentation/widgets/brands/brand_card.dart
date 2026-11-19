@@ -57,6 +57,7 @@ class BrandCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: AppImage(
+                  animatePlaceholder: false,
                   source: logo,
                   fallbackType: AppImagePlaceholderType.store,
                   role: AppImageRole.logo,

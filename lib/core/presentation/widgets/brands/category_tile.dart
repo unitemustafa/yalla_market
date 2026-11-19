@@ -48,6 +48,7 @@ class CategoryTile extends StatelessWidget {
                 child: Center(
                   child: RepaintBoundary(
                     child: AppImage(
+                      animatePlaceholder: false,
                       source: image,
                       width: AppCategoryLayout.iconSize,
                       height: AppCategoryLayout.iconSize,

@@ -242,21 +242,22 @@ void main() {
     );
   });
 
-  testWidgets('keeps the map mounted while search is open', (tester) async {
+  testWidgets('search overlay leaves the map widget untouched', (tester) async {
     await tester.pumpWidget(_picker(geocoding: _FakeGeocodingDataSource()));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 700));
 
-    final mapElement = tester.element(find.byType(FlutterMap));
+    final map = find.byType(FlutterMap);
+    final originalMap = tester.widget(map);
 
     await tester.tap(find.byKey(const ValueKey('map-picker-search-open')));
     await tester.pumpAndSettle();
     expect(find.byType(FlutterMap), findsOneWidget);
-    expect(tester.element(find.byType(FlutterMap)), same(mapElement));
+    expect(tester.widget(map), same(originalMap));
 
     await tester.tap(find.byKey(const ValueKey('map-picker-search-close')));
     await tester.pumpAndSettle();
-    expect(tester.element(find.byType(FlutterMap)), same(mapElement));
+    expect(tester.widget(map), same(originalMap));
   });
 
   testWidgets('rejects outside GPS even when legacy Cairo bounds are broad', (

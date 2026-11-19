@@ -53,6 +53,14 @@ class _CartViewState extends State<CartView>
     );
   }
 
+  bool _cartOrderChanged(List<CartItemData> before, List<CartItemData> after) {
+    if (before.length != after.length) return true;
+    for (var index = 0; index < after.length; index++) {
+      if (before[index].id != after[index].id) return true;
+    }
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -62,26 +70,26 @@ class _CartViewState extends State<CartView>
 
     return Scaffold(
       backgroundColor: backgroundColor,
-      body: BlocBuilder<CartCubit, List<CartItemData>>(
-        builder: (context, cartItems) {
-          _listEntrance.prepare(
-            cartItems.map((item) => item.id),
-            disableAnimations: MediaQuery.disableAnimationsOf(context),
-          );
-          final topBar = _buildCartTopBar(
-            isDark: isDark,
-            itemCount: _itemCount(cartItems),
-          );
-
-          return SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-                  child: topBar,
-                ),
-                Expanded(
-                  child: cartItems.isEmpty
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              child: BlocSelector<CartCubit, List<CartItemData>, int>(
+                selector: _itemCount,
+                builder: (context, itemCount) =>
+                    _buildCartTopBar(isDark: isDark, itemCount: itemCount),
+              ),
+            ),
+            Expanded(
+              child: BlocBuilder<CartCubit, List<CartItemData>>(
+                buildWhen: _cartOrderChanged,
+                builder: (context, cartItems) {
+                  _listEntrance.prepare(
+                    cartItems.map((item) => item.id),
+                    disableAnimations: MediaQuery.disableAnimationsOf(context),
+                  );
+                  return cartItems.isEmpty
                       ? const EmptyCartView()
                       : ListView.separated(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
@@ -119,37 +127,58 @@ class _CartViewState extends State<CartView>
                                     title: 'Item removed from cart',
                                   );
                                 },
-                                child: _buildCartItem(
-                                  context,
-                                  item: item,
-                                  isDark: isDark,
-                                ),
+                                child:
+                                    BlocSelector<
+                                      CartCubit,
+                                      List<CartItemData>,
+                                      CartItemData?
+                                    >(
+                                      selector: (items) {
+                                        if (index < items.length &&
+                                            items[index].id == item.id) {
+                                          return items[index];
+                                        }
+                                        for (final current in items) {
+                                          if (current.id == item.id) {
+                                            return current;
+                                          }
+                                        }
+                                        return null;
+                                      },
+                                      builder: (context, current) =>
+                                          current == null
+                                          ? const SizedBox.shrink()
+                                          : CartItemCard(
+                                              item: current,
+                                              isDark: isDark,
+                                            ),
+                                    ),
                               ),
                             );
                           },
-                        ),
-                ),
-              ],
+                        );
+                },
+              ),
             ),
-          );
-        },
+          ],
+        ),
       ),
-      bottomNavigationBar: BlocBuilder<CartCubit, List<CartItemData>>(
-        builder: (context, cartItems) {
-          if (cartItems.isEmpty) return const SizedBox.shrink();
-
-          final subtotal = _subtotal(cartItems);
-
-          return CheckoutSummary(
-            subtotal: subtotal,
-            itemCount: _itemCount(cartItems),
-            isDark: isDark,
-            onCheckout: () {
-              Navigator.pushNamed(context, AppRoutes.checkout);
+      bottomNavigationBar:
+          BlocSelector<CartCubit, List<CartItemData>, (double, int)?>(
+            selector: (items) =>
+                items.isEmpty ? null : (_subtotal(items), _itemCount(items)),
+            builder: (context, summary) {
+              if (summary == null) return const SizedBox.shrink();
+              return CheckoutSummary(
+                subtotal: summary.$1,
+                itemCount: summary.$2,
+                isDark: isDark,
+                onCheckout: () {
+                  Navigator.pushNamed(context, AppRoutes.checkout);
+                },
+              );
             },
-          );
-        },
-      ),
+          ),
     );
   }
 
@@ -171,13 +200,5 @@ class _CartViewState extends State<CartView>
         if (itemCount > 0) CartCountBadge(count: itemCount, isDark: isDark),
       ],
     );
-  }
-
-  Widget _buildCartItem(
-    BuildContext context, {
-    required CartItemData item,
-    required bool isDark,
-  }) {
-    return CartItemCard(item: item, isDark: isDark);
   }
 }

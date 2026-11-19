@@ -18,14 +18,22 @@ class AppCurrency {
 
   static String format(
     num value, {
-    int fractionDigits = 1,
+    int? fractionDigits,
     bool trimTrailingZero = true,
   }) {
     final amount = value.toDouble();
-    final text = amount.toStringAsFixed(fractionDigits);
-    final cleanText = trimTrailingZero
+    // Catalogue, cart and checkout amounts must retain the same cents.
+    // Explicit precision keeps its existing formatting contract.
+    final text = amount.toStringAsFixed(fractionDigits ?? 2);
+    var cleanText = trimTrailingZero
         ? text.replaceFirst(_trailingZero, '')
         : text;
+    if (fractionDigits == null &&
+        trimTrailingZero &&
+        cleanText.contains('.') &&
+        cleanText.endsWith('0')) {
+      cleanText = cleanText.substring(0, cleanText.length - 1);
+    }
     return '$symbol $cleanText';
   }
 
@@ -82,8 +90,7 @@ class AppCurrency {
     final parsed = double.tryParse(numberText.replaceAll(',', ''));
     if (parsed == null) return '$symbol $numberText';
 
-    final hasDecimal = numberText.contains('.') && !numberText.endsWith('.00');
-    return format(parsed, fractionDigits: hasDecimal ? 1 : 0);
+    return format(parsed);
   }
 
   static String _numberFromText(String value) {

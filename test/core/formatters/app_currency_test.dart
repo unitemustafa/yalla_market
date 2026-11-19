@@ -8,6 +8,13 @@ void main() {
       expect(AppCurrency.format(84.5, fractionDigits: 2), 'EGP 84.50');
     });
 
+    test('preserves cents consistently before checkout', () {
+      expect(AppCurrency.format(13.95), 'EGP 13.95');
+      expect(AppCurrency.formatPriceText('13.95'), 'EGP 13.95');
+      expect(AppCurrency.formattedPriceNumbers('EGP 13.95'), ['13.95']);
+      expect(AppCurrency.formatPriceText('13.90'), 'EGP 13.9');
+    });
+
     test('normalizes EGP and Arabic currency text from product prices', () {
       expect(
         AppCurrency.formatPriceText('EGP 120.00 - EGP 180.00'),

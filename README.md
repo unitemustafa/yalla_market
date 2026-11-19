@@ -64,6 +64,7 @@ flutter test test/core/localization
 ## Requirements
 
 - Flutter `3.41.6` on the stable channel
+- JDK 17 or 21 for the current Android Gradle toolchain (Java 25 is incompatible)
 - The Android SDK and an Android emulator or physical device
 - Xcode, CocoaPods, and an Apple Developer setup for iOS builds
 
@@ -208,8 +209,9 @@ the corresponding Google Sign-In clients.
 
 The debug APK build and Firebase initialization have been verified on an Android
 emulator. An actual Google sign-in still needs to be tested before release.
-The app has not been uploaded to Google Play yet; the Play signing certificate
-steps below apply when preparing that distribution.
+Google Play rejected version code `12069` for Broken Functionality (the app
+stayed on its splash screen). The local candidate has not been resubmitted.
+The Play signing certificate steps below apply before Play distribution.
 
 1. Add the Google Play app signing SHA-1 and SHA-256 certificates to the
    Android app in Firebase before distributing through Google Play. Download
@@ -229,6 +231,17 @@ flutter build appbundle --release --obfuscate \
   --split-debug-info=build/debug-symbols/android \
   --dart-define-from-file=env/production.local.json
 ```
+
+Alternatively, `python tool/build_play_release.py` builds both the signed AAB
+and APK, archives symbols, and copies them into the workspace's `release/`
+directory. It requires the same ignored production and signing configuration.
+If Android Studio selects Java 25, point Flutter at an installed JDK 17 or 21
+with `flutter config --jdk-dir=<jdk-directory>` before building.
+
+The Android manifest removes advertising permissions inherited from Facebook
+Login, and makes GPS hardware optional. Read
+[`docs/google-play-audit-2026-11-19.md`](docs/google-play-audit-2026-11-19.md)
+for the policy audit, evidence, and required Play Console/backend follow-up.
 
 ### iOS
 

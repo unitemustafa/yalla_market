@@ -2,6 +2,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:yalla_market/core/formatters/product_pricing.dart';
 
 void main() {
+  test('discounted catalogue prices retain the cents charged at checkout', () {
+    expect(ProductPricing.formattedPrice('15.00', discount: '7'), 'EGP 13.95');
+  });
   group('ProductPricing', () {
     test('formats a decimal backend discount as a percentage', () {
       expect(ProductPricing.discountLabel('50.00'), '50%');
@@ -57,7 +60,7 @@ void main() {
     test('formats comma decimals and negative discounts deterministically', () {
       expect(
         ProductPricing.formattedPrice('1,200.50', discount: '10'),
-        'EGP 1080.5',
+        'EGP 1080.45',
       );
       expect(ProductPricing.discountLabel('-20'), isNull);
       expect(ProductPricing.formattedPrice('200', discount: '-20'), 'EGP 200');

@@ -114,7 +114,7 @@ jobs:
       - name: Configure iOS services
         if: inputs.mode == 'build'
         env:
-          GOOGLE_SERVICE_INFO_PLIST_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_BASE64 }}
+          GOOGLE_SERVICE_INFO_PLIST_IOS_APP_COM_BASE64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_IOS_APP_COM_BASE64 }}
           FACEBOOK_APP_ID: ${{ secrets.FACEBOOK_APP_ID }}
           FACEBOOK_CLIENT_TOKEN: ${{ secrets.FACEBOOK_CLIENT_TOKEN }}
         run: |
@@ -125,11 +125,11 @@ jobs:
           import re
           from pathlib import Path
 
-          encoded = os.environ.get("GOOGLE_SERVICE_INFO_PLIST_BASE64")
+          encoded = os.environ.get("GOOGLE_SERVICE_INFO_PLIST_IOS_APP_COM_BASE64")
           if not encoded:
-              raise SystemExit("Required Firebase secret is missing: GOOGLE_SERVICE_INFO_PLIST_BASE64")
+              raise SystemExit("Required Firebase secret is missing: GOOGLE_SERVICE_INFO_PLIST_IOS_APP_COM_BASE64")
           data = base64.b64decode(encoded, validate=True)
-          if plistlib.loads(data).get("BUNDLE_ID") != "com.yallamarket.app":
+          if plistlib.loads(data).get("BUNDLE_ID") != "com.yallamarket.app.com":
               raise SystemExit("Firebase iOS bundle identifier does not match this app")
           Path("ios/Runner/GoogleService-Info.plist").write_bytes(data)
           app_id = os.environ.get("FACEBOOK_APP_ID", "")

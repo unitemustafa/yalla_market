@@ -1,6 +1,8 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:yalla_market/firebase_options.dart';
 
 void main() {
   test('iOS deployment targets satisfy the installed Firebase minimum', () {
@@ -45,5 +47,30 @@ void main() {
       project.indexOf('/* End PBXResourcesBuildPhase section */'),
     );
     expect(resources, contains('GoogleService-Info.plist in Resources'));
+  });
+
+  test('Xcode and Firebase agree on the iOS app identity', () {
+    const bundleId = 'com.yallamarket.app.com';
+    final project = File(
+      'ios/Runner.xcodeproj/project.pbxproj',
+    ).readAsStringSync();
+    final bundleIds = RegExp(
+      r'PRODUCT_BUNDLE_IDENTIFIER = ([^;]+);',
+    ).allMatches(project).map((match) => match.group(1));
+    expect(
+      bundleIds,
+      unorderedEquals([
+        bundleId,
+        bundleId,
+        bundleId,
+        ...List.filled(3, '$bundleId.RunnerTests'),
+      ]),
+    );
+
+    final firebase = jsonDecode(File('firebase.json').readAsStringSync());
+    final appIds =
+        firebase['flutter']['platforms']['dart']['lib/firebase_options.dart']['configurations'];
+    expect(DefaultFirebaseOptions.ios.iosBundleId, bundleId);
+    expect(DefaultFirebaseOptions.ios.appId, appIds['ios']);
   });
 }

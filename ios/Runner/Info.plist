@@ -28,7 +28,7 @@
 		</dict>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.yallamarket.app.shared-content</string>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER).shared-content</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>yallamarket</string>
@@ -39,7 +39,7 @@
 			<string>google-sign-in</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.googleusercontent.apps.249021956753-872la58d77m3jmue7s2qfb7632h9hsvv</string>
+				<string>com.googleusercontent.apps.249021956753-b3k6o1ffk4f7tav46a833beh39g787m9</string>
 			</array>
 		</dict>
 	</array>

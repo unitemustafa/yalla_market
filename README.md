@@ -247,7 +247,7 @@ Run the release preflight with `--platform=ios`, then build and sign the app
 on a Mac with Xcode.
 
 - Minimum supported iOS version: **15.0**.
-- Supply `ios/Runner/GoogleService-Info.plist` for `com.yallamarket.app`.
+- Supply `ios/Runner/GoogleService-Info.plist` for `com.yallamarket.app.com`.
 - Select the Runner signing team and configure provisioning with Push
   Notifications, Remote notifications, Keychain Sharing, Sign in with Apple,
   and the configured Associated Domains capability enabled.
@@ -261,13 +261,14 @@ on a Mac with Xcode.
 
 In GitHub Actions, run **Mobile release checks** with `platform` set to `ios`
 for an unsigned compile check on macOS. This check works without Apple signing
-credentials. Provide the repository's Firebase plist and Facebook configuration
+credentials. Provide the base64-encoded iOS Firebase plist as
+`GOOGLE_SERVICE_INFO_PLIST_IOS_APP_COM_BASE64` and the Facebook configuration
 secrets for both build modes. The workflow uses the public production API when
 `API_BASE_URL` is unset.
 
 To export an App Store IPA, enable `sign_ios` and provide these repository secrets:
 
-- `IOS_TEAM_ID` for the Apple Developer team that owns `com.yallamarket.app`.
+- `IOS_TEAM_ID` for the Apple Developer team that owns `com.yallamarket.app.com`.
 - `IOS_DISTRIBUTION_CERTIFICATE_BASE64` for the Apple Distribution `.p12` with
   its private key, and `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` for its password.
 - `IOS_PROVISIONING_PROFILE_BASE64` for the matching App Store provisioning profile.

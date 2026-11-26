@@ -42,7 +42,7 @@ from shutil import copyfile
 
 directory = Path(os.environ['SIGNING_DIR'])
 team_id = os.environ['IOS_TEAM_ID']
-bundle_id = 'com.yallamarket.app'
+bundle_id = 'com.yallamarket.app.com'
 with (directory / 'profile.plist').open('rb') as source:
     profile = plistlib.load(source)
 entitlements = profile.get('Entitlements', {})

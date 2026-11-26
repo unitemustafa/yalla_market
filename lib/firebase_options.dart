@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyDWHezAJoCnns3hOrqtXs12IAI1Wq7De-U',
-    appId: '1:249021956753:ios:e2e25efd8b971dd6c8b530',
+    appId: '1:249021956753:ios:dffd1605834c4466c8b530',
     messagingSenderId: '249021956753',
     projectId: 'yalla-market-bf2f6',
     storageBucket: 'yalla-market-bf2f6.firebasestorage.app',
-    iosBundleId: 'com.yallamarket.app',
+    iosBundleId: 'com.yallamarket.app.com',
   );
 }

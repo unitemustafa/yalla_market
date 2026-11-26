@@ -183,6 +183,9 @@ abstract final class AuthTexts {
   static const phoneNumber = 'رقم الموبايل';
   static const iAgreeTo = 'أنا موافق على ';
   static const privacyPolicy = 'سياسة الخصوصية';
+  static const signInWithApple = 'تسجيل الدخول باستخدام Apple';
+  static const signInWithGoogle = 'تسجيل الدخول باستخدام Google';
+  static const couldNotConfirmAppleAccount = 'تعذّر تأكيد حساب Apple.';
   static const and = ' و ';
   static const termsOfUse = 'شروط الاستخدام';
 

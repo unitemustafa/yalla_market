@@ -2,12 +2,23 @@ name: Mobile release checks
 
 on:
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to check
+        type: choice
+        options: [all, android, ios]
+        default: all
+      sign_ios:
+        description: Export a signed iOS IPA using App Store distribution credentials
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
   android-release:
+    if: inputs.platform != 'ios'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -77,10 +88,19 @@ jobs:
         run: rm -f android/key.properties android/app/yalla-release.jks
 
   ios-release:
-    runs-on: macos-latest
+    if: inputs.platform != 'android'
+    runs-on: macos-26
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
+      - name: Verify the iOS SDK
+        run: |
+          xcodebuild -version
+          sdk_version=$(xcrun --sdk iphoneos --show-sdk-version)
+          if [[ "${sdk_version%%.*}" -lt 26 ]]; then
+            echo '::error::An iOS SDK of 26 or later is required.'
+            exit 1
+          fi
       - uses: subosito/flutter-action@v2
         with:
           flutter-version: 3.41.6
@@ -116,15 +136,46 @@ jobs:
               encoding="ascii",
           )
           PY
-      - name: Build iOS without signing
+      - name: Configure App Store signing
+        if: inputs.sign_ios
         env:
-          API_BASE_URL: ${{ secrets.API_BASE_URL }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+          IOS_DISTRIBUTION_CERTIFICATE_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_BASE64 }}
+          IOS_DISTRIBUTION_CERTIFICATE_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERTIFICATE_PASSWORD }}
+          IOS_PROVISIONING_PROFILE_BASE64: ${{ secrets.IOS_PROVISIONING_PROFILE_BASE64 }}
+        run: bash tool/configure_ios_distribution.sh
+      - name: Build iOS release
+        env:
+          API_BASE_URL: ${{ secrets.API_BASE_URL || 'https://api.yallamarket.org' }}
           MAPTILER_API_KEY: ${{ secrets.MAPTILER_API_KEY }}
+          SIGN_IOS: ${{ inputs.sign_ios }}
         run: |
           python3 tool/configure_shared_links.py
-          flutter build ios --release --no-codesign \
-            --dart-define=API_BASE_URL="$API_BASE_URL" \
-            --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY"
-      - name: Remove iOS Firebase configuration
+          build_args=(--release --dart-define=API_BASE_URL="$API_BASE_URL"
+            --dart-define=MAPTILER_API_KEY="$MAPTILER_API_KEY")
+          if [[ "$SIGN_IOS" == true ]]; then
+            if [[ -z "$MAPTILER_API_KEY" ]]; then
+              echo '::error::MAPTILER_API_KEY is required for an App Store build.'
+              exit 1
+            fi
+            flutter build ipa "${build_args[@]}" \
+              --export-options-plist="$RUNNER_TEMP/yalla-ios-export.plist"
+          else
+            flutter build ios "${build_args[@]}" --no-codesign
+          fi
+      - name: Save signed iOS IPA
+        if: inputs.sign_ios
+        uses: actions/upload-artifact@v4
+        with:
+          name: yalla-market-ios-release
+          path: build/ios/ipa/*.ipa
+          if-no-files-found: error
+          retention-days: 14
+      - name: Remove iOS build configuration
         if: always()
-        run: rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.xcconfig
+        run: |
+          if [[ -f "$RUNNER_TEMP/yalla-ios.keychain-db" ]]; then
+            security delete-keychain "$RUNNER_TEMP/yalla-ios.keychain-db"
+          fi
+          rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.xcconfig \
+            ios/Flutter/DistributionSigning.xcconfig

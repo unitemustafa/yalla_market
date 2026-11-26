@@ -4,6 +4,8 @@ import 'dart:typed_data';
 import 'package:dio/dio.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, kIsWeb, TargetPlatform;
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,16 +32,19 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
     SessionDeadlineController? sessionDeadlineController,
     Future<String> Function(SocialAuthProvider)? socialIdTokenProvider,
     FacebookCredentialDataSource? facebookCredentialDataSource,
+    firebase_auth.FirebaseAuth? Function()? firebaseAuthProvider,
   }) : _sessionDeadlineController =
            sessionDeadlineController ??
            SessionDeadlineController(tokenStore: _tokenStore),
        _socialIdTokenProvider = socialIdTokenProvider,
        _facebookCredentialDataSource =
-           facebookCredentialDataSource ?? FacebookCredentialDataSource();
+           facebookCredentialDataSource ?? FacebookCredentialDataSource(),
+       _firebaseAuthProvider = firebaseAuthProvider ?? _configuredFirebaseAuth;
 
   static const _legacySessionKey = 'auth.local_session';
   static const _legacyAccountsKey = 'auth.local_accounts';
   static const _cachedUserKey = 'auth.cached_user.v1';
+  static const _deletionCheckPath = '/auth/client/profile/deletion-check/';
   static Options get _skipAuthOptions =>
       Options(extra: const {'skipAuth': true});
 
@@ -48,6 +53,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   final SessionDeadlineController _sessionDeadlineController;
   final Future<String> Function(SocialAuthProvider)? _socialIdTokenProvider;
   final FacebookCredentialDataSource _facebookCredentialDataSource;
+  final firebase_auth.FirebaseAuth? Function() _firebaseAuthProvider;
   String? _pendingSocialIdToken;
   SocialAuthProvider? _pendingSocialProvider;
   Future<void>? _googleInitialization;
@@ -301,9 +307,14 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       ..addScope('name');
   }
 
-  Future<String?> _reauthenticateSocialUser() async {
-    final user = firebase_auth.FirebaseAuth.instance.currentUser;
-    if (user == null) return null;
+  static firebase_auth.FirebaseAuth? _configuredFirebaseAuth() =>
+      Firebase.apps.isEmpty ? null : firebase_auth.FirebaseAuth.instance;
+
+  Future<String?> _reauthenticateSocialUser(
+    firebase_auth.FirebaseAuth? auth,
+  ) async {
+    final user = auth?.currentUser;
+    if (auth == null || user == null) return null;
     final providerIds = user.providerData
         .map((item) => item.providerId)
         .toSet();
@@ -317,6 +328,49 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       return null;
     }
     return user.getIdToken(true);
+  }
+
+  Future<bool> _needsAppleDeletionConfirmation(String password) async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return false;
+    final check = await _apiClient.post<Map<String, dynamic>>(
+      _deletionCheckPath,
+      data: {if (password.isNotEmpty) 'password': password},
+    );
+    final requiresApple = check['requires_apple_confirmation'];
+    if (requiresApple is! bool) {
+      throw const ValidationFailure('Could not delete your account.');
+    }
+    return requiresApple;
+  }
+
+  Future<String> _reauthenticateAndRevokeApple(
+    firebase_auth.FirebaseAuth? auth,
+  ) async {
+    try {
+      if (auth == null) {
+        throw const ValidationFailure('Could not confirm your Apple account.');
+      }
+      final user = auth.currentUser;
+      final hasAppleSession =
+          user?.providerData.any((item) => item.providerId == 'apple.com') ??
+          false;
+      final credential = hasAppleSession
+          ? await user!.reauthenticateWithProvider(_appleProvider())
+          : await auth.signInWithProvider(_appleProvider());
+      final idToken = await credential.user?.getIdToken(true);
+      final code = credential.additionalUserInfo?.authorizationCode;
+      if (idToken == null || idToken.isEmpty || code == null || code.isEmpty) {
+        throw const ValidationFailure('Could not confirm your Apple account.');
+      }
+      await _apiClient.post<Map<String, dynamic>>(
+        _deletionCheckPath,
+        data: {'id_token': idToken},
+      );
+      await auth.revokeTokenWithAuthorizationCode(code);
+      return idToken;
+    } on firebase_auth.FirebaseAuthException {
+      throw const ValidationFailure('Could not confirm your Apple account.');
+    }
   }
 
   String _requirePendingSocialToken() {
@@ -489,11 +543,14 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
   @override
   Future<ApiResult<bool>> deleteAccount({required String password}) {
     return _guard(() async {
+      final auth = _firebaseAuthProvider();
       final data = <String, dynamic>{};
-      if (password.isNotEmpty) {
+      if (await _needsAppleDeletionConfirmation(password)) {
+        data['id_token'] = await _reauthenticateAndRevokeApple(auth);
+      } else if (password.isNotEmpty) {
         data['password'] = password;
       } else {
-        final idToken = await _reauthenticateSocialUser();
+        final idToken = await _reauthenticateSocialUser(auth);
         if (idToken == null || idToken.isEmpty) {
           throw const ValidationFailure(
             'Sign in again before deleting this account.',
@@ -507,9 +564,7 @@ class AuthRemoteRepositoryImpl implements AuthRepository {
       );
       await _sessionDeadlineController.clearSession();
       await _clearCachedUser();
-      if (Firebase.apps.isNotEmpty) {
-        await firebase_auth.FirebaseAuth.instance.signOut();
-      }
+      await auth?.signOut();
       return true;
     });
   }

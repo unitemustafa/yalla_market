@@ -216,9 +216,7 @@ The Play signing certificate steps below apply before Play distribution.
 1. Add the Google Play app signing SHA-1 and SHA-256 certificates to the
    Android app in Firebase before distributing through Google Play. Download
    the refreshed configuration to `android/app/google-services.json`.
-2. Update the Android package and activity in the Facebook app settings to
-   `com.yallamarket.app.com` and `com.yallamarket.app.com.MainActivity`.
-3. Deploy the backend app-link configuration for the new package, configure
+2. Deploy the backend app-link configuration for the new package, configure
    `ANDROID_APP_LINK_FINGERPRINTS` with the Google Play app signing SHA-256
    certificate, and update `ANDROID_APP_STORE_URL` to the new Play listing.
 
@@ -253,10 +251,31 @@ on a Mac with Xcode.
 - Select the Runner signing team and configure provisioning with Push
   Notifications, Remote notifications, Keychain Sharing, Sign in with Apple,
   and the configured Associated Domains capability enabled.
-- Upload the matching APNs key in Firebase and enable the Apple, Google, and
-  Facebook sign-in providers in their respective consoles.
-- Facebook Limited Login uses a per-request SHA-256 nonce and an ID token;
-  Android classic login continues to use the access token.
+- Upload the matching APNs key in Firebase and enable the Apple and Google
+  sign-in providers in their respective consoles.
+- Configure Apple Private Email Relay for the sender used for account email.
+- Deploy the backend with the Apple account-deletion check before testing iOS
+  account deletion against it.
+- The Facebook sign-in button is hidden across platforms. Builds require the
+  Facebook SDK configuration.
+
+In GitHub Actions, run **Mobile release checks** with `platform` set to `ios`
+for an unsigned compile check on macOS. This check works without Apple signing
+credentials. Provide the repository's Firebase plist and Facebook configuration
+secrets for both build modes. The workflow uses the public production API when
+`API_BASE_URL` is unset.
+
+To export an App Store IPA, enable `sign_ios` and provide these repository secrets:
+
+- `IOS_TEAM_ID` for the Apple Developer team that owns `com.yallamarket.app`.
+- `IOS_DISTRIBUTION_CERTIFICATE_BASE64` for the Apple Distribution `.p12` with
+  its private key, and `IOS_DISTRIBUTION_CERTIFICATE_PASSWORD` for its password.
+- `IOS_PROVISIONING_PROFILE_BASE64` for the matching App Store provisioning profile.
+- `MAPTILER_API_KEY` for the production maps.
+
+Download the `yalla-market-ios-release` artifact for submission. Set
+`IOS_APP_LINK_APP_IDS` on the production backend using the application identifier
+from the provisioning profile, and verify the domain association before testing links.
 
 Verify a fresh installation on a real iPhone before TestFlight: social login
 and reauthentication, remembered login after a restart, notification permissions

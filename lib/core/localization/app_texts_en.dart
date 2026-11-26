@@ -184,6 +184,10 @@ abstract final class AuthTexts {
   static const phoneNumber = 'Phone Number';
   static const iAgreeTo = 'I agree to ';
   static const privacyPolicy = 'Privacy Policy';
+  static const signInWithApple = 'Sign in with Apple';
+  static const signInWithGoogle = 'Sign in with Google';
+  static const couldNotConfirmAppleAccount =
+      'Could not confirm your Apple account.';
   static const and = ' and ';
   static const termsOfUse = 'Terms of use';
 

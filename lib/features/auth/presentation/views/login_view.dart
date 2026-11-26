@@ -1,11 +1,11 @@
 import 'package:yalla_market/core/constants/app_constants.dart';
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:yalla_market/core/presentation/widgets/buttons/app_button_feedback.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_assets.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -35,6 +35,8 @@ class LoginView extends StatefulWidget {
 }
 
 class _LoginViewState extends State<LoginView> {
+  static const _socialButtonHeight = 56.0;
+
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _emailController;
   late final TextEditingController _passwordController;
@@ -562,6 +564,19 @@ class _LoginViewState extends State<LoginView> {
     required bool isDarkMode,
   }) {
     final theme = Theme.of(context);
+    final isNativeIos = !kIsWeb && theme.platform == TargetPlatform.iOS;
+    final isNativeAndroid = !kIsWeb && theme.platform == TargetPlatform.android;
+    final googleButton = _googleSignInButton(
+      context,
+      width: switch ((isNativeIos, isNativeAndroid)) {
+        (true, _) => _socialButtonHeight,
+        (_, true) => double.infinity,
+        _ => 96.0,
+      },
+      showLabel: isNativeAndroid,
+      isLoading: isLoading,
+      isDarkMode: isDarkMode,
+    );
 
     return Column(
       children: [
@@ -595,83 +610,125 @@ class _LoginViewState extends State<LoginView> {
           ],
         ),
         const SizedBox(height: 18),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _socialIconButton(
-              context,
-              provider: SocialAuthProvider.google,
-              icon: Image.asset(AppAssets.googleLogo, width: 30, height: 30),
-              label: 'Google',
-              isLoading: isLoading,
-              isDarkMode: isDarkMode,
-            ),
-            const SizedBox(width: 12),
-            _socialIconButton(
-              context,
-              provider: SocialAuthProvider.facebook,
-              icon: const DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                ),
-                child: FaIcon(
-                  FontAwesomeIcons.facebook,
-                  size: 30,
-                  color: Color(0xFF1877F2),
-                ),
-              ),
-              label: 'Facebook',
-              isLoading: isLoading,
-              isDarkMode: isDarkMode,
-            ),
-          ],
-        ),
+        if (isNativeIos)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              googleButton,
+              const SizedBox(width: 12),
+              _appleSignInButton(context, isLoading, isDarkMode),
+            ],
+          )
+        else
+          googleButton,
         const SizedBox(height: 24),
         _buildSignUpPrompt(theme, isDarkMode, strings),
       ],
     );
   }
 
-  Widget _socialIconButton(
-    BuildContext context, {
-    required SocialAuthProvider provider,
-    required Widget icon,
-    required String label,
-    required bool isLoading,
-    required bool isDarkMode,
-  }) {
-    final bgColor = isDarkMode ? const Color(0xFF23242A) : Colors.white;
-    final borderColor = isDarkMode
-        ? const Color(0xFF383A42)
-        : const Color(0xFFE5E7EB);
-    final accessibleLabel = context.tr(label);
-
+  Widget _appleSignInButton(
+    BuildContext context,
+    bool isLoading,
+    bool isDarkMode,
+  ) {
+    final label = context.tr('Sign in with Apple');
     return Tooltip(
-      message: accessibleLabel,
+      message: label,
       excludeFromSemantics: true,
-      child: SizedBox(
-        width: 96,
-        height: 56,
-        child: OutlinedButton(
-          key: ValueKey('login_${provider.name}_button'),
+      child: SizedBox.square(
+        dimension: _socialButtonHeight,
+        child: TextButton(
+          key: const ValueKey('login_apple_button'),
           onPressed: isLoading
               ? null
               : () => context.read<AuthCubit>().socialSignIn(
-                  provider: provider,
+                  provider: SocialAuthProvider.apple,
+                  rememberMe: _rememberMe,
+                ),
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+          ),
+          child: Opacity(
+            opacity: isLoading ? 0.6 : 1,
+            child: Image.asset(
+              isDarkMode
+                  ? AppAssets.appleSignInWhiteIcon
+                  : AppAssets.appleSignInBlackIcon,
+              semanticLabel: label,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _googleSignInButton(
+    BuildContext context, {
+    required double width,
+    required bool showLabel,
+    required bool isLoading,
+    required bool isDarkMode,
+  }) {
+    final bgColor = isDarkMode ? const Color(0xFF131314) : Colors.white;
+    final borderColor = isDarkMode
+        ? const Color(0xFF8E918F)
+        : const Color(0xFF747775);
+    final label = context.tr('Sign in with Google');
+    final logoSize = showLabel ? 20.0 : 30.0;
+    final logo = Image.asset(
+      AppAssets.googleLogo,
+      width: logoSize,
+      height: logoSize,
+    );
+
+    return Tooltip(
+      message: context.tr('Google'),
+      excludeFromSemantics: true,
+      child: SizedBox(
+        width: width,
+        height: showLabel ? null : _socialButtonHeight,
+        child: OutlinedButton(
+          key: const ValueKey('login_google_button'),
+          onPressed: isLoading
+              ? null
+              : () => context.read<AuthCubit>().socialSignIn(
+                  provider: SocialAuthProvider.google,
                   rememberMe: _rememberMe,
                 ),
           style: OutlinedButton.styleFrom(
             backgroundColor: bgColor,
-            padding: EdgeInsets.zero,
+            foregroundColor: isDarkMode
+                ? const Color(0xFFE3E3E3)
+                : const Color(0xFF1F1F1F),
+            minimumSize: const Size(0, _socialButtonHeight),
+            padding: showLabel
+                ? const EdgeInsets.symmetric(horizontal: 16, vertical: 12)
+                : EdgeInsets.zero,
             side: BorderSide(color: borderColor, width: 1.1),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(14),
             ),
           ),
           child: Semantics(
-            label: accessibleLabel,
-            child: ExcludeSemantics(child: icon),
+            label: label,
+            child: ExcludeSemantics(
+              child: showLabel
+                  ? Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        logo,
+                        const SizedBox(width: 12),
+                        Flexible(
+                          child: Text(label, textAlign: TextAlign.center),
+                        ),
+                      ],
+                    )
+                  : logo,
+            ),
           ),
         ),
       ),

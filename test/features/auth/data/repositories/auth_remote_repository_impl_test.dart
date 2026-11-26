@@ -1,6 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart' as firebase;
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
@@ -468,6 +471,123 @@ void main() {
       expect(await tokenStore.read(), isNull);
     });
 
+    test(
+      'iOS checks a password account linked to Apple before revoking its authorization',
+      () async {
+        _setIosPlatform();
+        final calls = <String>[];
+        final auth = _AppleAuth(calls, hasAppleSession: false);
+        final tokenStore = InMemoryTokenStore();
+        await tokenStore.save(_storedTokens(remembered: true));
+        final repository = AuthRemoteRepositoryImpl(
+          FakeApiClient((request) {
+            if (request.path == _deletionCheckPath) {
+              expect(request.method, 'POST');
+              if (calls.isEmpty) {
+                expect(request.data, {'password': 'Password123!'});
+                calls.add('check');
+              } else {
+                expect(request.data, {'id_token': 'fresh-test-token'});
+                calls.add('verify');
+              }
+              return {'requires_apple_confirmation': true};
+            }
+            calls.add('delete');
+            expect(request.method, 'DELETE');
+            expect(request.path, '/auth/client/profile/');
+            expect(request.data, {'id_token': 'fresh-test-token'});
+            return {'detail': 'Account deleted successfully.'};
+          }),
+          tokenStore,
+          firebaseAuthProvider: () => auth,
+        );
+
+        final result = await repository.deleteAccount(password: 'Password123!');
+
+        result.when(
+          success: (deleted) => expect(deleted, isTrue),
+          failure: (failure) => fail(failure.message),
+        );
+        expect(calls, [
+          'check',
+          'signIn',
+          'refresh',
+          'verify',
+          'revoke',
+          'delete',
+          'signOut',
+        ]);
+        expect(await tokenStore.read(), isNull);
+      },
+    );
+
+    test(
+      'iOS does not revoke Apple when the server rejects the identity',
+      () async {
+        _setIosPlatform();
+        final calls = <String>[];
+        final auth = _AppleAuth(calls);
+        final tokenStore = InMemoryTokenStore();
+        await tokenStore.save(_storedTokens(remembered: true));
+        final repository = AuthRemoteRepositoryImpl(
+          FakeApiClient((request) {
+            expect(request.path, _deletionCheckPath);
+            if ((request.data as Map).isEmpty) {
+              return {'requires_apple_confirmation': true};
+            }
+            final options = RequestOptions(path: request.path);
+            throw DioException.badResponse(
+              statusCode: 400,
+              requestOptions: options,
+              response: Response(requestOptions: options, statusCode: 400),
+            );
+          }),
+          tokenStore,
+          firebaseAuthProvider: () => auth,
+        );
+
+        final result = await repository.deleteAccount(password: '');
+
+        result.when(success: (_) => fail('Expected failure.'), failure: (_) {});
+        expect(calls, ['reauthenticate', 'refresh']);
+        expect(await tokenStore.read(), isNotNull);
+      },
+    );
+
+    for (final hasCode in [false, true]) {
+      test(
+        'Apple deletion keeps the session when ${hasCode ? 'revocation fails' : 'authorization code is missing'}',
+        () async {
+          _setIosPlatform();
+          final calls = <String>[];
+          final auth = _AppleAuth(
+            calls,
+            hasCode: hasCode,
+            revocationFails: true,
+          );
+          final tokenStore = InMemoryTokenStore();
+          await tokenStore.save(_storedTokens(remembered: true));
+          final repository = AuthRemoteRepositoryImpl(
+            FakeApiClient((request) {
+              expect(request.path, _deletionCheckPath);
+              return {'requires_apple_confirmation': true};
+            }),
+            tokenStore,
+            firebaseAuthProvider: () => auth,
+          );
+
+          final result = await repository.deleteAccount(password: '');
+
+          result.when(
+            success: (_) => fail('The account should remain active.'),
+            failure: (failure) => expect(failure, isA<ValidationFailure>()),
+          );
+          expect(calls, ['reauthenticate', 'refresh', if (hasCode) 'revoke']);
+          expect(await tokenStore.read(), isNotNull);
+        },
+      );
+    }
+
     test('updateProfile sends profile fields supported by backend', () async {
       final tokenStore = InMemoryTokenStore();
       final apiClient = FakeApiClient((request) {
@@ -621,6 +741,97 @@ void main() {
       },
     );
   });
+}
+
+const _deletionCheckPath = '/auth/client/profile/deletion-check/';
+
+void _setIosPlatform() {
+  debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+  addTearDown(() => debugDefaultTargetPlatformOverride = null);
+}
+
+class _AppleAuth extends Fake implements firebase.FirebaseAuth {
+  _AppleAuth(
+    this.calls, {
+    bool hasCode = true,
+    this.revocationFails = false,
+    this.hasAppleSession = true,
+  }) : user = _AppleUser(calls, hasCode);
+
+  final List<String> calls;
+  final bool revocationFails;
+  final bool hasAppleSession;
+  final _AppleUser user;
+  @override
+  firebase.User? get currentUser => hasAppleSession ? user : null;
+
+  @override
+  Future<firebase.UserCredential> signInWithProvider(
+    firebase.AuthProvider provider,
+  ) async {
+    expect(provider, isA<firebase.AppleAuthProvider>());
+    calls.add('signIn');
+    return _AppleCredential(user);
+  }
+
+  @override
+  Future<void> revokeTokenWithAuthorizationCode(
+    String authorizationCode,
+  ) async {
+    calls.add('revoke');
+    expect(authorizationCode, 'fresh-test-code');
+    if (revocationFails) {
+      throw firebase.FirebaseAuthException(code: 'network-request-failed');
+    }
+  }
+
+  @override
+  Future<void> signOut() async => calls.add('signOut');
+}
+
+class _AppleUser extends Fake implements firebase.User {
+  _AppleUser(this.calls, this.hasCode);
+
+  final List<String> calls;
+  final bool hasCode;
+
+  @override
+  List<firebase.UserInfo> get providerData => [_AppleUserInfo()];
+
+  @override
+  Future<firebase.UserCredential> reauthenticateWithProvider(
+    firebase.AuthProvider provider,
+  ) async {
+    expect(provider, isA<firebase.AppleAuthProvider>());
+    calls.add('reauthenticate');
+    return _AppleCredential(this);
+  }
+
+  @override
+  Future<String?> getIdToken([bool forceRefresh = false]) async {
+    expect(forceRefresh, isTrue);
+    calls.add('refresh');
+    return 'fresh-test-token';
+  }
+}
+
+class _AppleUserInfo extends Fake implements firebase.UserInfo {
+  @override
+  String get providerId => 'apple.com';
+}
+
+class _AppleCredential extends Fake implements firebase.UserCredential {
+  _AppleCredential(this.user);
+
+  @override
+  final _AppleUser user;
+
+  @override
+  firebase.AdditionalUserInfo get additionalUserInfo =>
+      firebase.AdditionalUserInfo(
+        isNewUser: false,
+        authorizationCode: user.hasCode ? 'fresh-test-code' : null,
+      );
 }
 
 Map<String, dynamic> _sessionPayload({required bool remembered}) {

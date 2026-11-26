@@ -33,15 +33,69 @@ void main() {
     AppLanguageController.instance.value = AppLanguage.arabic;
   });
 
+  testWidgets('iOS shows equal side-by-side icons for Google and Apple', (
+    tester,
+  ) async {
+    AppLanguageController.instance.value = AppLanguage.arabic;
+    final repository = _RecordingSocialAuthRepository();
+    await _pumpLogin(
+      tester,
+      repository,
+      platform: TargetPlatform.iOS,
+      surfaceSize: const Size(320, 720),
+    );
+    final apple = find.byKey(const ValueKey('login_apple_button'));
+    final google = find.byKey(const ValueKey('login_google_button'));
+    await tester.ensureVisible(apple);
+    expect(tester.getSize(apple), const Size.square(56));
+    expect(tester.getSize(google), tester.getSize(apple));
+    expect(tester.getCenter(apple).dy, tester.getCenter(google).dy);
+    expect(tester.getCenter(apple).dx, lessThan(tester.getCenter(google).dx));
+    final image = tester.widget<Image>(
+      find.descendant(of: apple, matching: find.byType(Image)),
+    );
+    expect(image.semanticLabel, 'تسجيل الدخول باستخدام Apple');
+    expect(
+      (image.image as AssetImage).assetName,
+      AppAssets.appleSignInBlackIcon,
+    );
+    await tester.tap(apple);
+    await tester.pumpAndSettle();
+    expect(repository.lastProvider, SocialAuthProvider.apple);
+    expect(google, findsOneWidget);
+    expect(find.byKey(const ValueKey('login_facebook_button')), findsNothing);
+    expect(find.byTooltip('Facebook'), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('Android shows a full-width Google button with its label', (
+    tester,
+  ) async {
+    await _pumpLogin(tester, FakeAuthRepository());
+    final google = find.byKey(const ValueKey('login_google_button'));
+    expect(find.byKey(const ValueKey('login_apple_button')), findsNothing);
+    expect(google, findsOneWidget);
+    expect(
+      tester.getSize(google).width,
+      tester.getSize(find.byType(TextFormField).first).width,
+    );
+    expect(
+      find.descendant(of: google, matching: find.text('Sign in with Google')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const ValueKey('login_facebook_button')), findsNothing);
+    expect(find.byTooltip('Facebook'), findsNothing);
+  });
+
   testWidgets('Facebook without email asks for one before OTP verification', (
     tester,
   ) async {
     final repository = _EmailLessFacebookRepository();
     await _pumpLogin(tester, repository);
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('login_facebook_button')),
-    );
-    await tester.tap(find.byKey(const ValueKey('login_facebook_button')));
+    await tester
+        .element(find.byType(LoginView))
+        .read<AuthCubit>()
+        .socialSignIn(provider: SocialAuthProvider.facebook, rememberMe: true);
     await tester.pumpAndSettle();
     expect(find.text(AppTranslations.current.verifyEmailTitle), findsOneWidget);
     expect(find.text('Complete your account'), findsNothing);
@@ -79,10 +133,10 @@ void main() {
       providerEmail: sampleUser.email,
     );
     await _pumpLogin(tester, repository);
-    await tester.ensureVisible(
-      find.byKey(const ValueKey('login_facebook_button')),
-    );
-    await tester.tap(find.byKey(const ValueKey('login_facebook_button')));
+    await tester
+        .element(find.byType(LoginView))
+        .read<AuthCubit>()
+        .socialSignIn(provider: SocialAuthProvider.facebook, rememberMe: true);
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(repository.deferredProfile, isTrue);
@@ -160,19 +214,19 @@ void main() {
     expect(find.text('Google'), findsNothing);
     expect(find.text('Facebook'), findsNothing);
     expect(find.byTooltip('Google'), findsOneWidget);
-    expect(find.byTooltip('Facebook'), findsOneWidget);
-    expect(find.byKey(const ValueKey('login_facebook_button')), findsOneWidget);
+    expect(find.byTooltip('Facebook'), findsNothing);
+    expect(find.byKey(const ValueKey('login_facebook_button')), findsNothing);
     expect(find.text('Apple'), findsNothing);
   });
 
   for (final rememberMe in [true, false]) {
     testWidgets(
-      'Facebook button uses Facebook provider with remember me $rememberMe',
+      'Google button uses Google provider with remember me $rememberMe',
       (tester) async {
-        final repository = _FacebookLoginRepository();
+        final repository = _RecordingSocialAuthRepository();
         await _pumpLogin(tester, repository);
         expect(
-          find.byKey(const ValueKey('login_facebook_button')),
+          find.byKey(const ValueKey('login_google_button')),
           findsOneWidget,
         );
         expect(find.text('Apple'), findsNothing);
@@ -180,13 +234,13 @@ void main() {
           await tester.tap(find.text('Remember Me'));
           await tester.pump();
         }
-        final facebook = find.byKey(const ValueKey('login_facebook_button'));
-        await tester.ensureVisible(facebook);
-        await tester.tap(facebook);
+        final google = find.byKey(const ValueKey('login_google_button'));
+        await tester.ensureVisible(google);
+        await tester.tap(google);
         await tester.pump();
 
         expect(repository.socialCalls, 1);
-        expect(repository.lastProvider, SocialAuthProvider.facebook);
+        expect(repository.lastProvider, SocialAuthProvider.google);
         expect(repository.lastSocialRememberMe, rememberMe);
         expect(tester.takeException(), isNull);
       },
@@ -348,7 +402,7 @@ class _EmailLessFacebookRepository extends FakeAuthRepository {
   }
 }
 
-class _FacebookLoginRepository extends FakeAuthRepository {
+class _RecordingSocialAuthRepository extends FakeAuthRepository {
   int socialCalls = 0;
   SocialAuthProvider? lastProvider;
   bool? lastSocialRememberMe;
@@ -369,6 +423,7 @@ Future<void> _pumpLogin(
   WidgetTester tester,
   FakeAuthRepository repository, {
   Size surfaceSize = const Size(430, 900),
+  TargetPlatform platform = TargetPlatform.android,
 }) async {
   await tester.binding.setSurfaceSize(surfaceSize);
   addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -392,6 +447,7 @@ Future<void> _pumpLogin(
       child: ValueListenableBuilder<AppLanguage>(
         valueListenable: AppLanguageController.instance,
         builder: (context, language, _) => MaterialApp(
+          theme: ThemeData(platform: platform),
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,

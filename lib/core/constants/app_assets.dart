@@ -29,6 +29,10 @@ class AppAssets {
   static const String splashBrandLogo =
       '$_logosPath/yallamarket_splash_logo.webp';
   static const String googleLogo = '$_logosPath/google_logo.png';
+  static const String appleSignInBlackIcon =
+      '$_logosPath/apple_sign_in_icon_black.png';
+  static const String appleSignInWhiteIcon =
+      '$_logosPath/apple_sign_in_icon_white.png';
   static const String loginBrandLogo =
       '$_logosPath/yallamarket_login_ribbon.png';
 

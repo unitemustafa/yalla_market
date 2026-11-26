@@ -1,3 +1,4 @@
 #include "Generated.xcconfig"
 #include "Facebook.xcconfig"
 #include "SharedLinks.xcconfig"
+#include? "DistributionSigning.xcconfig"

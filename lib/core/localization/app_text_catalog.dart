@@ -12,6 +12,18 @@ abstract final class AppTextCatalog {
     ),
     'Load more': (ar: ar.CommonTexts.loadMore, en: en.CommonTexts.loadMore),
     'appName': (ar: ar.BrandTexts.appName, en: en.BrandTexts.appName),
+    'Sign in with Apple': (
+      ar: ar.AuthTexts.signInWithApple,
+      en: en.AuthTexts.signInWithApple,
+    ),
+    'Sign in with Google': (
+      ar: ar.AuthTexts.signInWithGoogle,
+      en: en.AuthTexts.signInWithGoogle,
+    ),
+    'Could not confirm your Apple account.': (
+      ar: ar.AuthTexts.couldNotConfirmAppleAccount,
+      en: en.AuthTexts.couldNotConfirmAppleAccount,
+    ),
     'skip': (ar: ar.CommonTexts.skip, en: en.CommonTexts.skip),
     'continueText': (
       ar: ar.CommonTexts.continueText,

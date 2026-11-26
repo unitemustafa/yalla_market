@@ -1,4 +1,4 @@
 {
-  "API_BASE_URL": "https://staging-api.example.com",
+  "API_BASE_URL": "https://api.yallamarket.org",
   "MAPTILER_API_KEY": "replace-with-a-restricted-client-key"
 }

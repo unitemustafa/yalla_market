@@ -1,0 +1,3 @@
+// Copy to Facebook.xcconfig; never use the Meta App Secret here.
+FACEBOOK_APP_ID = replace-with-meta-app-id
+FACEBOOK_CLIENT_TOKEN = replace-with-meta-client-token

@@ -8,11 +8,50 @@ import 'package:yalla_market/features/personalization/presentation/widgets/addre
 import 'package:yalla_market/features/personalization/presentation/widgets/address_location_map_widgets.dart';
 
 void main() {
+  testWidgets(
+    'PageTopBar uses the navigator fallback only when a route can pop',
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                const PageTopBar(title: 'Root'),
+                Builder(
+                  builder: (context) => ElevatedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) => const Scaffold(
+                          body: PageTopBar(title: 'Pushed page'),
+                        ),
+                      ),
+                    ),
+                    child: const Text('Push page'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(AppIcons.arrow_left_2), findsNothing);
+      await tester.tap(find.text('Push page'));
+      await tester.pumpAndSettle();
+      expect(find.byIcon(AppIcons.arrow_left_2), findsOneWidget);
+
+      await tester.tap(find.byIcon(AppIcons.arrow_left_2));
+      await tester.pumpAndSettle();
+      expect(find.text('Root'), findsOneWidget);
+      expect(find.text('Pushed page'), findsNothing);
+    },
+  );
+
   for (final locale in const [Locale('en'), Locale('ar')]) {
-    testWidgets('headers omit back arrows and retain actions ($locale)', (
+    testWidgets('headers restore back actions and retain actions ($locale)', (
       tester,
     ) async {
-      var closeCalls = 0;
+      var backCalls = 0;
       var actionCalls = 0;
       await tester.pumpWidget(
         MaterialApp(
@@ -24,6 +63,7 @@ void main() {
               children: [
                 PageTopBar(
                   title: 'Settings',
+                  onBackPressed: () => backCalls++,
                   actions: [
                     IconButton(
                       icon: const Icon(Icons.share_outlined),
@@ -31,11 +71,14 @@ void main() {
                     ),
                   ],
                 ),
-                const AddressPageHeader(title: 'New address'),
-                AuthTopBar(showClose: true, onClose: () => closeCalls++),
+                AddressPageHeader(
+                  title: 'New address',
+                  onBack: () => backCalls++,
+                ),
+                AuthTopBar(showBack: true, onBack: () => backCalls++),
                 PickerHeader(
                   title: 'Choose location',
-                  onClose: () => closeCalls++,
+                  onClose: () => backCalls++,
                   onSearch: () => actionCalls++,
                 ),
               ],
@@ -44,22 +87,19 @@ void main() {
         ),
       );
 
-      expect(find.byType(BackButton), findsNothing);
-      for (final icon in [
-        AppIcons.arrow_left_2,
-        AppIcons.arrow_right_3,
-        Icons.arrow_back_rounded,
-        Icons.arrow_forward_rounded,
-      ]) {
-        expect(find.byIcon(icon), findsNothing);
-      }
-      expect(find.byIcon(Icons.close_rounded), findsNWidgets(2));
+      final backIcon = locale.languageCode == 'ar'
+          ? AppIcons.arrow_right_3
+          : AppIcons.arrow_left_2;
+      expect(find.byIcon(backIcon), findsNWidgets(4));
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
       await tester.tap(find.byIcon(Icons.share_outlined));
       await tester.tap(find.byIcon(AppIcons.search_normal));
-      await tester.tap(find.byIcon(Icons.close_rounded).first);
+      await tester.tap(find.byIcon(backIcon).at(0));
+      await tester.tap(find.byIcon(backIcon).at(1));
+      await tester.tap(find.byIcon(backIcon).at(2));
       await tester.tap(find.byKey(const ValueKey('map-picker-close')));
       expect(actionCalls, 2);
-      expect(closeCalls, 2);
+      expect(backCalls, 4);
       expect(tester.takeException(), isNull);
     });
   }

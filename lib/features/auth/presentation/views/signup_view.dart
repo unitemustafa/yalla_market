@@ -17,6 +17,7 @@ import '../../../../app/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/password_strength_meter.dart';
 import '../widgets/policy_link.dart';
@@ -228,6 +229,10 @@ class _SignupViewState extends State<SignupView> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                if (ModalRoute.canPopOf(context) == true) ...[
+                                  const AuthTopBar(showBack: true),
+                                  const SizedBox(height: 30),
+                                ],
                                 _buildTitle(context, theme, isDarkMode),
                                 const SizedBox(height: 28),
                                 _buildNameFields(constraints.maxWidth),

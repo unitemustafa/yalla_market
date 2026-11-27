@@ -8,6 +8,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
+import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/app/routing/app_routes.dart';
 import 'package:yalla_market/features/auth/presentation/cubit/auth_state.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
@@ -29,24 +30,24 @@ void main() {
 
   for (final systemBack in [false, true]) {
     testWidgets(
-      'cancel verification via ${systemBack ? 'system back' : 'close'}',
+      'cancel verification via ${systemBack ? 'system back' : 'back button'}',
       (tester) async {
         await _pumpVerifyEmail(tester);
         final context = tester.element(find.byType(VerifyEmailView));
         final authCubit = context.read<AuthCubit>();
         expect(authCubit.state, isNot(isA<AuthInitial>()));
         expect(find.byType(BackButton), findsNothing);
-        expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+        expect(find.byIcon(AppIcons.arrow_left_2), findsOneWidget);
 
         if (systemBack) {
           await tester.binding.handlePopRoute();
           await tester.binding.handlePopRoute();
         } else {
-          final close = tester
+          final back = tester
               .widget<AuthTopBar>(find.byType(AuthTopBar))
-              .onClose!;
-          close();
-          close();
+              .onBack!;
+          back();
+          back();
         }
         await tester.pumpAndSettle();
         expect(authCubit.state, isA<AuthInitial>());

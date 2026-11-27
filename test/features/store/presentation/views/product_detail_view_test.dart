@@ -225,9 +225,7 @@ void main() {
   }
 
   for (final direction in TextDirection.values) {
-    testWidgets('pins cart in place of back button ($direction)', (
-      tester,
-    ) async {
+    testWidgets('pins back and cart controls ($direction)', (tester) async {
       await tester.binding.setSurfaceSize(const Size(360, 800));
       addTearDown(() => tester.binding.setSurfaceSize(null));
       RouteSettings? openedRoute;
@@ -249,18 +247,23 @@ void main() {
           );
         },
       );
-      expect(find.byType(BackButton), findsNothing);
-      expect(find.byIcon(Icons.arrow_back), findsNothing);
-      expect(find.byIcon(AppIcons.arrow_left_2), findsNothing);
-      expect(find.byIcon(AppIcons.arrow_right_3), findsNothing);
+      final back = find.byKey(const ValueKey('product_detail_back_button'));
+      expect(back, findsOneWidget);
       final cart = find.byType(CartCounterIcon);
       final cartRect = tester.getRect(cart);
+      final backRect = tester.getRect(back);
       final share = tester.getCenter(find.byIcon(AppIcons.send_1));
       expect(
         cartRect.center.dx,
         direction == TextDirection.rtl
             ? greaterThan(share.dx)
             : lessThan(share.dx),
+      );
+      expect(
+        backRect.center.dx,
+        direction == TextDirection.rtl
+            ? greaterThan(cartRect.center.dx)
+            : lessThan(cartRect.center.dx),
       );
 
       await tester.drag(

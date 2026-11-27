@@ -17,6 +17,7 @@ void main() {
           child: Scaffold(
             body: MarketStorefrontHero(
               market: _market,
+              onBack: () {},
               onSearch: () {},
               onShare: () {},
             ),
@@ -26,7 +27,10 @@ void main() {
     );
 
     expect(find.byKey(const ValueKey('storefront_cover')), findsOneWidget);
-    expect(find.byKey(const ValueKey('storefront_back_button')), findsNothing);
+    expect(
+      find.byKey(const ValueKey('storefront_back_button')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('storefront_logo')), findsOneWidget);
     expect(
       find.byKey(const ValueKey('storefront_search_button')),
@@ -62,6 +66,7 @@ void main() {
                 body: SingleChildScrollView(
                   child: MarketStorefrontHero(
                     market: _market,
+                    onBack: () {},
                     onSearch: () {},
                     onShare: () {},
                   ),
@@ -93,9 +98,7 @@ void main() {
     });
   }
 
-  testWidgets('toolbar omits back and still invokes search and sharing', (
-    tester,
-  ) async {
+  testWidgets('toolbar invokes back, search, and sharing', (tester) async {
     final tapped = <String>[];
     await tester.pumpWidget(
       MaterialApp(
@@ -103,6 +106,7 @@ void main() {
           body: SingleChildScrollView(
             child: MarketStorefrontHero(
               market: _market,
+              onBack: () => tapped.add('back'),
               onSearch: () => tapped.add('search'),
               onShare: () => tapped.add('share'),
             ),
@@ -110,10 +114,10 @@ void main() {
         ),
       ),
     );
-    for (final action in ['search', 'share']) {
+    for (final action in ['back', 'search', 'share']) {
       await tester.tap(find.byKey(ValueKey('storefront_${action}_button')));
     }
-    expect(tapped, ['search', 'share']);
+    expect(tapped, ['back', 'search', 'share']);
   });
 
   test('market data accepts normalized cover focal points', () {

@@ -342,6 +342,36 @@ class _OnboardingViewState extends State<OnboardingView> {
                               const SizedBox(height: 18),
                               Row(
                                 children: [
+                                  if (_currentIndex > 0) ...[
+                                    SizedBox(
+                                      width: 52,
+                                      height: 52,
+                                      child: IconButton(
+                                        onPressed: _isFinishing
+                                            ? null
+                                            : _onPrevious,
+                                        tooltip: MaterialLocalizations.of(
+                                          context,
+                                        ).backButtonTooltip,
+                                        style: IconButton.styleFrom(
+                                          foregroundColor: Colors.white,
+                                          backgroundColor: _navy,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              14,
+                                            ),
+                                          ),
+                                        ),
+                                        icon: Icon(
+                                          context.isArabicLanguage
+                                              ? AppIcons.arrow_right_3
+                                              : AppIcons.arrow_left_2,
+                                          size: 20,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
                                   Expanded(
                                     child: SizedBox(
                                       height: 52,

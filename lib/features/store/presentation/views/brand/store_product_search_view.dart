@@ -13,6 +13,7 @@ import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/formatters/product_pricing.dart';
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
+import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../../core/presentation/widgets/search/app_search_actions_bar.dart';
 import '../../../../../core/presentation/widgets/states/app_state_view.dart';
@@ -81,6 +82,10 @@ class _StoreProductSearchViewState extends State<StoreProductSearchView> {
                       focusNode: _focusNode,
                       onChanged: _search,
                     ),
+                  ),
+                  const SizedBox(width: 10),
+                  AppNavigationIconButton.back(
+                    onPressed: () => Navigator.maybePop(context),
                   ),
                 ],
               ),

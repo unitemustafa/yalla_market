@@ -3,18 +3,21 @@ import 'package:flutter/material.dart';
 
 import '../../../constants/app_colors.dart';
 import '../../../localization/app_translations.dart';
+import 'app_navigation_icon_button.dart';
 
 class PageTopBar extends StatelessWidget {
   const PageTopBar({
     super.key,
     required this.title,
     this.subtitle,
+    this.onBackPressed,
     this.actions = const [],
     this.titleMaxLines = 1,
   });
 
   final String title;
   final String? subtitle;
+  final VoidCallback? onBackPressed;
   final List<Widget> actions;
   final int? titleMaxLines;
 
@@ -27,6 +30,12 @@ class PageTopBar extends StatelessWidget {
 
     return Row(
       children: [
+        if (onBackPressed != null || ModalRoute.canPopOf(context) == true) ...[
+          AppNavigationIconButton.back(
+            onPressed: onBackPressed ?? () => Navigator.maybePop(context),
+          ),
+          const SizedBox(width: 12),
+        ],
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

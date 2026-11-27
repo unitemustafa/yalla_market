@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/localization/app_translations.dart';
+import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../../core/presentation/widgets/app_refresh_indicator.dart';
 import '../../../../../core/presentation/widgets/products/product_results_view.dart';
 import '../../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
@@ -199,6 +200,10 @@ class _ProductsTopBar extends StatelessWidget {
 
     return Row(
       children: [
+        AppNavigationIconButton.back(
+          onPressed: () => Navigator.maybePop(context),
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

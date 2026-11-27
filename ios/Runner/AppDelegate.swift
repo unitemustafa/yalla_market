@@ -11,6 +11,8 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // UIScene registers Flutter plugins after the notification delegate must be set.
+    FLTFirebaseMessagingPlugin.configureNotificationCenterDelegate()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

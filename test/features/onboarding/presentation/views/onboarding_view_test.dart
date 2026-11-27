@@ -91,7 +91,12 @@ void main() {
     await tester.tap(find.byType(ElevatedButton));
     await tester.pumpAndSettle();
     expect(visibleAsset(), AppAssets.onboardingFastDelivery);
-    expect(find.byType(IconButton), findsNothing);
+    expect(find.byType(IconButton), findsOneWidget);
+    await tester.tap(find.byType(IconButton));
+    await tester.pumpAndSettle();
+    expect(visibleAsset(), AppAssets.onboardingProducts);
+    await tester.tap(find.byType(ElevatedButton));
+    await tester.pumpAndSettle();
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(visibleAsset(), AppAssets.onboardingProducts);
@@ -188,7 +193,7 @@ void main() {
       AppAssets.onboardingFastDelivery,
     );
 
-    expect(find.byType(IconButton), findsNothing);
+    expect(find.byType(IconButton), findsOneWidget);
     await tester.binding.handlePopRoute();
     await tester.pump();
     expect(controller.page, 0);

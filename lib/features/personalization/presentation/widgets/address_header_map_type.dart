@@ -8,13 +8,15 @@ import '../../../../../core/constants/app_colors.dart';
 import '../../../../../core/constants/app_constants.dart';
 import '../../../../../core/icons/app_icons.dart';
 import '../../../../../core/localization/app_translations.dart';
+import '../../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../location/domain/services/device_location_service.dart';
 import '../views/address/address_location_picker_view.dart';
 
 class AddressPageHeader extends StatelessWidget {
-  const AddressPageHeader({super.key, required this.title});
+  const AddressPageHeader({super.key, required this.title, this.onBack});
 
   final String title;
+  final VoidCallback? onBack;
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +25,24 @@ class AddressPageHeader extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          Text(
-            context.tr(title),
-            style: TextStyle(
-              color: Theme.of(context).colorScheme.onSurface,
-              fontSize: AppFontSizes.bodyLarge,
-              fontWeight: FontWeight.w900,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 50),
+            child: Text(
+              context.tr(title),
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurface,
+                fontSize: AppFontSizes.bodyLarge,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: AppNavigationIconButton.back(
+              onPressed: onBack ?? () => Navigator.maybePop(context),
             ),
           ),
         ],

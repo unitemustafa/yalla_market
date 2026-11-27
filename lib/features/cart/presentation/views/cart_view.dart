@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:yalla_market/core/icons/app_icons.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/localization/app_translations.dart';
+import '../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../core/presentation/widgets/app_list_entrance.dart';
 import '../../../../core/presentation/widgets/snackbars/custom_snackbar.dart';
 import '../../../../app/routing/app_routes.dart';
@@ -185,6 +186,11 @@ class _CartViewState extends State<CartView>
   Widget _buildCartTopBar({required bool isDark, required int itemCount}) {
     return Row(
       children: [
+        AppNavigationIconButton.back(
+          onPressed: () => Navigator.maybePop(context),
+          color: isDark ? Colors.white : Colors.black,
+        ),
+        const SizedBox(width: 12),
         Expanded(
           child: Text(
             context.tr('Cart'),

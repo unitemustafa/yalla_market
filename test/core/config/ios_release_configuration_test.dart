@@ -49,6 +49,24 @@ void main() {
     expect(resources, contains('GoogleService-Info.plist in Resources'));
   });
 
+  test('UIScene configures Firebase Messaging before app launch completes', () {
+    final appDelegate = File('ios/Runner/AppDelegate.swift').readAsStringSync();
+    final bridgingHeader = File(
+      'ios/Runner/Runner-Bridging-Header.h',
+    ).readAsStringSync();
+    const delegateConfiguration =
+        'FLTFirebaseMessagingPlugin.configureNotificationCenterDelegate()';
+    const launchCompletion =
+        'return super.application(application, didFinishLaunchingWithOptions: launchOptions)';
+
+    expect(bridgingHeader, contains('FLTFirebaseMessagingPlugin.h'));
+    expect(appDelegate, contains(delegateConfiguration));
+    expect(
+      appDelegate.indexOf(delegateConfiguration),
+      lessThan(appDelegate.indexOf(launchCompletion)),
+    );
+  });
+
   test('Xcode and Firebase agree on the iOS app identity', () {
     const bundleId = 'com.yallamarket.app.com';
     final project = File(

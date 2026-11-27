@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/features/auth/presentation/views/reset_password_view.dart';
 import 'package:yalla_market/features/auth/presentation/widgets/auth_top_bar.dart';
+import 'package:yalla_market/core/icons/app_icons.dart';
 
 void main() {
   testWidgets('reset password is fixed and uses the signup back button', (
@@ -38,8 +39,8 @@ void main() {
             ? isA<ClampingScrollPhysics>()
             : isA<NeverScrollableScrollPhysics>(),
       );
-      expect(find.byType(AuthTopBar), findsNothing);
-      expect(find.byType(BackButton), findsNothing);
+      expect(find.byType(AuthTopBar), findsOneWidget);
+      expect(find.byIcon(AppIcons.arrow_left_2), findsOneWidget);
       final artwork = tester.widget<Container>(
         find.byKey(const ValueKey('auth_lock_artwork')),
       );

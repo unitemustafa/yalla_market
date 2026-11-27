@@ -273,8 +273,8 @@ class _VerifyEmailViewState extends State<VerifyEmailView> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   AuthTopBar(
-                    showClose: true,
-                    onClose: () {
+                    showBack: true,
+                    onBack: () {
                       unawaited(_leaveVerification());
                     },
                   ),

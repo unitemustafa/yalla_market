@@ -21,6 +21,7 @@ import '../../../../core/formatters/app_currency.dart';
 import '../../../../core/formatters/product_pricing.dart';
 import '../../../../core/localization/app_translations.dart';
 import '../../../../core/network/api_result.dart';
+import '../../../../core/presentation/widgets/appbar/app_navigation_icon_button.dart';
 import '../../../../core/presentation/widgets/images/app_image.dart';
 import '../../../../core/presentation/widgets/products/cart_counter_icon.dart';
 import '../../../../core/presentation/widgets/buttons/app_action_button.dart';
@@ -403,7 +404,11 @@ class _ProductDetailViewState extends State<ProductDetailView>
       final failure = _productLoadFailure;
       final isNotFound = failure?.statusCode == 404;
       return Scaffold(
-        appBar: AppBar(automaticallyImplyLeading: false),
+        appBar: AppBar(
+          leading: const BackButton(
+            key: ValueKey('product_detail_back_button'),
+          ),
+        ),
         body: Center(
           child: _isLoadingProductDetails
               ? const AppProductDetailsSkeleton()

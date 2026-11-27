@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yalla_market/core/errors/failure.dart';
+import 'package:yalla_market/core/icons/app_icons.dart';
 import 'package:yalla_market/core/localization/app_language_controller.dart';
 import 'package:yalla_market/core/localization/app_translations.dart';
 import 'package:yalla_market/core/otp/otp_cooldown_store.dart';
@@ -25,7 +26,7 @@ void main() {
     AppLanguageController.instance.value = AppLanguage.english;
   });
 
-  testWidgets('uses a fixed layout without a back button', (tester) async {
+  testWidgets('uses a fixed layout with a back button', (tester) async {
     for (final size in const [Size(320, 480), Size(360, 600), Size(600, 900)]) {
       await _pumpForgetPassword(
         tester,
@@ -38,8 +39,8 @@ void main() {
         find.byKey(const ValueKey('fixed_auth_page_scroll')),
       );
       expect(fixedScroll.physics, isA<NeverScrollableScrollPhysics>());
-      expect(find.byType(AuthTopBar), findsNothing);
-      expect(find.byType(BackButton), findsNothing);
+      expect(find.byType(AuthTopBar), findsOneWidget);
+      expect(find.byIcon(AppIcons.arrow_left_2), findsOneWidget);
       final artwork = tester.widget<Container>(
         find.byKey(const ValueKey('auth_lock_artwork')),
       );

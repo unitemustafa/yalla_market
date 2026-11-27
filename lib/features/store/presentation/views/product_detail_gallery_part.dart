@@ -1,5 +1,7 @@
 part of 'product_detail_view.dart';
 
+const double _productHeaderLeadingWidth = 116;
+
 extension _ProductDetailHeader on _ProductDetailViewState {
   double _productToolbarHeight(BuildContext context) => math.max(
     kToolbarHeight,
@@ -43,44 +45,18 @@ extension _ProductDetailHeader on _ProductDetailViewState {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      leadingWidth: 74,
+      leadingWidth: _productHeaderLeadingWidth,
       leading: Padding(
-        padding: const EdgeInsetsDirectional.only(start: 16, end: 16),
-        child: Center(
-          child: AnimatedBuilder(
-            animation: _cartAnimation,
-            builder: (context, child) {
-              final pulse = ((_cartAnimation.value * 880 - 700) / 180).clamp(
-                0.0,
-                1.0,
-              );
-              return Transform.scale(
-                key: const ValueKey('product_detail_cart_scale'),
-                scale: 1 + 0.18 * math.sin(math.pi * pulse),
-                child: child,
-              );
-            },
-            child: Tooltip(
-              message: context.tr('Cart'),
-              child: Material(
-                color: isDark
-                    ? Colors.black.withValues(alpha: 0.22)
-                    : Colors.white.withValues(alpha: 0.92),
-                shape: const CircleBorder(),
-                child: SizedBox(
-                  key: _cartTargetKey,
-                  width: 42,
-                  height: 42,
-                  child: CartCounterIcon(
-                    onPressed: _openCart,
-                    iconColor: isDark ? Colors.white : Colors.black,
-                    iconSize: 21,
-                    buttonSize: 42,
-                  ),
-                ),
-              ),
+        padding: const EdgeInsetsDirectional.only(start: 16, end: 8),
+        child: Row(
+          children: [
+            AppNavigationIconButton.back(
+              key: const ValueKey('product_detail_back_button'),
+              onPressed: () => Navigator.maybePop(context),
             ),
-          ),
+            const SizedBox(width: 8),
+            _buildHeaderCartButton(isDark),
+          ],
         ),
       ),
       actionsPadding: const EdgeInsetsDirectional.only(end: 16),
@@ -120,6 +96,43 @@ extension _ProductDetailHeader on _ProductDetailViewState {
       ),
     );
   }
+
+  Widget _buildHeaderCartButton(bool isDark) {
+    return AnimatedBuilder(
+      animation: _cartAnimation,
+      builder: (context, child) {
+        final pulse = ((_cartAnimation.value * 880 - 700) / 180).clamp(
+          0.0,
+          1.0,
+        );
+        return Transform.scale(
+          key: const ValueKey('product_detail_cart_scale'),
+          scale: 1 + 0.18 * math.sin(math.pi * pulse),
+          child: child,
+        );
+      },
+      child: Tooltip(
+        message: context.tr('Cart'),
+        child: Material(
+          color: isDark
+              ? Colors.black.withValues(alpha: 0.22)
+              : Colors.white.withValues(alpha: 0.92),
+          shape: const CircleBorder(),
+          child: SizedBox(
+            key: _cartTargetKey,
+            width: 42,
+            height: 42,
+            child: CartCounterIcon(
+              onPressed: _openCart,
+              iconColor: isDark ? Colors.white : Colors.black,
+              iconSize: 21,
+              buttonSize: 42,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _ProductFlexibleHeader extends StatelessWidget {
@@ -150,7 +163,7 @@ class _ProductFlexibleHeader extends StatelessWidget {
     final titleHeight =
         expandedTitleHeight +
         (collapsedTitleHeight - expandedTitleHeight) * collapse;
-    final start = 16 + 58 * collapse;
+    final start = 16 + (_productHeaderLeadingWidth - 16) * collapse;
     final end = 16 + 100 * collapse;
 
     return LayoutBuilder(

@@ -619,6 +619,7 @@ class _BrandProductsViewState extends State<BrandProductsView> {
         SliverToBoxAdapter(
           child: MarketStorefrontHero(
             market: market,
+            onBack: Navigator.of(context).maybePop,
             onSearch: () => _openStoreSearch(market),
             onShare: () => _shareMarket(market),
           ),

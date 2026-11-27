@@ -16,6 +16,7 @@ import '../../../../app/routing/app_routes.dart';
 import '../../../../core/utils/validators.dart';
 import '../cubit/auth_cubit.dart';
 import '../cubit/auth_state.dart';
+import '../widgets/auth_top_bar.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/fixed_auth_page_layout.dart';
 
@@ -225,6 +226,8 @@ class _ForgetPasswordViewState extends State<ForgetPasswordView> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  const AuthTopBar(showBack: true),
+                  const SizedBox(height: 12),
                   _buildHeader(context, theme, isDarkMode),
                   const SizedBox(height: 24),
                   CustomTextField(

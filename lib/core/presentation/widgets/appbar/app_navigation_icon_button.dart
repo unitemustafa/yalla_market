@@ -15,6 +15,15 @@ class AppNavigationIconButton extends StatelessWidget {
     this.flipInRtl = false,
   });
 
+  const AppNavigationIconButton.back({
+    super.key,
+    required this.onPressed,
+    this.tooltip = 'Back',
+    this.color,
+    this.backgroundColor,
+  }) : icon = AppIcons.arrow_left_2,
+       flipInRtl = true;
+
   const AppNavigationIconButton.close({
     super.key,
     required this.onPressed,

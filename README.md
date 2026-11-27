@@ -68,7 +68,7 @@ flutter test test/core/localization
 - The Android SDK and an Android emulator or physical device
 - Xcode, CocoaPods, and an Apple Developer setup for iOS builds
 
-The project declares Dart SDK `^3.12.0`; the required Dart version is included
+The project declares Dart SDK `^3.11.4`; the required Dart version is included
 with the pinned Flutter SDK.
 
 ## Getting started

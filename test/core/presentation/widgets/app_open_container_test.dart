@@ -143,23 +143,19 @@ void main() {
     );
   }
 
-  testWidgets(
-    'iOS nested actions do not open the destination',
-    (tester) async {
-      final observer = _RouteObserver();
-      var actionCalls = 0;
-      await _pumpContainer(
-        tester,
-        observer: observer,
-        nestedAction: () => actionCalls++,
-      );
-      await tester.tap(find.byKey(const ValueKey('nested-action')));
-      await tester.pumpAndSettle();
-      expect(actionCalls, 1);
-      expect(observer.pushed, isEmpty);
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.iOS),
-  );
+  testWidgets('iOS nested actions do not open the destination', (tester) async {
+    final observer = _RouteObserver();
+    var actionCalls = 0;
+    await _pumpContainer(
+      tester,
+      observer: observer,
+      nestedAction: () => actionCalls++,
+    );
+    await tester.tap(find.byKey(const ValueKey('nested-action')));
+    await tester.pumpAndSettle();
+    expect(actionCalls, 1);
+    expect(observer.pushed, isEmpty);
+  }, variant: TargetPlatformVariant.only(TargetPlatform.iOS));
 
   testWidgets('does not open when a nested action is tapped', (tester) async {
     final observer = _RouteObserver();

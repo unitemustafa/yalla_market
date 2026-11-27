@@ -138,11 +138,9 @@ void main() {
     try {
       await request;
     } catch (_) {}
-    expect(
-      sentHeaders,
-      ['Bearer old-access'],
-      reason: 'Request prepared in A must not execute with B credentials.',
-    );
+    expect(sentHeaders, [
+      'Bearer old-access',
+    ], reason: 'Request prepared in A must not execute with B credentials.');
   });
   test('avatar multipart can survive reactive auth refresh', () async {
     final now = DateTime.now().toUtc();

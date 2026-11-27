@@ -295,22 +295,24 @@ class _PartnerApplicationViewState extends State<PartnerApplicationView> {
                       textInputAction: TextInputAction.newline,
                     ),
                     const SizedBox(height: 8),
-                    CheckboxListTile(
-                      value: _whatsAppOptIn,
-                      onChanged: _isSubmitting
-                          ? null
-                          : (value) {
-                              setState(() => _whatsAppOptIn = value ?? false);
-                            },
-                      contentPadding: EdgeInsets.zero,
-                      activeColor: AppColors.success,
-                      controlAffinity: ListTileControlAffinity.leading,
-                      title: Text(
-                        context.tr(
-                          'I would like to receive updates by WhatsApp',
-                        ),
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          fontWeight: FontWeight.w800,
+                    Material(
+                      type: MaterialType.transparency,
+                      child: CheckboxListTile(
+                        value: _whatsAppOptIn,
+                        onChanged: _isSubmitting
+                            ? null
+                            : (value) {
+                                setState(() => _whatsAppOptIn = value ?? false);
+                              },
+                        contentPadding: EdgeInsets.zero,
+                        activeColor: AppColors.success,
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: Text(
+                          context.tr(
+                            'I would like to receive updates by WhatsApp',
+                          ),
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                       ),
                     ),

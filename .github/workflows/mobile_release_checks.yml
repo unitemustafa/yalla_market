@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.41.6
+          flutter-version: 3.47.9
           channel: stable
           cache: true
       - run: flutter pub get
@@ -103,7 +103,7 @@ jobs:
           fi
       - uses: subosito/flutter-action@v2
         with:
-          flutter-version: 3.41.6
+          flutter-version: 3.47.9
           channel: stable
           cache: true
       - run: flutter pub get
@@ -131,7 +131,7 @@ jobs:
           client_token = os.environ.get("FACEBOOK_CLIENT_TOKEN", "")
           if not re.fullmatch(r"[1-9][0-9]+", app_id) or not re.fullmatch(r"[a-fA-F0-9]{32}", client_token):
               raise SystemExit("Valid FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN secrets are required")
-          Path("ios/Flutter/Facebook.xcconfig").write_text(
+          Path("ios/Flutter/Facebook.local.xcconfig").write_text(
               f"FACEBOOK_APP_ID = {app_id}\nFACEBOOK_CLIENT_TOKEN = {client_token}\n",
               encoding="ascii",
           )
@@ -177,5 +177,5 @@ jobs:
           if [[ -f "$RUNNER_TEMP/yalla-ios.keychain-db" ]]; then
             security delete-keychain "$RUNNER_TEMP/yalla-ios.keychain-db"
           fi
-          rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.xcconfig \
+          rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.local.xcconfig \
             ios/Flutter/DistributionSigning.xcconfig

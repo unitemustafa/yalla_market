@@ -63,12 +63,12 @@ flutter test test/core/localization
 
 ## Requirements
 
-- Flutter `3.41.6` on the stable channel
+- Flutter `3.47.9` on the stable channel
 - JDK 17 or 21 for the current Android Gradle toolchain (Java 25 is incompatible)
 - The Android SDK and an Android emulator or physical device
 - Xcode, CocoaPods, and an Apple Developer setup for iOS builds
 
-The project declares Dart SDK `^3.11.4`; the required Dart version is included
+The project declares Dart SDK `^3.12.0`; the required Dart version is included
 with the pinned Flutter SDK.
 
 ## Getting started
@@ -256,8 +256,9 @@ on a Mac with Xcode.
 - Configure Apple Private Email Relay for the sender used for account email.
 - Deploy the backend with the Apple account-deletion check before testing iOS
   account deletion against it.
-- The Facebook sign-in button is hidden across platforms. Builds require the
-  Facebook SDK configuration.
+- The Facebook sign-in button is hidden across platforms. For local iOS builds,
+  put your Meta app's Facebook SDK settings in the ignored
+  `ios/Flutter/Facebook.local.xcconfig` to override the checked-in placeholders.
 
 In GitHub Actions, run **Mobile release checks** with `platform` set to `ios`
 for an unsigned compile check on macOS. This check works without Apple signing

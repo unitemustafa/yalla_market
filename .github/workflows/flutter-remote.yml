@@ -23,7 +23,7 @@ on:
         default: build
       flutter_version:
         description: Flutter version or channel (e.g. 3.29.0 or stable)
-        default: "3.41.6"
+        default: "3.47.9"
       build_mode:
         description: "Flutter build mode (iOS Simulator only supports debug)"
         default: debug
@@ -136,7 +136,7 @@ jobs:
           client_token = os.environ.get("FACEBOOK_CLIENT_TOKEN", "")
           if not re.fullmatch(r"[1-9][0-9]+", app_id) or not re.fullmatch(r"[a-fA-F0-9]{32}", client_token):
               raise SystemExit("Valid FACEBOOK_APP_ID and FACEBOOK_CLIENT_TOKEN secrets are required")
-          Path("ios/Flutter/Facebook.xcconfig").write_text(
+          Path("ios/Flutter/Facebook.local.xcconfig").write_text(
               f"FACEBOOK_APP_ID = {app_id}\nFACEBOOK_CLIENT_TOKEN = {client_token}\n",
               encoding="ascii",
           )
@@ -660,4 +660,4 @@ jobs:
 
       - name: Remove iOS service configuration
         if: always()
-        run: rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.xcconfig
+        run: rm -f ios/Runner/GoogleService-Info.plist ios/Flutter/Facebook.local.xcconfig
